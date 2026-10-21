@@ -393,6 +393,11 @@ local GameConfig = {
 		LastSecondsTicking = 60,
 	},
 
+	-- Temporary development switches. Turn off before release.
+	Debug = {
+		PrintZoneChanges = true, -- ZoneService prints a line whenever a player's zone tier changes
+	},
+
 	-- Spec 25.6: client -> server remotes are rate-limited. Overrides are by remote name.
 	Network = {
 		DefaultRateLimit = { PerSecond = 20, Burst = 20 },
