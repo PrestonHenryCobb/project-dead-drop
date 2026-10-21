@@ -120,6 +120,28 @@ local GameConfig = {
 			AlarmRaise = 1,
 		},
 		SecurityKillAlarmRaise = 1,
+		-- Implementation tuning for the node graph and crowd movement (not spec values).
+		Graph = {
+			NeighborsPerNode = 6, -- each node tries to link to this many of its nearest nodes on the same level
+			CrossLevelNeighbors = 3, -- and to this many on the levels above and below (kept only if a ramp is close)
+			SameLevelStuds = 6, -- nodes whose heights differ by less than this are on the same level
+			MaxEdgeStuds = 90, -- nodes further apart than this are never linked directly
+			MaxDetourRatio = 2, -- a link is dropped if its walking path is this many times the straight distance
+			AgentRadius = 2,
+			AgentHeight = 5,
+			ConcurrentPaths = 24, -- paths computed at the same time while the graph builds
+			TierSampleStuds = 4, -- how often a link is sampled to find the highest tier it passes through
+		},
+		MinTripStuds = 30, -- an NPC's next destination is at least this far away
+		ArrivalSpread = 3, -- NPCs stand within this many studs of a node, so they don't stack on one point
+		SeparationMaxOffset = 1.25, -- how far separation may push an NPC off its path
+		SeparationStrength = 4,
+		SeparationDecayPerSecond = 2,
+		-- Client side: NPCs are drawn this far in the past, between the two latest server updates.
+		InterpolationDelay = 0.15,
+		AnimationSpeedReference = 14.5, -- the default Animate script plays walk at speed / 14.5; NPCs must match
+		WalkAnimationMinSpeed = 0.5,
+		AnimationFadeSeconds = 0.2,
 	},
 
 	-- Spec 6, 7, 8: disguise, cover, suspicion.
@@ -398,12 +420,19 @@ local GameConfig = {
 	Rig = {
 		ScaleMin = 0.95,
 		ScaleMax = 1.05,
+		-- Spec 8.2: players and NPCs share one collision group. NPCs have an anchored root, so if characters
+		-- collided with each other a shove would move a player but not an NPC, which is a tell. Characters pass
+		-- through each other instead, and still collide with the map.
+		-- SPEC-QUESTION: the spec says "same collision group" but not whether the group collides with itself.
+		CollisionGroup = "Characters",
+		CharactersCollideWithEachOther = false,
 	},
 
 	-- Temporary development switches. Turn off before release.
 	Debug = {
 		PrintZoneChanges = true, -- ZoneService prints a line whenever a player's zone tier changes
-		SpawnTestNpc = true, -- RigService puts an NPC in the player's outfit beside each spawn (removed in Step 4)
+		PrintNpcCost = true, -- NPCService and NPCController print their average per-update cost every few seconds
+		CostReportSeconds = 10,
 		AutoRespawn = true, -- RigService respawns a dead player (replaced by the match flow in Step 10)
 		AutoRespawnSeconds = 3,
 	},

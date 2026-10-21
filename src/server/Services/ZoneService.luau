@@ -6,6 +6,7 @@
 -- the highest tier wins (spec 27 #18). A position inside no volume counts as Public (tier 0).
 --
 --   ZoneService.getTier(player) -> number
+--   ZoneService.tierAt(position) -> number
 --   ZoneService.TierChanged:Connect(function(player, newTier, oldTier) ... end)
 
 local CollectionService = game:GetService("CollectionService")
@@ -53,7 +54,7 @@ local function removeVolume(instance: Instance)
 end
 
 -- The highest tier of any volume that contains the position, or 0 if none do.
-local function tierAt(position: Vector3): number
+function ZoneService.tierAt(position: Vector3): number
 	local highest = 0
 	for _, volume in volumes do
 		if volume.tier > highest then
@@ -93,7 +94,7 @@ local function check()
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 		if root and root:IsA("BasePart") then
-			setTier(player, tierAt(root.Position))
+			setTier(player, ZoneService.tierAt(root.Position))
 		end
 	end
 end
@@ -103,12 +104,14 @@ function ZoneService.getTier(player: Player): number
 	return playerTiers[player] or 0
 end
 
-function ZoneService.Init() end
-
-function ZoneService.Start()
+-- Volumes load in Init so other services can call tierAt from their Start.
+function ZoneService.Init()
 	for _, instance in CollectionService:GetTagged(Enums.Tag.ZoneVolume) do
 		addVolume(instance)
 	end
+end
+
+function ZoneService.Start()
 	CollectionService:GetInstanceAddedSignal(Enums.Tag.ZoneVolume):Connect(addVolume)
 	CollectionService:GetInstanceRemovedSignal(Enums.Tag.ZoneVolume):Connect(removeVolume)
 
