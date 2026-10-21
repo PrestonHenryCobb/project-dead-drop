@@ -113,6 +113,33 @@ local GameConfig = {
 			BodyRadius = 15,
 			ExplosionRadius = 25,
 			ExplosionRagdollRadius = 6,
+			-- Who panics at gunfire and explosions (5.4: Guests and Staff), and who gasps at a body (Guests).
+			PanicRoles = { Guest = true, Staff = true },
+			BodyRoles = { Guest = true },
+			GaspSeconds = 1.4,
+			BackAwayStuds = 5,
+		},
+		-- Spec 5.3: what each node Activity looks like. Idle picks one at random; Walk is a pass-through, no stop.
+		ActivityAnimations = {
+			Walk = {},
+			Idle = { "Idle", "LookAtArt", "Phone" },
+			Talk = { "Talk" },
+			Sit = { "Sit" },
+			Lean = { "Lean" },
+			Drink = { "Drink" },
+			Work = { "Typing" },
+			Guard = { "GuardStance" },
+		},
+		ActivityResyncSeconds = 5, -- the server repeats every NPC's animation this often, so late joiners catch up
+		-- Spec 5.2: NPCs open doors automatically and the doors close DoorCloseDelay after the last body passes.
+		-- SPEC-QUESTION: the spec doesn't say whether NPCs open keycard shortcut doors. They do here, which lets a
+		-- player slip through behind an NPC. Set OpenForNpcs to false to keep them shut.
+		Door = { OpenStuds = 8, OpenForNpcs = true, OpenTransparency = 0.7 },
+		-- Spec 5.5: NPC death.
+		Death = {
+			FadeSeconds = 1,
+			ReplacementMinStuds = 100, -- implementation tuning: "far-away node" means at least this far from the body
+			RagdollSpeed = 30, -- studs/s the blast throws a ragdoll
 		},
 		CivilianKill = {
 			ExposedSeconds = 10,
@@ -433,6 +460,9 @@ local GameConfig = {
 		PrintZoneChanges = true, -- ZoneService prints a line whenever a player's zone tier changes
 		PrintNpcCost = true, -- NPCService and NPCController print their average per-update cost every few seconds
 		CostReportSeconds = 10,
+		TestEvents = true, -- the J, K and L keys fire a test gunshot, explosion and dead body (removed in Step 8)
+		TestKeys = { Gunshot = Enum.KeyCode.J, Explosion = Enum.KeyCode.K, Body = Enum.KeyCode.L },
+		TestEventMaxStuds = 150, -- the server ignores test events further than this from the sender
 		AutoRespawn = true, -- RigService respawns a dead player (replaced by the match flow in Step 10)
 		AutoRespawnSeconds = 3,
 	},

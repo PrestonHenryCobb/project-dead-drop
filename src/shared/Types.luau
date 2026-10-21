@@ -45,6 +45,21 @@ export type OutfitDef = {
 	Scale: { Height: number, Width: number, Depth: number, Head: number },
 }
 
+-- Spec 5.3, 6.7: animations built from code. A joint pose is rotation in degrees about x, y, z and an optional
+-- offset in studs: { rx, ry, rz, tx, ty, tz }. Missing trailing numbers are zero.
+export type JointPose = { number }
+
+export type PoseKeyframe = {
+	Time: number,
+	Joints: { [string]: JointPose },
+}
+
+export type PoseDef = {
+	Loop: boolean,
+	Priority: "Action" | "Action2",
+	Keyframes: { PoseKeyframe },
+}
+
 -- Token-bucket limits for one client -> server remote (GameConfig.Network).
 export type RateLimit = {
 	PerSecond: number,

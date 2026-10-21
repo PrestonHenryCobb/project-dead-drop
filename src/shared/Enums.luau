@@ -76,6 +76,22 @@ local Enums = {
 		ZoneVolume = "ZoneVolume", -- Spec 4.2: invisible volumes carrying the Tier attribute.
 	},
 
+	-- Spec 5.3, 6.7, 5.4: the code-built animations NPCs (and later the Blend wheel) play.
+	NpcAnimation = {
+		LookAtArt = "LookAtArt",
+		Phone = "Phone",
+		Talk = "Talk",
+		Drink = "Drink",
+		Sit = "Sit",
+		Lean = "Lean",
+		Typing = "Typing",
+		GuardStance = "GuardStance",
+		Cower = "Cower",
+		Gasp = "Gasp",
+		GlanceLeft = "GlanceLeft",
+		GlanceRight = "GlanceRight",
+	},
+
 	-- Spec 18.4: global alarm levels.
 	AlarmLevel = {
 		Calm = 0,

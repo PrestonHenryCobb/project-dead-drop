@@ -29,6 +29,7 @@ local Remotes = {
 		"FundsUpdate",
 		"CooldownUpdate",
 		"Notification",
+		"NPCAnimation", -- NPC id and the animation it is playing (implementation detail of spec 5.3)
 	},
 
 	-- Client -> server (requests only; the server validates every one)
@@ -47,6 +48,7 @@ local Remotes = {
 		"RequestDropPackage",
 		"RequestPassPackage",
 		"RequestEmote",
+		"RequestDebugEvent", -- development only; ignored unless GameConfig.Debug.TestEvents is on
 	},
 
 	FolderName = "Remotes",

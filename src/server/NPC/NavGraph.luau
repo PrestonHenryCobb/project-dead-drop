@@ -8,6 +8,7 @@
 --
 --   local graph = NavGraph.build(nodeParts, ZoneService.tierAt)   -- yields while paths are computed
 --   local destination, points = NavGraph.route(graph, fromNode, maxTier, minTripStuds, isFree, rng)
+--   local destination, points = NavGraph.fleeRoute(graph, fromNode, maxTier, threatPosition)
 
 local PathfindingService = game:GetService("PathfindingService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -166,29 +167,29 @@ function NavGraph.build(nodes: { BasePart }, tierAt: (Vector3) -> number): Graph
 	return graph
 end
 
--- Picks a random reachable, free node at least minTrip studs of walking away, using only nodes and links whose tier
--- is at most maxTier. Returns the node and the points to walk, or nil if nothing qualifies.
-function NavGraph.route(
-	graph: Graph,
-	from: number,
-	maxTier: number,
-	minTrip: number,
-	isFree: (number) -> boolean,
-	rng: Random
-): (number?, { Vector3 }?)
-	local count = #graph.feet
-	local distance: { number } = table.create(count, math.huge)
-	local via: { Edge | false } = table.create(count, false)
-	local cameFrom: { number } = table.create(count, 0)
-	local done: { boolean } = table.create(count, false)
-	distance[from] = 0
+type Search = {
+	distance: { number },
+	via: { Edge | false },
+	cameFrom: { number },
+}
 
-	-- Dijkstra with a linear scan: the graph has a few hundred nodes and routes are picked rarely.
+-- Shortest walking distance from one node to every node it can reach, using only nodes and links whose tier is at
+-- most maxTier. A linear-scan Dijkstra: the graph has a few hundred nodes and searches are rare.
+local function search(graph: Graph, from: number, maxTier: number): Search
+	local count = #graph.feet
+	local found: Search = {
+		distance = table.create(count, math.huge),
+		via = table.create(count, false),
+		cameFrom = table.create(count, 0),
+	}
+	local done: { boolean } = table.create(count, false)
+	found.distance[from] = 0
+
 	for _ = 1, count do
 		local current, best = 0, math.huge
 		for index = 1, count do
-			if not done[index] and distance[index] < best then
-				current, best = index, distance[index]
+			if not done[index] and found.distance[index] < best then
+				current, best = index, found.distance[index]
 			end
 		end
 		if current == 0 then
@@ -198,33 +199,25 @@ function NavGraph.route(
 		for _, edge in graph.edges[current] do
 			if edge.maxTier <= maxTier and graph.tiers[edge.to] <= maxTier then
 				local candidate = best + edge.length
-				if candidate < distance[edge.to] then
-					distance[edge.to] = candidate
-					via[edge.to] = edge
-					cameFrom[edge.to] = current
+				if candidate < found.distance[edge.to] then
+					found.distance[edge.to] = candidate
+					found.via[edge.to] = edge
+					found.cameFrom[edge.to] = current
 				end
 			end
 		end
 	end
+	return found
+end
 
-	local options: { number } = {}
-	for index = 1, count do
-		if index ~= from and distance[index] >= minTrip and distance[index] < math.huge and isFree(index) then
-			table.insert(options, index)
-		end
-	end
-	if #options == 0 then
-		return nil, nil
-	end
-
-	local destination = options[rng:NextInteger(1, #options)]
+-- The points to walk from one node to a node the search reached.
+local function pointsTo(found: Search, from: number, destination: number): { Vector3 }
 	local chain: { Edge } = {}
 	local node = destination
 	while node ~= from do
-		table.insert(chain, 1, via[node] :: Edge)
-		node = cameFrom[node]
+		table.insert(chain, 1, found.via[node] :: Edge)
+		node = found.cameFrom[node]
 	end
-
 	local points: { Vector3 } = {}
 	for edgeIndex, edge in chain do
 		for pointIndex, point in edge.points do
@@ -233,7 +226,55 @@ function NavGraph.route(
 			end
 		end
 	end
-	return destination, points
+	return points
+end
+
+-- Picks a random reachable, free node at least minTrip studs of walking away. Returns the node and the points to
+-- walk, or nil if nothing qualifies.
+function NavGraph.route(
+	graph: Graph,
+	from: number,
+	maxTier: number,
+	minTrip: number,
+	isFree: (number) -> boolean,
+	rng: Random
+): (number?, { Vector3 }?)
+	local found = search(graph, from, maxTier)
+	local options: { number } = {}
+	for index = 1, #graph.feet do
+		if
+			index ~= from
+			and found.distance[index] >= minTrip
+			and found.distance[index] < math.huge
+			and isFree(index)
+		then
+			table.insert(options, index)
+		end
+	end
+	if #options == 0 then
+		return nil, nil
+	end
+	local destination = options[rng:NextInteger(1, #options)]
+	return destination, pointsTo(found, from, destination)
+end
+
+-- The route for an NPC running from a threat (spec 5.4): the farthest node from `awayFrom` that is on the same tier
+-- as the node it starts at and reachable within maxTier. Returns nil if there is none.
+function NavGraph.fleeRoute(graph: Graph, from: number, maxTier: number, awayFrom: Vector3): (number?, { Vector3 }?)
+	local found = search(graph, from, maxTier)
+	local best, bestDistance = nil, -1
+	for index = 1, #graph.feet do
+		if index ~= from and found.distance[index] < math.huge and graph.tiers[index] == graph.tiers[from] then
+			local distance = (graph.feet[index] - awayFrom).Magnitude
+			if distance > bestDistance then
+				best, bestDistance = index, distance
+			end
+		end
+	end
+	if not best then
+		return nil, nil
+	end
+	return best, pointsTo(found, from, best)
 end
 
 return NavGraph
