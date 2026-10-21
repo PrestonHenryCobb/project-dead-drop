@@ -814,6 +814,13 @@ spawn.Parent = objects
 
 root.Parent = workspace
 
+-- Temporary: the slabs block the sky, so the interior is nearly black. Lift the ambient light so the map can be
+-- tested. A real lighting pass replaces this during the art stage.
+local Lighting = game:GetService("Lighting")
+Lighting.Ambient = Color3.fromRGB(120, 120, 128)
+Lighting.OutdoorAmbient = Color3.fromRGB(120, 120, 128)
+Lighting.ExposureCompensation = 0.3
+
 -- Validation -----------------------------------------------------------------------
 
 local problems = 0

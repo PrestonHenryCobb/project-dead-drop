@@ -22,6 +22,29 @@ export type ModeConfig = {
 	MaxPlayers: number,
 }
 
+-- Spec 25.3: an outfit is a data record. Characters are built from these, never from Roblox avatar items.
+export type AccessoryKind = "Tie" | "BowTie" | "Armband" | "LapelPin" | "Apron"
+
+export type AccessoryDef = {
+	Kind: AccessoryKind,
+	Color: Color3,
+}
+
+export type HairStyle = "Bald" | "Crop" | "Short" | "Long" | "Bun"
+
+export type OutfitDef = {
+	OutfitId: string,
+	Role: Role,
+	Tier: Tier,
+	BodyColors: { Skin: Color3, Shoes: Color3 },
+	Shirt: { Color: Color3, LongSleeves: boolean },
+	Pants: { Color: Color3 },
+	Accessories: { AccessoryDef },
+	Hair: { Style: HairStyle, Color: Color3 },
+	Face: string,
+	Scale: { Height: number, Width: number, Depth: number, Head: number },
+}
+
 -- Token-bucket limits for one client -> server remote (GameConfig.Network).
 export type RateLimit = {
 	PerSecond: number,

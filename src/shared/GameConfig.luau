@@ -393,9 +393,19 @@ local GameConfig = {
 		LastSecondsTicking = 60,
 	},
 
+	-- Spec 8.2: players and NPCs share one rig, so their size ranges must match.
+	-- SPEC-QUESTION: the spec says "identical scale ranges" but gives no numbers. Every outfit scales 5% either way.
+	Rig = {
+		ScaleMin = 0.95,
+		ScaleMax = 1.05,
+	},
+
 	-- Temporary development switches. Turn off before release.
 	Debug = {
 		PrintZoneChanges = true, -- ZoneService prints a line whenever a player's zone tier changes
+		SpawnTestNpc = true, -- RigService puts an NPC in the player's outfit beside each spawn (removed in Step 4)
+		AutoRespawn = true, -- RigService respawns a dead player (replaced by the match flow in Step 10)
+		AutoRespawnSeconds = 3,
 	},
 
 	-- Spec 25.6: client -> server remotes are rate-limited. Overrides are by remote name.
