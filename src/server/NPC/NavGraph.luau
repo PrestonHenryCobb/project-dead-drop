@@ -9,6 +9,8 @@
 --   local graph = NavGraph.build(nodeParts, ZoneService.tierAt)   -- yields while paths are computed
 --   local destination, points = NavGraph.route(graph, fromNode, maxTier, minTripStuds, isFree, rng)
 --   local destination, points = NavGraph.fleeRoute(graph, fromNode, maxTier, threatPosition)
+--   local points = NavGraph.routeTo(graph, fromNode, maxTier, destinationNode)
+--   local destination, points = NavGraph.routeNear(graph, fromNode, maxTier, position)
 
 local PathfindingService = game:GetService("PathfindingService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -256,6 +258,36 @@ function NavGraph.route(
 	end
 	local destination = options[rng:NextInteger(1, #options)]
 	return destination, pointsTo(found, from, destination)
+end
+
+-- The route to a given node. Returns nil if it cannot be reached within maxTier.
+function NavGraph.routeTo(graph: Graph, from: number, maxTier: number, destination: number): { Vector3 }?
+	local found = search(graph, from, maxTier)
+	if destination == from or found.distance[destination] == math.huge then
+		return nil
+	end
+	return pointsTo(found, from, destination)
+end
+
+-- The route to the reachable node nearest a position (3D distance), for an NPC going to look at something.
+function NavGraph.routeNear(graph: Graph, from: number, maxTier: number, position: Vector3): (number?, { Vector3 }?)
+	local found = search(graph, from, maxTier)
+	local best, bestDistance = nil, math.huge
+	for index = 1, #graph.feet do
+		if found.distance[index] < math.huge then
+			local distance = (graph.feet[index] - position).Magnitude
+			if distance < bestDistance then
+				best, bestDistance = index, distance
+			end
+		end
+	end
+	if not best then
+		return nil, nil
+	end
+	if best == from then
+		return best, {}
+	end
+	return best, pointsTo(found, from, best)
 end
 
 -- The route for an NPC running from a threat (spec 5.4): the farthest node from `awayFrom` that is on the same tier

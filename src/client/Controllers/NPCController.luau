@@ -4,6 +4,9 @@
 -- updates around that moment, and plays the same walk and idle animations a player's Animate script uses, at the
 -- same speed scaling, so a walking NPC and a walking player look the same.
 --
+-- It also plays the animation the server says each NPC is doing (NPCAnimation: a node activity, cowering, gasping) and
+-- gives every idle NPC a quick random glance to one side now and then (spec 8.1).
+--
 -- An NPC rig is a Model whose animation runs through an AnimationController (players have a Humanoid instead).
 
 local RunService = game:GetService("RunService")
@@ -11,14 +14,21 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local Enums = require(Shared:WaitForChild("Enums"))
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
+local PoseAnimation = require(Shared:WaitForChild("Util"):WaitForChild("PoseAnimation"))
+local RemoteController = require(script.Parent.RemoteController)
 
 type Sample = { time: number, cframe: CFrame }
 
 type Entry = {
 	root: BasePart,
+	animator: Animator,
 	walk: AnimationTrack,
 	idle: AnimationTrack,
+	poses: { [string]: AnimationTrack }, -- pose animations loaded so far
+	pose: string, -- the pose the server asked for ("" for none)
+	nextGlance: number,
 	samples: { Sample },
 	written: CFrame?,
 	speed: number,
@@ -33,6 +43,45 @@ local MAX_SAMPLES = 4
 local STALE_SECONDS = 0.5 -- no update for this long means the NPC is standing still
 
 local entries: { [Model]: Entry } = {}
+local byId: { [string]: Entry } = {} -- the server names each NPC's model; that name is how it addresses it
+local wanted: { [string]: string } = {} -- poses that arrived before the NPC's rig was ready
+local poseAnimations: { [string]: Animation } = {}
+local rng = Random.new()
+
+local function glanceDelay(): number
+	return rng:NextNumber(config.GlanceInterval.Min, config.GlanceInterval.Max)
+end
+
+local function poseTrack(entry: Entry, name: string): AnimationTrack?
+	local loaded = entry.poses[name]
+	if loaded then
+		return loaded
+	end
+	local animation = poseAnimations[name]
+	if not animation then
+		return nil
+	end
+	local track = entry.animator:LoadAnimation(animation)
+	entry.poses[name] = track
+	entry.janitor:Add(track)
+	return track
+end
+
+local function setPose(entry: Entry, name: string)
+	if entry.pose == name then
+		return
+	end
+	local fade = config.AnimationFadeSeconds
+	local previous = entry.poses[entry.pose]
+	if previous then
+		previous:Stop(fade)
+	end
+	entry.pose = name
+	local track = if name == "" then nil else poseTrack(entry, name)
+	if track then
+		track:Play(fade)
+	end
+end
 
 local function animation(model: Model, folderName: string, animationName: string): Animation?
 	local animate = model:FindFirstChild("Animate")
@@ -61,19 +110,31 @@ local function track(model: Model)
 	janitor:Add(idle)
 	idle:Play()
 
-	entries[model] = {
+	local entry: Entry = {
 		root = root,
+		animator = animator,
 		walk = walk,
 		idle = idle,
+		poses = {},
+		pose = "",
+		nextGlance = os.clock() + glanceDelay(),
 		samples = { { time = os.clock(), cframe = root.CFrame } },
 		written = nil,
 		speed = 0,
 		walking = false,
 		janitor = janitor,
 	}
+	entries[model] = entry
+	byId[model.Name] = entry
+	local pending = wanted[model.Name]
+	if pending then
+		wanted[model.Name] = nil
+		setPose(entry, pending)
+	end
 	janitor:Add(model.AncestryChanged:Connect(function(_, parent)
 		if parent == nil then
 			entries[model] = nil
+			byId[model.Name] = nil
 			janitor:Destroy()
 		end
 	end))
@@ -138,6 +199,19 @@ local function update(entry: Entry, now: number)
 	end
 	entry.speed = speed
 
+	if now >= entry.nextGlance then
+		entry.nextGlance = now + glanceDelay()
+		if entry.pose == "" then
+			local name = if rng:NextInteger(0, 1) == 0
+				then Enums.NpcAnimation.GlanceLeft
+				else Enums.NpcAnimation.GlanceRight
+			local glance = poseTrack(entry, name)
+			if glance then
+				glance:Play(config.AnimationFadeSeconds)
+			end
+		end
+	end
+
 	local fade = config.AnimationFadeSeconds
 	if speed > config.WalkAnimationMinSpeed then
 		if not entry.walking then
@@ -158,6 +232,18 @@ local frameTotal, frameCount, reportAt = 0, 0, 0
 function NPCController.Init() end
 
 function NPCController.Start()
+	poseAnimations = PoseAnimation.registerAll()
+	RemoteController.connect("NPCAnimation", function(changes: { { id: string, animation: string } })
+		for _, change in changes do
+			local entry = byId[change.id]
+			if entry then
+				setPose(entry, change.animation)
+			else
+				wanted[change.id] = change.animation
+			end
+		end
+	end)
+
 	for _, child in workspace:GetChildren() do
 		consider(child)
 	end

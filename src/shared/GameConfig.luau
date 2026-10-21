@@ -112,7 +112,7 @@ local GameConfig = {
 			FleeSpeed = 16,
 			BodyRadius = 15,
 			ExplosionRadius = 25,
-			ExplosionRagdollRadius = 6,
+			ExplosionDownRadius = 6, -- NPCs this close to a blast are downed (spec 5.5, reworked: no ragdoll)
 			-- Who panics at gunfire and explosions (5.4: Guests and Staff), and who gasps at a body (Guests).
 			PanicRoles = { Guest = true, Staff = true },
 			BodyRoles = { Guest = true },
@@ -135,11 +135,27 @@ local GameConfig = {
 		-- SPEC-QUESTION: the spec doesn't say whether NPCs open keycard shortcut doors. They do here, which lets a
 		-- player slip through behind an NPC. Set OpenForNpcs to false to keep them shut.
 		Door = { OpenStuds = 8, OpenForNpcs = true, OpenTransparency = 0.7 },
-		-- Spec 5.5: NPC death.
+		-- Guards investigate gunfire and explosions (OPEN_QUESTIONS A6). SPEC-QUESTION: the spec has Security ignore
+		-- noise. A guard on the same floor within SameFloorStuds goes to look. A guard on another floor goes only if it
+		-- is within OpenFloorStuds and can see the source, which is how a stair or balcony open to the floor counts.
+		-- It goes back to its post once ReturnAfterQuietSeconds pass with no further noise within range.
+		Investigate = {
+			Roles = { Security = true },
+			SameFloorStuds = 60,
+			OpenFloorStuds = 40,
+			FloorHeightStuds = 12, -- guards whose feet are within this height of the noise are on its floor
+			ReturnAfterQuietSeconds = 15,
+		},
+		-- NPCs are never killed outright (OPEN_QUESTIONS A7). At 0 HP they go down under the same rules as a downed
+		-- player (spec 14.1): they crawl at Downed.CrawlSpeed, are Exposed-equivalent, and bleed out after
+		-- Downed.BleedOutSeconds. A bled-out NPC lies still for CorpseSeconds, fades, and is replaced.
+		-- SPEC-QUESTION: nothing revives an NPC, since a revive only ever happening to NPCs would tell them from players.
 		Death = {
 			FadeSeconds = 1,
 			ReplacementMinStuds = 100, -- implementation tuning: "far-away node" means at least this far from the body
-			RagdollSpeed = 30, -- studs/s the blast throws a ragdoll
+			CrawlSpeed = 4, -- spec 14.1
+			CrawlStuds = 6, -- how far a downed NPC drags itself away from the shot before it stops
+			RootLiftStuds = 1.2, -- height of the lying body's centre above the floor
 		},
 		CivilianKill = {
 			ExposedSeconds = 10,
@@ -463,6 +479,7 @@ local GameConfig = {
 		TestEvents = true, -- the J, K and L keys fire a test gunshot, explosion and dead body (removed in Step 8)
 		TestKeys = { Gunshot = Enum.KeyCode.J, Explosion = Enum.KeyCode.K, Body = Enum.KeyCode.L },
 		TestEventMaxStuds = 150, -- the server ignores test events further than this from the sender
+		TestBodyPickStuds = 10, -- the L key downs the NPC nearest the aimed point, if one is within this distance
 		AutoRespawn = true, -- RigService respawns a dead player (replaced by the match flow in Step 10)
 		AutoRespawnSeconds = 3,
 	},

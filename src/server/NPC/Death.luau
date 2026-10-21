@@ -1,59 +1,81 @@
 --!strict
--- NPC death (spec 5.5). A killed NPC ragdolls, stays for CorpseSeconds, fades and is removed; a replacement of the
--- same role appears ReplacementSeconds after the death at a node far from the body.
+-- What happens to an NPC at 0 HP (spec 5.5, reworked in OPEN_QUESTIONS A7).
 --
--- Bodies are what other NPCs react to (spec 5.4), so this keeps a list of them for the reaction module.
+-- NPCs are not killed outright. They go down under the same rules as a downed player (spec 14.1): they drag
+-- themselves away from the shot at Death.CrawlSpeed and bleed out after Downed.BleedOutSeconds, so a downed NPC and a
+-- downed player look the same. A bled-out NPC lies still for CorpseSeconds, fades and is removed, and a replacement
+-- of the same role appears ReplacementSeconds later at a node far from the body.
+--
+-- Bodies, downed or bled out, are what other NPCs react to (spec 5.4), so this keeps a list of them for the
+-- reaction module.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local GameConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("GameConfig"))
+local AnimationSync = require(script.Parent.AnimationSync)
+local Movement = require(script.Parent.Movement)
 local NpcTypes = require(script.Parent.NpcTypes)
 
 type Npc = NpcTypes.Npc
 type Crowd = NpcTypes.Crowd
+type Hooks = NpcTypes.Hooks
 
 export type Body = {
 	model: Model,
-	position: Vector3,
+	npc: Npc,
 }
 
 local Death = {}
 
 local config = GameConfig.NPC
-local RAGDOLL_LIFT = 10 -- studs/s of upward kick so a ragdoll does not just slump in place
+local WALL_CLEARANCE = 1 -- studs left between a crawling NPC and a wall
+local PROBE_LIFT = Vector3.new(0, 1, 0)
 
 -- Bodies currently lying around. Read by the reaction module.
 Death.bodies = {} :: { Body }
 
-local function ragdoll(npc: Npc, awayFrom: Vector3?)
-	local model, root = npc.model, npc.root
-	for _, descendant in model:GetDescendants() do
-		if descendant:IsA("AnimationConstraint") then
-			descendant.Enabled = false
-		elseif descendant:IsA("BallSocketConstraint") then
-			descendant.Enabled = true
-		end
-	end
-	for _, descendant in model:GetDescendants() do
-		if descendant:IsA("BasePart") and not descendant:FindFirstAncestorOfClass("Accessory") then
-			descendant.Anchored = false
-			descendant.CanCollide = descendant ~= root
-		end
-	end
-	-- The server simulates the body, so every player sees the same thing.
-	root:SetNetworkOwner(nil)
-	local push = Vector3.zero
-	if awayFrom then
-		local away = Vector3.new(root.Position.X - awayFrom.X, 0, root.Position.Z - awayFrom.Z)
-		if away.Magnitude > 1e-3 then
-			push = away.Unit * config.Death.RagdollSpeed
-		end
-	end
-	root.AssemblyLinearVelocity = push + Vector3.new(0, RAGDOLL_LIFT, 0)
+local rayParams = RaycastParams.new()
+rayParams.CollisionGroup = GameConfig.Rig.CollisionGroup -- characters do not collide with each other, so rays skip them
+
+function Death.isDown(npc: Npc): boolean
+	return npc.state == "Downed" or npc.state == "Eliminated"
 end
 
-local function fadeAndRemove(body: Body)
+-- A short crawl directly away from where the shot came from (any direction if there was none), cut short by walls.
+local function crawlPath(crowd: Crowd, npc: Npc, awayFrom: Vector3?): { Vector3 }
+	local away = Vector3.zero
+	if awayFrom then
+		away = Vector3.new(npc.ground.X - awayFrom.X, 0, npc.ground.Z - awayFrom.Z)
+	end
+	if away.Magnitude < 1e-3 then
+		local angle = crowd.rng:NextNumber(0, 2 * math.pi)
+		away = Vector3.new(math.cos(angle), 0, math.sin(angle))
+	end
+	local step = away.Unit * config.Death.CrawlStuds
+	local hit = workspace:Raycast(npc.ground + PROBE_LIFT, step, rayParams)
+	if hit then
+		step = step.Unit * math.max(0, (hit.Position - (npc.ground + PROBE_LIFT)).Magnitude - WALL_CLEARANCE)
+	end
+	return { npc.ground + step }
+end
+
+-- Puts an NPC down. `awayFrom` is where the shot or blast came from, if known.
+function Death.down(crowd: Crowd, npc: Npc, awayFrom: Vector3?, now: number)
+	if Death.isDown(npc) then
+		return
+	end
+	crowd.release(npc.node)
+	npc.state = "Downed"
+	npc.stateUntil = now + GameConfig.Downed.BleedOutSeconds
+	npc.path = crawlPath(crowd, npc, awayFrom)
+	npc.pathIndex = 1
+	npc.speed = config.Death.CrawlSpeed
+	AnimationSync.set(npc, "")
+	table.insert(Death.bodies, { model = npc.model, npc = npc })
+end
+
+local function fadeAndRemove(body: Body, hooks: Hooks)
 	local info = TweenInfo.new(config.Death.FadeSeconds)
 	for _, descendant in body.model:GetDescendants() do
 		if descendant:IsA("BasePart") then
@@ -65,27 +87,33 @@ local function fadeAndRemove(body: Body)
 		if index then
 			table.remove(Death.bodies, index)
 		end
+		hooks.remove(body.npc)
 		body.model:Destroy()
 	end)
 end
 
--- Kills an NPC. `awayFrom` is where the blast came from, if any. `replace` is called with the NPC's role and the
--- place it died when its replacement is due.
-function Death.kill(crowd: Crowd, npc: Npc, awayFrom: Vector3?, replace: (string, Vector3) -> ())
-	if npc.state == "Dead" then
+-- Moves a downed NPC on: crawling while it has path left, then bleeding out.
+function Death.update(npc: Npc, dt: number, now: number, hooks: Hooks)
+	if npc.state ~= "Downed" then
 		return
 	end
-	npc.state = "Dead"
+	if npc.path then
+		Movement.follow(npc, dt)
+	end
+	if now < npc.stateUntil then
+		return
+	end
+
+	npc.state = "Eliminated"
 	npc.path = nil
-	crowd.release(npc.node)
-	ragdoll(npc, awayFrom)
-
-	local body: Body = { model = npc.model, position = npc.ground }
-	table.insert(Death.bodies, body)
-	task.delay(config.CorpseSeconds, fadeAndRemove, body)
-
 	local role, position = npc.role, npc.ground
-	task.delay(config.ReplacementSeconds, replace, role, position)
+	for _, body in Death.bodies do
+		if body.npc == npc then
+			task.delay(config.CorpseSeconds, fadeAndRemove, body, hooks)
+			break
+		end
+	end
+	task.delay(config.ReplacementSeconds, hooks.replace, role, position)
 end
 
 return Death

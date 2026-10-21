@@ -168,13 +168,14 @@ Each `Activity` maps to an animation set: Idle (shift weight), Look at Art, Talk
 
 ### 5.4 NPC reactions
 - **Gunfire within 40 studs:** Guests and Staff crouch-cower for 3 s, then flee to the farthest node in the same tier at speed 16 for 8 s ("Panic"). Then resume.
+- **Gunfire or an explosion heard by a guard:** Security NPCs on the same floor within 60 studs, or on another floor within 40 studs with a clear line to the source (a stair or balcony open to the floor), walk to the noise and wait. They return to their post after 15 s with no further noise in range.
 - **Dead body / downed agent within 15 studs:** Guests gasp animation, back away.
-- **Explosion within 25 studs:** same as gunfire, plus ragdoll if within 6 studs (NPCs can be killed by explosions; see 5.5).
+- **Explosion within 25 studs:** same as gunfire, plus the NPC is downed if within 6 studs (see 5.5).
 - Panic is a tell: players who don't panic stand out. Players can trigger a fake panic with the Blend wheel's "Cower" emote.
 
 ### 5.5 Killing NPCs
 - NPCs have 50 HP. Civilians (Guest, Staff, Executive) killed by a player: the killer becomes **Exposed** for 10 s minimum, team loses 50 Funds, and the nearest camera/guard network raises Alarm Level by 1.
-- Killed NPCs ragdoll and stay for 30 s, then fade. A replacement NPC of the same role spawns at a random far-away node after 45 s.
+- NPCs are never killed outright. At 0 HP an NPC is **downed** under the Section 14.1 rules (crawls at speed 4, bleeds out after 30 s) so it cannot be told apart from a downed player. Nothing revives an NPC. A bled-out NPC lies still for 30 s, then fades. A replacement NPC of the same role spawns at a random far-away node 45 s after it bleeds out.
 - Security NPCs can be killed without Funds penalty but always raise Alarm Level by 1.
 
 ---

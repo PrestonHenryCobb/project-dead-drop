@@ -1,10 +1,12 @@
 --!strict
--- How NPCs react to danger (spec 5.4).
+-- How NPCs react to danger (spec 5.4, with the guard change from OPEN_QUESTIONS A6).
 --
 --   Gunfire or an explosion within range: Guests and Staff cower for CowerSeconds, then flee to the farthest node
---   on their tier at FleeSpeed for FleeSeconds, then go back to normal. NPCs caught within ExplosionRagdollRadius of
---   a blast die (spec 5.5).
---   A dead body within range: Guests gasp, then step back from it.
+--   on their tier at FleeSpeed for FleeSeconds, then go back to normal. NPCs caught within ExplosionDownRadius of
+--   a blast are downed (spec 5.5).
+--   Security guards walk to the noise to look (see Investigate in GameConfig) and go back to their post once it has
+--   been quiet for ReturnAfterQuietSeconds.
+--   A body or downed NPC within range: Guests gasp, then step back from it.
 --
 -- The crowd calls update() each tick to move NPCs on to the next stage; combat (Step 8) will call gunfire() and
 -- explosion() when shots and blasts happen.
@@ -27,6 +29,10 @@ local Reactions = {}
 local config = GameConfig.NPC
 local WALL_CLEARANCE = 1 -- studs left between an NPC and a wall when it backs away
 local EYE_LIFT = Vector3.new(0, 2, 0)
+
+-- Characters do not collide with each other, so rays cast in their group skip NPCs and players and only meet the map.
+local rayParams = RaycastParams.new()
+rayParams.CollisionGroup = GameConfig.Rig.CollisionGroup
 
 local function distance(npc: Npc, position: Vector3): number
 	return (npc.ground - position).Magnitude
@@ -80,7 +86,7 @@ local function beginBackAway(npc: Npc)
 		return
 	end
 	local step = away.Unit * config.Panic.BackAwayStuds
-	local hit = workspace:Raycast(npc.ground + EYE_LIFT, step)
+	local hit = workspace:Raycast(npc.ground + EYE_LIFT, step, rayParams)
 	if hit then
 		step = step.Unit * math.max(0, (hit.Position - (npc.ground + EYE_LIFT)).Magnitude - WALL_CLEARANCE)
 	end
@@ -94,7 +100,7 @@ local function panic(crowd: Crowd, position: Vector3, radius: number, now: numbe
 	for _, npc in crowd.npcs do
 		if
 			config.Panic.PanicRoles[npc.role]
-			and npc.state ~= "Dead"
+			and not Death.isDown(npc)
 			and npc.state ~= "Cower"
 			and distance(npc, position) <= radius
 		then
@@ -103,16 +109,87 @@ local function panic(crowd: Crowd, position: Vector3, radius: number, now: numbe
 	end
 end
 
-function Reactions.gunfire(crowd: Crowd, position: Vector3, now: number)
-	panic(crowd, position, config.Panic.GunfireRadius, now)
+-- Can this guard make out a noise at `position`? A guard on the same floor hears it within SameFloorStuds. On another
+-- floor it counts only if the guard is close and has a clear line to the source, as it would from a stair or balcony
+-- that is open to the floor.
+local function hears(npc: Npc, position: Vector3): boolean
+	local settings = config.Investigate
+	local offset = npc.ground - position
+	if math.abs(offset.Y) <= settings.FloorHeightStuds then
+		return offset.Magnitude <= settings.SameFloorStuds
+	end
+	if Vector3.new(offset.X, 0, offset.Z).Magnitude > settings.OpenFloorStuds then
+		return false
+	end
+	local from = npc.ground + EYE_LIFT
+	return workspace:Raycast(from, position + EYE_LIFT - from, rayParams) == nil
 end
 
--- `replace` is handed to Death so killed NPCs get replaced.
-function Reactions.explosion(crowd: Crowd, position: Vector3, now: number, replace: (string, Vector3) -> ())
-	panic(crowd, position, config.Panic.ExplosionRadius, now)
+local function beginInvestigate(crowd: Crowd, npc: Npc, position: Vector3, now: number)
+	local quiet = config.Investigate.ReturnAfterQuietSeconds
+	if npc.state == "Investigate" then
+		-- Still noisy: keep waiting there.
+		npc.stateUntil = now + quiet
+		return
+	end
+	local destination, points = NavGraph.routeNear(crowd.graph, npc.node, npc.maxTier, position)
+	if not destination or not points then
+		return
+	end
+	if npc.state ~= "Return" then
+		npc.post = npc.node
+	end
+	crowd.release(npc.node)
+	crowd.claim(destination)
+	npc.node = destination
+	npc.path = if #points > 0 then points else nil
+	npc.pathIndex = 1
+	npc.speed = npc.baseSpeed
+	npc.state = "Investigate"
+	npc.stateUntil = now + quiet
+	AnimationSync.set(npc, "")
+end
+
+local function investigate(crowd: Crowd, position: Vector3, now: number)
 	for _, npc in crowd.npcs do
-		if npc.state ~= "Dead" and distance(npc, position) <= config.Panic.ExplosionRagdollRadius then
-			Death.kill(crowd, npc, position, replace)
+		if
+			config.Investigate.Roles[npc.role]
+			and not Death.isDown(npc)
+			and not reacting(npc)
+			and hears(npc, position)
+		then
+			beginInvestigate(crowd, npc, position, now)
+		end
+	end
+end
+
+local function beginReturn(crowd: Crowd, npc: Npc, now: number)
+	local points = if npc.node ~= npc.post then NavGraph.routeTo(crowd.graph, npc.node, npc.maxTier, npc.post) else nil
+	if not points then
+		npc.state = "Idle"
+		npc.idleUntil = now
+		return
+	end
+	crowd.release(npc.node)
+	crowd.claim(npc.post)
+	npc.node = npc.post
+	npc.path = points
+	npc.pathIndex = 1
+	npc.speed = npc.baseSpeed
+	npc.state = "Return"
+end
+
+function Reactions.gunfire(crowd: Crowd, position: Vector3, now: number)
+	panic(crowd, position, config.Panic.GunfireRadius, now)
+	investigate(crowd, position, now)
+end
+
+function Reactions.explosion(crowd: Crowd, position: Vector3, now: number)
+	panic(crowd, position, config.Panic.ExplosionRadius, now)
+	investigate(crowd, position, now)
+	for _, npc in crowd.npcs do
+		if not Death.isDown(npc) and distance(npc, position) <= config.Panic.ExplosionDownRadius then
+			Death.down(crowd, npc, position, now)
 		end
 	end
 end
@@ -123,15 +200,15 @@ function Reactions.watchBodies(crowd: Crowd, now: number)
 		return
 	end
 	for _, npc in crowd.npcs do
-		if config.Panic.BodyRoles[npc.role] and npc.state ~= "Dead" and not reacting(npc) then
+		if config.Panic.BodyRoles[npc.role] and not Death.isDown(npc) and not reacting(npc) then
 			for _, body in Death.bodies do
 				if
 					not npc.reactedTo[body.model]
-					and body.model ~= npc.model
-					and distance(npc, body.position) <= config.Panic.BodyRadius
+					and body.npc ~= npc
+					and distance(npc, body.npc.ground) <= config.Panic.BodyRadius
 				then
 					npc.reactedTo[body.model] = true
-					beginGasp(npc, body.position, now)
+					beginGasp(npc, body.npc.ground, now)
 					break
 				end
 			end
@@ -149,6 +226,8 @@ function Reactions.update(crowd: Crowd, npc: Npc, now: number)
 		-- Flee time is up: carry on to the node at normal pace, then stop there as usual.
 		npc.speed = npc.baseSpeed
 		npc.state = "Walk"
+	elseif npc.state == "Investigate" and not npc.path and now >= npc.stateUntil then
+		beginReturn(crowd, npc, now)
 	end
 end
 

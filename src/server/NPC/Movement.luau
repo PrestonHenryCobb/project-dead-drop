@@ -114,7 +114,10 @@ end
 
 -- Writes the NPC's position and facing to its root, if they changed.
 function Movement.place(npc: Npc)
-	local position = npc.ground + npc.offset + Vector3.new(0, npc.rootHeight, 0)
+	-- A downed NPC lies face down with its head the way it is crawling.
+	local lying = npc.state == "Downed" or npc.state == "Eliminated"
+	local height = if lying then config.Death.RootLiftStuds else npc.rootHeight
+	local position = npc.ground + npc.offset + Vector3.new(0, height, 0)
 	local placed = npc.placed
 	if
 		placed
@@ -125,7 +128,9 @@ function Movement.place(npc: Npc)
 	end
 	npc.placed = position
 	npc.placedYaw = npc.yaw
-	npc.root.CFrame = CFrame.new(position) * CFrame.Angles(0, npc.yaw, 0)
+	npc.root.CFrame = CFrame.new(position)
+		* CFrame.Angles(0, npc.yaw, 0)
+		* CFrame.Angles(if lying then -math.pi / 2 else 0, 0, 0)
 end
 
 return Movement
