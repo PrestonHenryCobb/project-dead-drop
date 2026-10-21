@@ -1,0 +1,15 @@
+# Place files (the map lives in Studio, back it up through Publish and Releases)
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+*.rbxlx.lock
+
+# Generated
+sourcemap.json
+roblox.yml
+Packages/
+ServerPackages/
+
+# OS / editor
+.DS_Store
+Thumbs.db

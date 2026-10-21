@@ -1,0 +1,406 @@
+--!strict
+-- Every tunable number in the game (CLAUDE.md rule 2). Values come from docs/cover-story-game-spec.md;
+-- the section each group comes from is noted above it. Frozen, so nothing can change it at runtime.
+--
+-- Per-content stats (weapons, agents, gadgets, perks, outfits) live in shared/Defs and are added in the
+-- build steps that use them. Numbers that apply to many systems belong here.
+--
+-- SPEC-QUESTION markers below are places where the spec gives no value; each one is listed in the
+-- end-of-step summary.
+
+local DeepFreeze = require(script.Parent.Util.DeepFreeze)
+
+local GameConfig = {
+	-- Spec 2: phase timeline. All times in seconds.
+	Match = {
+		LobbySeconds = 30,
+		InsertionSeconds = 8,
+		MainTimerSeconds = 14 * 60, -- counts down from the start of Phase 2
+		ForcedVaultUnlockElapsed = 6 * 60, -- Phase 2 ends at this elapsed time at the latest
+		ResultsSeconds = 15,
+		FillCountdownMax = 60, -- 3.1: wait this long for players, then start if >= 2 teams
+		MinTeamsToStart = 2,
+		MaxPlayers = 12,
+	},
+
+	-- Spec 3.1: modes.
+	Modes = {
+		Squads = { TeamSize = 3, MaxTeams = 4, MinPlayers = 4, MaxPlayers = 12 },
+		Duos = { TeamSize = 2, MaxTeams = 6, MinPlayers = 4, MaxPlayers = 12 },
+		Solos = { TeamSize = 1, MaxTeams = 8, MinPlayers = 3, MaxPlayers = 8 },
+	},
+
+	-- Spec 3.2 / 3.3: agent select and team colors (in the order teams are assigned).
+	Lobby = {
+		AgentSelectSeconds = 30,
+		TeamColors = {
+			{ Name = "Cyan", Color = Color3.fromRGB(0, 220, 255) },
+			{ Name = "Magenta", Color = Color3.fromRGB(255, 0, 200) },
+			{ Name = "Lime", Color = Color3.fromRGB(150, 255, 0) },
+			{ Name = "Amber", Color = Color3.fromRGB(255, 190, 0) },
+			{ Name = "Violet", Color = Color3.fromRGB(150, 90, 255) },
+			{ Name = "Coral", Color = Color3.fromRGB(255, 110, 100) },
+			{ Name = "Teal", Color = Color3.fromRGB(0, 170, 150) },
+			{ Name = "White", Color = Color3.fromRGB(255, 255, 255) },
+		},
+	},
+
+	-- Spec 4.2: clearance zones.
+	Zones = {
+		CheckInterval = 0.25, -- server samples each player's tier at 4 Hz
+		TierColors = {
+			[0] = Color3.fromRGB(215, 215, 215), -- Public: white/gray
+			[1] = Color3.fromRGB(60, 130, 255), -- Staff: blue
+			[2] = Color3.fromRGB(255, 140, 30), -- Security: orange
+			[3] = Color3.fromRGB(150, 70, 230), -- Executive: purple
+		},
+	},
+
+	-- Spec 4.3 / 4.4: what the map must contain (used by map validation).
+	Map = {
+		FootprintStuds = 450,
+		Counts = {
+			InsertionPoint = 12,
+			IntelSpawn = 18,
+			VaultSpawn = 3,
+			ExtractionSite = 3,
+			SupplyCache = 6,
+			SecurityCamera = 12,
+			LaserGrid = 4,
+			KeycardDoor = 6,
+			VentPairs = 6,
+			ZiplineAnchorPairs = 2,
+			PickupSpawn = 30,
+		},
+		NPCNodeCount = { Min = 150, Max = 250 },
+		SupplyCachesPerTier = { [0] = 2, [1] = 2, [2] = 1, [3] = 1 },
+		InsertionMinSpacing = 60,
+		TeamSpawnRadius = 8, -- teammates spawn within this many studs of each other
+		MinEntrancesPerRestrictedZone = 2,
+		MinExtractionPathDistanceFromVault = 120,
+		MinVaultRoutesOut = 3,
+		MaxLongSightLines = 3, -- sight lines over 150 studs
+		LongSightLineStuds = 150,
+		MinIntelPerTierOnActivation = 2,
+	},
+
+	-- Spec 5.1 to 5.5: NPCs.
+	NPC = {
+		TargetCount = 74,
+		RoleCounts = { Guest = 40, Staff = 18, Security = 10, Executive = 6 },
+		-- Highest tier each role may stand in (it may also use tier 0).
+		RoleMaxTier = { Guest = 0, Staff = 1, Security = 2, Executive = 3 },
+		-- Walk speed per role, in studs/s. A disguised agent's speed is capped to their disguise's role (spec 6.8).
+		-- SPEC-QUESTION: the spec gives Guest 10 and Staff 12 only. Security and Executive use 10 until it says more.
+		WalkSpeed = { Guest = 10, Staff = 12, Security = 10, Executive = 10 },
+		MinOutfitsPerRole = 20,
+		MaxHP = 50,
+		ServerTickHz = 10, -- 25.4: server moves NPC roots along paths at 10 Hz, clients interpolate
+		ActivitySeconds = { Min = 6, Max = 20 },
+		MaxYawRate = 270, -- degrees per second
+		SeparationStuds = 2.5,
+		DoorCloseDelay = 3,
+		GlanceInterval = { Min = 4, Max = 10 }, -- 8.1: random head glances
+		GlanceDegrees = 40,
+		CorpseSeconds = 30,
+		ReplacementSeconds = 45,
+		MobileRenderDistance = 120, -- 27 #27: NPC visuals beyond this are not shown on low-end mobile
+		Panic = {
+			GunfireRadius = 40,
+			CowerSeconds = 3,
+			FleeSeconds = 8,
+			FleeSpeed = 16,
+			BodyRadius = 15,
+			ExplosionRadius = 25,
+			ExplosionRagdollRadius = 6,
+		},
+		CivilianKill = {
+			ExposedSeconds = 10,
+			FundsPenalty = 50,
+			AlarmRaise = 1,
+		},
+		SecurityKillAlarmRaise = 1,
+	},
+
+	-- Spec 6, 7, 8: disguise, cover, suspicion.
+	Cover = {
+		ScanRange = 8,
+		ScanSeconds = 1.2,
+		DisguiseSeconds = 0.8,
+		DisguiseSwishRadius = 10, -- visible puff and audible swish
+		DisguiseSlots = 1,
+		TrespassGrace = 3,
+		CombatLockout = 5,
+		ExposeStripSeconds = 0.3,
+		ExposedPingRadius = 60,
+		ExposedPingSeconds = 2,
+		SuspicionMax = 100,
+		SuspicionDecayPerSecond = 10,
+		SuspicionDecayDelay = 1.5,
+		-- Percent. Sprint, Crouch, Terminal, WeaponDrawn, NearBody and VaultLinger are per second; Jump is per jump.
+		SuspicionGain = {
+			Sprint = 25,
+			Jump = 20,
+			Crouch = 15,
+			Terminal = 20,
+			WeaponDrawn = 40,
+			NearBody = 10,
+			VaultLinger = 15,
+		},
+		NearBodyRadius = 6,
+		VaultLingerRadius = 5,
+		VaultLingerSeconds = 3,
+		-- Witnesses (7.3): only Security NPCs and active cameras count.
+		WitnessCheckHz = 5,
+		SecurityWitnessRange = 35,
+		SecurityWitnessFov = 110,
+		-- Neck follows the camera (8.1).
+		NeckMaxYaw = 60,
+		-- Agent Sense (8.3).
+		AgentSenseRange = 6,
+		AgentSenseSeconds = 1.5,
+		AgentSenseShimmerSeconds = 1,
+		AgentSenseCooldown = 8,
+		-- Blend wheel (6.7): the emotes it offers.
+		BlendEmotes = { "Idle", "Look Around", "Phone", "Drink", "Talk", "Lean", "Sit", "Cower" },
+	},
+
+	-- Spec 6.8, 11, 14.1, 18.4, 5.4: speeds in studs/s.
+	Speeds = {
+		Sprint = 18,
+		Crawl = 4,
+		CarrierMult = 0.9,
+	},
+
+	-- Spec 9: intel.
+	Intel = {
+		ActiveSpawns = 10,
+		TerminalSeconds = 6,
+		TerminalProgressKeepSeconds = 20, -- per team
+		BriefcaseSeconds = 1,
+		PickpocketSeconds = 2,
+		PickpocketRange = 3,
+		ServerRackSeconds = 10,
+		ServerRackValue = 2,
+		GlintRange = 25,
+		-- 9.3: team thresholds.
+		Thresholds = {
+			FundsAt1 = 100,
+			VaultArrowAt = 2,
+			HackBonusAt = 3,
+			CarrierRevealAt = 4,
+			CarrierRevealInterval = 15,
+			CarrierRevealSeconds = 1,
+			ExtraIntelFunds = 50, -- at 5 and above, per extra Intel
+			ExtraIntelFrom = 5,
+		},
+		-- 9.4: vault unlocks when GlobalIntel >= min(Cap, Base + teams * PerTeam).
+		Unlock = { Base = 2, PerTeam = 2, Cap = 14 },
+	},
+
+	-- Spec 10: vault.
+	Vault = {
+		BaseRate = 1.25, -- percent per second, regardless of how many agents are in the zone
+		BonusMult = 1.25, -- team with HackBonusAt+ intel
+		HackZoneSize = 10,
+		OpenAnimSeconds = 4,
+		ExtraSecurityOnOpen = 2,
+	},
+
+	-- Spec 11: package.
+	Package = {
+		PickupSeconds = 1,
+		PickupRange = 4,
+		ReturnSeconds = 30, -- dropped and untouched
+		PingInterval = 10,
+		PingPulseSeconds = 2,
+		PassRange = 6,
+		PassSeconds = 0.5,
+	},
+
+	-- Spec 12: extraction.
+	Extraction = {
+		CallSeconds = 2,
+		CallRange = 10, -- a teammate within this many studs of the carrier may also call
+		Countdown = 45,
+		HoverSeconds = 2,
+		ZoneSize = 16,
+		ChannelSeconds = 3,
+		LingerAfterFailSeconds = 20,
+		CinematicSeconds = 5,
+	},
+
+	-- Spec 19: overtime.
+	Overtime = {
+		CapSeconds = 90,
+		DroppedGraceSeconds = 10,
+		ExtractionCountdown = 20,
+	},
+
+	-- Spec 13: combat.
+	Combat = {
+		MaxHP = 100,
+		PlateHP = 25,
+		MaxPlates = 3,
+		StartPlates = 1,
+		SoloStartPlates = 2,
+		HeadshotMult = 1.5,
+		MarksmanHeadshotMult = 2,
+		FallSafeStuds = 30,
+		FallDamagePerStud = 2,
+		SelfExplosionMult = 0.5,
+		-- 13.3: server validation of FireRequest.
+		LagCompSeconds = 0.25,
+		LagCompHistoryHz = 20,
+		FireRateToleranceSeconds = 0.04,
+		FireOriginToleranceStuds = 4,
+		Melee = { Damage = 35, CooldownSeconds = 0.8, Range = 4 },
+		Takedown = { ConeDegrees = 60, HoldSeconds = 1.2, Damage = 90, BreakDistance = 4 },
+	},
+
+	-- Spec 14: downed, revive, rescue.
+	Downed = {
+		BleedOutSeconds = 30,
+		ReviveSeconds = 4,
+		ReviveHP = 30,
+		ReviveArmor = 0,
+		ExecuteSeconds = 2,
+		AgentTagSeconds = 90,
+		Rescue = {
+			Cost = 150,
+			TagPickupSeconds = 1,
+			CacheSeconds = 3,
+			HP = 100,
+			Plates = 1,
+			AbilityCooldownMult = 0.5,
+			MaxPerPlayer = 1,
+		},
+	},
+
+	-- Spec 17: funds, pickups, shop.
+	Economy = {
+		StartFunds = 100,
+		FundsPickup = { Min = 25, Max = 75 },
+		FundsForDowning = 50,
+		FundsForElimination = 25,
+		FundsForCameraHack = 10,
+		MedKitHP = 30,
+		PickupRespawnSeconds = 60,
+		PickupGlintRange = 20,
+		-- Percent chance per PickupSpawn when it picks what to hold.
+		PickupWeights = { ArmorPlate = 35, AmmoBox = 30, Funds = 25, MedKit = 10 },
+		Shop = {
+			PurchaseSeconds = 2,
+			Prices = {
+				ArmorPlate = 50,
+				AmmoRefill = 40,
+				HealToFull = 75,
+				GadgetCharge = 75,
+				AbilityCooldownReset = 100,
+				RescueTeammate = 150,
+				SecurityKeycard = 60,
+			},
+			SecurityKeycardUses = 3,
+			-- SPEC-QUESTION: "higher-tier caches are 20% cheaper". Applied to caches in tier 1 and above.
+			HigherTierDiscount = 0.2,
+			HigherTierMinTier = 1,
+		},
+	},
+
+	-- Spec 18: security systems.
+	Security = {
+		Camera = {
+			SweepDegrees = 90,
+			SweepSeconds = 6,
+			ConeDegrees = 60,
+			Range = 50,
+			LockOnSeconds = 1.5,
+			AlertGuards = 2,
+			HackSeconds = 2,
+			HackRange = 6,
+			HackDisabledSeconds = 30,
+			HackImmuneSeconds = 30,
+			DestroyedSeconds = 60,
+		},
+		CameraRoom = { Feeds = 4, DisableAllSeconds = 20, CooldownSeconds = 120, HoldSeconds = 5 },
+		LaserGrid = { FuseBoxSeconds = 3, DisabledSeconds = 30, AlarmRaise = 1 },
+		KeycardDoor = { OpenSeconds = 4, LockpickSeconds = 4 },
+		Guard = {
+			MaxHP = 50,
+			Damage = 8,
+			FireIntervalSeconds = 0.8,
+			NearAccuracy = 0.6,
+			NearAccuracyStuds = 15,
+			FarAccuracy = 0.2,
+			FarAccuracyStuds = 40,
+			EngageFiringRadius = 30, -- an agent firing within this distance gets engaged
+			ChaseLimitStuds = 40,
+			RespawnSeconds = 60,
+			SuspicionImmuneBelow = 100, -- never fires at disguised agents with suspicion under this
+		},
+		Alarm = {
+			MaxLevel = 3,
+			DecayIntervalSeconds = 45,
+			LockdownSeconds = 20,
+			AlertWalkSpeed = 14,
+			AlertDetectionMult = 1.2,
+			HeightenedExtraGuards = 2,
+			LockdownDoorSealSeconds = 20,
+			LockdownCameraSweepMult = 1.5,
+		},
+	},
+
+	-- Spec 20: scoring and progression.
+	Progression = {
+		XP = {
+			MatchPlayed = 100,
+			Intel = 25,
+			VaultHackParticipation = 50,
+			VaultHackMinSeconds = 10,
+			PackagePickedUp = 50,
+			PackageCarriedPer10s = 10,
+			EnemyDowned = 30,
+			EnemyEliminated = 20,
+			TeammateRevived = 30,
+			TeammateRescued = 50,
+			ExtractionWin = 500,
+			SurvivedToEnd = 50,
+		},
+		Level = { BaseXP = 500, XPPerLevel = 100, XPCap = 3000 },
+		CreditsPerLevel = 250,
+		CosmeticEveryLevels = 5,
+		WinCredits = 200,
+		DailyFirstWinCredits = 300,
+		AgentUnlockCredits = 2500,
+		SaveIntervalSeconds = 120,
+	},
+
+	-- Spec 21: HUD and UI.
+	UI = {
+		PhaseBannerSeconds = 3,
+		TimerWarningSeconds = 60,
+		FovMin = 70,
+		FovMax = 100,
+		MaxPingsPerPlayer = 3,
+		SuspectPingSeconds = 8,
+	},
+
+	-- Spec 23: audio radii in studs.
+	Audio = {
+		ExposedStingRadius = 60,
+		DefaultWeaponRadius = 120,
+		SuppressedWeaponRadius = 25,
+		LastSecondsTicking = 60,
+	},
+
+	-- Spec 25.6: client -> server remotes are rate-limited. Overrides are by remote name.
+	Network = {
+		DefaultRateLimit = { PerSecond = 20, Burst = 20 },
+		RateLimits = {
+			-- Fastest weapon fires 900 rpm (15/s); 30/s leaves room for jitter. The server also checks fire rate itself.
+			FireRequest = { PerSecond = 30, Burst = 30 },
+		},
+	},
+}
+
+return DeepFreeze(GameConfig)
