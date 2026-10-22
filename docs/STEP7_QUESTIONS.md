@@ -33,7 +33,7 @@ Step 7 and are wired in the step that builds them.
   (b) Add them up with no cap. A crowded room makes sprinting fast to be caught in.
   (c) Take only the strongest witness. A crowd adds nothing extra.
 - **Default:** (a).
-- **Answer:**
+- **Answer:** a
 
 ### A2. What can a witness see?
 - **Spec says:** Security NPC range 35 studs and 110 degree field of view. It gives no numbers for other NPCs.
@@ -41,14 +41,14 @@ Step 7 and are wired in the step that builds them.
 - **Options:** (a) same 35 studs and 110 degrees for every NPC (b) shorter for non-security, for example 20 studs
   and 90 degrees (c) your numbers: ____
 - **Default:** (a), so there is one rule.
-- **Answer:**
+- **Answer:** a
 
 ### A3. Do other characters block a witness's view?
 - **Question:** a crowd stands between you and a guard. Does it hide you?
 - **Options:** (a) no, only walls block sight (b) yes, characters in the way also block it.
 - **Why it matters:** (b) makes crowds real cover and costs more server time (more rays). Players could hide behind NPCs.
 - **Default:** (a), which is how scanning already works.
-- **Answer:**
+- **Answer:** a (changed from b on 2026-10-22: only walls block sight)
 
 ### A4. Do suspicious actions count in Tier 0?
 - **Spec says:** sprinting, jumping and crouching are suspicious only in Tier 1+ zones.
@@ -56,12 +56,12 @@ Step 7 and are wired in the step that builds them.
 - **Question:** does a sprint in the crowded public area (Tier 0) raise suspicion?
 - **Options:** (a) no, as in the spec (b) yes, at the witness rates (c) yes, but only for Security and cameras.
 - **Default:** (a). It keeps the public area as a place to move quickly, with the tell being that other players see you.
-- **Answer:**
+- **Answer:** a (changed from b on 2026-10-22: sprint, jump and crouch are suspicious in Tier 1+ only, as in the spec)
 
 ### A5. Cameras
 - **Question:** cameras are built in Step 14. Step 7 leaves a slot for them at the 0.6 rate. Any change before then?
 - **Default:** no change.
-- **Answer:**
+- **Answer:** no change
 
 ---
 
@@ -71,7 +71,7 @@ Step 7 and are wired in the step that builds them.
 - **Spec says:** gains per second or per jump (sprint 25, jump 20, crouch 15, terminal 20, weapon drawn 40, near a
   body 10, vault linger 15), decay 10 per second after 1.5 s of nothing suspicious.
 - **Question:** keep every number as written? They are all in `GameConfig`.
-- **Answer:**
+- **Answer:** For the decay to apply, id add another 1.5 s of nothing suspicious before it applies. Everything else can stay as is for the time being.
 
 ### B2. What is "near a body"?
 - **Spec says:** being within 6 studs of a dead body gives 10 percent per second while witnessed.
@@ -79,19 +79,19 @@ Step 7 and are wired in the step that builds them.
 - **Question:** does a downed or bled-out NPC count as a body?
 - **Options:** (a) both downed and bled-out NPCs and players count (b) only bled-out ones (c) none.
 - **Default:** (a). It matches what makes Guests gasp.
-- **Answer:**
+- **Answer:** a 
 
 ### B3. Reaching 100 percent
 - **Spec says:** you become Exposed and the witness raises Alarm Level by 1.
 - **Question:** alarm levels are built in Step 14. In Step 7, should anything happen beyond Exposed?
 - **Options:** (a) just Exposed (b) store an alarm level number now but show nothing (c) store it and show it on the debug HUD.
 - **Default:** (c), so the connection is visible to test. It has no other effect until Step 14.
-- **Answer:**
+- **Answer:** c
 
 ### B4. Does the meter reset when you re-cover?
 - **Options:** (a) back to 0 on re-covering (b) stays where it was.
 - **Default:** (a).
-- **Answer:**
+- **Answer:** a
 
 ---
 
@@ -107,13 +107,13 @@ Step 7 and are wired in the step that builds them.
   (b) Keep the countdown: it only runs while witnessed; leaving or being unseen pauses it.
   (c) The old spec rule: always counts down, and a witness cuts it to 0.
 - **Default:** (a), with the HUD explaining "SUSPECTED: RESTRICTED AREA".
-- **Answer:**
+- **Answer:** a
 
 ### C2. Does the tier matter?
 - **Question:** is a Guest in the Staff area (one tier over) as suspicious as a Guest in the Executive area (three over)?
 - **Options:** (a) same rate for all (b) rate grows with each tier above your clearance.
 - **Default:** (b), at 1x, 1.5x and 2x per tier over.
-- **Answer:**
+- **Answer:** b 
 
 ### C3. Guards in the room (your A5)
 - **You said:** entering a room above your disguise level raises suspicion with the guards in that room.
@@ -121,14 +121,14 @@ Step 7 and are wired in the step that builds them.
 - **Options:** (a) the guard is on the same floor and zone as you, and can see you (that is just a normal witness)
   (b) any Security NPC inside the same zone volume gets a bonus even without sight.
 - **Default:** (a). A separate rule would mean guards sense you through walls.
-- **Answer:**
+- **Answer:** a
 
 ### C4. Leaving a restricted room
 - **Question:** the meter drains at 10 percent per second when nothing suspicious is happening. Does being in a
   restricted room (even unseen) delay that decay?
 - **Options:** (a) no, it only builds when witnessed (b) yes, the 1.5 s decay delay restarts while inside.
 - **Default:** (a).
-- **Answer:**
+- **Answer:** Decay delay should stay, raising depending on trespass level, using the same tier system used for C2.
 
 ---
 
@@ -141,28 +141,28 @@ Step 7 and are wired in the step that builds them.
 - **Options:** (a) a single placeholder agent look for everyone (dark tactical outfit, no weapon) (b) the insertion
   disguise stays but with a red outline (c) your idea: ____
 - **Default:** (a). It reads clearly as "exposed" and is replaced in Step 16.
-- **Answer:**
+- **Answer:** a
 
 ### D2. Movement while Exposed
 - **Spec says:** a disguised player is capped to the NPC speed. It gives only the sprint speed (18) for True Form.
 - **Question:** what is an exposed player's normal walk speed?
 - **Options:** (a) 16 (Roblox default), sprint 18 (b) same as disguised (10 or 12), sprint 18 (c) your numbers: ____
 - **Default:** (a).
-- **Answer:**
+- **Answer:** a (changed from b on 2026-10-22: an Exposed player walks at 16, sprint 18)
 
 ### D3. The enemy ping
 - **Spec says:** a red "!" on enemies' HUD at that location for 2 s if within 60 studs.
 - **You said (C2):** loud and obvious for you, and loud for enemies within 60 studs.
 - **Question:** no teams exist until Step 10. For testing, are all other players enemies?
 - **Default:** yes. Teammates are excluded once teams exist.
-- **Answer:**
+- **Answer:** Default
 
 ### D4. What does an exposed player's own screen do?
 - **Question:** you wanted "obvious for the player". Which effects, in order of how strong?
 - **Options (pick any):** (a) red flash and "EXPOSED" text (b) a short sting sound (placeholder until audio in Step 20)
   (c) screen shake (d) a vignette that fades after a few seconds.
 - **Default:** (a), (d), and the sound once Step 20 adds audio.
-- **Answer:**
+- **Answer:** Default, but for the flash and "EXPOSED" text on screen, the team color should effect it.
 
 ### D5. Scanning an exposed player (your C2)
 - **You said:** it copies the agent's last disguise, after a timer of about 3 seconds from the scan to the disguise.
@@ -170,7 +170,7 @@ Step 7 and are wired in the step that builds them.
 - **Options:** (a) on top: the scan takes 1.2 s, then the disguise is only usable after 3 more seconds (b) instead:
   scanning an exposed agent takes 3 s in total.
 - **Default:** (b).
-- **Answer:**
+- **Answer:** b (changed on 2026-10-22: scanning an exposed agent takes 3 s in total, with no extra timer afterwards)
 
 ---
 
@@ -182,13 +182,13 @@ Step 7 and are wired in the step that builds them.
 - **Question:** what does "tracking" mean for a Security NPC without combat?
 - **Options:** (a) a Security NPC currently counts you as a witness (b) a Security NPC has seen you within the last 3 s.
 - **Default:** (b), so ducking out of sight for a moment is not enough.
-- **Answer:**
+- **Answer:** b
 
 ### E2. Which disguise do you get back?
 - **Question:** when you re-cover, you put on the stored disguise or the insertion one, as in Step 6. Is there anything
   different when you were Exposed?
 - **Default:** no. The same `G` key and the same rules.
-- **Answer:**
+- **Answer:** Same rules, however, for every re-cover the agent gains a new disguise. This disguise should never defer from the tier of the players last disguise.
 
 ---
 
@@ -199,14 +199,14 @@ Step 7 and are wired in the step that builds them.
 - **Question:** none of those exist yet. Step 7 can build the timer and the "locked out" rule with nothing starting it.
   Is that acceptable, or should a test key start it?
 - **Default:** build the timer, and add a Studio-only test key to start it, removed in Step 8.
-- **Answer:**
+- **Answer:** default 
 
 ### F2. The other cover-breaking actions
 - **Spec says:** firing, abilities, melee, climbing, vents and ziplines, the Package, reviving and executing, supply cache
   upgrades, hacking the vault, killing any NPC, and lock picking all expose you instantly.
 - **Question:** each is wired in the step that builds the action. Step 7 provides one function they all call. OK?
 - **Default:** yes. The ones I can test now: trespass, the meter, and "killing an NPC" through the Studio test keys.
-- **Answer:**
+- **Answer:** default
 
 ---
 
@@ -221,17 +221,17 @@ Step 7 and are wired in the step that builds them.
 - **Options:** (a) the target is within a narrow cone (about 10 degrees) of the centre of the screen (b) the crosshair
   ray hits them.
 - **Default:** (b), which matches how scanning aims.
-- **Answer:**
+- **Answer:** b
 
 ### G2. Does Agent Sense work on exposed enemies?
 - **Question:** an exposed enemy is already visible as an agent. Does the shimmer still trigger?
 - **Default:** no, only disguised enemies.
-- **Answer:**
+- **Answer:** yes but as a red vingette effect if the player isnt already looking back at them. This effect should be much more feint than the normal agent sense.
 
 ### G3. Hitmarkers (spec 8.4)
 - **Question:** red or grey hitmarkers belong to weapons (Step 8). Anything to decide now?
 - **Default:** no. Step 8 handles it.
-- **Answer:**
+- **Answer:** default
 
 ---
 
@@ -242,7 +242,7 @@ Step 7 and are wired in the step that builds them.
 - **Question:** what should it show?
 - **Default:** state name, suspicion percent, the clearance tier of your zone and of your disguise, who is currently
   witnessing you (count by type), and the alarm level.
-- **Answer:**
+- **Answer:** default
 
 ### H2. Watcher markers (your C1)
 - **You said:** a marker on any witness currently adding to your suspicion. Edge arrows for off-screen ones.
@@ -250,13 +250,13 @@ Step 7 and are wired in the step that builds them.
 - **Options:** (a) build it now as the real feedback (b) show a count in the debug HUD now, and build markers in the
   HUD step (19).
 - **Default:** (b). The marker design depends on the final HUD style (STYLE_QUESTIONS D2).
-- **Answer:**
+- **Answer:** default
 
 ### H3. Heartbeat sound
 - **You said:** a heartbeat that speeds up as the meter rises.
 - **Question:** audio is Step 20. Skip the sound for now?
 - **Default:** yes. The meter and the visual cues first.
-- **Answer:**
+- **Answer:** default
 
 ---
 
