@@ -73,6 +73,7 @@ local Enums = {
 		ZiplineAnchor = "ZiplineAnchor",
 		PickupSpawn = "PickupSpawn",
 		ClimbSurface = "ClimbSurface",
+		Seat = "Seat", -- a place the Blend wheel's Sit emote works near (spec 6.7)
 		ZoneVolume = "ZoneVolume", -- Spec 4.2: invisible volumes carrying the Tier attribute.
 	},
 

@@ -60,6 +60,14 @@ export type PoseDef = {
 	Keyframes: { PoseKeyframe },
 }
 
+-- Spec 6.3, 6.4: what a player knows about their own disguises. Sent only to that player. Slots has `false` for an
+-- empty slot, so it stays a plain array on the wire.
+export type DisguiseUpdate = {
+	Worn: string, -- OutfitId currently worn
+	Insertion: string, -- OutfitId given at spawn
+	Slots: { string | boolean },
+}
+
 -- Token-bucket limits for one client -> server remote (GameConfig.Network).
 export type RateLimit = {
 	PerSecond: number,

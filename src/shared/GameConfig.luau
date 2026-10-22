@@ -221,6 +221,19 @@ local GameConfig = {
 		SecurityWitnessFov = 110,
 		-- Neck follows the camera (8.1).
 		NeckMaxYaw = 60,
+		NeckMaxPitch = 40,
+		-- Implementation tuning for scanning (6.3). The server checks range and sight itself; the client only aims.
+		ScanRangeSlack = 1.5, -- studs of allowance for lag when the server checks ScanRange
+		ScanSightHeight = 1.5, -- studs above the feet the sight line is drawn between
+		ScanCheckSeconds = 0.1, -- how often the server re-checks every scan in progress
+		-- Facing while disguised (OPEN_QUESTIONS C5, STYLE_QUESTIONS A3): the body faces where it walks, not where the
+		-- camera looks. Standing still, it turns slowly to the camera after IdleTurnDelay, like an NPC glancing.
+		IdleTurnDelay = 1.5,
+		IdleTurnRate = 60, -- degrees per second
+		IdleTurnDeadband = 25, -- degrees between body and camera before it turns at all
+		DisguisePuffParticles = 20,
+		DisguisePuffSeconds = 1.5,
+		SeatRange = 6, -- Sit on the Blend wheel works within this many studs of a Seat-tagged part
 		-- Agent Sense (8.3).
 		AgentSenseRange = 6,
 		AgentSenseSeconds = 1.5,
@@ -228,6 +241,16 @@ local GameConfig = {
 		AgentSenseCooldown = 8,
 		-- Blend wheel (6.7): the emotes it offers.
 		BlendEmotes = { "Idle", "Look Around", "Phone", "Drink", "Talk", "Lean", "Sit", "Cower" },
+		-- The pose each emote plays (Defs/PoseDefs). Idle plays none: it just stops the current emote.
+		BlendEmoteAnimations = {
+			["Look Around"] = "LookAtArt",
+			Phone = "Phone",
+			Drink = "Drink",
+			Talk = "Talk",
+			Lean = "Lean",
+			Sit = "Sit",
+			Cower = "Cower",
+		},
 	},
 
 	-- Spec 6.8, 11, 14.1, 18.4, 5.4: speeds in studs/s.
@@ -448,6 +471,31 @@ local GameConfig = {
 		FovMax = 100,
 		MaxPingsPerPlayer = 3,
 		SuspectPingSeconds = 8,
+		-- STYLE_QUESTIONS D2: a minimal HUD in a bold, pixel-style font. These are the first pieces of it (Step 6).
+		Font = Enum.Font.Arcade,
+		TextSize = 18,
+		TextColor = Color3.fromRGB(240, 240, 245),
+		DimTextColor = Color3.fromRGB(150, 150, 160),
+		ToastSeconds = 2.5,
+		CrosshairPixels = 4, -- the centre dot
+		ScanRingSegments = 32,
+		ScanRingRadius = 30, -- pixels
+		ScanRingColor = Color3.fromRGB(240, 240, 245),
+		ScanRingDimColor = Color3.fromRGB(70, 70, 80),
+		BlendWheelRadius = 150, -- pixels
+		BlendWheelDeadZone = 0.3, -- fraction of the radius the cursor must leave before a slice is chosen
+		BlendWheelDisabledColor = Color3.fromRGB(90, 90, 98),
+	},
+
+	-- Spec 24: default keys. Rebinding comes with the settings menu.
+	Controls = {
+		Scan = Enum.KeyCode.F,
+		ScanPad = Enum.KeyCode.DPadUp,
+		Disguise = Enum.KeyCode.G,
+		DisguisePad = Enum.KeyCode.DPadDown,
+		Blend = Enum.KeyCode.B,
+		BlendPad = Enum.KeyCode.DPadLeft,
+		Sprint = Enum.KeyCode.LeftShift,
 	},
 
 	-- Spec 23: audio radii in studs.

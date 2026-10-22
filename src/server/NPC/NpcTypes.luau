@@ -25,6 +25,7 @@ export type Npc = {
 	model: Model,
 	root: BasePart,
 	role: Types.Role,
+	outfit: Types.OutfitDef, -- what a scan of this NPC copies (spec 6.3)
 	maxTier: number,
 	baseSpeed: number,
 	speed: number,

@@ -30,6 +30,8 @@ local Remotes = {
 		"CooldownUpdate",
 		"Notification",
 		"NPCAnimation", -- NPC id and the animation it is playing (implementation detail of spec 5.3)
+		"DisguiseUpdate", -- to the owner only: the disguise worn and the slots (spec 6.3, 6.4)
+		"ScanState", -- to the scanner only: a scan started, was cancelled or finished (spec 6.3)
 	},
 
 	-- Client -> server (requests only; the server validates every one)
@@ -48,6 +50,7 @@ local Remotes = {
 		"RequestDropPackage",
 		"RequestPassPackage",
 		"RequestEmote",
+		"RequestSprint", -- sprint on or off (spec 6.8)
 		"RequestDebugEvent", -- development only; ignored unless GameConfig.Debug.TestEvents is on
 	},
 

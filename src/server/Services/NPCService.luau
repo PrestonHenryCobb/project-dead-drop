@@ -26,6 +26,7 @@ local Movement = require(NPC:WaitForChild("Movement"))
 local NavGraph = require(NPC:WaitForChild("NavGraph"))
 local NpcTypes = require(NPC:WaitForChild("NpcTypes"))
 local Reactions = require(NPC:WaitForChild("Reactions"))
+local DisguiseService = require(script.Parent.DisguiseService)
 local DoorService = require(script.Parent.DoorService)
 local RemoteService = require(script.Parent.RemoteService)
 local RigService = require(script.Parent.RigService)
@@ -155,6 +156,7 @@ local function createNpc(role: Types.Role, node: number, graph: NavGraph.Graph, 
 		model = model,
 		root = model:FindFirstChild("HumanoidRootPart") :: BasePart,
 		role = role,
+		outfit = outfit,
 		maxTier = maxTier,
 		baseSpeed = speed,
 		speed = speed,
@@ -310,9 +312,20 @@ local function onDebugEvent(player: Player, kind: unknown, position: unknown)
 	end
 end
 
+-- How a scan finds an NPC by the name of its model (spec 6.3).
+local function describeNpc(id: string): DisguiseService.NpcInfo?
+	for _, npc in npcs do
+		if npc.id == id then
+			return { outfit = npc.outfit, position = npc.root.Position, scannable = not Death.isDown(npc) }
+		end
+	end
+	return nil
+end
+
 function NPCService.Init() end
 
 function NPCService.Start()
+	DisguiseService.setNpcLookup(describeNpc)
 	local nodes: { BasePart } = {}
 	for _, instance in CollectionService:GetTagged(Enums.Tag.NPCNode) do
 		if instance:IsA("BasePart") and instance:IsDescendantOf(workspace) then

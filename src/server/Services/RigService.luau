@@ -20,11 +20,10 @@ local StarterPlayer = game:GetService("StarterPlayer")
 local TextChatService = game:GetService("TextChatService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local OutfitApplier = require(Shared:WaitForChild("Util"):WaitForChild("OutfitApplier"))
-local OutfitDefs = require(Shared:WaitForChild("Defs"):WaitForChild("OutfitDefs"))
 local Types = require(Shared:WaitForChild("Types"))
+local DisguiseService = require(script.Parent.DisguiseService)
 
 type OutfitDef = Types.OutfitDef
 
@@ -34,7 +33,6 @@ local STARTER_CHARACTER = "StarterCharacter"
 
 local template: Model? = nil
 local templateReady = Instance.new("BindableEvent")
-local rng = Random.new()
 
 local function randomName(): string
 	return (HttpService:GenerateGUID(false):gsub("-", ""):sub(1, 12))
@@ -148,7 +146,7 @@ local function onCharacterAdded(player: Player, character: Model)
 	if healthScript then
 		healthScript:Destroy()
 	end
-	OutfitApplier.apply(character, OutfitDefs.random(Enums.Role.Guest, rng))
+	DisguiseService.spawn(player, character) -- the insertion disguise (spec 6.5)
 	makeAnonymous(character)
 	joinCollisionGroup(character)
 
