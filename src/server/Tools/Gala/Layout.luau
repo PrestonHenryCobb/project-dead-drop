@@ -1,13 +1,17 @@
 --!strict
 -- The layout of "The Gala" as data (BUILD_ORDER Step 7B). Build.luau turns this into geometry, zones, doors and NPC nodes.
 --
--- A tower over a city street. The ground floor is entirely indoors, with windows onto a cityscape backdrop; the only
--- outdoor spaces are terraces and decks that branch off the upper floors, around a central atrium:
---   B (-24)  basement: storage halls, security corridors, Vault A in the core
---   G (0)    ground: lobby, ballroom, bar, kitchen, loading bay, catering, Vault C wing, and the atrium pond
---   M (24)   mezzanine: grand gallery, masquerade hall, atrium balcony, offices, security hub, terrace ring, skybridge and lawn deck
---   T (48)   top floor: penthouse and private gallery, guard halls, Vault B wing, upper terrace ring
---   R (72)   roof: the rooftop cocktail party, with the helipad
+-- Two towers on the roofs of skyscrapers, high over a city: the Gala, and east of it across a 20-stud drop, the hotel
+-- and casino wing. Their ground floors are entirely indoors with windows onto the city; the outdoor spaces are terraces,
+-- decks and roofs above. Galleries (GH, 12 studs up) are open floors inside rooms: round the ballroom, over the bar, staff
+-- catwalks over the kitchen and loading bay, and the casino's VIP tables.
+--   B (-24)  basement: storage, security corridors, Vault A; the service tunnel; the wing's laundry, security and Vault D
+--   G (0)    ground: lobby, ballroom and pond, bar, kitchen, loading bay, Vault C; the wing's casino, cage, high-roller lounge
+--   M (24)   mezzanine: galleries, masquerade hall, offices, security hub, terrace ring; skybridge to the lawn deck and the
+--            wing's hotel lobby
+--   T (48)   top floor: penthouse, guard halls, Vault B, upper terrace; the wing's suites and balconies
+--   R (72)   roof: the rooftop party with the helipad and a cantilevered pool deck; the catwalk to the wing's roof garden
+--   X (96)   the wing's sky deck (an extraction site)
 --
 -- Rects are { x1, z1, x2, z2 } in studs. Rooms on one level must not overlap; Build.luau reports any that do.
 -- A room with `parent` is carved out of that parent room (a nested room, for example a guard room inside a staff room).
@@ -23,7 +27,7 @@ export type Room = {
 	level: string,
 	name: string,
 	tier: number,
-	kind: string, -- "indoor" or "outdoor"
+	kind: string, -- "indoor", "outdoor", or "gallery" (an open floor inside a room, on a gallery level)
 	rect: Rect,
 	parent: string?,
 	holes: { Rect }?, -- areas cut out of this room (used by the terrace rings)
@@ -44,7 +48,8 @@ export type Door = {
 }
 
 export type Ramp = {
-	from: string, -- the lower level; it climbs to the next one up
+	from: string, -- the lower level
+	to: string?, -- the level it climbs to: the next full level if not given, or a gallery level
 	x: number, -- centre line (for a ramp climbing along z) or start x (along x)
 	z: number, -- start z (lower end) for a ramp climbing along z, or centre line for one along x
 	dir: string, -- "+z", "-z", "+x" or "-x": the way it climbs
@@ -53,8 +58,8 @@ export type Ramp = {
 
 export type Marker = { id: string, level: string, x: number, z: number }
 
--- Things that are not rooms: water, garden islands, bridges, a skylight, a statue, lanterns, a pavilion, a truss (the
--- steel under a skybridge), and supports (a neighbouring tower whose roof carries a deck that reaches past the Gala).
+-- Things that are not rooms: water, garden islands, bridges, a skylight, a statue, lanterns, a pavilion, and a truss
+-- (the steel under a skybridge, the service tunnel or a cantilevered deck).
 export type Feature = {
 	kind: string,
 	level: string,
@@ -90,13 +95,17 @@ local function room(
 	table.insert(rooms, r :: Room)
 end
 
-local OUT, IN = "outdoor", "indoor"
+local OUT, IN, GALLERY = "outdoor", "indoor", "gallery"
 
 -- Footprints (referenced by the terrace rings).
 local FG = { -120, -150, 120, 130 } -- tower at ground and basement
 local FM = { -105, -135, 105, 115 } -- mezzanine
 local FT = { -75, -105, 75, 85 } -- top floor and roof
 local VOID = { -38, -35, 38, 45 } -- the atrium void, with the pond at its foot
+local FW = { 140, -70, 240, 110 } -- the wing, at ground and basement
+
+-- The towers' outlines at ground level: each stands on its own skyscraper in the city.
+local towers: { Rect } = { FG, FW }
 
 -- B: basement (-24) -------------------------------------------------------------------------------------------------
 room("b_west_n", "B", "West storage north", 1, IN, { -120, -150, -75, -10 }, { props = { "crates" } })
@@ -117,14 +126,16 @@ room(
 	"Loading bay",
 	1,
 	IN,
-	{ -120, -150, -80, -50 },
-	{ glass = true, density = 0.7, props = { "crates", "trucks" } }
+	{ -120, -85, -80, -50 },
+	{ glass = true, density = 0.7, props = { "crates" } }
 )
+room("g_vaultc_ante", "G", "Vault C antechamber", 2, IN, { -120, -115, -80, -85 })
+room("g_vaultc", "G", "Vault C", 3, IN, { -120, -150, -80, -115 }, { density = 0.5 })
 room("g_kitchen", "G", "Kitchen", 1, IN, { -80, -150, -40, -50 }, { density = 1.2, props = { "islands" } })
 room("g_service", "G", "Service corridor", 1, IN, { -40, -150, 40, -50 }, { props = { "pillars" } })
 room("g_catering", "G", "Catering prep", 1, IN, { 40, -150, 80, -50 }, { glass = true, props = { "islands" } })
-room("g_vaultc_ante", "G", "Vault C antechamber", 2, IN, { 80, -90, 120, -50 })
-room("g_vaultc", "G", "Vault C", 3, IN, { 80, -150, 120, -90 }, { density = 0.5 })
+room("g_breakroom", "G", "Staff break room", 1, IN, { 80, -90, 120, -50 }, { glass = true, props = { "tables" } })
+room("g_cold", "G", "Cold storage", 1, IN, { 80, -150, 120, -90 }, { props = { "crates" } })
 room("g_sculpt", "G", "Sculpture hall", 0, IN, { -120, -50, -60, 70 }, { glass = true, props = { "partitions" } })
 room("g_ballroom", "G", "Ballroom", 0, IN, { -60, -50, 60, 70 }, { density = 2, props = { "pillars", "tables" } })
 room("g_lounge", "G", "Smoking lounge", 0, IN, { 60, -50, 120, 70 }, { glass = true, props = { "tables" } })
@@ -149,6 +160,13 @@ room(
 	{ 50, 70, 120, 130 },
 	{ glass = true, density = 1.5, props = { "bar", "tables" } }
 )
+
+-- GH: galleries (12) ------------------------------------------------------------------------------------------------------
+room("gh_ballroom", "GH", "Ballroom gallery", 0, GALLERY, { -58, 52, 58, 68 }, { density = 1.2, props = { "tables" } })
+room("gh_bar", "GH", "Bar loft", 0, GALLERY, { 52, 112, 118, 128 }, { density = 1, props = { "tables" } })
+room("gh_kitchen", "GH", "Kitchen catwalk", 1, GALLERY, { -78, -148, -42, -140 })
+room("gh_dock", "GH", "Loading bay catwalk", 1, GALLERY, { -120, -83, -110, -52 })
+room("gh_vip", "GH", "VIP tables", 0, GALLERY, { 140, 72, 175, 110 }, { density = 1.2, props = { "tables" } })
 
 -- M: mezzanine (24) -----------------------------------------------------------------------------------------------------
 room(
@@ -195,16 +213,73 @@ room(
 )
 
 -- An enclosed glass skybridge to the lawn deck, like the links between hospital wings, carried on a steel truss.
-room("m_skybridge", "M", "Skybridge", 0, IN, { 120, 26, 138, 38 }, { glass = true, height = 12, density = 0.3 })
+room("m_skybridge", "M", "Skybridge", 0, IN, { 120, 26, 140, 38 }, { glass = true, height = 12, density = 0.3 })
 room(
 	"m_belvedere",
 	"M",
 	"Garden lawn deck",
 	0,
 	OUT,
-	{ 138, 0, 198, 90 },
+	{ 140, -10, 180, 110 },
 	{ density = 1.2, props = { "trees", "planters", "tables" } }
 )
+
+-- The wing (hotel and casino) --------------------------------------------------------------------------------------------
+-- B: the service tunnel from the Gala's east storage, laundry, wing security and Vault D.
+room("b_tunnel", "B", "Service tunnel", 1, IN, { 120, 20, 140, 32 }, { height = 12, density = 0.3 })
+room("wb_laundry", "B", "Hotel laundry", 1, IN, { 140, -10, 190, 50 }, { props = { "crates" } })
+room("wb_service", "B", "Hotel service corridor", 1, IN, { 140, 50, 240, 110 }, { props = { "pillars" } })
+room("wb_security", "B", "Wing security office", 2, IN, { 140, -70, 190, -10 }, { props = { "desks" } })
+room("wb_vaultd_ante", "B", "Vault D antechamber", 2, IN, { 190, -10, 240, 50 })
+room("wb_vaultd", "B", "Vault D", 3, IN, { 190, -70, 240, -10 }, { density = 0.5 })
+-- G: the casino floor, the cashier's cage and the high-roller lounge.
+room(
+	"wg_casino",
+	"G",
+	"Casino floor",
+	0,
+	IN,
+	{ 140, 10, 240, 110 },
+	{ glass = true, density = 2, props = { "pillars", "tables" } }
+)
+room("wg_cage", "G", "Cashier's cage", 1, IN, { 140, -70, 180, 10 }, { glass = true, props = { "desks" } })
+room("wg_highroller", "G", "High-roller lounge", 3, IN, { 180, -70, 240, 10 }, { glass = true, props = { "tables" } })
+-- M: the hotel lobby and corridor beside the lawn deck, and housekeeping.
+room(
+	"wm_lobby",
+	"M",
+	"Hotel lobby",
+	0,
+	IN,
+	{ 180, 40, 240, 110 },
+	{ glass = true, density = 1.5, props = { "reception" } }
+)
+room("wm_corridor", "M", "Hotel corridor", 0, IN, { 180, -10, 240, 40 }, { glass = true, props = { "planters" } })
+room("wm_housekeeping", "M", "Housekeeping", 1, IN, { 140, -70, 240, -10 }, { glass = true, props = { "crates" } })
+-- T: suites either side of a hallway, with balconies over the lawn deck.
+room("wt_hall", "T", "Suite hallway", 0, IN, { 200, -70, 220, 110 })
+room("wt_suite1", "T", "Garden suite", 0, IN, { 180, 50, 200, 110 }, { glass = true, props = { "tables" } })
+room("wt_suite2", "T", "Corner suite", 0, IN, { 180, -10, 200, 50 }, { glass = true, props = { "tables" } })
+room("wt_suite3", "T", "Skyline suite", 0, IN, { 180, -70, 200, -10 }, { glass = true, props = { "tables" } })
+room("wt_suite4", "T", "City suite", 0, IN, { 220, 50, 240, 110 }, { glass = true, props = { "tables" } })
+room("wt_suite5", "T", "Moon suite", 0, IN, { 220, -10, 240, 50 }, { glass = true, props = { "tables" } })
+room("wt_exec", "T", "Executive suite", 3, IN, { 220, -70, 240, -10 }, { glass = true, density = 0.5 })
+room("wt_balcony1", "T", "Garden suite balcony", 0, OUT, { 172, 60, 180, 100 }, { density = 0.3 })
+room("wt_balcony2", "T", "Corner suite balcony", 0, OUT, { 172, 0, 180, 40 }, { density = 0.3 })
+room("wt_balcony3", "T", "Skyline suite balcony", 0, OUT, { 172, -60, 180, -20 }, { density = 0.3 })
+-- R: the roof garden and the plant room under the sky deck.
+room(
+	"wr_garden",
+	"R",
+	"Wing roof garden",
+	0,
+	OUT,
+	{ 180, 20, 240, 110 },
+	{ density = 1.5, props = { "trees", "planters", "bar" } }
+)
+room("wr_plant", "R", "Rooftop plant room", 1, IN, { 180, -70, 240, 20 }, { props = { "crates" } })
+-- X: the sky deck, the wing's top and an extraction site.
+room("wx_skydeck", "X", "Sky deck", 0, OUT, { 180, -70, 240, 20 }, { density = 0.8, props = { "planters" } })
 
 -- T: top floor (48) -----------------------------------------------------------------------------------------------------
 room("t_great", "T", "Penthouse great room", 3, IN, { -45, -45, 45, 55 }, { glass = true, density = 1 })
@@ -235,6 +310,17 @@ room(
 	FT,
 	{ holes = { VOID }, density = 2, props = { "tables", "planters", "bar" } }
 )
+room(
+	"r_pooldeck",
+	"R",
+	"Cantilevered pool deck",
+	0,
+	OUT,
+	{ -150, -40, -75, 60 },
+	{ density = 1.5, props = { "planters", "tables" } }
+)
+-- An open catwalk from the roof to the wing's roof garden.
+room("r_catwalk", "R", "Roof catwalk", 0, OUT, { 75, 30, 180, 36 }, { density = 0.2 })
 
 -- The atrium: an open shaft through the mezzanine and top floors down to the pond, with railings round it.
 local voids = {
@@ -263,6 +349,19 @@ local ramps: { Ramp } = {
 	-- T -> R
 	{ from = "T", x = -60, z = -90, dir = "+z", turn = true },
 	{ from = "T", x = 60, z = -90, dir = "+z", turn = true },
+	-- Half stairs up to the galleries (they climb beside a gallery and arrive over its edge)
+	{ from = "G", to = "GH", x = -50, z = 28, dir = "+z" },
+	{ from = "G", to = "GH", x = 110, z = 88, dir = "+z" },
+	{ from = "G", to = "GH", x = -50, z = -116, dir = "-z" },
+	{ from = "G", to = "GH", x = -86, z = -62, dir = "-x" },
+	{ from = "G", to = "GH", x = 170, z = 48, dir = "+z" },
+	-- The wing
+	{ from = "B", x = 160, z = 100, dir = "-z", turn = true },
+	{ from = "G", x = 210, z = 80, dir = "-z", turn = true },
+	{ from = "G", x = 160, z = -20, dir = "-z", turn = true },
+	{ from = "M", x = 210, z = 33, dir = "-z", turn = true },
+	{ from = "T", x = 210, z = 100, dir = "-z", turn = true },
+	{ from = "R", x = 210, z = -60, dir = "+z", turn = true },
 }
 
 -- Doors: { a, b, at, width, options }. `at` is x for a wall that runs along x, and z for one that runs along z.
@@ -306,17 +405,21 @@ door("g_bar", "g_lounge", 75, 10)
 door("g_sculpt", "g_ballroom", 10, 12)
 door("g_lounge", "g_ballroom", 10, 12)
 door("g_sculpt", "g_dock", -100, 10)
-door("g_dock", "g_kitchen", -100, 12)
-door("g_dock", "g_kitchen", -70, 8)
+door("g_dock", "g_kitchen", -78, 8)
+door("g_dock", "g_vaultc_ante", -100, 8, { gate = 2 })
+door("g_kitchen", "g_vaultc_ante", -100, 8, { gate = 2 })
+door("g_vaultc_ante", "g_vaultc", -100, 8, { gate = 3 })
+door("g_kitchen", "g_vaultc", -130, 8, { gate = 3 })
 door("g_sculpt", "g_kitchen", -70, 8, { keycard = true })
 door("g_ballroom", "g_service", 0, 10, { keycard = true })
 door("g_lounge", "g_catering", 70, 8)
 door("g_lounge", "g_humidor", 45, 6, { gate = 1 })
-door("g_lounge", "g_vaultc_ante", 100, 8, { gate = 2 })
+door("g_lounge", "g_breakroom", 100, 8)
 door("g_kitchen", "g_service", -100, 10)
 door("g_service", "g_catering", -100, 10)
-door("g_catering", "g_vaultc_ante", -70, 8, { gate = 2 })
-door("g_vaultc_ante", "g_vaultc", 100, 8, { gate = 3 })
+door("g_catering", "g_breakroom", -70, 8)
+door("g_breakroom", "g_cold", 100, 8)
+door("g_catering", "g_cold", -120, 8)
 
 -- M
 door("m_terrace", "m_gallery", 40, 10)
@@ -346,6 +449,36 @@ door("m_hub", "m_records", -115, 8, { gate = 3 })
 door("m_terrace", "m_skybridge", 32, 10)
 door("m_skybridge", "m_belvedere", 32, 10)
 
+-- The wing
+door("b_east_s", "b_tunnel", 26, 10)
+door("b_tunnel", "wb_laundry", 26, 10)
+door("wb_laundry", "wb_service", 165, 10)
+door("wb_laundry", "wb_security", 165, 8)
+door("wb_laundry", "wb_vaultd_ante", 20, 8, { gate = 2 })
+door("wb_service", "wb_vaultd_ante", 215, 8, { gate = 2 })
+door("wb_vaultd_ante", "wb_vaultd", 215, 8, { gate = 3 })
+door("wb_security", "wb_vaultd", -40, 8, { gate = 3 })
+door("wg_casino", "wg_cage", 160, 8)
+door("wg_casino", "wg_highroller", 210, 10)
+door("wg_cage", "wg_highroller", -30, 8)
+door("m_belvedere", "wm_lobby", 75, 12)
+door("m_belvedere", "wm_corridor", 15, 8)
+door("wm_lobby", "wm_corridor", 230, 10)
+door("wm_corridor", "wm_housekeeping", 210, 8)
+door("m_belvedere", "wm_housekeeping", 172, 8)
+door("wt_hall", "wt_suite1", 60, 8)
+door("wt_hall", "wt_suite2", 45, 8)
+door("wt_hall", "wt_suite3", -40, 8)
+door("wt_hall", "wt_suite4", 60, 8)
+door("wt_hall", "wt_suite5", 45, 8)
+door("wt_hall", "wt_exec", -40, 8)
+door("wt_suite5", "wt_exec", 230, 8)
+door("wt_suite1", "wt_balcony1", 80, 8)
+door("wt_suite2", "wt_balcony2", 20, 8)
+door("wt_suite3", "wt_balcony3", -40, 8)
+door("wr_garden", "wr_plant", 200, 8)
+door("wr_garden", "wr_plant", 230, 8)
+
 -- T
 door("t_terrace", "t_gallery", 0, 12, { gate = 3 })
 door("t_terrace", "t_west", 0, 8)
@@ -372,16 +505,19 @@ local features: { Feature } = {
 	{ kind = "bridge", level = "G", rect = { -26, 28, -20, 46 } },
 	{ kind = "bridge", level = "G", rect = { 20, 28, 26, 46 } },
 	{ kind = "skylight", level = "R", rect = VOID },
-	{ kind = "statue", level = "M", x = 160, z = 45 },
+	{ kind = "statue", level = "M", x = 156, z = 45 },
 	{
 		kind = "lanterns",
 		level = "M",
-		points = { { 144, 8 }, { 144, 82 }, { 170, 8 }, { 170, 82 }, { 192, 8 }, { 192, 82 } },
+		points = { { 144, -6 }, { 144, 106 }, { 176, -6 }, { 176, 106 }, { 144, 50 }, { 176, 50 } },
 	},
-	{ kind = "pavilion", level = "M", rect = { 180, 14, 194, 76 }, count = 5 },
-	{ kind = "truss", level = "M", rect = { 120, 26, 138, 38 } },
-	-- The lawn deck is the roof of the neighbouring tower, joined to the Gala by the skybridge.
-	{ kind = "support", level = "M", rect = { 138, 0, 198, 90 } },
+	{ kind = "pavilion", level = "M", rect = { 166, 14, 178, 76 }, count = 5 },
+	{ kind = "truss", level = "M", rect = { 120, 26, 140, 38 } },
+	{ kind = "truss", level = "B", rect = { 120, 20, 140, 32 } },
+	-- The pool deck reaches past the tower's west edge on a truss, with a pool and a row of cabanas.
+	{ kind = "truss", level = "R", rect = { -150, -40, -120, 60 } },
+	{ kind = "pool", level = "R", rect = { -145, -30, -125, 10 } },
+	{ kind = "pavilion", level = "R", rect = { -142, 22, -130, 56 }, count = 3 },
 }
 
 local nodes: { NodeSpec } = {
@@ -392,12 +528,17 @@ local nodes: { NodeSpec } = {
 	{ level = "M", x = 126, z = 32, activity = "Walk" },
 	{ level = "M", x = 134, z = 32, activity = "Walk" },
 	{ level = "M", x = 142, z = 32, activity = "Walk" },
+	{ level = "B", x = 126, z = 26, activity = "Walk" },
+	{ level = "B", x = 134, z = 26, activity = "Walk" },
+	{ level = "R", x = 100, z = 33, activity = "Walk" },
+	{ level = "R", x = 130, z = 33, activity = "Walk" },
+	{ level = "R", x = 160, z = 33, activity = "Walk" },
 }
 
 -- Places that are not rooms: where teams arrive and where the Package leaves (spec 4.3).
 local extraction: { Marker } = {
 	{ id = "Helipad", level = "R", x = 0, z = 50 },
-	{ id = "LoadingDock", level = "G", x = -105, z = -135 },
+	{ id = "WingRoof", level = "X", x = 210, z = -25 },
 	{ id = "GardenLawn", level = "M", x = 160, z = 60 },
 }
 
@@ -420,12 +561,14 @@ local insertion: { Marker } = {
 local vaults: { Marker } = {
 	{ id = "VaultA", level = "B", x = 0, z = -30 },
 	{ id = "VaultB", level = "T", x = 0, z = -90 },
-	{ id = "VaultC", level = "G", x = 100, z = -120 },
+	{ id = "VaultC", level = "G", x = -100, z = -132 },
+	{ id = "VaultD", level = "B", x = 215, z = -40 },
 }
 
 return {
-	levels = { B = -24, G = 0, M = 24, T = 48, R = 72 },
-	levelOrder = { "B", "G", "M", "T", "R" },
+	levels = { B = -24, G = 0, GH = 12, M = 24, T = 48, R = 72, X = 96 },
+	levelOrder = { "B", "G", "M", "T", "R", "X" }, -- full storeys; GH is a gallery level
+	towers = towers,
 	rooms = rooms,
 	voids = voids,
 	ramps = ramps,

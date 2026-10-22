@@ -11,7 +11,6 @@
 local Lighting = game:GetService("Lighting")
 
 type Rect = { x1: number, z1: number, x2: number, z2: number }
-export type Support = { rect: Rect, top: number } -- a neighbouring tower whose roof carries a deck
 
 local City = {}
 
@@ -36,7 +35,7 @@ local VOID_Y = -560
 local BLOCK = 110 -- one tower per city block
 local SHAFT_SETBACKS = { { to = -260, grow = 0 }, { to = -400, grow = 16 }, { to = VOID_Y, grow = 32 } }
 local NEAR_REACH, MID_REACH = 300, 420 -- how far out the near towers stop and the middle band stops
-local CLEAR_X, CLEAR_Z = 200, 230 -- no city block this close to the Gala's centre
+local CLEAR = 50 -- studs every city tower keeps from the Gala's towers
 local FAR_RING = { count = 140, from = 700, to = 1500 }
 local SUPERTALLS = { count = 6, from = 900, to = 1400 }
 local HORIZON = { count = 160, from = 1900, to = 2400 }
@@ -63,9 +62,9 @@ local CROWN_COLORS = {
 	Color3.fromRGB(255, 200, 120),
 }
 
--- Builds the city into `parent` and returns how many parts it made. `footprint` is the Gala's ground floor outline and
--- `shaftTop` the underside of its lowest floor.
-function City.build(parent: Instance, footprint: Rect, shaftTop: number, supports: { Support }): number
+-- Builds the city into `parent` and returns how many parts it made. `towers` are the outlines of the Gala's towers at
+-- ground level (each stands on its own skyscraper) and `shaftTop` is the underside of their lowest floor.
+function City.build(parent: Instance, towers: { Rect }, shaftTop: number): number
 	local model = Instance.new("Model")
 	model.Name = "Cityscape"
 	model.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
@@ -206,56 +205,50 @@ function City.build(parent: Instance, footprint: Rect, shaftTop: number, support
 		end
 	end
 
-	-- The Gala's own skyscraper: glass all the way down in three setbacks, a crown of light under the Gala and lit bands
-	-- at each setback, fading into the void.
-	local cx, cz = (footprint.x1 + footprint.x2) / 2, (footprint.z1 + footprint.z2) / 2
-	local fw, fd = footprint.x2 - footprint.x1, footprint.z2 - footprint.z1
-	local from = shaftTop
-	for index, setback in SHAFT_SETBACKS do
-		local w, d = fw + setback.grow * 2, fd + setback.grow * 2
-		local shaft = block(
-			"Skyscraper shaft",
-			Vector3.new(w, from - setback.to, d),
-			CFrame.new(cx, (from + setback.to) / 2, cz),
-			SHAFT_GREY
-		)
-		windows(shaft, FACADES[1], LIT[1])
-		if index > 1 then
-			crown(cx, from - 0.4, cz, w, d, CROWN_COLORS[1])
+	-- The skyscrapers the Gala's towers stand on: glass all the way down in three setbacks, a crown of light under each
+	-- tower and lit bands at each setback, fading into the void.
+	local minX, minZ, maxX, maxZ = math.huge, math.huge, -math.huge, -math.huge
+	for _, footprint in towers do
+		minX, minZ = math.min(minX, footprint.x1), math.min(minZ, footprint.z1)
+		maxX, maxZ = math.max(maxX, footprint.x2), math.max(maxZ, footprint.z2)
+		local tx, tz = (footprint.x1 + footprint.x2) / 2, (footprint.z1 + footprint.z2) / 2
+		local fw, fd = footprint.x2 - footprint.x1, footprint.z2 - footprint.z1
+		local from = shaftTop
+		for index, setback in SHAFT_SETBACKS do
+			local w, d = fw + setback.grow * 2, fd + setback.grow * 2
+			local shaft = block(
+				"Skyscraper shaft",
+				Vector3.new(w, from - setback.to, d),
+				CFrame.new(tx, (from + setback.to) / 2, tz),
+				SHAFT_GREY
+			)
+			windows(shaft, FACADES[1], LIT[1])
+			if index > 1 then
+				crown(tx, from - 0.4, tz, w, d, CROWN_COLORS[1])
+			end
+			from = setback.to
 		end
-		from = setback.to
+		crown(tx, shaftTop - 1.5, tz, fw, fd, CROWN_COLORS[4])
 	end
-	crown(cx, shaftTop - 1.5, cz, fw, fd, CROWN_COLORS[4])
-
-	-- Neighbouring towers that carry decks: office facades, lit, with a crown under the deck's rim.
-	for _, support in supports do
-		local r = support.rect
-		local w, d = r.x2 - r.x1, r.z2 - r.z1
-		local scx, scz = (r.x1 + r.x2) / 2, (r.z1 + r.z2) / 2
-		local body = block(
-			"Neighbour tower",
-			Vector3.new(w, support.top - VOID_Y, d),
-			CFrame.new(scx, (support.top + VOID_Y) / 2, scz),
-			ROOF_GREY
-		)
-		windows(body, FACADES[2], LIT[1])
-		crown(scx, support.top - 1, scz, w, d, CROWN_COLORS[1])
-	end
+	local cx, cz = (minX + maxX) / 2, (minZ + maxZ) / 2 -- the city is laid out round the middle of the towers
 
 	-- Near and middle band: one tower per block, low and close so you look down on them, rising with distance.
 	for gx = -5, 5 do
 		for gz = -5, 5 do
 			local dx, dz = gx * BLOCK + rng:NextNumber(-12, 12), gz * BLOCK + rng:NextNumber(-12, 12)
-			if math.abs(dx) < CLEAR_X and math.abs(dz) < CLEAR_Z then
-				continue
-			end
 			local w, d = rng:NextNumber(40, 74), rng:NextNumber(40, 74)
 			local spot: Rect =
 				{ x1 = cx + dx - w / 2, z1 = cz + dz - d / 2, x2 = cx + dx + w / 2, z2 = cz + dz + d / 2 }
 			local blocked = false
-			for _, support in supports do
-				local r = support.rect
-				if spot.x1 < r.x2 + 20 and r.x1 - 20 < spot.x2 and spot.z1 < r.z2 + 20 and r.z1 - 20 < spot.z2 then
+			for _, r in towers do
+				-- The towers' lower setbacks are wider than their outlines, so keep well clear.
+				local grow = SHAFT_SETBACKS[#SHAFT_SETBACKS].grow + CLEAR
+				if
+					spot.x1 < r.x2 + grow
+					and r.x1 - grow < spot.x2
+					and spot.z1 < r.z2 + grow
+					and r.z1 - grow < spot.z2
+				then
 					blocked = true
 					break
 				end

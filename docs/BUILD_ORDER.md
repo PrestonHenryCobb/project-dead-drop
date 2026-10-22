@@ -134,7 +134,7 @@ The map should feel alive without the crowd clogging corridors or leaving rooms 
 | Vault door order | Climbing tiers inside each vault: Tier 1, then 2, then 3, so getting a Security and then an Executive disguise is the way in. Each of the three vaults has its own sequence and shape. |
 | How to start | Layout data first (levels, rooms, doors, outdoor areas), generated and reviewed with screenshots before the vault interiors and the four intel station types. |
 
-**Status (2026-10-23): pass 1 built and revised once (see the map revision above); self-check passes with 0 problems.**
+**Status (2026-10-23): pass 1 built, revised, and grown (wing, galleries, decks, 200 NPCs); self-check passes with 0 problems. Next: the city quality setting, then pass 2 (vault interiors, intel stations, gondola, ziplines, vents).**
 - Done: the tower layout as data (`src/server/Tools/Gala/Layout.luau`) and its generator (`Build.luau`): 53 rooms over five
   levels with a central atrium, setback terraces, hedged grounds with gates, nested guard rooms, 14 clearance doors and 6
   keycard doors, 19 ramps, zone volumes, 311 NPC nodes, props and cover, 12 insertion points, 3 extraction sites and 3 vault
@@ -168,6 +168,11 @@ The map should feel alive without the crowd clogging corridors or leaving rooms 
 | Void | Below the city, haze layers darken from the orange city glow to a solid black floor at y -560, which is also the kill height (Workspace.FallenPartsDestroyHeight). Open edges of terraces and decks have 9-stud glass barriers. |
 | Skybridge | Enclosed and glass-walled (12 wide, 12 high), like a link between hospital wings, on a steel Warren truss bracketed into both buildings. The lawn deck is the roof of a neighbouring tower. |
 | Palette | The Gala follows the city: slate-blue shell and roofs, warm stone interior walls, warm-tinted floors, city-blue glass, steel rails. Set Lighting.Technology to Future in Studio (scripts cannot). |
+| Wing (step 2) | A hotel and casino tower east of the Gala, 20 studs across the void, one storey higher (roof at 96). Basement: Vault D, laundry, wing security. Ground: casino floor with raised VIP tables, cashier cage, high-roller lounge. Mezzanine: hotel lobby and housekeeping beside the lawn deck. Top: suites with balconies. Roof: a garden and plant room, with the sky deck above it as an extraction site (it replaces the loading bay). |
+| Links to the wing | The existing enclosed skybridge (mezzanine, to the lawn deck), a basement service tunnel (Staff), and an open catwalk between the roofs (cover-breaking to use: SPEC-QUESTION for the systems pass). The window-washer gondola is a moving system and is built in pass 2 with ziplines and vents. |
+| Vaults | Four: A (Gala basement), B (Gala top floor), C moves to the Gala west ground floor, D in the wing basement. |
+| Half-levels | Open galleries 12 studs up: round the ballroom, a loft over the bar, staff catwalks over the kitchen and loading bay, and VIP tables in the casino. Reached by half-height stairs, railed, on posts. |
+| Decks | The rooftop party extends past the tower west edge on a cantilever with a pool and cabanas; the wing gets a roof garden; the suites get balconies. |
 | Order | 1) Fix the stairs and the openings beside them. 2) Grow the map and raise NPCs to 200, then measure. 3) The detailed city and night sky. 4) The quality setting. Then pass 2 (vaults and intel). |
 
 **Follow-ups this brief creates** (to settle before or during the step)

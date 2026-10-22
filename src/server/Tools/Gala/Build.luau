@@ -30,7 +30,7 @@ local Tag = Enums.Tag
 type Rect = { x1: number, z1: number, x2: number, z2: number }
 type Room = Layout.Room
 type Piece = { room: Room, rect: Rect, index: number }
-type Gap = { center: number, width: number, door: Layout.Door }
+type Gap = { center: number, width: number, door: Layout.Door? } -- no door: a gap in a gallery railing for a stair
 type Edge = {
 	level: string,
 	axis: string, -- "x": runs along x at z = line; "z": runs along z at x = line
@@ -50,15 +50,18 @@ local RAIL_H = 4
 local BARRIER_H = 9 -- glass at the open edge of a terrace or deck: higher than a jump (about 7.2 studs), over a long drop
 local GAP_H = 10 -- doorway height
 local SLAB = 2
-local RAMP_W, RAMP_RUN, RAMP_RISE = 6, 48, 24
+local RAMP_W = 6 -- a stair's width; it climbs one stud in two
 -- A switchback climbs half the height in each of two legs, side by side with a gap, joined by a landing.
-local LEG_RUN, LEG_RISE, LANDING, LANE_GAP = RAMP_RUN / 2, RAMP_RISE / 2, 6, 2
+local LANDING, LANE_GAP = 6, 2
 local HEADROOM = 7 -- studs of clear height a body needs above a step; the floor above is cut where it is less
 local STAIR_LANDING_CLEAR = 6 -- studs of open floor kept at the foot and head of every stair
 local STAIR_GAP = 2 -- studs kept between one stair (or its opening) and another
 local STAIR_RAIL_H = 3 -- the handrails along the sides of a flight
 local TRUSS_DEPTH, TRUSS_BAY = 8, 6 -- the steel truss under a bridge: how deep, and how long each bay
 local ZONE_PAD = 2
+local ZONE_H = 24 -- a zone's height where there is no storey above it
+local GALLERY_POST_SPACING = 16 -- studs between the posts under a gallery's edge
+local STEEL_POST = Color3.fromRGB(70, 74, 86)
 -- The Gala's palette follows the city round it: a slate-blue shell, warm stone inside, steel and city-blue glass.
 local SHELL = Color3.fromRGB(78, 82, 98) -- outside walls and roofs
 local INTERIOR_WALL = Color3.fromRGB(138, 124, 112)
@@ -159,6 +162,34 @@ function Build.run()
 	for index, name in levelOrder do
 		nextLevel[name] = levelOrder[index + 1]
 	end
+	-- Levels that are not in levelOrder are gallery levels: open floors between the storeys (Layout.levels).
+	local allLevels = table.clone(levelOrder)
+	local isGalleryLevel: { [string]: boolean } = {}
+	for name in levels do
+		if not table.find(levelOrder, name) then
+			table.insert(allLevels, name)
+			isGalleryLevel[name] = true
+		end
+	end
+	-- The full level a gallery stands on (the highest one below it) and the one over its head.
+	local function storeyBelow(y: number): string
+		local best = levelOrder[1]
+		for _, name in levelOrder do
+			if levels[name] < y and levels[name] > levels[best] then
+				best = name
+			end
+		end
+		return best
+	end
+	local function storeyAbove(y: number): number?
+		local best: number? = nil
+		for _, name in levelOrder do
+			if levels[name] > y and (best == nil or levels[name] < best) then
+				best = levels[name]
+			end
+		end
+		return best
+	end
 
 	local problems = 0
 	local function check(ok: boolean, message: string)
@@ -226,6 +257,10 @@ function Build.run()
 	for _, room in rooms do
 		assert(not roomById[room.id], `Duplicate room id {room.id}`)
 		assert(levels[room.level], `Room {room.id} is on unknown level {room.level}`)
+		assert(
+			(room.kind == "gallery") == (isGalleryLevel[room.level] == true),
+			`Room {room.id}: galleries, and only galleries, go on gallery levels`
+		)
 		roomById[room.id] = room
 	end
 
@@ -237,7 +272,7 @@ function Build.run()
 
 	local piecesByLevel: { [string]: { Piece } } = {}
 	local piecesOfRoom: { [string]: { Piece } } = {}
-	for _, name in levelOrder do
+	for _, name in allLevels do
 		piecesByLevel[name] = {}
 	end
 	for _, room in rooms do
@@ -389,7 +424,7 @@ function Build.run()
 	local doorPoints: { { level: string, x: number, z: number, nx: number, nz: number, a: Room, b: Room } } = {}
 	local reserved: { [string]: { Rect } } = {}
 	local doorClear: { [string]: { Rect } } = {} -- the floor in front of each doorway, which stairs must keep off
-	for _, name in levelOrder do
+	for _, name in allLevels do
 		reserved[name] = {}
 		doorClear[name] = {}
 	end
@@ -456,16 +491,24 @@ function Build.run()
 		end
 		return -1, 0
 	end
-	for _, name in levelOrder do
+	for _, name in allLevels do
 		rampFootprints[name] = {}
 		rampHoles[name] = {}
 	end
+	-- A stair climbs from its level to `to` (the next full level if not given): a full storey or half of one, onto a
+	-- gallery. It always climbs one stud in two, so a plain run is twice its rise and a switchback's legs half that.
+	type Dims = { rise: number, run: number, legRise: number, legRun: number }
+	local function stairDims(ramp: Layout.Ramp): Dims
+		local rise = levels[ramp.to or nextLevel[ramp.from]] - levels[ramp.from]
+		return { rise = rise, run = rise * 2, legRise = rise / 2, legRun = rise }
+	end
 	-- How wide and long a stair's footprint is: one lane for a plain run, two lanes and a landing for a switchback.
 	local function rampSize(ramp: Layout.Ramp): (number, number)
+		local dims = stairDims(ramp)
 		if ramp.turn then
-			return RAMP_W * 2 + LANE_GAP, LEG_RUN + LANDING
+			return RAMP_W * 2 + LANE_GAP, dims.legRun + LANDING
 		end
-		return RAMP_W, RAMP_RUN
+		return RAMP_W, dims.run
 	end
 	-- A rect given in the stair's own terms: `along` studs up the climb from its start, `across` studs sideways from its
 	-- centre line (positive is the side a switchback's upper leg is on).
@@ -478,44 +521,62 @@ function Build.run()
 	end
 	-- The floor above is cut only where someone on the stair would hit their head: where the step is higher than the
 	-- slab's underside less HEADROOM. A plain stair needs it at its top end; a switchback over the end of its upper leg,
-	-- where it arrives. Returns the opening as along and across ranges.
-	local cutFrom = RAMP_RISE - SLAB - HEADROOM
+	-- where it arrives. Returns the opening as along and across ranges. A stair onto a gallery climbs up beside it and
+	-- needs no opening.
 	local lane = RAMP_W / 2 + LANE_GAP / 2
 	local function holeSpan(ramp: Layout.Ramp): (number, number, number, number)
+		local dims = stairDims(ramp)
+		local cutFrom = dims.rise - SLAB - HEADROOM
 		if ramp.turn then
-			-- leg two's step is LEG_RISE * (2 - along / LEG_RUN) high
-			return 0, LEG_RUN * (2 - cutFrom / LEG_RISE), lane - RAMP_W / 2, lane + RAMP_W / 2
+			-- leg two's step is legRise * (2 - along / legRun) high
+			return 0, dims.legRun * (2 - cutFrom / dims.legRise), lane - RAMP_W / 2, lane + RAMP_W / 2
 		end
-		return RAMP_RUN * cutFrom / RAMP_RISE, RAMP_RUN, -RAMP_W / 2, RAMP_W / 2
+		return dims.run * cutFrom / dims.rise, dims.run, -RAMP_W / 2, RAMP_W / 2
 	end
 
-	type Stair = { ramp: Layout.Ramp, upper: string, footprint: Rect, entry: Rect, hole: Rect, arrival: Rect }
+	type Stair = {
+		ramp: Layout.Ramp,
+		upper: string,
+		dims: Dims,
+		ontoGallery: boolean,
+		footprint: Rect,
+		entry: Rect,
+		hole: Rect?,
+		arrival: Rect,
+	}
 	local stairs: { Stair } = {}
 	for _, ramp in Layout.ramps do
 		local width, length = rampSize(ramp)
-		local upper = nextLevel[ramp.from]
+		local dims = stairDims(ramp)
+		local upper = ramp.to or nextLevel[ramp.from]
+		local ontoGallery = isGalleryLevel[upper] == true
 		local h1, h2, c1, c2 = holeSpan(ramp)
 		local entryAcross = if ramp.turn then -lane else 0
 		local stair: Stair = {
 			ramp = ramp,
 			upper = upper,
+			dims = dims,
+			ontoGallery = ontoGallery,
 			footprint = stairRect(ramp, 0, length, -width / 2, width / 2),
 			-- the floor someone steps off before climbing, and the floor they arrive on at the top
 			entry = stairRect(ramp, -STAIR_LANDING_CLEAR, 0, entryAcross - RAMP_W / 2, entryAcross + RAMP_W / 2),
-			hole = stairRect(ramp, h1, h2, c1, c2),
+			hole = if ontoGallery then nil else stairRect(ramp, h1, h2, c1, c2),
 			arrival = if ramp.turn
 				then stairRect(ramp, -STAIR_LANDING_CLEAR, 0, c1, c2)
-				else stairRect(ramp, RAMP_RUN, RAMP_RUN + STAIR_LANDING_CLEAR, c1, c2),
+				else stairRect(ramp, dims.run, dims.run + STAIR_LANDING_CLEAR, c1, c2),
 		}
 		table.insert(stairs, stair)
 		table.insert(rampFootprints[ramp.from], stair.footprint)
-		table.insert(rampHoles[upper], stair.hole)
+		if stair.hole then
+			table.insert(rampHoles[upper], stair.hole)
+		end
 		-- Props and nodes keep off the stair, its opening and both ends.
 		for _, r in { stair.footprint, stair.entry } do
 			table.insert(reserved[ramp.from], inflate(r, 3))
 		end
-		for _, r in { stair.hole, stair.arrival } do
-			table.insert(reserved[upper], inflate(r, 3))
+		table.insert(reserved[upper], inflate(stair.arrival, 3))
+		if stair.hole then
+			table.insert(reserved[upper], inflate(stair.hole, 3))
 		end
 	end
 
@@ -547,7 +608,7 @@ function Build.run()
 	end
 	type StairArea = { stair: Stair, what: string, rect: Rect }
 	local areasByLevel: { [string]: { StairArea } } = {}
-	for _, name in levelOrder do
+	for _, name in allLevels do
 		areasByLevel[name] = {}
 	end
 	for _, s in stairs do
@@ -555,10 +616,13 @@ function Build.run()
 			{
 				{ level = s.ramp.from, what = "body", rect = s.footprint },
 				{ level = s.ramp.from, what = "foot", rect = s.entry },
-				{ level = s.upper, what = "opening", rect = s.hole },
+				{ level = s.upper, what = "opening", rect = s.hole :: Rect },
 				{ level = s.upper, what = "head", rect = s.arrival },
 			}
 		do
+			if area.what == "opening" and not s.hole then
+				continue
+			end
 			if not insideOneRoom(area.level, area.rect) then
 				stairProblem(`{stairName(s)}: its {area.what} crosses a wall or leaves the floor`)
 			end
@@ -581,6 +645,20 @@ function Build.run()
 							b.stair
 						)}`
 					)
+				end
+			end
+		end
+	end
+	-- A stair's body must not pass through a gallery floor on its way up (one it climbs onto ends at its edge).
+	for _, s in stairs do
+		local low, high = levels[s.ramp.from], levels[s.upper]
+		for name in isGalleryLevel do
+			if levels[name] > low and levels[name] <= high then
+				for _, piece in piecesByLevel[name] do
+					if overlaps(s.footprint, piece.rect) then
+						stairProblem(`{stairName(s)}: it passes through the floor of {piece.room.name}`)
+						break
+					end
 				end
 			end
 		end
@@ -608,9 +686,6 @@ function Build.run()
 		local level = feature.level
 		local y = levels[level]
 		local r: Rect? = if feature.rect then toRect(feature.rect) else nil
-		if feature.kind == "support" then
-			continue -- built with the cityscape
-		end
 		if r and feature.kind ~= "skylight" then
 			table.insert(reserved[level], inflate(r, 1)) -- props and doorways keep clear of it
 		end
@@ -899,6 +974,21 @@ function Build.run()
 		else
 			if edge.roomA.kind == "indoor" then
 				height, color = roomHeight(edge.roomA), SHELL
+			elseif edge.roomA.kind == "gallery" then
+				height, color = RAIL_H, RAIL_GREY
+				-- Leave a gap wherever a stair arrives over this edge.
+				for _, s in stairs do
+					local r = s.arrival
+					if s.ontoGallery and s.upper == edge.level then
+						local onLine = if edge.axis == "x"
+							then math.abs(r.z1 - edge.line) < 0.5 or math.abs(r.z2 - edge.line) < 0.5
+							else math.abs(r.x1 - edge.line) < 0.5 or math.abs(r.x2 - edge.line) < 0.5
+						local a, b = if edge.axis == "x" then r.x1 else r.z1, if edge.axis == "x" then r.x2 else r.z2
+						if onLine and a >= edge.a - EPS and b <= edge.b + EPS then
+							table.insert(edge.gaps, { center = (a + b) / 2, width = b - a })
+						end
+					end
+				end
 			else
 				height = BARRIER_H
 			end
@@ -925,6 +1015,9 @@ function Build.run()
 		for _, gap in edge.gaps do
 			wallPiece(edge, cursor, gap.center - gap.width / 2, height, color)
 			cursor = gap.center + gap.width / 2
+			if height <= GAP_H then
+				continue -- a gap in a railing has nothing over it
+			end
 			-- Lintel above the doorway.
 			local baseY = levels[edge.level]
 			part(
@@ -936,7 +1029,7 @@ function Build.run()
 			)
 			local roomB = edge.roomB :: Room
 			local high = math.max(edge.roomA.tier, roomB.tier)
-			local door = gap.door
+			local door = gap.door :: Layout.Door
 			-- A clearance door or keycard door fills the doorway until it is opened (DoorService).
 			if door.gate or door.keycard then
 				local doorPart = part(
@@ -999,7 +1092,7 @@ function Build.run()
 				pieces = subtract(pieces, hole)
 			end
 			local color
-			if piece.room.kind == "indoor" then
+			if piece.room.kind ~= "outdoor" then
 				color = tierColor(piece.room.tier):Lerp(FLOOR_WARM, 0.65)
 			else
 				color = DECK
@@ -1089,56 +1182,63 @@ function Build.run()
 				RAIL_GREY
 			)
 		end
-		-- The opening in the floor above: railed along both sides and across the end nobody arrives from.
-		local upperY = baseY + RAMP_RISE
+		-- The opening in the floor above: railed along both sides and across the end nobody arrives from. (A stair
+		-- onto a gallery has no opening; the gallery's railing leaves a gap where it arrives.)
+		local d = s.dims
+		local upperY = baseY + d.rise
 		local h1, h2, c1, c2 = holeSpan(ramp)
-		rail(upperY, RAIL_H, (h1 + h2) / 2, c1 - 0.5, h2 - h1, 1)
-		rail(upperY, RAIL_H, (h1 + h2) / 2, c2 + 0.5, h2 - h1, 1)
+		if s.hole then
+			rail(upperY, RAIL_H, (h1 + h2) / 2, c1 - 0.5, h2 - h1, 1)
+			rail(upperY, RAIL_H, (h1 + h2) / 2, c2 + 0.5, h2 - h1, 1)
+			if ramp.turn then
+				rail(upperY, RAIL_H, h2 + 0.5, (c1 + c2) / 2, 1, c2 - c1 + 2) -- a switchback arrives at the start end
+			else
+				rail(upperY, RAIL_H, h1 - 0.5, 0, 1, c2 - c1 + 2) -- a plain stair arrives at its top end
+			end
+		end
 		if ramp.turn then
-			rail(upperY, RAIL_H, h2 + 0.5, (c1 + c2) / 2, 1, c2 - c1 + 2) -- a switchback arrives at the start end
 			-- Leg one climbs away from the start; leg two climbs back, from the landing to the upper floor.
 			-- A solid wall fills the gap between the two legs, up to the floor above, so there is no gap to see or fall
 			-- through; each leg keeps a handrail on its open outer side.
 			part(
 				geometry,
 				"StairCore",
-				Vector3.new(if dx == 0 then LANE_GAP else LEG_RUN, RAMP_RISE, if dx == 0 then LEG_RUN else LANE_GAP),
-				CFrame.new(ramp.x + dx * LEG_RUN / 2, baseY + RAMP_RISE / 2, ramp.z + dz * LEG_RUN / 2),
+				Vector3.new(if dx == 0 then LANE_GAP else d.legRun, d.rise, if dx == 0 then d.legRun else LANE_GAP),
+				CFrame.new(ramp.x + dx * d.legRun / 2, baseY + d.rise / 2, ramp.z + dz * d.legRun / 2),
 				STAIR_GREY
 			)
-			flight(ramp.x - px * lane, ramp.z - pz * lane, dx, dz, baseY, LEG_RUN, LEG_RISE, px, pz, { -edge })
+			flight(ramp.x - px * lane, ramp.z - pz * lane, dx, dz, baseY, d.legRun, d.legRise, px, pz, { -edge })
 			flight(
-				ramp.x + px * lane + dx * LEG_RUN,
-				ramp.z + pz * lane + dz * LEG_RUN,
+				ramp.x + px * lane + dx * d.legRun,
+				ramp.z + pz * lane + dz * d.legRun,
 				-dx,
 				-dz,
-				baseY + LEG_RISE,
-				LEG_RUN,
-				LEG_RISE,
+				baseY + d.legRise,
+				d.legRun,
+				d.legRise,
 				px,
 				pz,
 				{ edge }
 			)
-			local landingY = baseY + LEG_RISE
+			local landingY = baseY + d.legRise
 			part(
 				geometry,
 				"StairLanding",
 				Vector3.new(if dx == 0 then width else LANDING, SLAB, if dx == 0 then LANDING else width),
 				CFrame.new(
-					ramp.x + dx * (LEG_RUN + LANDING / 2),
+					ramp.x + dx * (d.legRun + LANDING / 2),
 					landingY - SLAB / 2,
-					ramp.z + dz * (LEG_RUN + LANDING / 2)
+					ramp.z + dz * (d.legRun + LANDING / 2)
 				),
 				STAIR_GREY
 			)
 			-- The landing is railed round its three open sides.
 			rail(landingY, STAIR_RAIL_H, length - 0.2, 0, 0.4, width)
 			for _, side in { -1, 1 } do
-				rail(landingY, STAIR_RAIL_H, LEG_RUN + LANDING / 2, side * (width / 2 - 0.2), LANDING, 0.4)
+				rail(landingY, STAIR_RAIL_H, d.legRun + LANDING / 2, side * (width / 2 - 0.2), LANDING, 0.4)
 			end
 		else
-			rail(upperY, RAIL_H, h1 - 0.5, 0, 1, c2 - c1 + 2) -- a plain stair arrives at its top end
-			flight(ramp.x, ramp.z, dx, dz, baseY, RAMP_RUN, RAMP_RISE, px, pz, { -edge, edge })
+			flight(ramp.x, ramp.z, dx, dz, baseY, d.run, d.rise, px, pz, { -edge, edge })
 		end
 	end
 
@@ -1147,11 +1247,14 @@ function Build.run()
 	for levelName, list in piecesByLevel do
 		for _, piece in list do
 			local r = piece.rect
+			-- A zone reaches up to the next storey, so a gallery's zone stops under the floor above it.
+			local y = levels[levelName]
+			local height = (storeyAbove(y) or y + ZONE_H) - y
 			local volume = part(
 				zonesFolder,
 				`Zone_{levelName}_T{piece.room.tier}_{piece.room.id}`,
-				Vector3.new(r.x2 - r.x1 + ZONE_PAD * 2, 24, r.z2 - r.z1 + ZONE_PAD * 2),
-				CFrame.new((r.x1 + r.x2) / 2, levels[levelName] + 11, (r.z1 + r.z2) / 2),
+				Vector3.new(r.x2 - r.x1 + ZONE_PAD * 2, height, r.z2 - r.z1 + ZONE_PAD * 2),
+				CFrame.new((r.x1 + r.x2) / 2, y + height / 2 - 1, (r.z1 + r.z2) / 2),
 				tierColor(piece.room.tier)
 			)
 			ghost(volume)
@@ -1162,8 +1265,42 @@ function Build.run()
 
 	-- Props --------------------------------------------------------------------------------------------------------------------------
 	local propRects: { [string]: { Rect } } = {}
-	for _, name in levelOrder do
+	for _, name in allLevels do
 		propRects[name] = {}
+	end
+	-- Posts under every gallery, round its edge, standing on the storey below.
+	for levelName, list in piecesByLevel do
+		if not isGalleryLevel[levelName] then
+			continue
+		end
+		local top = levels[levelName] - SLAB
+		local base = storeyBelow(levels[levelName])
+		local bottom = levels[base]
+		for _, piece in list do
+			local r = piece.rect
+			local function post(x: number, z: number)
+				part(
+					propsFolder,
+					"GalleryPost",
+					Vector3.new(1.2, top - bottom, 1.2),
+					CFrame.new(x, (top + bottom) / 2, z),
+					STEEL_POST
+				)
+				table.insert(propRects[base], { x1 = x - 0.6, z1 = z - 0.6, x2 = x + 0.6, z2 = z + 0.6 })
+			end
+			local nx = math.max(1, math.floor((r.x2 - r.x1) / GALLERY_POST_SPACING + 0.5))
+			local nz = math.max(1, math.floor((r.z2 - r.z1) / GALLERY_POST_SPACING + 0.5))
+			for i = 0, nx do
+				local x = r.x1 + 0.6 + (r.x2 - r.x1 - 1.2) * i / nx
+				post(x, r.z1 + 0.6)
+				post(x, r.z2 - 0.6)
+			end
+			for i = 1, nz - 1 do
+				local z = r.z1 + 0.6 + (r.z2 - r.z1 - 1.2) * i / nz
+				post(r.x1 + 0.6, z)
+				post(r.x2 - 0.6, z)
+			end
+		end
 	end
 	-- Is this area on the room's floor, away from doorways, ramps and other props?
 	local function freeFor(room: Room, rect: Rect): boolean
@@ -1621,19 +1758,12 @@ function Build.run()
 		tag(node, Tag.NPCNode, { Tier = spec.tier, Activity = spec.activity })
 	end
 
-	-- The city round the Gala (City.luau). Decks that reach past the tower stand on neighbouring towers.
-	local footprint: Rect = { x1 = math.huge, z1 = math.huge, x2 = -math.huge, z2 = -math.huge }
-	for _, piece in piecesByLevel.G do
-		footprint.x1, footprint.z1 = math.min(footprint.x1, piece.rect.x1), math.min(footprint.z1, piece.rect.z1)
-		footprint.x2, footprint.z2 = math.max(footprint.x2, piece.rect.x2), math.max(footprint.z2, piece.rect.z2)
+	-- The city round the Gala (City.luau): each tower stands on its own skyscraper.
+	local towers: { Rect } = {}
+	for _, outline in Layout.towers do
+		table.insert(towers, toRect(outline))
 	end
-	local supports: { City.Support } = {}
-	for _, feature in Layout.features do
-		if feature.kind == "support" and feature.rect then
-			table.insert(supports, { rect = toRect(feature.rect), top = levels[feature.level] - SLAB })
-		end
-	end
-	made += City.build(root, footprint, levels.B - SLAB, supports)
+	made += City.build(root, towers, levels.B - SLAB)
 
 	-- A test spawn so a playtest starts in the grand lobby.
 	for _, other in workspace:GetDescendants() do
@@ -1742,12 +1872,13 @@ function Build.run()
 	)
 
 	-- Spec 4.4: every Tier 1+ zone has at least two entrances. A room nested inside another, or a vault wing, is reached
-	-- through a single guarded door on purpose (SPEC-QUESTION), so they are listed apart.
+	-- through a single guarded door on purpose (SPEC-QUESTION), and a gallery by stairs from the room it stands in, so
+	-- they are listed apart.
 	local entrancesOk = true
 	local nestedSingles: { string } = {}
 	for _, room in rooms do
 		if room.tier >= 1 and (doorsPerRoom[room.id] or 0) < GameConfig.Map.MinEntrancesPerRestrictedZone then
-			if room.parent or string.find(room.id, "vault") then
+			if room.parent or string.find(room.id, "vault") or room.kind == "gallery" then
 				table.insert(nestedSingles, room.id)
 			else
 				entrancesOk = false
@@ -1759,7 +1890,7 @@ function Build.run()
 		entrancesOk,
 		`Every Tier 1+ room has {GameConfig.Map.MinEntrancesPerRestrictedZone}+ doorways (nested and vault rooms aside)`
 	)
-	print(`[Gala]      single-door guarded rooms: {table.concat(nestedSingles, ", ")}`)
+	print(`[Gala]      single-door guarded rooms and galleries: {table.concat(nestedSingles, ", ")}`)
 
 	print(
 		`[Gala] {#rooms} rooms, {zoneCount} zone volumes, {wallCount} wall lines, {gateCount} clearance doors, {keycardCount} keycard doors`
