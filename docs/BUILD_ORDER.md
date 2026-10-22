@@ -100,7 +100,7 @@ The map should feel alive without the crowd clogging corridors or leaving rooms 
 - The generator stays data-driven. Rooms, corridors and outdoor areas are described in a table, and zones, doorways,
   NPC nodes and tagged objects are produced from it, so the layout can change without rewriting the builder.
 - Outdoor NPC routes need nodes and walkable ground; the graph build (NavGraph) checks that every link is walkable.
-- Part count and lighting are tracked: keep a mobile part budget, and use StreamingEnabled with Atomic model streaming for
+- Part count and lighting are tracked: keep a PC and console part budget, and use StreamingEnabled with Atomic model streaming for
   large dressed areas. Lighting stays temporary (dim gala lighting arrives in the art pass).
 - Re-run the Step 4, 5, 6 and 7 test scripts on the new layout: NPCs path everywhere, doors open, scans and
   re-covering work, and tiers are correct at every boundary.
@@ -154,6 +154,18 @@ The map should feel alive without the crowd clogging corridors or leaving rooms 
 | Atrium | The void is 76 x 80 (was 60 x 60) from the mezzanine up through the skylight, with the pond at its foot. |
 | Loading dock | Now an indoor loading bay (Tier 1) at the west end of the ground floor. |
 | Insertion | 6 points on the ground floor and 6 on the mezzanine terrace, at least 80 apart. |
+
+**Platform and scale change (2026-10-23)**
+| Topic | Decision |
+|---|---|
+| Platforms | PC and console are the targets. Mobile is dropped as a target; basic touch controls stay as a fallback only. |
+| Hardware floor | Mid-range PC and consoles (about GTX 1060 or Xbox One S). A graphics quality setting lowers city detail, lights and shadows, and effects (atmosphere, haze, particles, water) for weaker machines such as MacBooks. |
+| NPC count | 200: Guest 120, Staff 40, Security 25, Executive 15. Measure server tick and client frame after the raise. |
+| Map growth | About 30% more space: a new wing (a second, smaller tower joined by skybridges), extra half-levels and split levels inside floors, and bigger outdoor decks. |
+| Stairwells | The floor opening around a stair is only as large as headroom needs, railed on every open side. No stair may pass through another stair or its opening; the self-check enforces it. |
+| City backdrop | Procedural: varied tower styles (setbacks, spires, crowns, glass curtain walls), window textures with randomly lit rooms, rooftop props, layered depth bands to the horizon. |
+| Sky | Night: deep blue sky with stars and a moon, an orange glow rising from the city below, distant aircraft lights. |
+| Order | 1) Fix the stairs and the openings beside them. 2) Grow the map and raise NPCs to 200, then measure. 3) The detailed city and night sky. 4) The quality setting. Then pass 2 (vaults and intel). |
 
 **Follow-ups this brief creates** (to settle before or during the step)
 - **Spec changes:** intel gets four station types (spec Section 9), doors become clearance gates (Sections 4.3 and 7), and the vault gets an interior with door tiers and NPC identities (Section 10).
@@ -236,7 +248,7 @@ checkpoint (finding each other in the crowd) and the routes feel varied.
 ## Phase H: Polish and launch
 
 ### Step 19: Real HUD + minimap + pings + settings
-**Spec:** 21, 24 (replace debug HUD; add mobile and console controls)
+**Spec:** 21, 24 (replace debug HUD; keyboard and mouse plus gamepad controls, with basic touch as a fallback)
 
 ### Step 20: Audio
 **Spec:** 23
