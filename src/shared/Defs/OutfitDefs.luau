@@ -193,13 +193,46 @@ for role in Enums.Role do
 	byRole[role :: Role] = list
 end
 
+-- What an Exposed agent looks like (spec 6.1, 7.2). Agents get their own True Form in Step 16; until then everyone
+-- shares this plain dark look, with no weapon and no uniform signature, so it reads as "not an NPC" at a glance.
+local DARK = Color3.fromRGB(14, 14, 16)
+local trueForm: OutfitDef = {
+	OutfitId = "TrueForm",
+	Role = "Guest", -- only to give it a walk speed class; Exposed players use GameConfig.Speeds.ExposedWalk
+	Tier = Enums.Tier.Public, -- no clearance: any Tier 1+ zone is a trespass (spec 6.2)
+	BodyColors = { Skin = SKIN[3], Shoes = DARK },
+	Shirt = { Color = DARK, LongSleeves = true },
+	Pants = { Color = DARK },
+	Accessories = {},
+	Hair = { Style = "Crop", Color = HAIR_COLORS[1] },
+	Face = "Default",
+	Scale = { Height = 1, Width = 1, Depth = 1, Head = 1 },
+}
+byId[trueForm.OutfitId] = trueForm
+
+local byTier: { [number]: { OutfitDef } } = {}
+for _, list in byRole do
+	for _, def in list do
+		byTier[def.Tier] = byTier[def.Tier] or {}
+		table.insert(byTier[def.Tier], def)
+	end
+end
+
 local OutfitDefs = {
 	byId = byId,
 	byRole = byRole,
+	trueForm = trueForm,
 }
 
 function OutfitDefs.random(role: Role, rng: Random): OutfitDef
 	local list = byRole[role]
+	return list[rng:NextInteger(1, #list)]
+end
+
+-- A random outfit with this clearance tier (spec 6.2); used when an Exposed agent re-covers.
+function OutfitDefs.randomForTier(tier: number, rng: Random): OutfitDef
+	local list = byTier[tier]
+	assert(list, `No outfits for tier {tier}`)
 	return list[rng:NextInteger(1, #list)]
 end
 

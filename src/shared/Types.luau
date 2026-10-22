@@ -63,9 +63,31 @@ export type PoseDef = {
 -- Spec 6.3, 6.4: what a player knows about their own disguises. Sent only to that player. Slots has `false` for an
 -- empty slot, so it stays a plain array on the wire.
 export type DisguiseUpdate = {
+	Exposed: boolean, -- true while in True Form
 	Worn: string, -- OutfitId currently worn
 	Insertion: string, -- OutfitId given at spawn
 	Slots: { string | boolean },
+}
+
+-- Spec 7: a player's own cover. Sent only to that player; enemies never learn it (spec 25.7).
+export type CoverInfo = {
+	State: CoverState,
+	CanRecover: boolean, -- the conditions for putting a disguise back on are all met
+	LockoutSeconds: number, -- combat lockout left
+	ExposedMinSeconds: number, -- time left before an Exposed player may re-cover at all
+}
+
+export type SuspicionInfo = {
+	Value: number, -- 0 to SuspicionMax
+	Security: number, -- witnesses seeing the player now, by kind
+	Npc: number,
+	Camera: number,
+}
+
+export type TrespassInfo = {
+	Restricted: boolean,
+	ZoneTier: number,
+	Clearance: number,
 }
 
 -- Token-bucket limits for one client -> server remote (GameConfig.Network).

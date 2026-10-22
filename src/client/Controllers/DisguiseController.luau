@@ -1,9 +1,11 @@
 --!strict
--- Client side of disguises (spec 6.3, 6.4, 6.8): the Scan, Disguise and Sprint keys and the small HUD for them.
+-- Client side of disguises and movement states (spec 6.3, 6.4, 6.8): the Scan, Disguise, Sprint and Crouch keys and
+-- the small HUD for them.
 --
 --   Hold Scan while aiming at a character within range: the client names what it is aiming at and the server does the
 --   scanning (range, sight and timing are all checked there). A ring around the centre dot fills while it runs.
---   Disguise asks the server to put on the stored disguise, or the insertion disguise if there is none.
+--   Disguise asks the server to put on the stored disguise, or the insertion one, or to re-cover when Exposed.
+--   Hold Crouch to crouch: slower, lower camera, and a crouch pose everyone sees. The server sets the speed.
 --   A badge shows the disguise being worn and the one stored (STYLE_QUESTIONS A1: first person, so you cannot see
 --   yourself). Nothing here is sent to anyone else.
 
@@ -16,6 +18,9 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local OutfitDefs = require(Shared:WaitForChild("Defs"):WaitForChild("OutfitDefs"))
 local Types = require(Shared:WaitForChild("Types"))
+local Aim = require(Shared:WaitForChild("Util"):WaitForChild("Aim"))
+local HudKit = require(Shared:WaitForChild("Util"):WaitForChild("HudKit"))
+local PoseAnimation = require(Shared:WaitForChild("Util"):WaitForChild("PoseAnimation"))
 local RemoteController = require(script.Parent.RemoteController)
 
 local DisguiseController = {}
@@ -33,27 +38,10 @@ local ringSegments: { Frame } = {}
 local badge: TextLabel? = nil
 local toast: TextLabel? = nil
 local toastToken = 0
+local crouchTrack: AnimationTrack? = nil
 
-local function newText(parent: Instance, name: string, position: UDim2, anchor: Vector2, size: UDim2): TextLabel
-	local text = Instance.new("TextLabel")
-	text.Name = name
-	text.BackgroundTransparency = 1
-	text.Font = ui.Font
-	text.TextSize = ui.TextSize
-	text.TextColor3 = ui.TextColor
-	text.TextStrokeTransparency = 0.5
-	text.AnchorPoint = anchor
-	text.Position = position
-	text.Size = size
-	text.Parent = parent
-	return text
-end
-
-local function buildHud(): ScreenGui
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "DisguiseHud"
-	gui.ResetOnSpawn = false
-	gui.IgnoreGuiInset = true
+local function buildHud()
+	local gui = HudKit.screen("DisguiseHud")
 
 	local dot = Instance.new("Frame")
 	dot.Name = "Dot"
@@ -80,18 +68,16 @@ local function buildHud(): ScreenGui
 		table.insert(ringSegments, tick)
 	end
 
-	local badgeText = newText(gui, "Badge", UDim2.new(0, 16, 1, -16), Vector2.new(0, 1), UDim2.fromOffset(280, 44))
+	local badgeText = HudKit.text(gui, "Badge", UDim2.new(0, 16, 1, -16), Vector2.new(0, 1), UDim2.fromOffset(280, 44))
 	badgeText.TextXAlignment = Enum.TextXAlignment.Left
 	badgeText.TextYAlignment = Enum.TextYAlignment.Bottom
 	badge = badgeText
 
-	local toastText = newText(gui, "Toast", UDim2.new(0.5, 0, 0, 80), Vector2.new(0.5, 0), UDim2.fromOffset(420, 24))
+	local toastText =
+		HudKit.text(gui, "Toast", UDim2.new(0.5, 0, 0, 80), Vector2.new(0.5, 0), UDim2.fromOffset(420, 24))
 	toastText.TextTransparency = 1
 	toastText.TextStrokeTransparency = 1
 	toast = toastText
-
-	gui.Parent = localPlayer:WaitForChild("PlayerGui")
-	return gui
 end
 
 local function showToast(text: string)
@@ -124,7 +110,8 @@ local function showDisguise(update: Types.DisguiseUpdate)
 	end
 	local stored = update.Slots[1]
 	local storedLine = if type(stored) == "string" then roleOf(stored) else "EMPTY"
-	text.Text = `WEARING {roleOf(update.Worn)}\nSTORED {storedLine}`
+	local wornLine = if update.Exposed then "TRUE FORM" else roleOf(update.Worn)
+	text.Text = `WEARING {wornLine}\nSTORED {storedLine}`
 end
 
 local function setRing(progress: number?)
@@ -134,38 +121,6 @@ local function setRing(progress: number?)
 			tick.BackgroundColor3 = if index / #ringSegments <= progress then ui.ScanRingColor else ui.ScanRingDimColor
 		end
 	end
-end
-
--- The character under the centre of the screen, if it is close enough to be worth asking the server about.
-local function aimedTarget(): string?
-	local camera = workspace.CurrentCamera
-	local character = localPlayer.Character
-	local root = character and character:FindFirstChild("HumanoidRootPart")
-	if not (camera and character and root and root:IsA("BasePart")) then
-		return nil
-	end
-	local viewport = camera.ViewportSize
-	local ray = camera:ViewportPointToRay(viewport.X / 2, viewport.Y / 2)
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { character }
-	local reach = (camera.CFrame.Position - root.Position).Magnitude + GameConfig.Cover.ScanRange + 2
-	local hit = workspace:Raycast(ray.Origin, ray.Direction * reach, params)
-	local model = hit and hit.Instance:FindFirstAncestorOfClass("Model")
-	if
-		not model or not (model:FindFirstChildOfClass("Humanoid") or model:FindFirstChildOfClass("AnimationController"))
-	then
-		return nil
-	end
-	local targetRoot = model:FindFirstChild("HumanoidRootPart")
-	if not (targetRoot and targetRoot:IsA("BasePart")) then
-		return nil
-	end
-	local offset = targetRoot.Position - root.Position
-	if Vector3.new(offset.X, 0, offset.Z).Magnitude > GameConfig.Cover.ScanRange then
-		return nil
-	end
-	return model.Name
 end
 
 local function onScan(_: string, state: Enum.UserInputState)
@@ -197,6 +152,37 @@ local function onSprint(_: string, state: Enum.UserInputState)
 	return Enum.ContextActionResult.Pass
 end
 
+-- The crouch pose goes on our own character, so it replicates to everyone like any animation we play.
+local function setCrouch(on: boolean)
+	RemoteController.fire("RequestCrouch", on)
+	local character = localPlayer.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return
+	end
+	humanoid.CameraOffset = if on then Vector3.new(0, -GameConfig.Cover.CrouchCameraDrop, 0) else Vector3.zero
+	if on then
+		local animator = humanoid:FindFirstChildOfClass("Animator")
+		local animation = PoseAnimation.registerAll().Crouch
+		if animator and animation and not crouchTrack then
+			crouchTrack = animator:LoadAnimation(animation)
+			crouchTrack:Play(GameConfig.NPC.AnimationFadeSeconds)
+		end
+	elseif crouchTrack then
+		crouchTrack:Stop(GameConfig.NPC.AnimationFadeSeconds)
+		crouchTrack = nil
+	end
+end
+
+local function onCrouch(_: string, state: Enum.UserInputState)
+	if state == Enum.UserInputState.Begin then
+		setCrouch(true)
+	elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
+		setCrouch(false)
+	end
+	return Enum.ContextActionResult.Pass
+end
+
 function DisguiseController.Init() end
 
 function DisguiseController.Start()
@@ -205,6 +191,12 @@ function DisguiseController.Start()
 	ContextActionService:BindAction("Scan", onScan, false, controls.Scan, controls.ScanPad)
 	ContextActionService:BindAction("Disguise", onDisguise, false, controls.Disguise, controls.DisguisePad)
 	ContextActionService:BindAction("Sprint", onSprint, false, controls.Sprint)
+	ContextActionService:BindAction("Crouch", onCrouch, false, controls.Crouch)
+
+	-- A new body starts standing.
+	localPlayer.CharacterAdded:Connect(function()
+		crouchTrack = nil
+	end)
 
 	RemoteController.connect("DisguiseUpdate", function(update: Types.DisguiseUpdate)
 		showDisguise(update)
@@ -229,7 +221,7 @@ function DisguiseController.Start()
 	RunService.RenderStepped:Connect(function()
 		if scanHeld then
 			-- Tell the server what we are aiming at whenever it changes; it does the rest.
-			local target = aimedTarget()
+			local target = Aim.characterName(GameConfig.Cover.ScanRange)
 			if target ~= scanSentTarget then
 				scanSentTarget = target
 				RemoteController.fire("RequestScan", target)

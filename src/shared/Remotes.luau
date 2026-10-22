@@ -32,6 +32,7 @@ local Remotes = {
 		"NPCAnimation", -- NPC id and the animation it is playing (implementation detail of spec 5.3)
 		"DisguiseUpdate", -- to the owner only: the disguise worn and the slots (spec 6.3, 6.4)
 		"ScanState", -- to the scanner only: a scan started, was cancelled or finished (spec 6.3)
+		"AgentSense", -- to one player: an Agent Sense shimmer or the exposed-enemy vignette (spec 8.3)
 	},
 
 	-- Client -> server (requests only; the server validates every one)
@@ -51,6 +52,8 @@ local Remotes = {
 		"RequestPassPackage",
 		"RequestEmote",
 		"RequestSprint", -- sprint on or off (spec 6.8)
+		"RequestCrouch", -- crouch on or off (spec 6.8)
+		"RequestSense", -- the character in the crosshair within Agent Sense range, or nil (spec 8.3)
 		"RequestDebugEvent", -- development only; ignored unless GameConfig.Debug.TestEvents is on
 	},
 

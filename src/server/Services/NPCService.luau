@@ -26,6 +26,7 @@ local Movement = require(NPC:WaitForChild("Movement"))
 local NavGraph = require(NPC:WaitForChild("NavGraph"))
 local NpcTypes = require(NPC:WaitForChild("NpcTypes"))
 local Reactions = require(NPC:WaitForChild("Reactions"))
+local CoverService = require(script.Parent.CoverService)
 local DisguiseService = require(script.Parent.DisguiseService)
 local DoorService = require(script.Parent.DoorService)
 local RemoteService = require(script.Parent.RemoteService)
@@ -308,8 +309,37 @@ local function onDebugEvent(player: Player, kind: unknown, position: unknown)
 		end
 		if nearest then
 			Death.down(current, nearest, root.Position, now)
+			CoverService.onNpcKilled(player) -- killing an NPC exposes the killer (spec 7.2 #11)
+		end
+	elseif kind == "Lockout" then
+		CoverService.startLockout(player)
+	elseif kind == "Expose" then
+		CoverService.expose(player, "TestKey")
+	end
+end
+
+-- Who can see players, for suspicion (spec 7.3): every NPC that is not down. Security counts fully, the rest less.
+local function describeWitnesses(): { CoverService.Witness }
+	local list: { CoverService.Witness } = {}
+	for _, npc in npcs do
+		if not Death.isDown(npc) then
+			table.insert(list, {
+				position = npc.ground + Vector3.new(0, GameConfig.Cover.WitnessEyeHeight, 0),
+				look = Vector3.new(-math.sin(npc.yaw), 0, -math.cos(npc.yaw)),
+				kind = if npc.role == Enums.Role.Security then "Security" else "Npc",
+			})
 		end
 	end
+	return list
+end
+
+-- Where bodies lie (spec 7.3: near a body).
+local function describeBodies(): { Vector3 }
+	local list: { Vector3 } = {}
+	for _, body in Death.bodies do
+		table.insert(list, body.npc.ground)
+	end
+	return list
 end
 
 -- How a scan finds an NPC by the name of its model (spec 6.3).
@@ -326,6 +356,7 @@ function NPCService.Init() end
 
 function NPCService.Start()
 	DisguiseService.setNpcLookup(describeNpc)
+	CoverService.setSources({ witnesses = describeWitnesses, bodies = describeBodies })
 	local nodes: { BasePart } = {}
 	for _, instance in CollectionService:GetTagged(Enums.Tag.NPCNode) do
 		if instance:IsA("BasePart") and instance:IsDescendantOf(workspace) then

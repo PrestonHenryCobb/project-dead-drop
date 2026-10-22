@@ -37,13 +37,18 @@ function DebugEventController.Start()
 		[GameConfig.Debug.TestKeys.Gunshot] = "Gunshot",
 		[GameConfig.Debug.TestKeys.Explosion] = "Explosion",
 		[GameConfig.Debug.TestKeys.Body] = "Body",
+		[GameConfig.Debug.TestKeys.Lockout] = "Lockout",
+		[GameConfig.Debug.TestKeys.Expose] = "Expose",
 	}
+	-- These two act on the sender, so they do not need a point to aim at.
+	local selfEvents: { [string]: boolean } = { Lockout = true, Expose = true }
 	UserInputService.InputBegan:Connect(function(input, processed)
 		local kind = kinds[input.KeyCode]
 		if processed or not kind or not Players.LocalPlayer.Character then
 			return
 		end
-		local point = aimedPoint()
+		local root = Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+		local point = if selfEvents[kind] and root and root:IsA("BasePart") then root.Position else aimedPoint()
 		if point then
 			RemoteController.fire("RequestDebugEvent", kind, point)
 		end

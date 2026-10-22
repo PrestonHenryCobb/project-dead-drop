@@ -275,6 +275,25 @@ local PoseDefs: { [string]: PoseDef } = {
 			return { crouched(0, -35), crouched(0.3, -39), crouched(0.6, -35) }
 		end)(),
 	},
+	-- Crouching (spec 6.8): knees bent, hips lowered, leaning forward, arms loose. Players only; NPCs never crouch.
+	Crouch = {
+		Loop = true,
+		Priority = "Action",
+		Keyframes = (function()
+			local function lowered(time: number, lean: number): Types.PoseKeyframe
+				return frame(
+					time,
+					body({ lean, 0, 0 }, { -lean * 0.6, 0, 0 }),
+					{ LowerTorso = { 0, 0, 0, 0, -1.1, 0 } },
+					leg("Right", { 65, 0, 3 }, { -90, 0, 0 }),
+					leg("Left", { 65, 0, 3 }, { -90, 0, 0 }),
+					arm("Right", { 20, 0, 8 }, { 25, 0, 0 }),
+					arm("Left", { 20, 0, 8 }, { 25, 0, 0 })
+				)
+			end
+			return { lowered(0, -22), lowered(0.5, -24), lowered(1, -22) }
+		end)(),
+	},
 	-- A sharp intake of breath at a body (spec 5.4): head back, hands to the mouth. Plays once.
 	Gasp = {
 		Loop = false,

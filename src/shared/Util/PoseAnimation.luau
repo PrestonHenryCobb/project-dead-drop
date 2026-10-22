@@ -85,7 +85,13 @@ function PoseAnimation.build(name: string, def: PoseDef): KeyframeSequence
 	return sequence
 end
 
+local registered: { [string]: Animation }? = nil
+
+-- Registered once per client; every caller shares the same Animation instances.
 function PoseAnimation.registerAll(): { [string]: Animation }
+	if registered then
+		return registered
+	end
 	local animations: { [string]: Animation } = {}
 	for name, def in PoseDefs do
 		local animation = Instance.new("Animation")
@@ -93,6 +99,7 @@ function PoseAnimation.registerAll(): { [string]: Animation }
 		animation.AnimationId = KeyframeSequenceProvider:RegisterKeyframeSequence(PoseAnimation.build(name, def))
 		animations[name] = animation
 	end
+	registered = animations
 	return animations
 end
 

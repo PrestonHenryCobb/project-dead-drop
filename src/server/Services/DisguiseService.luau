@@ -1,18 +1,23 @@
 --!strict
 -- Disguises (spec 6): scanning an NPC or another agent to copy how they look, keeping it in a slot, and putting it on.
+-- Also what a player looks like and how fast they move once exposed (spec 6.1, 7.2).
 --
 --   * Scan: aim at a character within ScanRange and hold for ScanSeconds. The server checks range and line of sight
 --     the whole time and cancels the scan if either fails. Scanning is silent: the target gets no sign of it.
+--     Scanning an Exposed agent takes ExposedScanSeconds and copies the disguise they last wore.
 --   * Disguise: puts on the slot's outfit, or the insertion outfit if the slot is empty or already worn. Takes
 --     DisguiseSeconds, and is refused where the new disguise's tier is below the zone the player is standing in.
---   * Speed: a disguised player walks at their disguise role's speed. Sprint (RequestSprint) is allowed at the
---     sprint speed; making it suspicious is Step 7.
+--   * Exposed: CoverService calls expose(). The disguise is stripped (puff, then True Form) and the player moves at
+--     the exposed speed. Pressing Disguise again re-covers, if CoverService allows it, in a NEW random outfit of the
+--     same tier as the last disguise (STEP7_QUESTIONS E2). The stored slot is kept.
+--   * Speed: a disguised player walks at their disguise role's speed. Sprint and crouch are requests from the client.
 --
 -- A player is dressed through OutfitApplier, the same code NPCs go through, so a disguise is identical to the NPC it
 -- copied (outfit, scale, face). Nothing is stored on the character: the state lives only here.
 --
 --   DisguiseService.spawn(player, character)   dresses a freshly spawned character in a random Guest insertion outfit
 --   DisguiseService.setNpcLookup(function(id) -> NpcInfo?)   how scans find NPCs; NPCService provides it
+--   DisguiseService.setCoverHooks(hooks)       how CoverService limits scanning and re-covering
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -34,20 +39,32 @@ export type NpcInfo = {
 	outfit: OutfitDef,
 	position: Vector3,
 	scannable: boolean, -- false while it is downed or down for good
+	scanSeconds: number?, -- how long this target takes to scan, if not the usual
+}
+
+-- What CoverService lends us so cover rules limit scanning and re-covering.
+export type CoverHooks = {
+	canScan: (Player) -> boolean, -- not in combat lockout (spec 6.3)
+	canRecover: (Player) -> boolean, -- an Exposed player may put a disguise back on (spec 7.5)
+	onRecovered: (Player) -> (), -- the disguise is back on
 }
 
 type Scan = {
 	targetId: string,
 	startedAt: number,
+	seconds: number,
 }
 
 type State = {
 	insertion: OutfitDef,
-	worn: OutfitDef,
+	worn: OutfitDef, -- the look on the character now (TrueForm while Exposed)
+	lastDisguise: OutfitDef, -- the last NPC disguise worn; what an Exposed player is scanned as, and the re-cover tier
+	exposed: boolean,
 	slot: OutfitDef?, -- one slot for now (Cover.DisguiseSlots); the second slot comes with Vesper in Step 16
 	scan: Scan?,
 	applyId: number, -- bumped whenever a disguise change starts or is cancelled
 	sprinting: boolean,
+	crouching: boolean,
 }
 
 local DisguiseService = {}
@@ -56,14 +73,49 @@ local config = GameConfig.Cover
 local rng = Random.new()
 local states: { [Player]: State } = {}
 local npcLookup: ((string) -> NpcInfo?)? = nil
+local coverHooks: CoverHooks? = nil
 local validateAccumulator = 0
 
 -- Rays in the character group skip characters and only meet the map.
 local sightParams = RaycastParams.new()
 sightParams.CollisionGroup = GameConfig.Rig.CollisionGroup
+sightParams.RespectCanCollide = true -- an open door does not block sight
 
 function DisguiseService.setNpcLookup(lookup: (string) -> NpcInfo?)
 	npcLookup = lookup
+end
+
+function DisguiseService.setCoverHooks(hooks: CoverHooks)
+	coverHooks = hooks
+end
+
+function DisguiseService.isExposed(player: Player): boolean
+	local state = states[player]
+	return state ~= nil and state.exposed
+end
+
+-- The clearance tier of the look on the character (spec 6.2). An Exposed agent has none (spec 6.2: any Tier 1+ zone
+-- treats them as a trespasser), which is tier 0 here.
+function DisguiseService.getClearance(player: Player): number
+	local state = states[player]
+	if not state or state.exposed then
+		return 0
+	end
+	return state.worn.Tier
+end
+
+-- The tier of the disguise an Exposed player would get back (spec 7.5), or the one worn now.
+function DisguiseService.getDisguiseTier(player: Player): number
+	local state = states[player]
+	return if state then state.lastDisguise.Tier else 0
+end
+
+function DisguiseService.getMovement(player: Player): (boolean, boolean)
+	local state = states[player]
+	if not state then
+		return false, false
+	end
+	return state.sprinting, state.crouching
 end
 
 local function aliveRoot(player: Player): (Humanoid?, BasePart?)
@@ -77,14 +129,18 @@ local function aliveRoot(player: Player): (Humanoid?, BasePart?)
 end
 
 local function speedFor(state: State): number
-	if state.sprinting then
+	local walk = if state.exposed then GameConfig.Speeds.ExposedWalk else GameConfig.NPC.WalkSpeed[state.worn.Role]
+	if state.crouching then
+		return walk * GameConfig.Speeds.CrouchMult
+	elseif state.sprinting then
 		return GameConfig.Speeds.Sprint
 	end
-	return GameConfig.NPC.WalkSpeed[state.worn.Role]
+	return walk
 end
 
 local function sendUpdate(player: Player, state: State)
 	local update: Types.DisguiseUpdate = {
+		Exposed = state.exposed,
 		Worn = state.worn.OutfitId,
 		Insertion = state.insertion.OutfitId,
 		Slots = { if state.slot then state.slot.OutfitId else false },
@@ -109,8 +165,14 @@ local function resolveTarget(scanner: Player, targetId: string): NpcInfo?
 		if other ~= scanner and character and character.Name == targetId then
 			local humanoid, root = aliveRoot(other)
 			if humanoid and root then
-				-- Scanning a player copies the NPC disguise they wear, never anything else (spec 6.3).
-				return { outfit = otherState.worn, position = root.Position, scannable = true }
+				-- Scanning a player copies the NPC disguise they wear, never anything else (spec 6.3). An Exposed
+				-- one is scanned as the disguise they last wore, and it takes longer (OPEN_QUESTIONS C2).
+				return {
+					outfit = otherState.lastDisguise,
+					position = root.Position,
+					scannable = true,
+					scanSeconds = if otherState.exposed then config.ExposedScanSeconds else nil,
+				}
 			end
 		end
 	end
@@ -121,6 +183,9 @@ end
 local function canScan(scanner: Player, target: NpcInfo): boolean
 	local humanoid, root = aliveRoot(scanner)
 	if not (humanoid and root) or not target.scannable then
+		return false
+	end
+	if coverHooks and not coverHooks.canScan(scanner) then
 		return false
 	end
 	local offset = target.position - root.Position
@@ -151,8 +216,9 @@ local function startScan(player: Player, state: State, targetId: string)
 	end
 	cancelScan(player, state)
 	state.applyId += 1 -- starting a scan cancels a disguise change in progress
-	state.scan = { targetId = targetId, startedAt = os.clock() }
-	RemoteService.fireClient("ScanState", player, { State = "Started", Seconds = config.ScanSeconds })
+	local seconds = target.scanSeconds or config.ScanSeconds
+	state.scan = { targetId = targetId, startedAt = os.clock(), seconds = seconds }
+	RemoteService.fireClient("ScanState", player, { State = "Started", Seconds = seconds })
 end
 
 local function finishScan(player: Player, state: State, target: NpcInfo)
@@ -170,7 +236,7 @@ local function checkScans()
 			local target = resolveTarget(player, scan.targetId)
 			if not target or not canScan(player, target) then
 				cancelScan(player, state)
-			elseif os.clock() - scan.startedAt >= config.ScanSeconds then
+			elseif os.clock() - scan.startedAt >= scan.seconds then
 				finishScan(player, state, target)
 			end
 		end
@@ -211,6 +277,36 @@ local function wear(player: Player, state: State, outfit: OutfitDef, character: 
 	sendUpdate(player, state)
 end
 
+-- Strips the disguise (spec 7.2): a puff, then True Form after ExposeStripSeconds. The player counts as exposed from
+-- the moment this is called.
+function DisguiseService.expose(player: Player)
+	local state = states[player]
+	if not state or state.exposed then
+		return
+	end
+	cancelScan(player, state)
+	state.applyId += 1
+	local applyId = state.applyId
+	state.exposed = true
+	state.lastDisguise = state.worn
+	state.sprinting = false
+	state.crouching = false
+
+	local _, root = aliveRoot(player)
+	if root then
+		puff(root)
+	end
+	task.delay(config.ExposeStripSeconds, function()
+		local humanoid = aliveRoot(player)
+		if states[player] ~= state or state.applyId ~= applyId or not humanoid then
+			return
+		end
+		wear(player, state, OutfitDefs.trueForm, humanoid.Parent :: Model, humanoid)
+	end)
+	-- Tell the player now; the look follows after the strip.
+	sendUpdate(player, state)
+end
+
 local function onRequestDisguise(player: Player)
 	local state = states[player]
 	local humanoid, root = aliveRoot(player)
@@ -219,12 +315,21 @@ local function onRequestDisguise(player: Player)
 	end
 	cancelScan(player, state)
 
-	local target = state.insertion
-	if state.slot and state.slot ~= state.worn then
-		target = state.slot
-	end
-	if target == state.worn then
-		return
+	local target: OutfitDef
+	if state.exposed then
+		if not (coverHooks and coverHooks.canRecover(player)) then
+			return
+		end
+		-- Re-covering gives a new random outfit of the same tier as the last disguise (STEP7_QUESTIONS E2).
+		target = OutfitDefs.randomForTier(state.lastDisguise.Tier, rng)
+	else
+		target = state.insertion
+		if state.slot and state.slot ~= state.worn then
+			target = state.slot
+		end
+		if target == state.worn then
+			return
+		end
 	end
 	if ZoneService.tierAt(root.Position) > target.Tier then
 		notify(player, "You can't change into that here")
@@ -243,8 +348,17 @@ local function onRequestDisguise(player: Player)
 			notify(player, "You can't change into that here")
 			return
 		end
+		if state.exposed and not (coverHooks and coverHooks.canRecover(player)) then
+			return
+		end
 		puff(stillRoot)
+		local wasExposed = state.exposed
+		state.exposed = false
+		state.lastDisguise = target
 		wear(player, state, target, stillHumanoid.Parent :: Model, stillHumanoid)
+		if wasExposed and coverHooks then
+			coverHooks.onRecovered(player)
+		end
 	end)
 end
 
@@ -267,6 +381,16 @@ local function onRequestSprint(player: Player, on: unknown)
 		return
 	end
 	state.sprinting = on
+	humanoid.WalkSpeed = speedFor(state)
+end
+
+local function onRequestCrouch(player: Player, on: unknown)
+	local state = states[player]
+	local humanoid = aliveRoot(player)
+	if not state or not humanoid or typeof(on) ~= "boolean" then
+		return
+	end
+	state.crouching = on
 	humanoid.WalkSpeed = speedFor(state)
 end
 
@@ -293,10 +417,13 @@ function DisguiseService.spawn(player: Player, character: Model)
 	local state: State = {
 		insertion = insertion,
 		worn = insertion,
+		lastDisguise = insertion,
+		exposed = false,
 		slot = nil,
 		scan = nil,
 		applyId = 0,
 		sprinting = false,
+		crouching = false,
 	}
 	states[player] = state
 	OutfitApplier.apply(character, insertion)
@@ -312,6 +439,7 @@ function DisguiseService.Start()
 	RemoteService.onRequest("RequestScan", onRequestScan)
 	RemoteService.onRequest("RequestDisguise", onRequestDisguise)
 	RemoteService.onRequest("RequestSprint", onRequestSprint)
+	RemoteService.onRequest("RequestCrouch", onRequestCrouch)
 
 	Players.PlayerRemoving:Connect(function(player)
 		states[player] = nil

@@ -191,9 +191,12 @@ local GameConfig = {
 	Cover = {
 		ScanRange = 8,
 		ScanSeconds = 1.2,
+		ExposedScanSeconds = 3, -- scanning an Exposed agent copies their last disguise (OPEN_QUESTIONS C2)
 		DisguiseSeconds = 0.8,
 		DisguiseSwishRadius = 10, -- visible puff and audible swish
 		DisguiseSlots = 1,
+		-- Spec 7.4's 3 s grace countdown is not used: trespass is a rate that builds suspicion while witnessed
+		-- (STEP7_QUESTIONS C1). Vesper's "grace 6 s" perk is reinterpreted when she is built in Step 16.
 		TrespassGrace = 3,
 		CombatLockout = 5,
 		ExposeStripSeconds = 0.3,
@@ -201,7 +204,18 @@ local GameConfig = {
 		ExposedPingSeconds = 2,
 		SuspicionMax = 100,
 		SuspicionDecayPerSecond = 10,
-		SuspicionDecayDelay = 1.5,
+		-- Spec 7.3 says 1.5 s; STEP7_QUESTIONS B1 asks for another 1.5 s before decay starts.
+		SuspicionDecayDelay = 3,
+		TrespassGainPerSecond = 35, -- percent per second at one tier over, while witnessed
+		-- Multiplier on that rate by how many tiers the zone is above the disguise's clearance (1, 2, 3 tiers over).
+		TrespassTierMultipliers = { 1, 1.5, 2 },
+		ReCoverTrackingSeconds = 3, -- a Security NPC "tracks" you this long after last seeing you (re-covering)
+		WitnessEyeHeight = 1.5, -- studs above an NPC's feet
+		WitnessTargetHeight = 1.5, -- studs above a player's feet the sight line aims at
+		-- Each NPC kind's share of a witnessed suspicious action; shares add up but never count for more than the cap.
+		WitnessWeights = { Security = 1, Camera = 0.6, Npc = 0.2 },
+		WitnessCap = 1,
+		CrouchCameraDrop = 1.2, -- studs the camera lowers while crouching
 		-- Percent. Sprint, Crouch, Terminal, WeaponDrawn, NearBody and VaultLinger are per second; Jump is per jump.
 		SuspicionGain = {
 			Sprint = 25,
@@ -215,10 +229,11 @@ local GameConfig = {
 		NearBodyRadius = 6,
 		VaultLingerRadius = 5,
 		VaultLingerSeconds = 3,
-		-- Witnesses (7.3): only Security NPCs and active cameras count.
+		-- Witnesses (7.3, with OPEN_QUESTIONS C1): every NPC and active camera counts, not only Security. Every NPC
+		-- sees the same range and field of view, and only walls block sight.
 		WitnessCheckHz = 5,
-		SecurityWitnessRange = 35,
-		SecurityWitnessFov = 110,
+		WitnessRange = 35,
+		WitnessFov = 110,
 		-- Neck follows the camera (8.1).
 		NeckMaxYaw = 60,
 		NeckMaxPitch = 40,
@@ -239,6 +254,7 @@ local GameConfig = {
 		AgentSenseSeconds = 1.5,
 		AgentSenseShimmerSeconds = 1,
 		AgentSenseCooldown = 8,
+		AgentSenseCheckSeconds = 0.2, -- how often the server checks looks and nearby exposed enemies
 		-- Blend wheel (6.7): the emotes it offers.
 		BlendEmotes = { "Idle", "Look Around", "Phone", "Drink", "Talk", "Lean", "Sit", "Cower" },
 		-- The pose each emote plays (Defs/PoseDefs). Idle plays none: it just stops the current emote.
@@ -256,6 +272,8 @@ local GameConfig = {
 	-- Spec 6.8, 11, 14.1, 18.4, 5.4: speeds in studs/s.
 	Speeds = {
 		Sprint = 18,
+		ExposedWalk = 16, -- STEP7_QUESTIONS D2: walk speed in True Form
+		CrouchMult = 0.6, -- of the walk speed, while crouching (STEP7_QUESTIONS, crouch)
 		Crawl = 4,
 		CarrierMult = 0.9,
 	},
@@ -485,6 +503,23 @@ local GameConfig = {
 		BlendWheelRadius = 150, -- pixels
 		BlendWheelDeadZone = 0.3, -- fraction of the radius the cursor must leave before a slice is chosen
 		BlendWheelDisabledColor = Color3.fromRGB(90, 90, 98),
+		-- Cover HUD (Step 7). Debug-style for now; the real HUD comes in Step 19.
+		CoverColors = {
+			Covered = Color3.fromRGB(90, 200, 120),
+			Suspicious = Color3.fromRGB(235, 200, 70),
+			Exposed = Color3.fromRGB(235, 70, 70),
+		},
+		WarningColor = Color3.fromRGB(245, 150, 40), -- the restricted-area warning
+		GlowPixels = 90, -- how far in from the screen edge an edge glow reaches
+		ExposedFlashSeconds = 0.5,
+		ExposedTextSeconds = 2,
+		ExposedVignetteSeconds = 3,
+		ExposedFlashTransparency = 0.5, -- the full-screen flash when you are exposed
+		PingFlashTransparency = 0.85, -- the fainter flash when an enemy within range is exposed
+		SenseGlowTransparency = 0.85, -- the very faint edge glow for an exposed enemy close by (STEP7 G2)
+		SenseLookCosine = 0.85, -- looking within about 30 degrees of someone counts as looking at them
+		MeterWidthPixels = 220,
+		MeterHeightPixels = 8,
 	},
 
 	-- Spec 24: default keys. Rebinding comes with the settings menu.
@@ -496,6 +531,7 @@ local GameConfig = {
 		Blend = Enum.KeyCode.B,
 		BlendPad = Enum.KeyCode.DPadLeft,
 		Sprint = Enum.KeyCode.LeftShift,
+		Crouch = Enum.KeyCode.C, -- held; a toggle option arrives with the settings menu in Step 19
 	},
 
 	-- Spec 23: audio radii in studs.
@@ -524,8 +560,14 @@ local GameConfig = {
 		PrintZoneChanges = true, -- ZoneService prints a line whenever a player's zone tier changes
 		PrintNpcCost = true, -- NPCService and NPCController print their average per-update cost every few seconds
 		CostReportSeconds = 10,
-		TestEvents = true, -- the J, K and L keys fire a test gunshot, explosion and dead body (removed in Step 8)
-		TestKeys = { Gunshot = Enum.KeyCode.J, Explosion = Enum.KeyCode.K, Body = Enum.KeyCode.L },
+		TestEvents = true, -- the J, K, L, U and I keys fire test events (removed in Step 8, see TestKeys)
+		TestKeys = {
+			Gunshot = Enum.KeyCode.J,
+			Explosion = Enum.KeyCode.K,
+			Body = Enum.KeyCode.L,
+			Lockout = Enum.KeyCode.U, -- starts the combat lockout (spec 7.6)
+			Expose = Enum.KeyCode.I, -- exposes the sender (spec 7.2)
+		},
 		TestEventMaxStuds = 150, -- the server ignores test events further than this from the sender
 		TestBodyPickStuds = 10, -- the L key downs the NPC nearest the aimed point, if one is within this distance
 		AutoRespawn = true, -- RigService respawns a dead player (replaced by the match flow in Step 10)
