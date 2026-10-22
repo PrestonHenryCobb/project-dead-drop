@@ -148,6 +148,9 @@ local function beginInvestigate(crowd: Crowd, npc: Npc, position: Vector3, now: 
 	npc.state = "Investigate"
 	npc.stateUntil = now + quiet
 	AnimationSync.set(npc, "")
+	if GameConfig.Debug.TestEvents then
+		print(`[Reactions] {npc.role} {npc.id} goes to look at the noise (node {destination}, post {npc.post})`)
+	end
 end
 
 local function investigate(crowd: Crowd, position: Vector3, now: number)
@@ -177,6 +180,9 @@ local function beginReturn(crowd: Crowd, npc: Npc, now: number)
 	npc.pathIndex = 1
 	npc.speed = npc.baseSpeed
 	npc.state = "Return"
+	if GameConfig.Debug.TestEvents then
+		print(`[Reactions] {npc.role} {npc.id} is going back to its post (node {npc.post})`)
+	end
 end
 
 function Reactions.gunfire(crowd: Crowd, position: Vector3, now: number)
