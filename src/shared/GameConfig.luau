@@ -86,8 +86,19 @@ local GameConfig = {
 
 	-- Spec 5.1 to 5.5: NPCs.
 	NPC = {
-		TargetCount = 74,
-		RoleCounts = { Guest = 40, Staff = 18, Security = 10, Executive = 6 },
+		-- Raised from the spec's 74 (Guest 40, Staff 18, Security 10, Executive 6) to 90 on request. More guards and Executives
+		-- fill the guard rooms, the vault wings and the penthouse (OPEN_QUESTIONS, BUILD_ORDER Step 7B).
+		TargetCount = 90,
+		RoleCounts = { Guest = 40, Staff = 18, Security = 16, Executive = 16 },
+		-- Where each role likes to be, by tier: how often a node of that tier is picked when an NPC spawns and when it
+		-- chooses where to walk next. Guards favour their own tier and Executives the top one; every role may still pass
+		-- through any tier it is allowed in (RoleMaxTier), so the building stays alive and nobody is confined.
+		RoleTierWeights = {
+			Guest = { [0] = 1 },
+			Staff = { [0] = 1, [1] = 3 },
+			Security = { [0] = 0.5, [1] = 1, [2] = 3 },
+			Executive = { [0] = 0.6, [1] = 0.3, [2] = 1, [3] = 4 },
+		},
 		-- Highest tier each role may stand in (it may also use tier 0).
 		RoleMaxTier = { Guest = 0, Staff = 1, Security = 2, Executive = 3 },
 		-- Walk speed per role, in studs/s. A disguised agent's speed is capped to their disguise's role (spec 6.8).
@@ -185,6 +196,14 @@ local GameConfig = {
 		AnimationSpeedReference = 14.5, -- the default Animate script plays walk at speed / 14.5; NPCs must match
 		WalkAnimationMinSpeed = 0.5,
 		AnimationFadeSeconds = 0.2,
+		AnimationCullStuds = 160, -- NPCs further than this from the camera are not animated (client performance)
+	},
+
+	-- The low-frame-rate look every character shares (StepAnimationController): poses change this many times a second.
+	Animation = {
+		StepHz = 8,
+		StepCullStuds = 120, -- characters further from the camera than this animate normally
+		MinJoints = 12, -- a rig with fewer animated joints than this has not finished arriving
 	},
 
 	-- Spec 6, 7, 8: disguise, cover, suspicion.

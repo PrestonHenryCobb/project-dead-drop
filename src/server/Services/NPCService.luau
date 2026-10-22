@@ -19,6 +19,7 @@ local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local OutfitDefs = require(Shared:WaitForChild("Defs"):WaitForChild("OutfitDefs"))
 local Types = require(Shared:WaitForChild("Types"))
+local Weighted = require(Shared:WaitForChild("Util"):WaitForChild("Weighted"))
 local NPC = script.Parent.Parent:WaitForChild("NPC")
 local AnimationSync = require(NPC:WaitForChild("AnimationSync"))
 local Death = require(NPC:WaitForChild("Death"))
@@ -82,8 +83,17 @@ local function spreadAround(point: Vector3): Vector3
 	return point + Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
 end
 
+-- How much a role likes a node, by the node's tier (GameConfig.NPC.RoleTierWeights).
+local function tierWeight(role: string, graph: NavGraph.Graph): (number) -> number
+	local weights = (config.RoleTierWeights :: { [string]: { [number]: number } })[role]
+	return function(node: number): number
+		return weights[graph.tiers[node]] or 0
+	end
+end
+
 local function startTrip(npc: Npc, now: number, graph: NavGraph.Graph)
-	local destination, points = NavGraph.route(graph, npc.node, npc.maxTier, config.MinTripStuds, isFree, rng)
+	local destination, points =
+		NavGraph.route(graph, npc.node, npc.maxTier, config.MinTripStuds, isFree, rng, tierWeight(npc.role, graph))
 	if not destination or not points then
 		npc.idleUntil = now + config.ActivitySeconds.Min
 		return
@@ -198,12 +208,12 @@ local function spawnAll(graph: NavGraph.Graph)
 	local now = os.clock()
 	for role, count in config.RoleCounts do
 		for _ = 1, count do
-			local options = freeNodes(graph, config.RoleMaxTier[role])
-			if #options == 0 then
+			local node = Weighted.pick(freeNodes(graph, config.RoleMaxTier[role]), tierWeight(role, graph), rng)
+			if not node then
 				warn(`[NPCService] No free node left for a {role} NPC`)
 				break
 			end
-			createNpc(role :: Types.Role, options[rng:NextInteger(1, #options)], graph, now)
+			createNpc(role :: Types.Role, node, graph, now)
 		end
 	end
 end
@@ -220,11 +230,36 @@ local function replaceNpc(graph: NavGraph.Graph, role: string, bodyPosition: Vec
 	if #far == 0 then
 		far = options
 	end
-	if #far == 0 then
+	local node = Weighted.pick(far, tierWeight(role, graph), rng)
+	if not node then
 		warn(`[NPCService] No free node for a replacement {role}`)
 		return
 	end
-	createNpc(role :: Types.Role, far[rng:NextInteger(1, #far)], graph, os.clock())
+	createNpc(role :: Types.Role, node, graph, os.clock())
+end
+
+local witnessList: { CoverService.Witness } = {}
+local EYE_LIFT = Vector3.new(0, GameConfig.Cover.WitnessEyeHeight, 0)
+
+-- Brings the shared witness list in step with where every NPC is and which way it faces, reusing its tables.
+local function refreshWitnesses()
+	local count = 0
+	for _, npc in npcs do
+		if not Death.isDown(npc) then
+			count += 1
+			local entry = witnessList[count]
+			if not entry then
+				entry = { position = Vector3.zero, look = Vector3.zero, kind = "Npc" }
+				witnessList[count] = entry
+			end
+			entry.position = npc.ground + EYE_LIFT
+			entry.look = Vector3.new(-math.sin(npc.yaw), 0, -math.cos(npc.yaw))
+			entry.kind = if npc.role == Enums.Role.Security then "Security" else "Npc"
+		end
+	end
+	for index = #witnessList, count + 1, -1 do
+		witnessList[index] = nil
+	end
 end
 
 local tickTotal, tickMax, tickCount, reportAt = 0, 0, 0, 0
@@ -237,6 +272,7 @@ local function tick(dt: number)
 	for _, npc in npcs do
 		update(npc, dt, started, current.graph)
 	end
+	refreshWitnesses()
 	Reactions.watchBodies(current, started)
 	Movement.separate(npcs, dt, rng)
 	for _, npc in npcs do
@@ -319,18 +355,9 @@ local function onDebugEvent(player: Player, kind: unknown, position: unknown)
 end
 
 -- Who can see players, for suspicion (spec 7.3): every NPC that is not down. Security counts fully, the rest less.
+-- The list is kept up to date by the NPC tick and reused, so asking for it costs nothing.
 local function describeWitnesses(): { CoverService.Witness }
-	local list: { CoverService.Witness } = {}
-	for _, npc in npcs do
-		if not Death.isDown(npc) then
-			table.insert(list, {
-				position = npc.ground + Vector3.new(0, GameConfig.Cover.WitnessEyeHeight, 0),
-				look = Vector3.new(-math.sin(npc.yaw), 0, -math.cos(npc.yaw)),
-				kind = if npc.role == Enums.Role.Security then "Security" else "Npc",
-			})
-		end
-	end
-	return list
+	return witnessList
 end
 
 -- Where bodies lie (spec 7.3: near a body).

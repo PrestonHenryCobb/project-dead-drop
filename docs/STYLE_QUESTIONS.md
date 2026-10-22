@@ -215,3 +215,22 @@ How to read the tags:
 ### Superseded (kept for the record)
 - SPEC-QUESTION: scripted unmasking and "mask copied with the outfit" do not fully fit together. If a player scans a masked NPC and walks into an unmasked area, are they masked there? Proposed rule: a mask is a state of the area, not the character. Everyone inside a masked area wears one whatever they scanned, and the scan copies only the outfit underneath. Say if you want it otherwise.
 - How often and for how long are the masks on? For example, masks on at the start, one scripted unmasking at a fixed time, then masks stay off for the rest of the match.
+
+---
+
+## Decided (2026-10-23): movement and animation feel ("Dingus" reference)
+
+Taken from your notes on the movement of Dingus. You asked for the general feel, not to override our movement, and for it
+to apply to all human-controlled characters and NPCs.
+
+| Idea in your notes | What was built |
+|---|---|
+| Low frame rate, about 8 FPS, with limbs snapping between poses | Every character (players and NPCs) shows its pose about 8 times a second (`GameConfig.Animation.StepHz`). Only the pose is held; position, speed and facing stay smooth. Characters further than 120 studs from the camera animate normally, since the steps cannot be seen there. |
+| Zero-inertia stopping | NPCs already stop exactly where their route ends. Players are unchanged. |
+| Linear trajectories | NPC routes are straight segments between nodes already. |
+| 4 to 5 s freeze at a destination | Not applied. NPCs pause 6 to 20 s at a node (spec 5.2). Say if you want 4 to 5 s. |
+| Instant 180 degree turns | Not applied. NPCs and disguised players both turn at up to 270 degrees a second (spec 5.2). Faster turning is a one-number change if you want it. |
+| Players slide, jitter and sprint (the "giveaway") | Sprint exists (speed 18). The slide and jitter are not applied, because they would let players be told apart from NPCs, which this game must not allow. |
+
+Also settled: 90 NPCs, split Guest 40, Staff 18, Security 16, Executive 16, with each role favouring its own tier when it
+spawns and when it picks where to walk (`GameConfig.NPC.RoleTierWeights`).

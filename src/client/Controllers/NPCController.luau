@@ -33,6 +33,7 @@ type Entry = {
 	written: CFrame?,
 	speed: number,
 	walking: boolean,
+	culled: boolean, -- too far away to be worth animating; its tracks are stopped until it comes back
 	janitor: Janitor.Janitor,
 }
 
@@ -122,6 +123,7 @@ local function track(model: Model)
 		written = nil,
 		speed = 0,
 		walking = false,
+		culled = false,
 		janitor = janitor,
 	}
 	entries[model] = entry
@@ -254,8 +256,38 @@ function NPCController.Start()
 
 	RunService.RenderStepped:Connect(function()
 		local started = os.clock()
+		local camera = workspace.CurrentCamera
+		local cameraPosition = if camera then camera.CFrame.Position else nil
+		local cullSquared = config.AnimationCullStuds * config.AnimationCullStuds
 		for _, entry in entries do
-			update(entry, started)
+			-- Far NPCs are not animated at all: the animator is the biggest cost of a crowd, and at this distance nobody
+			-- can see it.
+			local far = false
+			if cameraPosition then
+				local offset = entry.root.Position - cameraPosition
+				far = offset:Dot(offset) > cullSquared
+			end
+			if far then
+				if not entry.culled then
+					entry.culled = true
+					entry.walking = false
+					entry.walk:Stop(0)
+					entry.idle:Stop(0)
+					for _, loaded in entry.poses do
+						loaded:Stop(0)
+					end
+				end
+			else
+				if entry.culled then
+					entry.culled = false
+					entry.idle:Play(0)
+					local resumed = entry.poses[entry.pose]
+					if resumed then
+						resumed:Play(0)
+					end
+				end
+				update(entry, started)
+			end
 		end
 
 		if GameConfig.Debug.PrintNpcCost then

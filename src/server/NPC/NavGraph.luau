@@ -7,7 +7,7 @@
 -- search over this graph and simply follow the stored points.
 --
 --   local graph = NavGraph.build(nodeParts, ZoneService.tierAt)   -- yields while paths are computed
---   local destination, points = NavGraph.route(graph, fromNode, maxTier, minTripStuds, isFree, rng)
+--   local destination, points = NavGraph.route(graph, fromNode, maxTier, minTripStuds, isFree, rng, weightOf?)
 --   local destination, points = NavGraph.fleeRoute(graph, fromNode, maxTier, threatPosition)
 --   local points = NavGraph.routeTo(graph, fromNode, maxTier, destinationNode)
 --   local destination, points = NavGraph.routeNear(graph, fromNode, maxTier, position)
@@ -15,7 +15,9 @@
 local PathfindingService = game:GetService("PathfindingService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local GameConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("GameConfig"))
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local Weighted = require(Shared:WaitForChild("Util"):WaitForChild("Weighted"))
 
 export type Edge = {
 	to: number,
@@ -239,7 +241,8 @@ function NavGraph.route(
 	maxTier: number,
 	minTrip: number,
 	isFree: (number) -> boolean,
-	rng: Random
+	rng: Random,
+	weightOf: ((number) -> number)?
 ): (number?, { Vector3 }?)
 	local found = search(graph, from, maxTier)
 	local options: { number } = {}
@@ -253,10 +256,12 @@ function NavGraph.route(
 			table.insert(options, index)
 		end
 	end
-	if #options == 0 then
+	local destination = if weightOf
+		then Weighted.pick(options, weightOf, rng)
+		else options[rng:NextInteger(1, math.max(1, #options))]
+	if not destination then
 		return nil, nil
 	end
-	local destination = options[rng:NextInteger(1, #options)]
 	return destination, pointsTo(found, from, destination)
 end
 
