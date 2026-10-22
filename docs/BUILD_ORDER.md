@@ -134,6 +134,16 @@ The map should feel alive without the crowd clogging corridors or leaving rooms 
 | Vault door order | Climbing tiers inside each vault: Tier 1, then 2, then 3, so getting a Security and then an Executive disguise is the way in. Each of the three vaults has its own sequence and shape. |
 | How to start | Layout data first (levels, rooms, doors, outdoor areas), generated and reviewed with screenshots before the vault interiors and the four intel station types. |
 
+**Status (2026-10-22): pass 1 built, waiting for your review.**
+- Done: the tower layout as data (`src/server/Tools/Gala/Layout.luau`) and its generator (`Build.luau`): 53 rooms over five
+  levels with a central atrium, setback terraces, hedged grounds with gates, nested guard rooms, 14 clearance doors and 6
+  keycard doors, 19 ramps, zone volumes, 311 NPC nodes, props and cover, 12 insertion points, 3 extraction sites and 3 vault
+  placeholders. The self-check passes. `DoorService` opens clearance doors by clearance. Run it with
+  `require(game.ServerScriptService.Server.Tools.Gala.Build).run()` on a fresh clone of the Gala folder in Studio's Edit mode.
+- Still to do after you approve the shape: the three vault interiors with their tier doors and identities, the four intel
+  station types and far more intel points, supply caches, cameras, laser grids, vents, ziplines, pickups and climb
+  surfaces, then the Step 4 to 7 test pass and the two-player checkpoint.
+
 **Follow-ups this brief creates** (to settle before or during the step)
 - **Spec changes:** intel gets four station types (spec Section 9), doors become clearance gates (Sections 4.3 and 7), and the vault gets an interior with door tiers and NPC identities (Section 10).
 - **NPC roles for the vault:** the spec has only 6 Executives. Plenty of identities in the vault wing means more high-tier NPCs, while the total stays 74. The role counts need a decision.

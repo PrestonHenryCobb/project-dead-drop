@@ -72,7 +72,7 @@ local GameConfig = {
 			ZiplineAnchorPairs = 2,
 			PickupSpawn = 30,
 		},
-		NPCNodeCount = { Min = 150, Max = 250 },
+		NPCNodeCount = { Min = 150, Max = 320 }, -- spec says 150 to 250; the larger intricate layout needs more (SPEC-QUESTION)
 		SupplyCachesPerTier = { [0] = 2, [1] = 2, [2] = 1, [3] = 1 },
 		InsertionMinSpacing = 60,
 		TeamSpawnRadius = 8, -- teammates spawn within this many studs of each other
@@ -134,7 +134,7 @@ local GameConfig = {
 		-- Spec 5.2: NPCs open doors automatically and the doors close DoorCloseDelay after the last body passes.
 		-- SPEC-QUESTION: the spec doesn't say whether NPCs open keycard shortcut doors. They do here, which lets a
 		-- player slip through behind an NPC. Set OpenForNpcs to false to keep them shut.
-		Door = { OpenStuds = 8, OpenForNpcs = true, OpenTransparency = 0.7 },
+		Door = { OpenStuds = 8, OpenForNpcs = true, OpenTransparency = 0.7, PlayerCheckSeconds = 0.1 },
 		-- Guards investigate gunfire and explosions (OPEN_QUESTIONS A6). SPEC-QUESTION: the spec has Security ignore
 		-- noise. A guard on the same floor within SameFloorStuds goes to look. A guard on another floor goes only if it
 		-- is within OpenFloorStuds and can see the source, which is how a stair or balcony open to the floor counts.

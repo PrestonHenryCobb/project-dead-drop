@@ -69,6 +69,7 @@ local Enums = {
 		SecurityCamera = "SecurityCamera",
 		LaserGrid = "LaserGrid",
 		KeycardDoor = "KeycardDoor",
+		ClearanceDoor = "ClearanceDoor", -- a door that opens only for a disguise of its Tier or higher (STEP 7B)
 		Vent = "Vent",
 		ZiplineAnchor = "ZiplineAnchor",
 		PickupSpawn = "PickupSpawn",

@@ -242,7 +242,7 @@ local function tick(dt: number)
 	for _, npc in npcs do
 		Movement.place(npc)
 		if npc.path and not Death.isDown(npc) then
-			DoorService.holdNear(npc.ground)
+			DoorService.holdNear(npc.ground, npc.maxTier, true)
 		end
 	end
 	AnimationSync.flush()
