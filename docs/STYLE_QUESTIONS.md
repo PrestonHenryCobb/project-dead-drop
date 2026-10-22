@@ -193,7 +193,16 @@ How to read the tags:
 | D2 motion | A "reduce HUD motion" option in the lobby settings, with the sway on by default. This replaces the earlier rule (OPEN_QUESTIONS H3) that settings are changed only outside matches: an in-game settings system is added. |
 | B3 rooftop | The rooftop is a Tier 0 public cocktail party. It is crowded and open, and Exposed players there are visible from far away. |
 
+### Decided in the third round
+
+| Ref | Decision |
+|---|---|
+| Mask area | Masks are worn in the masquerade area and on the rooftop, on the Gala only. |
+| Mask-off | Scripted unmasking for everyone: at set moments, every character in a masked area takes the mask off at once. Players cannot take it off on their own, so there is no tell. |
+| Mask scan | A scan copies the mask with the outfit. |
+| In-game menu | Settings can be opened any time as an overlay. The match keeps running (NPCs, suspicion, timers). Input to the character is paused while the menu is open. |
+| Rooftop | Open but balanced: no sniper nests, no extra sight-line limits. |
+
 ### Still open
-- Masks: who takes them off, and when? NPCs must do it too, at the same rules as players, or it is a tell.
-- Masks and disguises: does a scan copy the mask as part of the outfit, and does it matter if a player is masked in the masquerade area and unmasked elsewhere?
-- In-game settings: can they be opened mid-match? If so, what stops a player from using the menu as a safe moment (no input, no cover loss)?
+- SPEC-QUESTION: scripted unmasking and "mask copied with the outfit" do not fully fit together. If a player scans a masked NPC and walks into an unmasked area, are they masked there? Proposed rule: a mask is a state of the area, not the character. Everyone inside a masked area wears one whatever they scanned, and the scan copies only the outfit underneath. Say if you want it otherwise.
+- How often and for how long are the masks on? For example, masks on at the start, one scripted unmasking at a fixed time, then masks stay off for the rest of the match.
