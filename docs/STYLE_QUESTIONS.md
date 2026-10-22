@@ -19,7 +19,7 @@ How to read the tags:
 - **Options:** (a) third person over the shoulder, always (b) first person, always (c) third person while disguised
   and first person when aiming or exposed (d) the player chooses in settings.
 - **Default:** (a), because the player can see their own disguised body and the tell is easier to understand.
-- **Answer:**
+- **Answer:** b 
 
 ### A2. What does the player see of their own facing while disguised?
 - **Question:** the camera can look anywhere but the body only turns the way you walk. How does the player know where
@@ -27,19 +27,19 @@ How to read the tags:
 - **Options:** (a) nothing special, the player just sees the body (b) a faint arrow or cone on the ground (c) a small
   icon on the HUD showing "body facing" versus "camera facing".
 - **Default:** (a) in third person, (c) if you pick first person.
-- **Answer:**
+- **Answer:** c
 
 ### A3. Moving the camera while standing still in a disguise
 - **Question:** should looking around be free when the player is not moving? Real NPCs stand and glance now and then.
 - **Options:** (a) free look, body does not turn (b) body turns slowly to follow the camera, like an NPC glancing
   (c) the body only turns when you hold a key.
 - **Default:** (b).
-- **Answer:**
+- **Answer:** b
 
 ### A4. Default keys
 - **Spec says:** Scan `F`, Disguise `G`, Blend wheel `B` (hold).
 - **Question:** keep these, or does anything clash with how you want to play?
-- **Answer:**
+- **Answer:** all good
 
 ---
 
@@ -50,20 +50,20 @@ How to read the tags:
   a bit silly, big expressions and funny emotes (d) a mix: serious play, light cosmetics.
 - **Why it matters:** the wording of every message ("EXPOSED", "Suspicious"), the emote wheel and the outfits.
 - **Default:** (b).
-- **Answer:**
+- **Answer:** a mix of b and a but leaning more into b
 
 ### B2. Violence and presentation
 - **Question:** Roblox's audience is mixed-age. How strong should hits and downed players look?
 - **Options:** (a) no blood, characters fall face down and fade (b) small impact flashes only (c) your own limits: ____
 - **Default:** (a), which also fits the downed-NPC body I just built.
-- **Answer:**
+- **Answer:** small impact flashes a but keep the caharcters falling face down and fading
 
 ### B3. The Gala setting
 - **Question:** what kind of party is it? This sets outfits, props and music.
 - **Options:** (a) black-tie art gallery (b) rooftop cocktail party in a skyscraper (c) masquerade ball (d) your idea: ____
 - **Note:** the graybox already has a ballroom, galleries and a penthouse, which fits (a) best.
 - **Default:** (a).
-- **Answer:**
+- **Answer:** How about a mix of all of these, heavily including a roofop piece to the map, dont just make the map layouts boring and linear 
 
 ---
 
@@ -76,7 +76,7 @@ How to read the tags:
   that speeds up (d) all of it.
 - **Why it matters:** the marker would show where the danger is but also tells the player who counts as a witness.
 - **Default:** (c).
-- **Answer:**
+- **Answer:** d
 
 ### C2. How loud is being Exposed?
 - **Spec says:** an "exposed sting" sound, pings for enemies.
@@ -84,7 +84,7 @@ How to read the tags:
 - **Options:** (a) loud and obvious, the whole screen reacts (b) a clear sound and a flash on the HUD only
   (c) subtle for the player, but loud pings for enemies.
 - **Default:** (b).
-- **Answer:**
+- **Answer:** a, obvious for the player and enemies
 
 ### C3. Match pacing
 - **Question:** what should a good five minutes feel like early in a match?
@@ -93,7 +93,7 @@ How to read the tags:
 - **Why it matters:** it decides how loud the early game is, how many guards patrol, and how soon players are
   pushed toward each other.
 - **Default:** (c), which is how the phases in the spec already work.
-- **Answer:**
+- **Answer:** B, no protection needs to be added since the suspence is already there
 
 ### C4. Telling teammates apart in the crowd
 - **Spec says:** teammate markers are built on the client from a roster sent only to that team.
@@ -101,7 +101,7 @@ How to read the tags:
 - **Options:** (a) small outline only when looking directly at a teammate (b) a faint icon above the head at any
   distance (c) an icon that fades out the further away they are.
 - **Default:** (c).
-- **Answer:**
+- **Answer:** C
 
 ---
 
@@ -112,27 +112,27 @@ How to read the tags:
   strong colour per zone (d) your reference: ____
 - **Note:** the zones already use colours (spec Section 4), so (c) is the easiest to read at a glance.
 - **Default:** (c).
-- **Answer:**
+- **Answer:** b, but keep colored zones obvious by things like rugs,suble color coded pieces in the room rather than the entire room being a flat color, keep it semi real, but keep the art style simple enough to run on all platforms. I want the game to run in a way that make character actions look deliberately choppy compared to the environment. Make suble objects wave around such as flag and npc interactions move choppily on purpose.
 
 ### D2. HUD style
 - **Options:** (a) minimal, almost no HUD, with icons only when needed (b) a classic shooter HUD (c) a spy-gadget look,
   like an old briefing screen.
 - **Default:** (a), because the less there is on screen, the harder it is to tell players apart by what they look at.
-- **Answer:**
+- **Answer:** make the hud minimal, but keep things like small icons floating on screen for the player to understand ammo count, abilities, etc. The font of words on screen should use a classic roblox that seems pixelized but bold and easy to read that blend with the screen. The HUD should move with actions on the screen, such as when jumping, the HUD should appear to float in the opposite direction.
 
 ### D3. Music mood
 - **Question:** you chose Roblox library audio. What mood should I search for?
 - **Options:** (a) jazz and lounge (b) tense orchestral (c) electronic, with a beat that rises as alarm increases
   (d) a different style: ____
 - **Default:** (c).
-- **Answer:**
+- **Answer:** a mix of A and c
 
 ### D4. Footsteps and voices
 - **Question:** NPCs and disguised players must sound the same. Should NPCs make small sounds (murmur, clinking glasses)?
 - **Options:** (a) footsteps only (b) footsteps plus soft crowd murmur from the whole map (c) per-NPC sounds
   (more noticeable, but players must also make them).
 - **Default:** (b).
-- **Answer:**
+- **Answer:** b
 
 ---
 
@@ -142,14 +142,14 @@ How to read the tags:
 - **Options:** (a) a short written tutorial screen before the first match (b) a solo practice room with NPCs and no
   enemies (c) tips that appear on screen during the first few matches (d) all of these.
 - **Default:** (c), because it costs the least.
-- **Answer:**
+- **Answer:** c
 
 ### E2. What do players see between matches?
 - **Question:** the lobby is its own place. What should it show?
 - **Options:** (a) a menu only (b) a small walkable lobby where players can see each other's cosmetics
   (c) a menu, with the walkable lobby added after launch.
 - **Default:** (c).
-- **Answer:**
+- **Answer:** c 
 
 ---
 
@@ -159,3 +159,32 @@ How to read the tags:
 2. Camera and cover-feel answers (A, C) are used directly in Steps 6 and 7. I will say which file each one changes.
 3. Tone, art and audio answers (B, D, E) are recorded in the "Decided" section of this file and shape later steps.
 4. Answered items move to a "Decided" section at the bottom so the list keeps shrinking.
+
+---
+
+## Decided (2026-10-21)
+
+| Ref | Decision |
+|---|---|
+| A1 | First person, always. When a disguised player fires, the body turns to the camera and cover breaks (spec rule). A small HUD portrait shows the disguise being worn. |
+| A2 | A small HUD icon shows body facing versus camera facing. |
+| A3 | Standing still: the body turns slowly to follow the camera, like an NPC glancing. |
+| A4 | Keys stay as in the spec: Scan `F`, Disguise `G`, Blend wheel `B` (hold). |
+| B1 | Glamorous heist-film tone, with some of the quiet spy-thriller feel. |
+| B2 | Small impact flashes only. Characters fall face down and fade. No blood. |
+| B3 | The Gala mixes gallery, cocktail party and masquerade, with a large rooftop section. Layouts must not be boring or linear. |
+| C1 | All cues: suspicion meter, a marker on the watcher, and a heartbeat that speeds up. |
+| C2 | Loud and obvious for the player. Enemies within about 60 studs get the loud version too; farther enemies get only the map ping. |
+| C3 | Tense from the start. Weapons are locked for about 15 s after spawn. |
+| C4 | Teammate marker is an icon that fades out with distance. |
+| D1 | Semi-realistic art, simple enough for all platforms. Zones are marked by rugs and small colour-coded pieces, not flat-coloured rooms. Characters animate choppily on purpose (poses step at about 12 per second, on every character equally, players and NPCs). Positions stay smooth. Flags and small props wave gently. |
+| D2 | Minimal HUD with small floating icons (ammo, abilities). A bold, pixel-style Roblox font. The HUD sways opposite to movement, for example when jumping. |
+| D3 | Music mixes jazz/lounge with electronic that builds as alarm rises. Roblox library audio. |
+| D4 | Footsteps plus soft crowd murmur across the map. |
+| E1 | Tips on screen during the first few matches. |
+| E2 | Menu lobby at launch. A walkable lobby comes later. |
+
+### Still open
+- Masquerade: does it mean masks on every character? It would change the face answer (OPEN_QUESTIONS A9).
+- C1 marker: does every witness NPC get a marker, or only Security and cameras? An off-screen indicator is needed in first person.
+- D2: a "reduce HUD motion" setting in the lobby menu, for players who get motion sick.
