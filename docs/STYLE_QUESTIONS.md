@@ -184,7 +184,16 @@ How to read the tags:
 | E1 | Tips on screen during the first few matches. |
 | E2 | Menu lobby at launch. A walkable lobby comes later. |
 
+### Decided in the second round
+
+| Ref | Decision |
+|---|---|
+| Masks | Characters wear masks only in the masquerade area, and only on the Gala. A mask-off animation exists. |
+| C1 marker | A marker appears only on a watcher that is currently adding to your suspicion, and disappears when they stop. Off-screen watchers get an edge arrow. |
+| D2 motion | A "reduce HUD motion" option in the lobby settings, with the sway on by default. This replaces the earlier rule (OPEN_QUESTIONS H3) that settings are changed only outside matches: an in-game settings system is added. |
+| B3 rooftop | The rooftop is a Tier 0 public cocktail party. It is crowded and open, and Exposed players there are visible from far away. |
+
 ### Still open
-- Masquerade: does it mean masks on every character? It would change the face answer (OPEN_QUESTIONS A9).
-- C1 marker: does every witness NPC get a marker, or only Security and cameras? An off-screen indicator is needed in first person.
-- D2: a "reduce HUD motion" setting in the lobby menu, for players who get motion sick.
+- Masks: who takes them off, and when? NPCs must do it too, at the same rules as players, or it is a tell.
+- Masks and disguises: does a scan copy the mask as part of the outfit, and does it matter if a player is masked in the masquerade area and unmasked elsewhere?
+- In-game settings: can they be opened mid-match? If so, what stops a player from using the menu as a safe moment (no input, no cover loss)?
