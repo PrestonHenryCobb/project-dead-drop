@@ -578,6 +578,46 @@ local GameConfig = {
 		CharactersCollideWithEachOther = false,
 	},
 
+	-- Graphics quality (BUILD_ORDER Step 7B): scenery detail for weaker machines, applied on each client. Auto follows the
+	-- Roblox graphics slider; a player can override it. Only scenery changes: the map, NPCs and players are the same.
+	Graphics = {
+		-- The Roblox graphics level (1 to 10) at which Auto moves up to Medium and to High. Roblox's own Automatic counts
+		-- as High.
+		AutoMediumFrom = 4,
+		AutoHighFrom = 7,
+		CycleKey = Enum.KeyCode.F7, -- cycles Auto, Low, Medium, High until the Step 19 settings menu
+		NoticeSeconds = 2, -- how long the "Graphics: ..." note stays on screen after a change
+		Levels = {
+			High = {
+				WindowBands = { near = true, mid = true, far = true }, -- city towers that keep their window textures
+				RoofDetail = true, -- roof plant, water tanks, masts and spires
+				LightEvery = 1, -- keep one ceiling light in this many
+				Shadows = true,
+				Bloom = true,
+				HazeScale = 1, -- times the atmosphere's density and haze
+				MergeVoid = false, -- keep only the top and bottom void haze layers
+			},
+			Medium = {
+				WindowBands = { near = true, mid = true },
+				RoofDetail = true,
+				LightEvery = 2,
+				Shadows = true,
+				Bloom = true,
+				HazeScale = 1,
+				MergeVoid = false,
+			},
+			Low = {
+				WindowBands = { near = true },
+				RoofDetail = false,
+				LightEvery = 3,
+				Shadows = false,
+				Bloom = false,
+				HazeScale = 0.5,
+				MergeVoid = true,
+			},
+		},
+	},
+
 	-- Temporary development switches. Turn off before release.
 	Debug = {
 		PrintZoneChanges = true, -- ZoneService prints a line whenever a player's zone tier changes

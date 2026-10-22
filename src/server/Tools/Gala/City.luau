@@ -7,6 +7,9 @@
 --
 -- None of it can be reached, so nothing here collides, takes touches or queries, or casts a shadow. It is one
 -- persistent model so streaming never drops the skyline.
+--
+-- For the graphics quality setting (GraphicsController), every tower block carries a Band attribute ("near", "mid" or
+-- "far": which levels keep its windows) and every void haze layer a VoidLayer number (1 at the top).
 
 local Lighting = game:GetService("Lighting")
 
@@ -161,8 +164,8 @@ function City.build(parent: Instance, towers: { Rect }, shaftTop: number): numbe
 		end
 	end
 	-- A tower standing on the street: one to three tiers stepping in, a facade on each, and (when `detailed`) a crown,
-	-- roof plant or a spire.
-	local function tower(cx: number, cz: number, w: number, d: number, top: number, detailed: boolean)
+	-- roof plant or a spire. `band` says how far out it stands, for the quality setting.
+	local function tower(cx: number, cz: number, w: number, d: number, top: number, detailed: boolean, band: string)
 		local facade, lit = FACADES[rng:NextInteger(1, #FACADES)], LIT[rng:NextInteger(1, #LIT)]
 		local shape = rng:NextNumber()
 		local splits = if shape < 0.45 then { 1 } elseif shape < 0.8 then { 0.72, 1 } else { 0.55, 0.8, 1 }
@@ -177,6 +180,7 @@ function City.build(parent: Instance, towers: { Rect }, shaftTop: number): numbe
 				ROOF_GREY
 			)
 			windows(tier, facade, lit)
+			tier:SetAttribute("Band", band)
 			if index < #splits then
 				if detailed then
 					crown(cx, tierTop - 0.4, cz, tw, td, crownColor)
@@ -223,6 +227,7 @@ function City.build(parent: Instance, towers: { Rect }, shaftTop: number): numbe
 				SHAFT_GREY
 			)
 			windows(shaft, FACADES[1], LIT[1])
+			shaft:SetAttribute("Band", "near")
 			if index > 1 then
 				crown(tx, from - 0.4, tz, w, d, CROWN_COLORS[1])
 			end
@@ -257,11 +262,12 @@ function City.build(parent: Instance, towers: { Rect }, shaftTop: number): numbe
 				continue
 			end
 			local far = math.max(math.abs(dx), math.abs(dz))
-			local top = if far < NEAR_REACH
+			local band = if far < NEAR_REACH then "near" elseif far < MID_REACH then "mid" else "far"
+			local top = if band == "near"
 				then rng:NextNumber(-320, -60)
-				elseif far < MID_REACH then rng:NextNumber(-260, -20)
+				elseif band == "mid" then rng:NextNumber(-260, -20)
 				else rng:NextNumber(-200, 60)
-			tower(cx + dx, cz + dz, w, d, top, true)
+			tower(cx + dx, cz + dz, w, d, top, true, band)
 		end
 	end
 
@@ -274,7 +280,8 @@ function City.build(parent: Instance, towers: { Rect }, shaftTop: number): numbe
 			rng:NextNumber(50, 110),
 			rng:NextNumber(50, 110),
 			rng:NextNumber(-300, 110),
-			false
+			false,
+			"far"
 		)
 	end
 	for i = 1, SUPERTALLS.count do
@@ -286,7 +293,8 @@ function City.build(parent: Instance, towers: { Rect }, shaftTop: number): numbe
 			rng:NextNumber(70, 100),
 			rng:NextNumber(70, 100),
 			rng:NextNumber(320, 460),
-			true
+			true,
+			"mid" -- the supertalls stand out, so they keep their windows on Medium
 		)
 	end
 
@@ -305,9 +313,10 @@ function City.build(parent: Instance, towers: { Rect }, shaftTop: number): numbe
 	end
 
 	-- The void: the haze layers, then the black floor, which is also where falling kills.
-	for _, layer in VOID_LAYERS do
+	for index, layer in VOID_LAYERS do
 		local haze = block("Void haze", Vector3.new(WORLD, 2, WORLD), CFrame.new(cx, layer.y, cz), layer.color)
 		haze.Transparency = layer.transparency
+		haze:SetAttribute("VoidLayer", index)
 	end
 	block("Void floor", Vector3.new(WORLD, 2, WORLD), CFrame.new(cx, VOID_Y - 1, cz), Color3.new(0, 0, 0))
 	workspace.FallenPartsDestroyHeight = VOID_Y - 2

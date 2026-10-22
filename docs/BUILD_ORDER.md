@@ -173,6 +173,8 @@ The map should feel alive without the crowd clogging corridors or leaving rooms 
 | Vaults | Four: A (Gala basement), B (Gala top floor), C moves to the Gala west ground floor, D in the wing basement. |
 | Half-levels | Open galleries 12 studs up: round the ballroom, a loft over the bar, staff catwalks over the kitchen and loading bay, and VIP tables in the casino. Reached by half-height stairs, railed, on posts. |
 | Decks | The rooftop party extends past the tower west edge on a cantilever with a pool and cabanas; the wing gets a roof garden; the suites get balconies. |
+| Quality setting | Auto by default (follows the Roblox graphics slider: 1-3 Low, 4-6 Medium, 7-10 High), with an override of Low, Medium or High. Until the Step 19 menu, a debug key cycles Auto, Low, Medium, High; Step 21 saves the choice. |
+| Quality levels | High: everything. Medium: windows on the near and middle towers only, half the ceiling lights, shadows and bloom on, full void layers. Low: tower shapes kept but windows only on the nearest towers, no roof plant or spires (beacons and crowns stay), one ceiling light in three, no shadows, no bloom, haze halved, void layers merged to two. |
 | Order | 1) Fix the stairs and the openings beside them. 2) Grow the map and raise NPCs to 200, then measure. 3) The detailed city and night sky. 4) The quality setting. Then pass 2 (vaults and intel). |
 
 **Follow-ups this brief creates** (to settle before or during the step)

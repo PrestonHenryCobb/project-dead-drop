@@ -1558,6 +1558,7 @@ function Build.run()
 							light.Shadows = false
 							light.Parent = lamp
 							lightCount += 1
+							lamp:SetAttribute("LightIndex", lightCount) -- GraphicsController keeps every Nth on lower quality
 						end
 						z += LIGHT_SPACING
 					end
@@ -1792,6 +1793,12 @@ function Build.run()
 		local old = Lighting:FindFirstChild(name)
 		if old then
 			old:Destroy()
+		end
+	end
+	-- Only one Atmosphere can apply, so any other (a new place comes with a default one) is removed.
+	for _, other in Lighting:GetChildren() do
+		if other:IsA("Atmosphere") then
+			other:Destroy()
 		end
 	end
 	local atmosphere = Instance.new("Atmosphere")
