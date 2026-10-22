@@ -128,7 +128,8 @@ Step 7 and are wired in the step that builds them.
   restricted room (even unseen) delay that decay?
 - **Options:** (a) no, it only builds when witnessed (b) yes, the 1.5 s decay delay restarts while inside.
 - **Default:** (a).
-- **Answer:** Decay delay should stay, raising depending on trespass level, using the same tier system used for C2.
+- **Answer:** a (clarified on 2026-10-22: nothing changes the decay delay. The tier scaling applies to how fast suspicion
+  rises from trespass, as in C2, not to how long decay is delayed.)
 
 ---
 
@@ -272,8 +273,35 @@ Step 7 and are wired in the step that builds them.
 
 ---
 
+## Decided (2026-10-22)
+
+| Ref | Decision |
+|---|---|
+| A1 | Witnesses add up (Security 1.0, camera 0.6, other NPC 0.2), with the total capped at 1.0. |
+| A2, A3 | Every NPC sees 35 studs and 110 degrees. Only walls block sight; characters do not. |
+| A4 | Sprint, jump and crouch are suspicious in Tier 1+ zones only, as in the spec. |
+| B1 | Spec numbers stay. The decay delay is 3 s of nothing suspicious (the spec's 1.5 s plus 1.5 s more), then 10 percent per second. |
+| B2 | Downed and bled-out NPCs and players count as bodies. |
+| B3 | The alarm level is stored and shown on the debug HUD. Step 14 gives it effects. |
+| B4 | The meter resets to 0 when you re-cover. |
+| C1, C2 | Trespass rises at a fixed rate (about 35 percent per second) only while witnessed, scaled up by tier over clearance (1x, 1.5x, 2x). The HUD always shows a restricted area. |
+| C3 | "Guards in the room" is just an ordinary witness. |
+| C4 | Nothing changes the decay delay. The tier scaling is on the gain rate only. |
+| D1 | One placeholder True Form for everyone: a dark tactical outfit, no weapon. |
+| D2 | Exposed players walk at 16, sprint 18. |
+| D3 | All other players count as enemies until teams exist in Step 10. |
+| D4 | A red flash, "EXPOSED" text and a fading vignette, in the team color once teams exist. Sound comes in Step 20. |
+| D5 | Scanning an exposed agent takes 3 s in total and copies their last disguise. |
+| E1 | A Security NPC is "tracking" you if it has seen you within the last 3 s. |
+| E2 | Re-covering uses the same G key and rules, but gives you a **new random outfit of the same tier** as your last disguise. Your stored scan slot is kept, and the insertion disguise stays as the fallback. |
+| F1, F2 | A combat-lockout timer exists with a Studio-only test key (removed in Step 8). One function exposes you, and later steps call it. Test now with trespass, the meter and a test key for "killing an NPC". |
+| G1 | "Looks directly at" is the crosshair ray hitting them, as scanning does. |
+| G2 | Agent Sense also works on exposed enemies. It shows a faint red vignette on the side of the screen facing them, when you are not already looking at them. Much fainter than the normal shimmer. |
+| G3 | Hitmarkers are Step 8. |
+| H1 | The debug HUD shows state, suspicion percent, your zone tier and disguise tier, a count of witnesses by type, and the alarm level. |
+| H2, H3 | Watcher markers are a count on the debug HUD for now (real markers in Step 19). No heartbeat sound until Step 20. |
+
 ## How I will use your answers
 
-1. Fill in any subset and tell me to apply it.
-2. I will list what each answer changes in `GameConfig`, the spec and the code before building.
-3. Answered items move to a "Decided" section at the bottom of this file.
+1. Answers are applied when Step 7 is built.
+2. Anything that changes a spec number is listed in the step summary.
