@@ -117,6 +117,24 @@ The map should feel alive without the crowd clogging corridors or leaving rooms 
 | Widths | Mixed 6 to 12 studs: narrow service corridors and doors (6 to 8), normal doors (10), wide only for halls and the ballroom (12). |
 | Layout design | I write the layout as data and show Studio screenshots for review; you give notes and I revise. |
 
+**Design brief (2026-10-22)**
+| Topic | Decision |
+|---|---|
+| Feel | Evokes the glamour and structure of Deceive Inc.'s "Diamond Spire" as inspiration only. No layouts copied (spec IP note). |
+| Shape | A tall tower rising from grounds: a large central atrium, with the garden lawn, loading dock and forecourt around it, and the rooftop and helipad on top. |
+| Focus areas | Gallery, ballroom, masquerade hall, bar, kitchen, penthouse, rooftop cocktail party. |
+| Extraction points | Three outside areas: helipad, loading dock, garden lawn. |
+| Nested rooms | Guard rooms can be layered two levels deep: a room with a higher-tier room inside it (for example Staff containing Security). |
+| Inner doors | Opened by disguise clearance and a hard gate: a door stays shut for anyone below its tier, including Exposed players. They need another route or to pick a lock (cover-breaking). A qualified NPC or player opening it lets others slip through, which is the existing tailgating rule. |
+| Vault | Three distinct vaults (different shape and door sequence each). Several tier doors inside each. Identities to steal are high-tier NPCs placed in the vault wing to scan. Intel inside the vault is extra loot after unlock (team bonuses and Funds), not part of the unlock. |
+| Intel stations | Far more than 10 on the map, in four types giving 1, 2, 3 and 4 intel, each with its own model, and longer hacks the more they give. One type per tier: 1 intel in public (Tier 0), 2 in Staff (Tier 1), 3 in Security (Tier 2), 4 in Executive (Tier 3). Times scale with points (for example 4 s, 7 s, 11 s, 16 s), set in `GameConfig`. |
+
+**Follow-ups this brief creates** (to settle before or during the step)
+- **Spec changes:** intel gets four station types (spec Section 9), doors become clearance gates (Sections 4.3 and 7), and the vault gets an interior with door tiers and NPC identities (Section 10).
+- **NPC roles for the vault:** the spec has only 6 Executives. Plenty of identities in the vault wing means more high-tier NPCs, while the total stays 74. The role counts need a decision.
+- **Door count:** the spec has 6 keycard doors. Clearance doors need many more. Which doors are hard gates and how many is set in the layout data.
+- **Systems affected later:** `DoorService` gains clearance checks (Step 14 builds keycards, lock picking and alarms on top), and Step 11 (Intel) builds the four station types.
+
 **Done when:** a walkthrough shows the layout is intricate and has outdoor areas; the self-check passes every rule in spec
 Section 4; NPC server and client cost is within budget with the new density; two players can play the Step 7
 checkpoint (finding each other in the crowd) and the routes feel varied.
