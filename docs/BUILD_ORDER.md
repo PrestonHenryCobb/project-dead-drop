@@ -53,6 +53,62 @@ Do **one step per message**. Test each step in Studio before moving on. Each ste
 
 **Checkpoint:** play a 2-player session where you just try to find each other in the crowd. If this isn't fun yet, fix it before going further. Everything else builds on it.
 
+### Step 7B: Layout pass (intricate graybox, indoors and outdoors)
+**Spec:** 4 (all of it), 5.1 to 5.3, 8.1, 18.1. **Decisions:** STYLE_QUESTIONS B3, D1; OPEN_QUESTIONS G1, G3, G5.
+**Why here:** stealth, suspicion and combat all depend on sight lines, cover and routes. The Step 2 graybox is a few large
+empty boxes on a grid, so Steps 7 and 8 would be tuned for a map that will not exist. Rebuild the layout once, as gray
+boxes, then dress it in the art pass.
+**Prompt:** "Do Step 7B. Replace the graybox with an intricate layout described as data (rooms, corridors, outdoor areas,
+stairs, balconies, ramps), generated into zones, doorways, tagged objects and NPC nodes as before. Keep every count and
+rule in spec Section 4. Add the outdoor areas, guard rooms and NPC density rules below. Keep the self-check that
+prints which spec rules pass."
+
+**What the layout must have**
+- **Indoors and outdoors, as one flow.** Interiors open onto outside spaces and back again: an entrance forecourt, a
+  garden or courtyard, a terrace over the garden, a pool or fountain deck, a loading-dock yard, and the rooftop cocktail
+  party (a Tier 0 public area, STYLE_QUESTIONS B3) with the helipad. Players should be able to cross the map through a mix of
+  inside and outside routes. These maps are inspired by the way "Framed" and "Deceive Inc." mix social hubs with
+  indoor and outdoor links; their layouts are not copied (spec IP note).
+- **No big empty boxes.** Rooms are broken up: 15 to 40 stud rooms with several exits, loops so there is never one
+  obvious route, side rooms and alcoves, balconies and mezzanines that look down on atriums, a service and back-of-house
+  network that runs parallel to the public routes (Tier 1), and cover blocks (counters, planters, statues, pillars,
+  furniture masses) in the open spaces. Each themed area is its own place: gallery, ballroom, masquerade hall, bar,
+  kitchen, coat check, penthouse, private gallery, rooftop.
+- **Guard rooms stay.** Security hub, camera room, armory and its hallways, guard posts at stairwells, doors and the vault
+  approach (Tier 2, spec 4.2), and patrol loops through them. They are part of the layout, not removed for space.
+- **Vertical routes.** Stairs, ramps, lifts-as-doors, vents (6 pairs) and ziplines (2 pairs) between levels and across
+  outdoor gaps. Every Tier 1+ zone keeps at least 2 entrances; every Intel spawn is reachable without climbing; each
+  vault spawn has at least 3 routes out; each extraction site is at least 120 studs of path from each vault spawn
+  (spec 4.4).
+- **Sight lines.** Long lines (over 150 studs) stay at 2 to 3 for the whole map. The rooftop is open but balanced: cover
+  and the crowd break it up, with no sniper nests (STYLE_QUESTIONS B3 follow-ups).
+- **Zones readable at a glance.** Each doorway keeps its colored trim and floor decal; zone colors also show on rugs
+  and small colored pieces inside rooms rather than flat-colored rooms (STYLE_QUESTIONS D1).
+
+**NPC density: a happy medium**
+The map should feel alive without the crowd clogging corridors or leaving rooms empty.
+- The total stays at the configured NPC count (74 by default). It is spread by an area weight, not evenly: crowded hubs
+  (ballroom, rooftop party, main gallery, bar), a few NPCs in side rooms and corridors, and the guard rooms always staffed.
+- Each zone gets a density weight. NPC spawns and trip choices use it, so NPCs favor hubs but do pass through quiet areas.
+  The weights are data on the map (attributes on zone or node parts, never on characters), tunable in playtest.
+- No room is empty for long in the early match, so hiding in one is still a risk, and no corridor is so full that the 2.5 stud
+  separation pushes NPCs off their paths.
+- Measure the server tick and client frame cost on the larger layout (spec 25.4, OPEN_QUESTIONS G5). If it is too
+  expensive, cut NPC detail before cutting the map.
+
+**Engineering notes**
+- The generator stays data-driven. Rooms, corridors and outdoor areas are described in a table, and zones, doorways,
+  NPC nodes and tagged objects are produced from it, so the layout can change without rewriting the builder.
+- Outdoor NPC routes need nodes and walkable ground; the graph build (NavGraph) checks that every link is walkable.
+- Part count and lighting are tracked: keep a mobile part budget, and use StreamingEnabled with Atomic model streaming for
+  large dressed areas. Lighting stays temporary (dim gala lighting arrives in the art pass).
+- Re-run the Step 4, 5, 6 and 7 test scripts on the new layout: NPCs path everywhere, doors open, scans and
+  re-covering work, and tiers are correct at every boundary.
+
+**Done when:** a walkthrough shows the layout is intricate and has outdoor areas; the self-check passes every rule in spec
+Section 4; NPC server and client cost is within budget with the new density; two players can play the Step 7
+checkpoint (finding each other in the crowd) and the routes feel varied.
+
 ---
 
 ## Phase D: Combat
