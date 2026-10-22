@@ -1,10 +1,11 @@
 --!strict
 -- The layout of "The Gala" as data (BUILD_ORDER Step 7B). Build.luau turns this into geometry, zones, doors and NPC nodes.
 --
--- A tower rising from grounds, in setbacks, around a central atrium:
+-- A tower over a city street. The ground floor is entirely indoors, with windows onto a cityscape backdrop; the only
+-- outdoor spaces are terraces and decks that branch off the upper floors, around a central atrium:
 --   B (-24)  basement: storage halls, security corridors, Vault A in the core
---   G (0)    ground: forecourt, lobby, ballroom, bar, kitchen, catering, Vault C wing, and the grounds around the tower
---   M (24)   mezzanine: grand gallery, masquerade hall, atrium balcony, offices, security hub, terrace ring
+--   G (0)    ground: lobby, ballroom, bar, kitchen, loading bay, catering, Vault C wing, and the atrium pond
+--   M (24)   mezzanine: grand gallery, masquerade hall, atrium balcony, offices, security hub, terrace ring, skybridge and lawn deck
 --   T (48)   top floor: penthouse and private gallery, guard halls, Vault B wing, upper terrace ring
 --   R (72)   roof: the rooftop cocktail party, with the helipad
 --
@@ -46,6 +47,7 @@ export type Ramp = {
 	x: number, -- centre line (for a ramp climbing along z) or start x (along x)
 	z: number, -- start z (lower end) for a ramp climbing along z, or centre line for one along x
 	dir: string, -- "+z", "-z", "+x" or "-x": the way it climbs
+	turn: boolean?, -- a switchback: it climbs half way, turns at a landing and climbs back to arrive beside where it began
 }
 
 export type Marker = { id: string, level: string, x: number, z: number }
@@ -92,6 +94,7 @@ local OUT, IN = "outdoor", "indoor"
 local FG = { -120, -150, 120, 130 } -- tower at ground and basement
 local FM = { -105, -135, 105, 115 } -- mezzanine
 local FT = { -75, -105, 75, 85 } -- top floor and roof
+local VOID = { -38, -35, 38, 45 } -- the atrium void, with the pond at its foot
 
 -- B: basement (-24) -------------------------------------------------------------------------------------------------
 room("b_west_n", "B", "West storage north", 1, IN, { -120, -150, -75, -10 }, { props = { "crates" } })
@@ -105,75 +108,26 @@ room("b_east", "B", "East security corridor", 2, IN, { 30, -60, 75, 40 })
 room("b_vaulta_ante", "B", "Vault A antechamber", 2, IN, { -30, 0, 30, 40 })
 room("b_vaulta", "B", "Vault A", 3, IN, { -30, -60, 30, 0 }, { density = 0.5 })
 
--- G: ground (0). Outdoor grounds tile the 450 x 450 site around the tower. ----------------------------------------------
-room(
-	"g_forecourt",
-	"G",
-	"Forecourt",
-	0,
-	OUT,
-	{ -120, 130, 120, 225 },
-	{ density = 1.5, props = { "planters", "fountain" } }
-)
-room("g_valet", "G", "Valet lane", 0, OUT, { -225, 130, -120, 225 }, { props = { "trees", "planters" } })
-room(
-	"g_orchard",
-	"G",
-	"Hedge maze and orchard",
-	0,
-	OUT,
-	{ 120, 130, 225, 225 },
-	{ density = 0.8, props = { "trees", "hedgemaze" } }
-)
-room(
-	"g_maze",
-	"G",
-	"Koi pond garden",
-	0,
-	OUT,
-	{ 120, 20, 225, 130 },
-	{ density = 1.2, props = { "trees", "planters" } }
-)
-room(
-	"g_lawn",
-	"G",
-	"Garden lawn",
-	0,
-	OUT,
-	{ 120, -150, 225, 20 },
-	{ density = 1.2, props = { "trees", "planters", "tables" } }
-)
-room("g_yard", "G", "Service yard", 0, OUT, { -225, -30, -120, 130 }, { density = 0.7, props = { "crates" } })
+-- G: ground (0). Entirely indoors: the tower footprint, with windows onto the cityscape. -------------------------------------------
 room(
 	"g_dock",
 	"G",
-	"Loading dock",
-	0,
-	OUT,
-	{ -225, -150, -120, -30 },
-	{ density = 0.7, props = { "crates", "trucks" } }
+	"Loading bay",
+	1,
+	IN,
+	{ -120, -150, -80, -50 },
+	{ glass = true, density = 0.7, props = { "crates", "trucks" } }
 )
-room(
-	"g_nw",
-	"G",
-	"North-west court",
-	0,
-	OUT,
-	{ -225, -225, -120, -150 },
-	{ density = 0.6, props = { "trees", "hedges" } }
-)
-room("g_pool", "G", "Pool deck", 0, OUT, { -120, -225, 120, -150 }, { density = 1.2, props = { "pool", "planters" } })
-room(
-	"g_ne",
-	"G",
-	"North-east court",
-	0,
-	OUT,
-	{ 120, -225, 225, -150 },
-	{ density = 0.6, props = { "trees", "hedges" } }
-)
-
-room("g_coat", "G", "Coat check", 1, IN, { -120, 70, -80, 130 }, { props = { "desks" } })
+room("g_kitchen", "G", "Kitchen", 1, IN, { -80, -150, -40, -50 }, { density = 1.2, props = { "islands" } })
+room("g_service", "G", "Service corridor", 1, IN, { -40, -150, 40, -50 }, { props = { "pillars" } })
+room("g_catering", "G", "Catering prep", 1, IN, { 40, -150, 80, -50 }, { glass = true, props = { "islands" } })
+room("g_vaultc_ante", "G", "Vault C antechamber", 2, IN, { 80, -90, 120, -50 })
+room("g_vaultc", "G", "Vault C", 3, IN, { 80, -150, 120, -90 }, { density = 0.5 })
+room("g_sculpt", "G", "Sculpture hall", 0, IN, { -120, -50, -60, 70 }, { glass = true, props = { "partitions" } })
+room("g_ballroom", "G", "Ballroom", 0, IN, { -60, -50, 60, 70 }, { density = 2, props = { "pillars", "tables" } })
+room("g_lounge", "G", "Smoking lounge", 0, IN, { 60, -50, 120, 70 }, { glass = true, props = { "tables" } })
+room("g_humidor", "G", "Humidor", 1, IN, { 90, 30, 120, 70 }, { parent = "g_lounge" })
+room("g_coat", "G", "Coat check", 1, IN, { -120, 70, -80, 130 }, { glass = true, props = { "desks" } })
 room(
 	"g_lobby",
 	"G",
@@ -193,15 +147,6 @@ room(
 	{ 50, 70, 120, 130 },
 	{ glass = true, density = 1.5, props = { "bar", "tables" } }
 )
-room("g_sculpt", "G", "Sculpture hall", 0, IN, { -120, -50, -60, 70 }, { props = { "partitions" } })
-room("g_ballroom", "G", "Ballroom", 0, IN, { -60, -50, 60, 70 }, { density = 2, props = { "pillars", "tables" } })
-room("g_lounge", "G", "Smoking lounge", 0, IN, { 60, -50, 120, 70 }, { glass = true, props = { "tables" } })
-room("g_humidor", "G", "Humidor", 1, IN, { 90, 30, 120, 70 }, { parent = "g_lounge" })
-room("g_kitchen", "G", "Kitchen", 1, IN, { -120, -150, -40, -50 }, { density = 1.2, props = { "islands" } })
-room("g_service", "G", "Service corridor", 1, IN, { -40, -150, 40, -50 }, { props = { "pillars" } })
-room("g_catering", "G", "Catering prep", 1, IN, { 40, -150, 80, -50 }, { props = { "islands" } })
-room("g_vaultc_ante", "G", "Vault C antechamber", 2, IN, { 80, -90, 120, -50 })
-room("g_vaultc", "G", "Vault C", 3, IN, { 80, -150, 120, -90 }, { density = 0.5 })
 
 -- M: mezzanine (24) -----------------------------------------------------------------------------------------------------
 room(
@@ -244,18 +189,18 @@ room(
 	0,
 	OUT,
 	FG,
-	{ holes = { FM }, density = 1, props = { "planters", "tables" } }
+	{ holes = { FM }, density = 1, props = { "planters", "tables", "trees" } }
 )
 
 room("m_skybridge", "M", "Skybridge", 0, OUT, { 120, 29, 138, 35 }, { density = 0.3 })
 room(
 	"m_belvedere",
 	"M",
-	"Belvedere deck",
+	"Garden lawn deck",
 	0,
 	OUT,
-	{ 138, 15, 178, 70 },
-	{ density = 1, props = { "trees", "planters", "tables" } }
+	{ 138, 0, 198, 90 },
+	{ density = 1.2, props = { "trees", "planters", "tables" } }
 )
 
 -- T: top floor (48) -----------------------------------------------------------------------------------------------------
@@ -267,7 +212,15 @@ room("t_west", "T", "West guard hall", 2, IN, { -75, -105, -45, 85 }, { props = 
 room("t_panic", "T", "Panic room", 3, IN, { -75, 20, -45, 45 }, { parent = "t_west", density = 0.5 })
 room("t_east", "T", "East guard hall", 2, IN, { 45, -105, 75, 85 }, { props = { "pillars" } })
 room("t_office", "T", "Executive office", 3, IN, { 45, 20, 75, 45 }, { parent = "t_east", density = 0.5 })
-room("t_terrace", "T", "Upper terrace", 0, OUT, FM, { holes = { FT }, density = 1, props = { "planters", "tables" } })
+room(
+	"t_terrace",
+	"T",
+	"Upper terrace",
+	0,
+	OUT,
+	FM,
+	{ holes = { FT }, density = 1, props = { "planters", "tables", "trees" } }
+)
 
 -- R: roof (72) ----------------------------------------------------------------------------------------------------------
 room(
@@ -277,42 +230,36 @@ room(
 	0,
 	OUT,
 	FT,
-	{ holes = { { -30, -25, 30, 35 } }, density = 2, props = { "tables", "planters", "bar" } }
+	{ holes = { VOID }, density = 2, props = { "tables", "planters", "bar" } }
 )
 
--- The atrium: open shafts through the mezzanine and top floors, with railings round them.
+-- The atrium: an open shaft through the mezzanine and top floors down to the pond, with railings round it.
 local voids = {
-	{ level = "M", rect = { -30, -25, 30, 35 } },
-	{ level = "T", rect = { -30, -25, 30, 35 } },
+	{ level = "M", rect = VOID },
+	{ level = "T", rect = VOID },
 }
 
--- Ramps (12 wide, 48 long, climbing 24). Each lies inside one room on the lower level and one on the upper.
+-- Stairs. Narrow (6 wide). A plain run climbs 24 over 48 studs; a switchback (turn) climbs half, turns at a landing and
+-- climbs back to arrive beside where it began, in 14 x 30. Each lies inside one room on the lower level and one above,
+-- with open floor beyond the arrival so there is a way left and right.
 local ramps: { Ramp } = {
 	-- B -> G
-	{ from = "B", x = -100, z = 124, dir = "-z" },
-	{ from = "B", x = 100, z = 124, dir = "-z" },
-	{ from = "B", x = 0, z = 124, dir = "-z" },
-	{ from = "B", x = 0, z = -144, dir = "+z" },
-	-- G -> M
-	{ from = "G", x = -38, z = -44, dir = "+z" },
-	{ from = "G", x = 38, z = -44, dir = "+z" },
-	{ from = "G", x = -90, z = -130, dir = "+z" },
-	{ from = "G", x = -30, z = -130, dir = "+z" },
-	{ from = "G", x = 60, z = -130, dir = "+z" },
-	{ from = "G", x = -90, z = -40, dir = "+z" },
-	{ from = "G", x = 90, z = -40, dir = "+z" },
-	-- G -> belvedere deck (up from the lawn, under the deck)
-	{ from = "G", x = 158, z = 20, dir = "+z" },
+	{ from = "B", x = -30, z = 110, dir = "-z", turn = true },
+	{ from = "B", x = -97, z = 110, dir = "-z", turn = true },
+	{ from = "B", x = 97, z = 110, dir = "-z", turn = true },
+	{ from = "B", x = 0, z = -120, dir = "+z", turn = true },
+	-- G -> M: the grand stair along the atrium, then wing and service stairs
+	{ from = "G", x = -44, z = -40, dir = "+x" },
+	{ from = "G", x = -85, z = 0, dir = "+z", turn = true },
+	{ from = "G", x = 85, z = 0, dir = "+z", turn = true },
+	{ from = "G", x = -5, z = -110, dir = "+z", turn = true },
+	{ from = "G", x = 62, z = -118, dir = "+z", turn = true },
 	-- M -> T
-	{ from = "M", x = -38, z = 5, dir = "+z" },
-	{ from = "M", x = 38, z = 5, dir = "+z" },
-	{ from = "M", x = -60, z = -40, dir = "+z" },
-	{ from = "M", x = 60, z = -40, dir = "+z" },
+	{ from = "M", x = -66, z = -20, dir = "+z", turn = true },
+	{ from = "M", x = 66, z = -20, dir = "+z", turn = true },
 	-- T -> R
-	{ from = "T", x = -38, z = -44, dir = "+z" },
-	{ from = "T", x = 38, z = -44, dir = "+z" },
-	{ from = "T", x = -60, z = -100, dir = "+z" },
-	{ from = "T", x = 60, z = -100, dir = "+z" },
+	{ from = "T", x = -60, z = -90, dir = "+z", turn = true },
+	{ from = "T", x = 60, z = -90, dir = "+z", turn = true },
 }
 
 -- Doors: { a, b, at, width, options }. `at` is x for a wall that runs along x, and z for one that runs along z.
@@ -344,32 +291,7 @@ door("b_south", "b_vaulta_ante", 0, 10)
 door("b_vaulta_ante", "b_vaulta", 0, 8, { gate = 3 })
 door("b_west", "b_vaulta", -30, 8, { gate = 3 })
 
--- G: from the grounds into the tower
-door("g_forecourt", "g_lobby", -15, 12)
-door("g_forecourt", "g_bar", 85, 10)
-door("g_forecourt", "g_coat", -100, 8)
-door("g_yard", "g_coat", 100, 8)
-door("g_yard", "g_sculpt", 10, 10)
-door("g_dock", "g_kitchen", -100, 12)
-door("g_dock", "g_kitchen", -70, 8)
-door("g_pool", "g_kitchen", -80, 10)
-door("g_pool", "g_service", 0, 8)
-door("g_pool", "g_catering", 60, 8)
-door("g_lawn", "g_lounge", -20, 12)
-door("g_lawn", "g_lounge", 10, 8)
-door("g_maze", "g_bar", 100, 10)
--- G: gates between the garden areas (hedges divide them)
-door("g_forecourt", "g_valet", 175, 14)
-door("g_forecourt", "g_orchard", 175, 14)
-door("g_valet", "g_yard", -170, 14)
-door("g_orchard", "g_maze", 170, 14)
-door("g_maze", "g_lawn", 170, 14)
-door("g_yard", "g_dock", -170, 14)
-door("g_dock", "g_nw", -170, 14)
-door("g_nw", "g_pool", -190, 14)
-door("g_pool", "g_ne", -190, 14)
-door("g_ne", "g_lawn", 170, 14)
--- G: inside
+-- G
 door("g_coat", "g_lobby", 85, 8)
 door("g_lobby", "g_bar", 100, 12)
 door("g_lobby", "g_concierge", -65, 6, { gate = 1 })
@@ -380,7 +302,10 @@ door("g_lobby", "g_sculpt", -70, 8)
 door("g_bar", "g_lounge", 75, 10)
 door("g_sculpt", "g_ballroom", 10, 12)
 door("g_lounge", "g_ballroom", 10, 12)
-door("g_sculpt", "g_kitchen", -90, 8, { keycard = true })
+door("g_sculpt", "g_dock", -100, 10)
+door("g_dock", "g_kitchen", -100, 12)
+door("g_dock", "g_kitchen", -70, 8)
+door("g_sculpt", "g_kitchen", -70, 8, { keycard = true })
 door("g_ballroom", "g_service", 0, 10, { keycard = true })
 door("g_lounge", "g_catering", 70, 8)
 door("g_lounge", "g_humidor", 45, 6, { gate = 1 })
@@ -432,36 +357,29 @@ door("t_east", "t_vaultb_ante", -60, 8)
 door("t_west", "t_panic", -60, 8, { gate = 3 })
 door("t_east", "t_office", 60, 8, { gate = 3 })
 
--- Water, islands, bridges and set pieces. The atrium floor is a shallow reflecting pool under the open void, with two
--- garden islands joined by short bridges; the pond court has a red footbridge, a statue island, a waterfall and lanterns.
+-- Water, islands, bridges and set pieces. The atrium floor is a shallow reflecting pond at the foot of the open void, with two
+-- garden islands joined to the south shore by short bridges; the lawn deck has a statue, lanterns and a glass pavilion.
 local features: { Feature } = {
-	{ kind = "pool", level = "G", rect = { -30, -22, 30, 32 } },
-	{ kind = "island", level = "G", rect = { -26, -8, -12, 20 } },
-	{ kind = "island", level = "G", rect = { 12, -8, 26, 20 } },
-	{ kind = "bridge", level = "G", rect = { -22, 20, -16, 32 } },
-	{ kind = "bridge", level = "G", rect = { 16, 20, 22, 32 } },
-	{ kind = "skylight", level = "R", rect = { -30, -25, 30, 35 } },
-	{ kind = "pool", level = "G", rect = { 126, 76, 210, 124 } },
-	{ kind = "bridge", level = "G", rect = { 132, 95, 213, 101 }, top = 1.2, color = Color3.fromRGB(185, 45, 40) },
-	{ kind = "island", level = "G", rect = { 165, 106, 180, 120 } },
-	{ kind = "statue", level = "G", x = 172.5, z = 113 },
-	{ kind = "waterfall", level = "G", x = 124.5, z = 100, width = 8, height = 22 },
+	{ kind = "pool", level = "G", rect = { -38, -35, 38, 45 } },
+	{ kind = "island", level = "G", rect = { -32, -12, -16, 28 } },
+	{ kind = "island", level = "G", rect = { 16, -12, 32, 28 } },
+	{ kind = "bridge", level = "G", rect = { -26, 28, -20, 46 } },
+	{ kind = "bridge", level = "G", rect = { 20, 28, 26, 46 } },
+	{ kind = "skylight", level = "R", rect = VOID },
+	{ kind = "statue", level = "M", x = 160, z = 45 },
 	{
 		kind = "lanterns",
-		level = "G",
-		points = { { 130, 72 }, { 130, 128 }, { 170, 72 }, { 170, 128 }, { 205, 72 }, { 205, 128 } },
+		level = "M",
+		points = { { 144, 8 }, { 144, 82 }, { 170, 8 }, { 170, 82 }, { 192, 8 }, { 192, 82 } },
 	},
-	{ kind = "pavilion", level = "G", rect = { 190, -120, 214, -50 }, count = 5 },
+	{ kind = "pavilion", level = "M", rect = { 180, 14, 194, 76 }, count = 5 },
 }
 
 local nodes: { NodeSpec } = {
-	{ level = "G", x = -19, z = 6, activity = "Idle" },
-	{ level = "G", x = 19, z = 6, activity = "Talk" },
-	{ level = "G", x = -19, z = 26, activity = "Walk" },
-	{ level = "G", x = 19, z = 26, activity = "Walk" },
-	{ level = "G", x = 140, z = 98, activity = "Walk" },
-	{ level = "G", x = 172, z = 98, activity = "Walk" },
-	{ level = "G", x = 205, z = 98, activity = "Walk" },
+	{ level = "G", x = -24, z = 8, activity = "Idle" },
+	{ level = "G", x = 24, z = 8, activity = "Talk" },
+	{ level = "G", x = -23, z = 36, activity = "Walk" },
+	{ level = "G", x = 23, z = 36, activity = "Walk" },
 	{ level = "M", x = 126, z = 32, activity = "Walk" },
 	{ level = "M", x = 134, z = 32, activity = "Walk" },
 	{ level = "M", x = 142, z = 32, activity = "Walk" },
@@ -470,23 +388,24 @@ local nodes: { NodeSpec } = {
 -- Places that are not rooms: where teams arrive and where the Package leaves (spec 4.3).
 local extraction: { Marker } = {
 	{ id = "Helipad", level = "R", x = 0, z = 50 },
-	{ id = "LoadingDock", level = "G", x = -170, z = -90 },
-	{ id = "GardenLawn", level = "G", x = 175, z = -10 },
+	{ id = "LoadingDock", level = "G", x = -105, z = -135 },
+	{ id = "GardenLawn", level = "M", x = 160, z = 60 },
 }
 
+-- Six on the ground floor and six on the mezzanine terrace, at least 80 apart.
 local insertion: { Marker } = {
-	{ id = "Insertion1", level = "G", x = -80, z = 190 },
-	{ id = "Insertion2", level = "G", x = -10, z = 190 },
-	{ id = "Insertion3", level = "G", x = 60, z = 190 },
-	{ id = "Insertion4", level = "G", x = -190, z = 190 },
-	{ id = "Insertion5", level = "G", x = 190, z = 190 },
-	{ id = "Insertion6", level = "G", x = 175, z = 70 },
-	{ id = "Insertion7", level = "G", x = -185, z = 70 },
-	{ id = "Insertion8", level = "G", x = -60, z = -190 },
-	{ id = "Insertion9", level = "G", x = 60, z = -190 },
-	{ id = "Insertion10", level = "G", x = -190, z = -190 },
-	{ id = "Insertion11", level = "G", x = 190, z = -190 },
-	{ id = "Insertion12", level = "G", x = 175, z = -80 },
+	{ id = "Insertion1", level = "G", x = -39, z = 76 },
+	{ id = "Insertion2", level = "G", x = -115, z = 38 },
+	{ id = "Insertion3", level = "G", x = 68, z = 49 },
+	{ id = "Insertion4", level = "G", x = 28, z = -45 },
+	{ id = "Insertion5", level = "G", x = 115, z = 124 },
+	{ id = "Insertion6", level = "G", x = -44, z = -5 },
+	{ id = "Insertion7", level = "M", x = -115, z = -46 },
+	{ id = "Insertion8", level = "M", x = 109, z = -28 },
+	{ id = "Insertion9", level = "M", x = 115, z = -135 },
+	{ id = "Insertion10", level = "M", x = -111, z = 126 },
+	{ id = "Insertion11", level = "M", x = 30, z = 122 },
+	{ id = "Insertion12", level = "M", x = -113, z = -138 },
 }
 
 local vaults: { Marker } = {

@@ -134,7 +134,7 @@ The map should feel alive without the crowd clogging corridors or leaving rooms 
 | Vault door order | Climbing tiers inside each vault: Tier 1, then 2, then 3, so getting a Security and then an Executive disguise is the way in. Each of the three vaults has its own sequence and shape. |
 | How to start | Layout data first (levels, rooms, doors, outdoor areas), generated and reviewed with screenshots before the vault interiors and the four intel station types. |
 
-**Status (2026-10-22): pass 1 built, waiting for your review.**
+**Status (2026-10-23): pass 1 built and revised once (see the map revision above); self-check passes with 0 problems.**
 - Done: the tower layout as data (`src/server/Tools/Gala/Layout.luau`) and its generator (`Build.luau`): 53 rooms over five
   levels with a central atrium, setback terraces, hedged grounds with gates, nested guard rooms, 14 clearance doors and 6
   keycard doors, 19 ramps, zone volumes, 311 NPC nodes, props and cover, 12 insertion points, 3 extraction sites and 3 vault
@@ -143,6 +143,17 @@ The map should feel alive without the crowd clogging corridors or leaving rooms 
 - Still to do after you approve the shape: the three vault interiors with their tier doors and identities, the four intel
   station types and far more intel points, supply caches, cameras, laser grids, vents, ziplines, pickups and climb
   surfaces, then the Step 4 to 7 test pass and the two-player checkpoint.
+
+**Map revision (2026-10-23, after your review of pass 1)**
+| Topic | Decision |
+|---|---|
+| Setting | The Gala sits on the roof of a skyscraper, high above a city. A sheer shaft drops under the tower, cloud decks and haze lie below, lower towers poke through, a few tall ones stand in the distance (one persistent model, `Cityscape`). |
+| Ground floor | Entirely indoors, with windows onto the cityscape. No outdoor rooms at ground level (no forecourt, garden, pond court, hedges, orchard or yard). |
+| Outdoors | Only the mezzanine terrace ring, the upper terrace ring, the roof, the skybridge and the lawn deck (the Garden Lawn extraction site, now on the mezzanine). |
+| Stairs | 6 studs wide (was 12). Mixed: one grand straight stair along the atrium, and switchbacks (14 x 30, climb half, turn at a landing, arrive beside where they began, with open floor beyond). 13 stairs in all. |
+| Atrium | The void is 76 x 80 (was 60 x 60) from the mezzanine up through the skylight, with the pond at its foot. |
+| Loading dock | Now an indoor loading bay (Tier 1) at the west end of the ground floor. |
+| Insertion | 6 points on the ground floor and 6 on the mezzanine terrace, at least 80 apart. |
 
 **Follow-ups this brief creates** (to settle before or during the step)
 - **Spec changes:** intel gets four station types (spec Section 9), doors become clearance gates (Sections 4.3 and 7), and the vault gets an interior with door tiers and NPC identities (Section 10).

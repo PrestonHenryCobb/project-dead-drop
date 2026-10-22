@@ -168,3 +168,12 @@ Density is a weight on each room, tuned by playtest, and no room is empty for lo
 Built in this pass: glass-walled rooms facing the gardens, round pillars and tables, a skylight over the atrium, the koi
 pond court with statue, waterfall and lanterns, the belvedere deck with a ramp up from the lawn, a glass-and-timber
 pavilion boardwalk on the lawn, 110 interior lights, and 90 NPCs spread by role and tier.
+
+---
+
+## Revision (2026-10-23): a tower on top of a skyscraper
+
+This replaces the grounds in the sections above. There is no outdoor ground level any more: the ground floor is entirely
+inside the tower, with windows onto a cityscape that lies far below. The koi pond court, the arrival court, the hedge maze,
+the pool terrace, the valet lane, the service yard and the outdoor loading dock are gone. The only outdoor spaces are the
+mezzanine and upper terraces, the roof, the skybridge and the lawn deck. See the table in BUILD_ORDER.md, Step 7B.
