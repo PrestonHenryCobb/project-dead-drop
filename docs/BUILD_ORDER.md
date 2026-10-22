@@ -165,6 +165,9 @@ The map should feel alive without the crowd clogging corridors or leaving rooms 
 | Stairwells | The floor opening around a stair is only as large as headroom needs, railed on every open side. No stair may pass through another stair or its opening; the self-check enforces it. |
 | City backdrop | Procedural: varied tower styles (setbacks, spires, crowns, glass curtain walls), window textures with randomly lit rooms, rooftop props, layered depth bands to the horizon. |
 | Sky | Night: deep blue sky with stars and a moon, an orange glow rising from the city below, distant aircraft lights. |
+| Void | Below the city, haze layers darken from the orange city glow to a solid black floor at y -560, which is also the kill height (Workspace.FallenPartsDestroyHeight). Open edges of terraces and decks have 9-stud glass barriers. |
+| Skybridge | Enclosed and glass-walled (12 wide, 12 high), like a link between hospital wings, on a steel Warren truss bracketed into both buildings. The lawn deck is the roof of a neighbouring tower. |
+| Palette | The Gala follows the city: slate-blue shell and roofs, warm stone interior walls, warm-tinted floors, city-blue glass, steel rails. Set Lighting.Technology to Future in Studio (scripts cannot). |
 | Order | 1) Fix the stairs and the openings beside them. 2) Grow the map and raise NPCs to 200, then measure. 3) The detailed city and night sky. 4) The quality setting. Then pass 2 (vaults and intel). |
 
 **Follow-ups this brief creates** (to settle before or during the step)

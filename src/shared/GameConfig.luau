@@ -225,25 +225,28 @@ local GameConfig = {
 		SuspicionDecayPerSecond = 10,
 		-- Spec 7.3 says 1.5 s; STEP7_QUESTIONS B1 asks for another 1.5 s before decay starts.
 		SuspicionDecayDelay = 3,
-		TrespassGainPerSecond = 35, -- percent per second at one tier over, while witnessed
+		TrespassGainPerSecond = 70, -- percent per second at one tier over, while witnessed (doubled 2026-10-23: too slow)
 		-- Multiplier on that rate by how many tiers the zone is above the disguise's clearance (1, 2, 3 tiers over).
 		TrespassTierMultipliers = { 1, 1.5, 2 },
 		ReCoverTrackingSeconds = 3, -- a Security NPC "tracks" you this long after last seeing you (re-covering)
 		WitnessEyeHeight = 1.5, -- studs above an NPC's feet
 		WitnessTargetHeight = 1.5, -- studs above a player's feet the sight line aims at
-		-- Each NPC kind's share of a witnessed suspicious action; shares add up but never count for more than the cap.
-		WitnessWeights = { Security = 1, Camera = 0.6, Npc = 0.2 },
+		-- Each witness kind's share of a witnessed suspicious action; shares add up but never count for more than the cap.
+		-- Civilians (every NPC but Security) only notice CivilianNotices; Security and cameras notice everything.
+		WitnessWeights = { Security = 1, Camera = 0.6, Npc = 0.5 },
+		CivilianNotices = { Sprint = true, Jump = true },
 		WitnessCap = 1,
 		CrouchCameraDrop = 1.2, -- studs the camera lowers while crouching
 		-- Percent. Sprint, Crouch, Terminal, WeaponDrawn, NearBody and VaultLinger are per second; Jump is per jump.
+		-- Doubled 2026-10-23 (suspicion rose too slowly). Sprint and Jump count in every tier; the rest in Tier 1 and up.
 		SuspicionGain = {
-			Sprint = 25,
-			Jump = 20,
-			Crouch = 15,
-			Terminal = 20,
-			WeaponDrawn = 40,
-			NearBody = 10,
-			VaultLinger = 15,
+			Sprint = 50,
+			Jump = 40,
+			Crouch = 30,
+			Terminal = 40,
+			WeaponDrawn = 80,
+			NearBody = 20,
+			VaultLinger = 30,
 		},
 		NearBodyRadius = 6,
 		VaultLingerRadius = 5,

@@ -18,6 +18,7 @@ local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local City = require(script.Parent.City)
 local Layout = require(script.Parent.Layout)
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Enums = require(Shared:WaitForChild("Enums"))
@@ -44,14 +45,25 @@ type Edge = {
 local WALL_H = 22
 local WALL_T = 2
 local RAIL_H = 4
+local BARRIER_H = 9 -- glass at the open edge of a terrace or deck: higher than a jump (about 7.2 studs), over a long drop
 local GAP_H = 10 -- doorway height
 local SLAB = 2
 local RAMP_W, RAMP_RUN, RAMP_RISE = 6, 48, 24
 -- A switchback climbs half the height in each of two legs, side by side with a gap, joined by a landing.
 local LEG_RUN, LEG_RISE, LANDING, LANE_GAP = RAMP_RUN / 2, RAMP_RISE / 2, 6, 2
+local HEADROOM = 7 -- studs of clear height a body needs above a step; the floor above is cut where it is less
+local STAIR_LANDING_CLEAR = 6 -- studs of open floor kept at the foot and head of every stair
+local STAIR_GAP = 2 -- studs kept between one stair (or its opening) and another
+local STAIR_RAIL_H = 3 -- the handrails along the sides of a flight
+local TRUSS_DEPTH, TRUSS_BAY = 8, 6 -- the steel truss under a bridge: how deep, and how long each bay
 local ZONE_PAD = 2
-local GREY = Color3.fromRGB(150, 150, 150)
-local RAIL_GREY = Color3.fromRGB(175, 175, 178)
+-- The Gala's palette follows the city round it: a slate-blue shell, warm stone inside, steel and city-blue glass.
+local SHELL = Color3.fromRGB(78, 82, 98) -- outside walls and roofs
+local INTERIOR_WALL = Color3.fromRGB(138, 124, 112)
+local FLOOR_WARM = Color3.fromRGB(96, 84, 78) -- indoor floors take their tier's colour, mixed toward this
+local DECK = Color3.fromRGB(92, 94, 106) -- terraces, decks and the roof
+local RAIL_GREY = Color3.fromRGB(96, 100, 114)
+local CITY_GLASS = Color3.fromRGB(110, 140, 180)
 local EPS = 1e-4
 
 local NODE_MARGIN = 8 -- studs a node keeps from a room's walls
@@ -71,6 +83,11 @@ local ACTIVITIES: { [number]: { string } } = {
 local OUTDOOR_ACTIVITIES = { "Walk", "Walk", "Idle", "Talk", "Drink" }
 
 local Build = {}
+
+-- An indoor room's wall height: a full storey unless the layout gives it a lower one (a bridge).
+local function roomHeight(room: Layout.Room): number
+	return room.height or WALL_H
+end
 
 local function toRect(r: { number }): Rect
 	return { x1 = r[1], z1 = r[2], x2 = r[3], z2 = r[4] }
@@ -369,8 +386,10 @@ function Build.run()
 	-- Doors --------------------------------------------------------------------------------------------------------------------
 	local doorPoints: { { level: string, x: number, z: number, nx: number, nz: number, a: Room, b: Room } } = {}
 	local reserved: { [string]: { Rect } } = {}
+	local doorClear: { [string]: { Rect } } = {} -- the floor in front of each doorway, which stairs must keep off
 	for _, name in levelOrder do
 		reserved[name] = {}
+		doorClear[name] = {}
 	end
 	local doorsUnplaced = 0
 	local doorsPerRoom: { [string]: number } = {}
@@ -411,12 +430,14 @@ function Build.run()
 		local x, z = if best.axis == "x" then center else best.line, if best.axis == "x" then best.line else center
 		local nx, nz = if best.axis == "x" then 0 else 1, if best.axis == "x" then 1 else 0
 		table.insert(doorPoints, { level = best.level, x = x, z = z, nx = nx, nz = nz, a = ra, b = rb })
-		table.insert(reserved[best.level], {
+		local clear: Rect = {
 			x1 = x - (if best.axis == "x" then width / 2 + 2 else DOOR_CLEAR),
 			z1 = z - (if best.axis == "x" then DOOR_CLEAR else width / 2 + 2),
 			x2 = x + (if best.axis == "x" then width / 2 + 2 else DOOR_CLEAR),
 			z2 = z + (if best.axis == "x" then DOOR_CLEAR else width / 2 + 2),
-		})
+		}
+		table.insert(reserved[best.level], clear)
+		table.insert(doorClear[best.level], clear)
 	end
 	check(doorsUnplaced == 0, `Every door placed ({#Layout.doors - doorsUnplaced}/{#Layout.doors})`)
 
@@ -444,25 +465,125 @@ function Build.run()
 		end
 		return RAMP_W, RAMP_RUN
 	end
-	for _, ramp in Layout.ramps do
+	-- A rect given in the stair's own terms: `along` studs up the climb from its start, `across` studs sideways from its
+	-- centre line (positive is the side a switchback's upper leg is on).
+	local function stairRect(ramp: Layout.Ramp, along1: number, along2: number, across1: number, across2: number): Rect
 		local dx, dz = dirVector(ramp.dir)
-		local width, length = rampSize(ramp)
-		local x1, x2, z1, z2
-		if dx == 0 then
-			x1, x2 = ramp.x - width / 2, ramp.x + width / 2
-			z1, z2 = math.min(ramp.z, ramp.z + dz * length), math.max(ramp.z, ramp.z + dz * length)
-		else
-			z1, z2 = ramp.z - width / 2, ramp.z + width / 2
-			x1, x2 = math.min(ramp.x, ramp.x + dx * length), math.max(ramp.x, ramp.x + dx * length)
-		end
-		local footprint: Rect = { x1 = x1, z1 = z1, x2 = x2, z2 = z2 }
-		table.insert(rampFootprints[ramp.from], footprint)
-		local upper = nextLevel[ramp.from]
-		table.insert(rampHoles[upper], footprint)
-		-- Props and nodes keep off the ramp on both levels.
-		table.insert(reserved[ramp.from], inflate(footprint, 3))
-		table.insert(reserved[upper], inflate(footprint, 3))
+		local px, pz = dz, -dx
+		local ax1, az1 = ramp.x + dx * along1 + px * across1, ramp.z + dz * along1 + pz * across1
+		local ax2, az2 = ramp.x + dx * along2 + px * across2, ramp.z + dz * along2 + pz * across2
+		return { x1 = math.min(ax1, ax2), z1 = math.min(az1, az2), x2 = math.max(ax1, ax2), z2 = math.max(az1, az2) }
 	end
+	-- The floor above is cut only where someone on the stair would hit their head: where the step is higher than the
+	-- slab's underside less HEADROOM. A plain stair needs it at its top end; a switchback over the end of its upper leg,
+	-- where it arrives. Returns the opening as along and across ranges.
+	local cutFrom = RAMP_RISE - SLAB - HEADROOM
+	local lane = RAMP_W / 2 + LANE_GAP / 2
+	local function holeSpan(ramp: Layout.Ramp): (number, number, number, number)
+		if ramp.turn then
+			-- leg two's step is LEG_RISE * (2 - along / LEG_RUN) high
+			return 0, LEG_RUN * (2 - cutFrom / LEG_RISE), lane - RAMP_W / 2, lane + RAMP_W / 2
+		end
+		return RAMP_RUN * cutFrom / RAMP_RISE, RAMP_RUN, -RAMP_W / 2, RAMP_W / 2
+	end
+
+	type Stair = { ramp: Layout.Ramp, upper: string, footprint: Rect, entry: Rect, hole: Rect, arrival: Rect }
+	local stairs: { Stair } = {}
+	for _, ramp in Layout.ramps do
+		local width, length = rampSize(ramp)
+		local upper = nextLevel[ramp.from]
+		local h1, h2, c1, c2 = holeSpan(ramp)
+		local entryAcross = if ramp.turn then -lane else 0
+		local stair: Stair = {
+			ramp = ramp,
+			upper = upper,
+			footprint = stairRect(ramp, 0, length, -width / 2, width / 2),
+			-- the floor someone steps off before climbing, and the floor they arrive on at the top
+			entry = stairRect(ramp, -STAIR_LANDING_CLEAR, 0, entryAcross - RAMP_W / 2, entryAcross + RAMP_W / 2),
+			hole = stairRect(ramp, h1, h2, c1, c2),
+			arrival = if ramp.turn
+				then stairRect(ramp, -STAIR_LANDING_CLEAR, 0, c1, c2)
+				else stairRect(ramp, RAMP_RUN, RAMP_RUN + STAIR_LANDING_CLEAR, c1, c2),
+		}
+		table.insert(stairs, stair)
+		table.insert(rampFootprints[ramp.from], stair.footprint)
+		table.insert(rampHoles[upper], stair.hole)
+		-- Props and nodes keep off the stair, its opening and both ends.
+		for _, r in { stair.footprint, stair.entry } do
+			table.insert(reserved[ramp.from], inflate(r, 3))
+		end
+		for _, r in { stair.hole, stair.arrival } do
+			table.insert(reserved[upper], inflate(r, 3))
+		end
+	end
+
+	-- Stair self-check. On every level, a stair's body and the floor at its foot, and its opening and the floor at its
+	-- head, must sit wholly inside one room, keep off every doorway, and never touch another stair's body, opening or
+	-- ends. This is what catches stairs passing through each other and openings cut across walls.
+	-- Is `r` wholly covered by the floor of one room (a room can be several pieces round a nested room or a void)?
+	local function insideOneRoom(level: string, r: Rect): boolean
+		for _, room in rooms do
+			if room.level == level then
+				local left = { r }
+				for _, piece in piecesOfRoom[room.id] do
+					left = subtract(left, piece.rect)
+				end
+				if #left == 0 then
+					return true
+				end
+			end
+		end
+		return false
+	end
+	local function stairName(s: Stair): string
+		return `{s.ramp.from}->{s.upper} stair at ({s.ramp.x}, {s.ramp.z})`
+	end
+	local stairsOk = true
+	local function stairProblem(message: string)
+		stairsOk = false
+		print(`[Gala]      {message}`)
+	end
+	type StairArea = { stair: Stair, what: string, rect: Rect }
+	local areasByLevel: { [string]: { StairArea } } = {}
+	for _, name in levelOrder do
+		areasByLevel[name] = {}
+	end
+	for _, s in stairs do
+		for _, area in
+			{
+				{ level = s.ramp.from, what = "body", rect = s.footprint },
+				{ level = s.ramp.from, what = "foot", rect = s.entry },
+				{ level = s.upper, what = "opening", rect = s.hole },
+				{ level = s.upper, what = "head", rect = s.arrival },
+			}
+		do
+			if not insideOneRoom(area.level, area.rect) then
+				stairProblem(`{stairName(s)}: its {area.what} crosses a wall or leaves the floor`)
+			end
+			for _, clear in doorClear[area.level] do
+				if overlaps(area.rect, clear) then
+					stairProblem(`{stairName(s)}: its {area.what} blocks a doorway`)
+					break
+				end
+			end
+			table.insert(areasByLevel[area.level], { stair = s, what = area.what, rect = area.rect })
+		end
+	end
+	for levelName, list in areasByLevel do
+		for i = 1, #list do
+			for j = i + 1, #list do
+				local a, b = list[i], list[j]
+				if a.stair ~= b.stair and overlaps(inflate(a.rect, STAIR_GAP / 2), inflate(b.rect, STAIR_GAP / 2)) then
+					stairProblem(
+						`on {levelName}, the {a.what} of the {stairName(a.stair)} meets the {b.what} of the {stairName(
+							b.stair
+						)}`
+					)
+				end
+			end
+		end
+	end
+	check(stairsOk, `Every stair is clear of walls, doorways and other stairs ({#stairs} stairs)`)
 
 	-- Features: water, islands, bridges, skylights and set pieces that are not rooms (Layout.features) -----------------------------
 	local WATER = Color3.fromRGB(70, 135, 190)
@@ -471,6 +592,7 @@ function Build.run()
 	local DARK_WOOD = Color3.fromRGB(100, 72, 52)
 	local STONE_GREY = Color3.fromRGB(170, 170, 175)
 	local GLASS = Color3.fromRGB(190, 220, 240)
+	local STEEL = Color3.fromRGB(70, 74, 86)
 
 	local function featureTree(level: string, x: number, z: number, lift: number)
 		local y = levels[level] + lift
@@ -484,6 +606,9 @@ function Build.run()
 		local level = feature.level
 		local y = levels[level]
 		local r: Rect? = if feature.rect then toRect(feature.rect) else nil
+		if feature.kind == "support" then
+			continue -- built with the cityscape
+		end
 		if r and feature.kind ~= "skylight" then
 			table.insert(reserved[level], inflate(r, 1)) -- props and doorways keep clear of it
 		end
@@ -602,6 +727,63 @@ function Build.run()
 				lamp.Material = Enum.Material.Neon
 				lamp.CanCollide = false
 			end
+		elseif feature.kind == "truss" and r then
+			-- A steel Warren truss under a bridge's floor: a chord along each side at the top and bottom, posts and
+			-- alternating diagonals between them, a plate across the bottom, and brackets where it meets each building.
+			local top, bottom = y - SLAB, y - SLAB - TRUSS_DEPTH
+			local alongX = (r.x2 - r.x1) >= (r.z2 - r.z1)
+			local a1, a2 = if alongX then r.x1 else r.z1, if alongX then r.x2 else r.z2
+			local function point(along: number, side: number, height: number): Vector3
+				return if alongX then Vector3.new(along, height, side) else Vector3.new(side, height, along)
+			end
+			local function member(from: Vector3, to: Vector3, thickness: number)
+				part(
+					propsFolder,
+					"Truss",
+					Vector3.new(thickness, thickness, (to - from).Magnitude),
+					CFrame.lookAt((from + to) / 2, to),
+					STEEL
+				)
+			end
+			local sides = if alongX then { r.z1 + 0.5, r.z2 - 0.5 } else { r.x1 + 0.5, r.x2 - 0.5 }
+			local bays = math.max(1, math.floor((a2 - a1) / TRUSS_BAY + 0.5))
+			local bay = (a2 - a1) / bays
+			for _, side in sides do
+				member(point(a1, side, top - 0.5), point(a2, side, top - 0.5), 1)
+				member(point(a1, side, bottom), point(a2, side, bottom), 1)
+				for i = 0, bays do
+					local at = a1 + i * bay
+					member(point(at, side, top - 0.5), point(at, side, bottom), 0.8)
+					if i < bays then
+						local nextAt = at + bay
+						if i % 2 == 0 then
+							member(point(at, side, top - 0.5), point(nextAt, side, bottom), 0.6)
+						else
+							member(point(at, side, bottom), point(nextAt, side, top - 0.5), 0.6)
+						end
+					end
+				end
+			end
+			local width = if alongX then r.z2 - r.z1 else r.x2 - r.x1
+			local mid = if alongX then (r.z1 + r.z2) / 2 else (r.x1 + r.x2) / 2
+			part(
+				propsFolder,
+				"TrussPlate",
+				if alongX then Vector3.new(a2 - a1, 0.5, width) else Vector3.new(width, 0.5, a2 - a1),
+				CFrame.new(point((a1 + a2) / 2, mid, bottom - 0.25)),
+				STEEL
+			)
+			for _, at in { a1 + 1, a2 - 1 } do
+				part(
+					propsFolder,
+					"TrussBracket",
+					if alongX
+						then Vector3.new(2, TRUSS_DEPTH + 4, width + 2)
+						else Vector3.new(width + 2, TRUSS_DEPTH + 4, 2),
+					CFrame.new(point(at, mid, top - (TRUSS_DEPTH + 4) / 2)),
+					STEEL
+				)
+			end
 		elseif feature.kind == "pavilion" and r then
 			-- A boardwalk deck and a row of A-frame glass-and-timber arches along it.
 			part(
@@ -639,11 +821,32 @@ function Build.run()
 		return if axis == "x" then Vector3.new(pos, y, line) else Vector3.new(line, y, pos)
 	end
 	local currentGlass = false -- the wall being built is glass above a low sill (an indoor room facing a garden)
+	local currentBarrier = false -- the wall being built is the glass barrier at the open edge of a terrace or deck
 	local function wallPiece(edge: Edge, a: number, b: number, height: number, color: Color3)
 		if b - a < 0.5 then
 			return
 		end
-		if currentGlass and height == WALL_H then
+		if currentBarrier then
+			local base = levels[edge.level]
+			local pane = part(
+				geometry,
+				"Barrier",
+				alongSize(edge.axis, b - a, height, 0.8),
+				CFrame.new(alongPoint(edge.axis, edge.line, (a + b) / 2, base + height / 2)),
+				CITY_GLASS
+			)
+			pane.Material = Enum.Material.Glass
+			pane.Transparency = 0.6
+			part(
+				geometry,
+				"BarrierCap",
+				alongSize(edge.axis, b - a, 0.4, 1),
+				CFrame.new(alongPoint(edge.axis, edge.line, (a + b) / 2, base + height + 0.2)),
+				RAIL_GREY
+			)
+			return
+		end
+		if currentGlass then
 			local sill = 3
 			local base = levels[edge.level]
 			part(
@@ -658,7 +861,7 @@ function Build.run()
 				"Glass",
 				alongSize(edge.axis, b - a, height - sill, WALL_T - 0.6),
 				CFrame.new(alongPoint(edge.axis, edge.line, (a + b) / 2, base + sill + (height - sill) / 2)),
-				Color3.fromRGB(170, 210, 235)
+				CITY_GLASS
 			)
 			pane.Material = Enum.Material.Glass
 			pane.Transparency = 0.55
@@ -677,19 +880,25 @@ function Build.run()
 	local wallCount, gateCount, keycardCount = 0, 0, 0
 	for _, edge in edges do
 		local height = 0
-		local color = GREY
+		local color = INTERIOR_WALL
 		if edge.kind == "shared" then
 			local roomB = edge.roomB :: Room
+			if edge.roomA.kind ~= roomB.kind then
+				color = SHELL -- the outside of the building, facing a terrace or deck
+			end
 			if edge.roomA.kind == "indoor" or roomB.kind == "indoor" then
-				height = WALL_H
+				height = math.max(
+					if edge.roomA.kind == "indoor" then roomHeight(edge.roomA) else 0,
+					if roomB.kind == "indoor" then roomHeight(roomB) else 0
+				)
 			end
 		elseif edge.kind == "void" then
 			height, color = RAIL_H, RAIL_GREY
 		else
 			if edge.roomA.kind == "indoor" then
-				height = WALL_H
+				height, color = roomHeight(edge.roomA), SHELL
 			else
-				height, color = RAIL_H, RAIL_GREY
+				height = BARRIER_H
 			end
 		end
 		if height == 0 then
@@ -697,6 +906,7 @@ function Build.run()
 		end
 		wallCount += 1
 		currentGlass = false
+		currentBarrier = edge.kind == "free" and edge.roomA.kind == "outdoor"
 		if edge.kind == "shared" then
 			local other = edge.roomB :: Room
 			currentGlass = (edge.roomA.glass == true or other.glass == true)
@@ -788,11 +998,9 @@ function Build.run()
 			end
 			local color
 			if piece.room.kind == "indoor" then
-				color = tierColor(piece.room.tier):Lerp(GREY, 0.6)
-			elseif levelName == "G" then
-				color = Color3.fromRGB(95, 130, 85)
+				color = tierColor(piece.room.tier):Lerp(FLOOR_WARM, 0.65)
 			else
-				color = Color3.fromRGB(140, 140, 150)
+				color = DECK
 			end
 			for _, rect in pieces do
 				slab(geometry, `Floor_{levelName}_{piece.room.id}`, rect, levels[levelName], color)
@@ -810,87 +1018,125 @@ function Build.run()
 					end
 				end
 				for _, rect in uncovered do
-					slab(geometry, `Roof_{levelName}_{piece.room.id}`, rect, levels[levelName] + WALL_H + SLAB, GREY)
+					slab(
+						geometry,
+						`Roof_{levelName}_{piece.room.id}`,
+						rect,
+						levels[levelName] + roomHeight(piece.room) + SLAB,
+						SHELL
+					)
 				end
 			end
 		end
 	end
 
-	-- Stairs (the bodies and the railings round their openings) --------------------------------------------------------------------
-	local STAIR_GREY = Color3.fromRGB(120, 120, 130)
-	local function slope(
-		name: string,
+	-- Stairs (the flights, landings, handrails and the railings round their openings) --------------------------------------
+	local STAIR_GREY = Color3.fromRGB(104, 106, 118)
+	-- One flight from (sx, sz) at baseY, climbing `rise` over `run` the way (dx, dz) points. It gets a handrail at each
+	-- offset in `rails`, measured sideways along (px, pz) from its centre line.
+	local function flight(
 		sx: number,
 		sz: number,
 		dx: number,
 		dz: number,
 		baseY: number,
 		run: number,
-		rise: number
+		rise: number,
+		px: number,
+		pz: number,
+		rails: { number }
 	)
 		-- the part's thickness lifts its top surface, so shift it back toward the climb
 		local angle = math.atan2(rise, run)
 		local shift = run / 2 + math.sin(angle)
 		local center = Vector3.new(sx + dx * shift, baseY + rise / 2 - math.cos(angle), sz + dz * shift)
-		local target = center + Vector3.new(dx * run, rise, dz * run)
-		part(
-			geometry,
-			name,
-			Vector3.new(RAMP_W, 2, math.sqrt(rise ^ 2 + run ^ 2)),
-			CFrame.lookAt(center, target),
-			STAIR_GREY
-		)
-	end
-	for _, ramp in Layout.ramps do
-		local dx, dz = dirVector(ramp.dir)
-		local px, pz = dz, -dx -- sideways across the stair
-		local baseY = levels[ramp.from]
-		local upperY = baseY + RAMP_RISE
-		local width, length = rampSize(ramp)
-		local lane = RAMP_W / 2 + LANE_GAP / 2
-		-- A rail on the upper floor, `along` studs up the stair and `across` studs sideways from its centre line.
-		local function rail(along: number, across: number, alongLen: number, acrossLen: number)
+		local cframe = CFrame.lookAt(center, center + Vector3.new(dx * run, rise, dz * run))
+		local length = math.sqrt(rise ^ 2 + run ^ 2)
+		part(geometry, "StairFlight", Vector3.new(RAMP_W, 2, length), cframe, STAIR_GREY)
+		for _, offset in rails do
 			part(
 				geometry,
-				"StairRail",
-				Vector3.new(if dx == 0 then acrossLen else alongLen, RAIL_H, if dx == 0 then alongLen else acrossLen),
-				CFrame.new(ramp.x + dx * along + px * across, upperY + RAIL_H / 2, ramp.z + dz * along + pz * across),
+				"StairHandrail",
+				Vector3.new(0.4, STAIR_RAIL_H, length),
+				cframe + Vector3.new(px * offset, 0, pz * offset) + cframe.UpVector * (1 + STAIR_RAIL_H / 2),
 				RAIL_GREY
 			)
 		end
-		for _, side in { -1, 1 } do
-			rail(length / 2, side * (width / 2 + 0.5), length, 1)
+	end
+	local edge = RAMP_W / 2 - 0.2 -- a handrail's offset from the middle of its flight
+	for _, s in stairs do
+		local ramp = s.ramp
+		local dx, dz = dirVector(ramp.dir)
+		local px, pz = dz, -dx -- sideways across the stair
+		local baseY = levels[ramp.from]
+		local width, length = rampSize(ramp)
+		-- A railing at height y, centred `along` studs up the stair and `across` studs from its centre line.
+		local function rail(
+			y: number,
+			height: number,
+			along: number,
+			across: number,
+			alongLen: number,
+			acrossLen: number
+		)
+			part(
+				geometry,
+				"StairRail",
+				Vector3.new(if dx == 0 then acrossLen else alongLen, height, if dx == 0 then alongLen else acrossLen),
+				CFrame.new(ramp.x + dx * along + px * across, y + height / 2, ramp.z + dz * along + pz * across),
+				RAIL_GREY
+			)
 		end
+		-- The opening in the floor above: railed along both sides and across the end nobody arrives from.
+		local upperY = baseY + RAMP_RISE
+		local h1, h2, c1, c2 = holeSpan(ramp)
+		rail(upperY, RAIL_H, (h1 + h2) / 2, c1 - 0.5, h2 - h1, 1)
+		rail(upperY, RAIL_H, (h1 + h2) / 2, c2 + 0.5, h2 - h1, 1)
 		if ramp.turn then
+			rail(upperY, RAIL_H, h2 + 0.5, (c1 + c2) / 2, 1, c2 - c1 + 2) -- a switchback arrives at the start end
 			-- Leg one climbs away from the start; leg two climbs back, from the landing to the upper floor.
-			slope("StairLeg", ramp.x - px * lane, ramp.z - pz * lane, dx, dz, baseY, LEG_RUN, LEG_RISE)
-			slope(
-				"StairLeg",
+			-- A solid wall fills the gap between the two legs, up to the floor above, so there is no gap to see or fall
+			-- through; each leg keeps a handrail on its open outer side.
+			part(
+				geometry,
+				"StairCore",
+				Vector3.new(if dx == 0 then LANE_GAP else LEG_RUN, RAMP_RISE, if dx == 0 then LEG_RUN else LANE_GAP),
+				CFrame.new(ramp.x + dx * LEG_RUN / 2, baseY + RAMP_RISE / 2, ramp.z + dz * LEG_RUN / 2),
+				STAIR_GREY
+			)
+			flight(ramp.x - px * lane, ramp.z - pz * lane, dx, dz, baseY, LEG_RUN, LEG_RISE, px, pz, { -edge })
+			flight(
 				ramp.x + px * lane + dx * LEG_RUN,
 				ramp.z + pz * lane + dz * LEG_RUN,
 				-dx,
 				-dz,
 				baseY + LEG_RISE,
 				LEG_RUN,
-				LEG_RISE
+				LEG_RISE,
+				px,
+				pz,
+				{ edge }
 			)
+			local landingY = baseY + LEG_RISE
 			part(
 				geometry,
 				"StairLanding",
 				Vector3.new(if dx == 0 then width else LANDING, SLAB, if dx == 0 then LANDING else width),
 				CFrame.new(
 					ramp.x + dx * (LEG_RUN + LANDING / 2),
-					baseY + LEG_RISE - SLAB / 2,
+					landingY - SLAB / 2,
 					ramp.z + dz * (LEG_RUN + LANDING / 2)
 				),
 				STAIR_GREY
 			)
-			rail(length + 0.5, 0, 1, width + 2) -- across the landing end
-			rail(length / 2, 0, length, 1) -- between the two legs
-			rail(-0.5, -lane, 1, RAMP_W + 1) -- across the lower leg's start; the upper leg arrives open here
+			-- The landing is railed round its three open sides.
+			rail(landingY, STAIR_RAIL_H, length - 0.2, 0, 0.4, width)
+			for _, side in { -1, 1 } do
+				rail(landingY, STAIR_RAIL_H, LEG_RUN + LANDING / 2, side * (width / 2 - 0.2), LANDING, 0.4)
+			end
 		else
-			slope("Stair", ramp.x, ramp.z, dx, dz, baseY, RAMP_RUN, RAMP_RISE)
-			rail(-0.5, 0, 1, width + 2) -- across the low end; the top end is open to walk off
+			rail(upperY, RAIL_H, h1 - 0.5, 0, 1, c2 - c1 + 2) -- a plain stair arrives at its top end
+			flight(ramp.x, ramp.z, dx, dz, baseY, RAMP_RUN, RAMP_RISE, px, pz, { -edge, edge })
 		end
 	end
 
@@ -1160,7 +1406,7 @@ function Build.run()
 								propsFolder,
 								"CeilingLight",
 								Vector3.new(3, 0.3, 3),
-								CFrame.new(x, levels[room.level] + WALL_H - 0.4, z),
+								CFrame.new(x, levels[room.level] + roomHeight(room) - 0.4, z),
 								LIGHT_COLORS[room.tier]
 							)
 							lamp.Material = Enum.Material.Neon
@@ -1337,32 +1583,18 @@ function Build.run()
 				end
 			end
 		end
-		-- Both ends of every ramp.
-		-- A plain stair arrives past its far end; a switchback arrives beside where it began.
-		for _, ramp in Layout.ramps do
-			local dx, dz = dirVector(ramp.dir)
-			local px, pz = dz, -dx
-			local lane = RAMP_W / 2 + LANE_GAP / 2
-			local upper = nextLevel[ramp.from]
-			local lowerLane = if ramp.turn then -lane else 0
-			local lowerX, lowerZ = ramp.x - dx * 4 + px * lowerLane, ramp.z - dz * 4 + pz * lowerLane
-			table.insert(list, {
-				level = ramp.from,
-				x = lowerX,
-				z = lowerZ,
-				tier = tierAtPoint(ramp.from, lowerX, lowerZ),
-				activity = "Walk",
-			})
-			local topX, topZ
-			if ramp.turn then
-				topX, topZ = ramp.x - dx * 4 + px * lane, ramp.z - dz * 4 + pz * lane
-			else
-				topX, topZ = ramp.x + dx * (RAMP_RUN + 4), ramp.z + dz * (RAMP_RUN + 4)
+		-- Both ends of every stair: the middle of the floor at its foot and at its head.
+		for _, s in stairs do
+			for _, stairEnd in { { level = s.ramp.from, rect = s.entry }, { level = s.upper, rect = s.arrival } } do
+				local x, z = (stairEnd.rect.x1 + stairEnd.rect.x2) / 2, (stairEnd.rect.z1 + stairEnd.rect.z2) / 2
+				table.insert(list, {
+					level = stairEnd.level,
+					x = x,
+					z = z,
+					tier = tierAtPoint(stairEnd.level, x, z),
+					activity = "Walk",
+				})
 			end
-			table.insert(
-				list,
-				{ level = upper, x = topX, z = topZ, tier = tierAtPoint(upper, topX, topZ), activity = "Walk" }
-			)
 		end
 		return list
 	end
@@ -1387,131 +1619,19 @@ function Build.run()
 		tag(node, Tag.NPCNode, { Tier = spec.tier, Activity = spec.activity })
 	end
 
-	-- The cityscape. The Gala sits on the roof of a skyscraper: a sheer shaft drops away under the tower, the street is far
-	-- below under a deck of cloud, and the rest of the city is lower towers poking through the haze with a few taller ones
-	-- in the distance. None of it can be reached; every ground floor wall is closed and the only outdoor spaces are the
-	-- terraces and decks above. It is one persistent model so streaming never drops the skyline.
-	local cityModel = Instance.new("Model")
-	cityModel.Name = "Cityscape"
-	cityModel.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
-	cityModel.Parent = root
-	local minX, minZ, maxX, maxZ = math.huge, math.huge, -math.huge, -math.huge
+	-- The city round the Gala (City.luau). Decks that reach past the tower stand on neighbouring towers.
+	local footprint: Rect = { x1 = math.huge, z1 = math.huge, x2 = -math.huge, z2 = -math.huge }
 	for _, piece in piecesByLevel.G do
-		minX, minZ = math.min(minX, piece.rect.x1), math.min(minZ, piece.rect.z1)
-		maxX, maxZ = math.max(maxX, piece.rect.x2), math.max(maxZ, piece.rect.z2)
+		footprint.x1, footprint.z1 = math.min(footprint.x1, piece.rect.x1), math.min(footprint.z1, piece.rect.z1)
+		footprint.x2, footprint.z2 = math.max(footprint.x2, piece.rect.x2), math.max(footprint.z2, piece.rect.z2)
 	end
-	local centerX, centerZ = (minX + maxX) / 2, (minZ + maxZ) / 2
-	local cityRng = Random.new(23)
-	local function cityPart(name: string, size: Vector3, cframe: CFrame, color: Color3): Part
-		local p = part(cityModel, name, size, cframe, color)
-		p.CanQuery = false
-		return p
-	end
-	local function lit(name: string, size: Vector3, cframe: CFrame)
-		local p = cityPart(name, size, cframe, Color3.fromRGB(255, 214, 150))
-		p.Material = Enum.Material.Neon
-		p.CanCollide = false
-	end
-	local APRON_W, APRON_DEPTH, SHAFT_DEPTH, CITY_BOTTOM = 14, 25, 800, -820
-	local roofTop, shaftTop = -1, levels.B - SLAB -- the basement floor's underside
-	-- The skyscraper's roof round the tower (the tower's own floors cover the middle), and the shaft under all of it.
-	for _, strip in
-		{
-			{ minX - APRON_W, minZ - APRON_W, minX, maxZ + APRON_W },
-			{ maxX, minZ - APRON_W, maxX + APRON_W, maxZ + APRON_W },
-			{ minX, minZ - APRON_W, maxX, minZ },
-			{ minX, maxZ, maxX, maxZ + APRON_W },
-		}
-	do
-		cityPart(
-			"Roof apron",
-			Vector3.new(strip[3] - strip[1], APRON_DEPTH, strip[4] - strip[2]),
-			CFrame.new((strip[1] + strip[3]) / 2, roofTop - APRON_DEPTH / 2, (strip[2] + strip[4]) / 2),
-			Color3.fromRGB(95, 97, 108)
-		)
-	end
-	local roofW, roofD = maxX - minX + APRON_W * 2, maxZ - minZ + APRON_W * 2
-	cityPart(
-		"Skyscraper shaft",
-		Vector3.new(roofW, SHAFT_DEPTH, roofD),
-		CFrame.new(centerX, shaftTop - SHAFT_DEPTH / 2, centerZ),
-		Color3.fromRGB(62, 64, 76)
-	)
-	-- Rows of lit windows down the shaft's four faces, so the drop reads as the face of a building.
-	for face = 1, 4 do
-		local sign = if face % 2 == 0 then 1 else -1
-		for _ = 1, 9 do
-			local y = shaftTop - cityRng:NextNumber(15, 320)
-			local length = cityRng:NextNumber(30, 90)
-			if face <= 2 then
-				local z = centerZ + cityRng:NextNumber(-roofD / 2 + length / 2, roofD / 2 - length / 2)
-				lit("Shaft windows", Vector3.new(0.4, 4, length), CFrame.new(centerX + sign * (roofW / 2 + 0.2), y, z))
-			else
-				local x = centerX + cityRng:NextNumber(-roofW / 2 + length / 2, roofW / 2 - length / 2)
-				lit("Shaft windows", Vector3.new(length, 4, 0.4), CFrame.new(x, y, centerZ + sign * (roofD / 2 + 0.2)))
-			end
+	local supports: { City.Support } = {}
+	for _, feature in Layout.features do
+		if feature.kind == "support" and feature.rect then
+			table.insert(supports, { rect = toRect(feature.rect), top = levels[feature.level] - SLAB })
 		end
 	end
-	-- Cloud decks and the street far below.
-	for _, layer in { { -250, 0.5 }, { -430, 0.2 } } do
-		local mist = cityPart(
-			"Cloud deck",
-			Vector3.new(4000, 2, 4000),
-			CFrame.new(centerX, layer[1], centerZ),
-			Color3.fromRGB(225, 218, 235)
-		)
-		mist.Transparency = layer[2]
-		mist.CanCollide = false
-	end
-	cityPart(
-		"Street",
-		Vector3.new(4000, 2, 4000),
-		CFrame.new(centerX, CITY_BOTTOM, centerZ),
-		Color3.fromRGB(30, 31, 38)
-	)
-
-	-- The other towers: low and near, so you look down on them; a few tall ones at a distance.
-	local CELL = 110
-	for gx = -5, 5 do
-		for gz = -5, 5 do
-			local dx, dz = gx * CELL + cityRng:NextNumber(-15, 15), gz * CELL + cityRng:NextNumber(-15, 15)
-			if math.abs(dx) < 200 and math.abs(dz) < 230 then
-				continue
-			end
-			local reach = math.max(math.abs(dx), math.abs(dz))
-			local top = if reach < 300
-				then cityRng:NextNumber(-300, -70)
-				elseif reach < 420 then cityRng:NextNumber(-220, 20)
-				else cityRng:NextNumber(-120, 170)
-			local width, depth = cityRng:NextNumber(40, 70), cityRng:NextNumber(40, 70)
-			local cx, cz = centerX + dx, centerZ + dz
-			local shade = cityRng:NextNumber(0.75, 1.15)
-			cityPart(
-				"Tower",
-				Vector3.new(width, top - CITY_BOTTOM, depth),
-				CFrame.new(cx, (top + CITY_BOTTOM) / 2, cz),
-				Color3.fromRGB(58 * shade, 66 * shade, 92 * shade)
-			)
-			-- Lit bands on the face toward the Gala.
-			local alongX = math.abs(dx) > math.abs(dz)
-			for _ = 1, 3 do
-				local y = cityRng:NextNumber(math.max(CITY_BOTTOM + 20, top - 110), top - 8)
-				if alongX then
-					lit(
-						"Windows",
-						Vector3.new(0.4, 3, depth * 0.8),
-						CFrame.new(cx - math.sign(dx) * (width / 2 + 0.2), y, cz)
-					)
-				else
-					lit(
-						"Windows",
-						Vector3.new(width * 0.8, 3, 0.4),
-						CFrame.new(cx, y, cz - math.sign(dz) * (depth / 2 + 0.2))
-					)
-				end
-			end
-		end
-	end
+	made += City.build(root, footprint, levels.B - SLAB, supports)
 
 	-- A test spawn so a playtest starts in the grand lobby.
 	for _, other in workspace:GetDescendants() do
@@ -1531,23 +1651,37 @@ function Build.run()
 	-- Night outside, with a warm dusk-like glow inside (STYLE_QUESTIONS: night with nice ambient light). The art pass refines it.
 	Lighting.ClockTime = 20.5
 	Lighting.Ambient = Color3.fromRGB(135, 105, 90)
-	Lighting.OutdoorAmbient = Color3.fromRGB(78, 86, 125)
+	Lighting.OutdoorAmbient = Color3.fromRGB(100, 104, 145)
 	Lighting.Brightness = 1.2
 	Lighting.ExposureCompensation = 0.35
-	-- Thin air and haze: the Gala is high above the city.
-	local oldAtmosphere = Lighting:FindFirstChild("GalaAtmosphere")
-	if oldAtmosphere then
-		oldAtmosphere:Destroy()
+	-- Bloom so neon and lit windows glow; thin air and haze, as the Gala is high above the city, whose glow lights the
+	-- horizon orange. Lighting.Technology cannot be set from a script: set it to Future in Studio (Lighting properties).
+	for _, name in { "GalaAtmosphere", "GalaBloom", "GalaGrade" } do
+		local old = Lighting:FindFirstChild(name)
+		if old then
+			old:Destroy()
+		end
 	end
 	local atmosphere = Instance.new("Atmosphere")
 	atmosphere.Name = "GalaAtmosphere"
-	atmosphere.Density = 0.3
-	atmosphere.Offset = 0.15
-	atmosphere.Color = Color3.fromRGB(205, 175, 190)
-	atmosphere.Decay = Color3.fromRGB(95, 80, 120)
+	atmosphere.Density = 0.22
+	atmosphere.Offset = 0.3
+	atmosphere.Color = Color3.fromRGB(150, 90, 85)
+	atmosphere.Decay = Color3.fromRGB(22, 26, 62)
 	atmosphere.Glare = 0
-	atmosphere.Haze = 1.2
+	atmosphere.Haze = 1.1
 	atmosphere.Parent = Lighting
+	local bloom = Instance.new("BloomEffect")
+	bloom.Name = "GalaBloom"
+	bloom.Intensity = 0.6
+	bloom.Size = 24
+	bloom.Threshold = 0.9
+	bloom.Parent = Lighting
+	local grade = Instance.new("ColorCorrectionEffect")
+	grade.Name = "GalaGrade"
+	grade.Contrast = 0.08
+	grade.Saturation = 0.05
+	grade.Parent = Lighting
 
 	-- Checks -----------------------------------------------------------------------------------------------------------------------------------
 	local function count(tagName: string): number

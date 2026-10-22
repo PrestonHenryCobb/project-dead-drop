@@ -31,6 +31,7 @@ export type Room = {
 	activities: { string }?, -- what NPC nodes in it do; defaults by tier
 	props: { string }?, -- what fills it (see Build.luau)
 	glass: boolean?, -- its walls facing a garden are glass above a low sill
+	height: number?, -- an indoor room's wall height when it is lower than a full storey (a bridge)
 }
 
 export type Door = {
@@ -52,7 +53,8 @@ export type Ramp = {
 
 export type Marker = { id: string, level: string, x: number, z: number }
 
--- Things that are not rooms: water, garden islands, bridges, a skylight, a waterfall, a statue, lanterns, a pavilion.
+-- Things that are not rooms: water, garden islands, bridges, a skylight, a statue, lanterns, a pavilion, a truss (the
+-- steel under a skybridge), and supports (a neighbouring tower whose roof carries a deck that reaches past the Gala).
 export type Feature = {
 	kind: string,
 	level: string,
@@ -192,7 +194,8 @@ room(
 	{ holes = { FM }, density = 1, props = { "planters", "tables", "trees" } }
 )
 
-room("m_skybridge", "M", "Skybridge", 0, OUT, { 120, 29, 138, 35 }, { density = 0.3 })
+-- An enclosed glass skybridge to the lawn deck, like the links between hospital wings, carried on a steel truss.
+room("m_skybridge", "M", "Skybridge", 0, IN, { 120, 26, 138, 38 }, { glass = true, height = 12, density = 0.3 })
 room(
 	"m_belvedere",
 	"M",
@@ -247,7 +250,7 @@ local ramps: { Ramp } = {
 	{ from = "B", x = -30, z = 110, dir = "-z", turn = true },
 	{ from = "B", x = -97, z = 110, dir = "-z", turn = true },
 	{ from = "B", x = 97, z = 110, dir = "-z", turn = true },
-	{ from = "B", x = 0, z = -120, dir = "+z", turn = true },
+	{ from = "B", x = 25, z = -120, dir = "+z", turn = true },
 	-- G -> M: the grand stair along the atrium, then wing and service stairs
 	{ from = "G", x = -44, z = -40, dir = "+x" },
 	{ from = "G", x = -85, z = 0, dir = "+z", turn = true },
@@ -340,11 +343,14 @@ door("m_hub", "m_cater", -90, 8, { keycard = true })
 door("m_offices", "m_checkpoint", -60, 8, { gate = 2 })
 door("m_hub", "m_records", -115, 8, { gate = 3 })
 
+door("m_terrace", "m_skybridge", 32, 10)
+door("m_skybridge", "m_belvedere", 32, 10)
+
 -- T
 door("t_terrace", "t_gallery", 0, 12, { gate = 3 })
 door("t_terrace", "t_west", 0, 8)
 door("t_terrace", "t_west", 50, 8)
-door("t_terrace", "t_east", 0, 8)
+door("t_terrace", "t_east", -40, 8)
 door("t_great", "t_gallery", 0, 14)
 door("t_great", "t_west", 10, 8)
 door("t_great", "t_east", 10, 8)
@@ -373,6 +379,9 @@ local features: { Feature } = {
 		points = { { 144, 8 }, { 144, 82 }, { 170, 8 }, { 170, 82 }, { 192, 8 }, { 192, 82 } },
 	},
 	{ kind = "pavilion", level = "M", rect = { 180, 14, 194, 76 }, count = 5 },
+	{ kind = "truss", level = "M", rect = { 120, 26, 138, 38 } },
+	-- The lawn deck is the roof of the neighbouring tower, joined to the Gala by the skybridge.
+	{ kind = "support", level = "M", rect = { 138, 0, 198, 90 } },
 }
 
 local nodes: { NodeSpec } = {

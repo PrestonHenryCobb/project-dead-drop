@@ -5,10 +5,12 @@
 -- enemies learn is limited to the ExposedPing and what they can see (spec 25.7).
 --
 --   * Witnesses: every NPC (and, later, camera) that can see the player: within WitnessRange, inside the field of view,
---     and with nothing but characters between them. Their shares add up (Security 1, camera 0.6, other NPC 0.2) but
---     never count for more than WitnessCap.
---   * Suspicion: each suspicious action fills the meter by its rate times the witnesses' total share. Nothing fills it
---     if nobody sees. It starts to drain after SuspicionDecayDelay of nothing witnessed.
+--     and with nothing but characters between them. Their shares add up (WitnessWeights) but never count for more than
+--     WitnessCap. Civilians (every NPC but Security) only notice the actions in CivilianNotices (sprinting, jumping);
+--     Security and cameras notice everything.
+--   * Suspicion: each suspicious action fills the meter by its rate times the share of the witnesses who notice it.
+--     Sprinting and jumping count in every tier, the other actions in Tier 1 and up. Nothing fills it if nobody sees.
+--     It starts to drain after SuspicionDecayDelay of nothing witnessed.
 --   * Trespass: standing in a zone above the disguise's clearance is one more action, at TrespassGainPerSecond times a
 --     multiplier by how many tiers over.
 --   * Exposure: at 100 percent, or when another system calls expose(). The disguise is stripped (DisguiseService),
@@ -250,13 +252,18 @@ local function sees(witness: Witness, target: Vector3): boolean
 	return workspace:Raycast(witness.position, offset, sightParams) == nil
 end
 
--- Spec 7.3: what each witness is worth, summed and capped, and how many of each kind see the player.
-local function witnessShare(target: Vector3): (number, number, number, number)
-	local share, security, npc, camera = 0, 0, 0, 0
+-- Spec 7.3: what the witnesses are worth, summed and capped: `all` counts everyone (for what civilians notice too),
+-- `guards` only Security and cameras (for everything else). Also how many of each kind see the player.
+local function witnessShare(target: Vector3): (number, number, number, number, number)
+	local all, guards, security, npc, camera = 0, 0, 0, 0, 0
 	local list = if sources then sources.witnesses() else {}
 	for _, witness in list do
 		if sees(witness, target) then
-			share += config.WitnessWeights[witness.kind]
+			local weight = config.WitnessWeights[witness.kind]
+			all += weight
+			if witness.kind ~= "Npc" then
+				guards += weight
+			end
 			if witness.kind == "Security" then
 				security += 1
 			elseif witness.kind == "Camera" then
@@ -266,7 +273,7 @@ local function witnessShare(target: Vector3): (number, number, number, number)
 			end
 		end
 	end
-	return math.min(share, config.WitnessCap), security, npc, camera
+	return math.min(all, config.WitnessCap), math.min(guards, config.WitnessCap), security, npc, camera
 end
 
 local function nearBody(position: Vector3): boolean
@@ -281,18 +288,21 @@ local function nearBody(position: Vector3): boolean
 	return false
 end
 
--- Percent per second from what the player is doing and where (spec 7.3 and 7.4), before it is scaled by witnesses.
-local function suspiciousRate(player: Player, position: Vector3, zoneTier: number, clearance: number): number
+-- Percent per second from what the player is doing and where (spec 7.3 and 7.4), before it is scaled by witnesses:
+-- what civilians notice too, and what only Security and cameras notice.
+local function suspiciousRates(player: Player, position: Vector3, zoneTier: number, clearance: number): (number, number)
 	local gain = config.SuspicionGain
 	local sprinting, crouching = DisguiseService.getMovement(player)
-	local rate = 0
-	if zoneTier >= 1 then
-		if sprinting then
+	local noticed, rate = 0, 0
+	if sprinting then
+		if config.CivilianNotices.Sprint then
+			noticed += gain.Sprint
+		else
 			rate += gain.Sprint
 		end
-		if crouching then
-			rate += gain.Crouch
-		end
+	end
+	if zoneTier >= 1 and crouching then
+		rate += gain.Crouch
 	end
 	if nearBody(position) then
 		rate += gain.NearBody
@@ -301,7 +311,7 @@ local function suspiciousRate(player: Player, position: Vector3, zoneTier: numbe
 		local multipliers = config.TrespassTierMultipliers
 		rate += config.TrespassGainPerSecond * multipliers[math.min(zoneTier - clearance, #multipliers)]
 	end
-	return rate
+	return noticed, rate
 end
 
 local function step(player: Player, state: State, dt: number, now: number)
@@ -311,7 +321,7 @@ local function step(player: Player, state: State, dt: number, now: number)
 	end
 	local feetY = root.Position.Y - (humanoid.HipHeight + root.Size.Y / 2)
 	local target = Vector3.new(root.Position.X, feetY + config.WitnessTargetHeight, root.Position.Z)
-	local share, security, npc, camera = witnessShare(target)
+	local allShare, guardShare, security, npc, camera = witnessShare(target)
 	if security > 0 then
 		state.lastSeenBySecurity = now
 	end
@@ -320,11 +330,11 @@ local function step(player: Player, state: State, dt: number, now: number)
 	local clearance = DisguiseService.getClearance(player)
 
 	if state.cover ~= "Exposed" then
-		local rate = suspiciousRate(player, root.Position, zoneTier, clearance)
-		local jumps = state.pendingJumps
+		local noticedRate, guardRate = suspiciousRates(player, root.Position, zoneTier, clearance)
+		local jumpGain = state.pendingJumps * config.SuspicionGain.Jump
 		state.pendingJumps = 0
-		local jumpGain = if zoneTier >= 1 then jumps * config.SuspicionGain.Jump else 0
-		local gain = (rate * dt + jumpGain) * share
+		local jumpShare = if config.CivilianNotices.Jump then allShare else guardShare
+		local gain = noticedRate * dt * allShare + guardRate * dt * guardShare + jumpGain * jumpShare
 		if gain > 0 then
 			state.suspicion = math.min(state.suspicion + gain, config.SuspicionMax)
 			state.lastSuspiciousAt = now

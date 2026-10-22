@@ -31,3 +31,4 @@ been edited. Review this list, then tell me to apply it.
 | 4.3 (NPCNode count) | 150 to 250 | 150 to 320 |
 | 5.1 (NPC counts) | 90 (see above) | 200: Guest 120, Staff 40, Security 25, Executive 15 |
 | 25 (platforms, performance) | Built for low-end mobile | PC and console targets with a quality setting for weaker machines; touch kept as a fallback only |
+| 7.3 (witnesses, suspicion) | Every NPC notices every suspicious action (0.2 share); sprint and jump count only in Tier 1+ | Civilians (non-Security NPCs) notice only sprinting and jumping, at a 0.5 share; Security and cameras notice everything. Sprint and jump count in every tier. All suspicion gains and the trespass rate doubled. Cover-breaking actions unchanged. |
