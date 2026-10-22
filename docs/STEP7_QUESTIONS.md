@@ -300,6 +300,10 @@ Step 7 and are wired in the step that builds them.
 | G3 | Hitmarkers are Step 8. |
 | H1 | The debug HUD shows state, suspicion percent, your zone tier and disguise tier, a count of witnesses by type, and the alarm level. |
 | H2, H3 | Watcher markers are a count on the debug HUD for now (real markers in Step 19). No heartbeat sound until Step 20. |
+| Crouch | Hold `C` to crouch: walk speed about 60 percent and a lower camera. A toggle option is added in the settings menu (Step 19), and toggle is the default on mobile. Step 7 builds the hold version. NPCs never crouch, so it is a tell. |
+| Witness states | Every NPC counts as a witness except downed and bled-out ones. Cowering, fleeing and investigating NPCs still see you. |
+| Civilians and Exposed players | Guests, Staff and Executives do not react to an Exposed player in Step 7. Reactions come with Security in Step 15. |
+| Players as witnesses | Other players never count as witnesses. Only NPCs and cameras do. |
 
 ## How I will use your answers
 
