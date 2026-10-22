@@ -105,6 +105,18 @@ The map should feel alive without the crowd clogging corridors or leaving rooms 
 - Re-run the Step 4, 5, 6 and 7 test scripts on the new layout: NPCs path everywhere, doors open, scans and
   re-covering work, and tiers are correct at every boundary.
 
+**Decided (2026-10-22)**
+| Topic | Decision |
+|---|---|
+| Footprint | About 450 x 450 studs, packed. Outdoor areas are part of that footprint. |
+| Levels | Five main levels (basement, ground, mezzanine, top floor, roof), with varied heights: split levels, half-floors, balconies. |
+| Part budget | About 15,000 parts for the finished map. The self-check reports the count. Detail comes from meshes and textures in the art pass. |
+| Streaming | StreamingEnabled on, with a large target radius (about 250 studs). Dressed model groups stream atomically. |
+| NPC count | 74, spread by area weight. Raise after phone tests if there is room. |
+| Lighting | Night with lit areas: lit paths, lanterns, spotlit hubs, pools of shadow. Temporary until the art pass. |
+| Widths | Mixed 6 to 12 studs: narrow service corridors and doors (6 to 8), normal doors (10), wide only for halls and the ballroom (12). |
+| Layout design | I write the layout as data and show Studio screenshots for review; you give notes and I revise. |
+
 **Done when:** a walkthrough shows the layout is intricate and has outdoor areas; the self-check passes every rule in spec
 Section 4; NPC server and client cost is within budget with the new density; two players can play the Step 7
 checkpoint (finding each other in the crowd) and the routes feel varied.
