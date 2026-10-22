@@ -203,6 +203,15 @@ How to read the tags:
 | In-game menu | Settings can be opened any time as an overlay. The match keeps running (NPCs, suspicion, timers). Input to the character is paused while the menu is open. |
 | Rooftop | Open but balanced: no sniper nests, no extra sight-line limits. |
 
-### Still open
+### Decided in the fourth round (replaces the open mask items below)
+
+| Ref | Decision |
+|---|---|
+| Mask rule | A mask belongs to the area, not the character. Everyone inside a masked area wears one whatever they scanned; entering adds it, leaving removes it. A scan copies only the outfit underneath. |
+| Mask timing | Masks are on from the start. One scripted unmasking at a fixed time (5:00 into the match), after which masks stay off. SPEC-QUESTION: 5:00 is taken as time elapsed, not time remaining. |
+| Unmasking and cover | Nobody gains suspicion for about 3 s while the animation plays. |
+| Menu and cover | Opening the in-game menu is like standing still. Suspicion keeps building if a witness is watching. |
+
+### Superseded (kept for the record)
 - SPEC-QUESTION: scripted unmasking and "mask copied with the outfit" do not fully fit together. If a player scans a masked NPC and walks into an unmasked area, are they masked there? Proposed rule: a mask is a state of the area, not the character. Everyone inside a masked area wears one whatever they scanned, and the scan copies only the outfit underneath. Say if you want it otherwise.
 - How often and for how long are the masks on? For example, masks on at the start, one scripted unmasking at a fixed time, then masks stay off for the rest of the match.
