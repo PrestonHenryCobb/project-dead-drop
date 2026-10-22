@@ -56,6 +56,7 @@ type State = {
 	-- what was last sent, so only changes go over the network
 	sentCover: string,
 	sentCanRecover: boolean,
+	sentBlocker: string,
 	sentLockoutActive: boolean,
 	sentSuspicion: number,
 	sentSecurity: number,
@@ -105,6 +106,7 @@ local function newState(): State
 		pendingJumps = 0,
 		sentCover = "",
 		sentCanRecover = false,
+		sentBlocker = "",
 		sentLockoutActive = false,
 		sentSuspicion = -1,
 		sentSecurity = -1,
@@ -125,27 +127,42 @@ local function isLockedOut(state: State, now: number): boolean
 	return now < state.lockoutUntil
 end
 
-local function canRecover(player: Player, now: number): boolean
+-- What stops an Exposed player re-covering right now (spec 7.5), or "" if nothing does. The client shows it so the
+-- reason is never a guess.
+local function recoverBlocker(player: Player, now: number): string
 	local state = states[player]
 	local _, root = aliveRoot(player)
 	if not (state and root) or state.cover ~= "Exposed" then
-		return false
+		return ""
 	end
-	return not isLockedOut(state, now)
-		and now >= state.exposedMinUntil
-		and now - state.lastSeenBySecurity >= config.ReCoverTrackingSeconds
-		and ZoneService.tierAt(root.Position) <= DisguiseService.getDisguiseTier(player)
+	if isLockedOut(state, now) then
+		return "Lockout"
+	elseif now < state.exposedMinUntil then
+		return "Minimum"
+	elseif now - state.lastSeenBySecurity < config.ReCoverTrackingSeconds then
+		return "Seen"
+	elseif ZoneService.tierAt(root.Position) > DisguiseService.getDisguiseTier(player) then
+		return "Zone"
+	end
+	return ""
+end
+
+local function canRecover(player: Player, now: number): boolean
+	local state = states[player]
+	return state ~= nil and state.cover == "Exposed" and recoverBlocker(player, now) == ""
 end
 
 local function sendCover(player: Player, state: State, now: number)
 	local info: Types.CoverInfo = {
 		State = state.cover,
 		CanRecover = canRecover(player, now),
+		Blocker = recoverBlocker(player, now),
 		LockoutSeconds = math.max(0, state.lockoutUntil - now),
 		ExposedMinSeconds = math.max(0, state.exposedMinUntil - now),
 	}
 	state.sentCover = state.cover
 	state.sentCanRecover = info.CanRecover
+	state.sentBlocker = info.Blocker
 	state.sentLockoutActive = info.LockoutSeconds > 0
 	RemoteService.fireClient("CoverStateChanged", player, info)
 end
@@ -347,6 +364,7 @@ local function step(player: Player, state: State, dt: number, now: number)
 	if
 		state.cover ~= state.sentCover
 		or recoverable ~= state.sentCanRecover
+		or recoverBlocker(player, now) ~= state.sentBlocker
 		or isLockedOut(state, now) ~= state.sentLockoutActive
 	then
 		sendCover(player, state, now)

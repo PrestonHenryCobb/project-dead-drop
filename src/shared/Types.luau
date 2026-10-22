@@ -73,6 +73,7 @@ export type DisguiseUpdate = {
 export type CoverInfo = {
 	State: CoverState,
 	CanRecover: boolean, -- the conditions for putting a disguise back on are all met
+	Blocker: string, -- what stops it: "Lockout", "Minimum", "Seen" or "Zone"; "" if nothing does
 	LockoutSeconds: number, -- combat lockout left
 	ExposedMinSeconds: number, -- time left before an Exposed player may re-cover at all
 }

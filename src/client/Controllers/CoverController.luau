@@ -35,6 +35,7 @@ local vignette: HudKit.EdgeGlow? = nil
 
 local coverState: Types.CoverState = "Covered"
 local canRecover = false
+local blocker = ""
 local lockoutEndsAt = 0
 local exposedMinEndsAt = 0
 local suspicion: Types.SuspicionInfo = { Value = 0, Security = 0, Npc = 0, Camera = 0 }
@@ -139,7 +140,13 @@ local function refreshText(now: number)
 		hint.Text = "COVER AVAILABLE [G]"
 		hint.TextColor3 = ui.CoverColors.Covered
 	else
-		hint.Text = if waitSeconds > 0 then string.format("COVER IN %.0fs", waitSeconds) else "OUT OF SIGHT TO RE-COVER"
+		if blocker == "Zone" then
+			hint.Text = "LEAVE THE RESTRICTED AREA TO RE-COVER"
+		elseif blocker == "Seen" then
+			hint.Text = "BREAK LINE OF SIGHT FROM GUARDS"
+		else
+			hint.Text = string.format("COVER IN %.0fs", math.max(waitSeconds, 0))
+		end
 		hint.TextColor3 = ui.DimTextColor
 	end
 end
@@ -209,6 +216,7 @@ function CoverController.Start()
 		end
 		coverState = info.State
 		canRecover = info.CanRecover
+		blocker = info.Blocker
 		lockoutEndsAt = now + info.LockoutSeconds
 		exposedMinEndsAt = now + info.ExposedMinSeconds
 	end)
