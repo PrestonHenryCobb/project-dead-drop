@@ -41,7 +41,7 @@ local NPCService = {}
 local config = GameConfig.NPC
 local rng = Random.new()
 local npcs: { Npc } = {}
-local claims: { [number]: number } = {} -- node -> NPCs standing at or heading to it
+local claims: { [number]: number } = {} -- node -> NPCs standing at or heading to it (up to NodeCapacity)
 local crowd: NpcTypes.Crowd? = nil
 local spawnReplacement: ((string, Vector3) -> ())? = nil -- set in Start, once the graph exists
 
@@ -69,7 +69,7 @@ local function release(node: number)
 end
 
 local function isFree(node: number): boolean
-	return (claims[node] or 0) == 0
+	return (claims[node] or 0) < config.NodeCapacity
 end
 
 local function activitySeconds(): number

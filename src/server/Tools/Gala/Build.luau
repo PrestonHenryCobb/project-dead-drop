@@ -20,7 +20,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local City = require(script.Parent.City)
 local Layout = require(script.Parent.Layout)
-local Shared = ReplicatedStorage:WaitForChild("Shared")
+-- Studio caches required modules, so a rebuild after a config change can put a fresh copy of Shared next to this
+-- script, named SharedOverride (see the build-map skill).
+local Shared = script.Parent:FindFirstChild("SharedOverride") or ReplicatedStorage:WaitForChild("Shared")
 local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Tag = Enums.Tag
@@ -67,8 +69,8 @@ local CITY_GLASS = Color3.fromRGB(110, 140, 180)
 local EPS = 1e-4
 
 local NODE_MARGIN = 8 -- studs a node keeps from a room's walls
-local NODE_SPACING = { [0] = 70, [1] = 50, [2] = 55, [3] = 60 }
-local NODE_CAP = 320 -- see GameConfig.Map.NPCNodeCount
+-- Dense enough that, at GameConfig.NPC.NodeCapacity NPCs a node, 200 NPCs always have free places to walk to.
+local NODE_SPACING = { [0] = 30, [1] = 32, [2] = 36, [3] = 36 }
 local LIGHT_SPACING = 55 -- studs between ceiling lights in a room
 local LIGHT_CAP = 110 -- the most lights in the map (each is a dynamic light on a phone)
 local DOOR_CLEAR = 7 -- studs props keep clear in front of a doorway
@@ -1601,7 +1603,7 @@ function Build.run()
 	local scale = 1
 	local specs = buildNodes(scale)
 	for _ = 1, 12 do
-		if #specs <= NODE_CAP then
+		if #specs <= GameConfig.Map.NPCNodeCount.Max then
 			break
 		end
 		scale *= 1.08

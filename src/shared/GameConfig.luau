@@ -72,7 +72,7 @@ local GameConfig = {
 			ZiplineAnchorPairs = 2,
 			PickupSpawn = 30,
 		},
-		NPCNodeCount = { Min = 150, Max = 320 }, -- spec says 150 to 250; the larger intricate layout needs more (SPEC-QUESTION)
+		NPCNodeCount = { Min = 150, Max = 650 }, -- spec says 150 to 250; 200 NPCs on the larger layout need more (SPEC-QUESTION)
 		SupplyCachesPerTier = { [0] = 2, [1] = 2, [2] = 1, [3] = 1 },
 		InsertionMinSpacing = 60,
 		TeamSpawnRadius = 8, -- teammates spawn within this many studs of each other
@@ -86,10 +86,10 @@ local GameConfig = {
 
 	-- Spec 5.1 to 5.5: NPCs.
 	NPC = {
-		-- Raised from the spec's 74 (Guest 40, Staff 18, Security 10, Executive 6) to 90 on request. More guards and Executives
-		-- fill the guard rooms, the vault wings and the penthouse (OPEN_QUESTIONS, BUILD_ORDER Step 7B).
-		TargetCount = 90,
-		RoleCounts = { Guest = 40, Staff = 18, Security = 16, Executive = 16 },
+		-- Raised from the spec's 74 (Guest 40, Staff 18, Security 10, Executive 6): to 90, then to 200 for PC and console
+		-- (BUILD_ORDER Step 7B). Guests fill the party; guards and Executives staff the guard rooms, vaults and penthouse.
+		TargetCount = 200,
+		RoleCounts = { Guest = 120, Staff = 40, Security = 25, Executive = 15 },
 		-- Where each role likes to be, by tier: how often a node of that tier is picked when an NPC spawns and when it
 		-- chooses where to walk next. Guards favour their own tier and Executives the top one; every role may still pass
 		-- through any tier it is allowed in (RoleMaxTier), so the building stays alive and nobody is confined.
@@ -188,6 +188,7 @@ local GameConfig = {
 		},
 		MinTripStuds = 30, -- an NPC's next destination is at least this far away
 		ArrivalSpread = 3, -- NPCs stand within this many studs of a node, so they don't stack on one point
+		NodeCapacity = 2, -- NPCs that may stand at or head to one node at once (a pair chatting at a spot)
 		SeparationMaxOffset = 1.25, -- how far separation may push an NPC off its path
 		SeparationStrength = 4,
 		SeparationDecayPerSecond = 2,

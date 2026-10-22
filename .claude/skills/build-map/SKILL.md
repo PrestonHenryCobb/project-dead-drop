@@ -48,6 +48,9 @@ every vault has 3 routes out, sight lines over 150 studs are rare (2 or 3), zone
    plain require after an edit gives you the old data):
    ```lua
    local clone = game.ServerScriptService.Server.Tools.Gala:Clone()
+   local shared = game.ReplicatedStorage.Shared:Clone() -- GameConfig and Enums are cached too
+   shared.Name = "SharedOverride"
+   shared.Parent = clone
    clone.Parent = game.ServerStorage
    local ok, problems = pcall(function() return require(clone.Build).run() end)
    clone:Destroy()
