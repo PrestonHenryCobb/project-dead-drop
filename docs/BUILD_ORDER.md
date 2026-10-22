@@ -129,6 +129,11 @@ The map should feel alive without the crowd clogging corridors or leaving rooms 
 | Vault | Three distinct vaults (different shape and door sequence each). Several tier doors inside each. Identities to steal are high-tier NPCs placed in the vault wing to scan. Intel inside the vault is extra loot after unlock (team bonuses and Funds), not part of the unlock. |
 | Intel stations | Far more than 10 on the map, in four types giving 1, 2, 3 and 4 intel, each with its own model, and longer hacks the more they give. One type per tier: 1 intel in public (Tier 0), 2 in Staff (Tier 1), 3 in Security (Tier 2), 4 in Executive (Tier 3). Times scale with points (for example 4 s, 7 s, 11 s, 16 s), set in `GameConfig`. |
 
+| NPC roles | Total stays 74, split Guest 32, Staff 16, Security 14, Executive 12 (spec was 40, 18, 10, 6), so vault wings and the penthouse have enough high-tier identities. Config values in `GameConfig.NPC.RoleCounts`. |
+| Hard gates | Only nested rooms, guard rooms, vault wings and the penthouse are clearance gates. Ordinary tier-to-tier doorways stay open with the trespass rules. |
+| Vault door order | Climbing tiers inside each vault: Tier 1, then 2, then 3, so getting a Security and then an Executive disguise is the way in. Each of the three vaults has its own sequence and shape. |
+| How to start | Layout data first (levels, rooms, doors, outdoor areas), generated and reviewed with screenshots before the vault interiors and the four intel station types. |
+
 **Follow-ups this brief creates** (to settle before or during the step)
 - **Spec changes:** intel gets four station types (spec Section 9), doors become clearance gates (Sections 4.3 and 7), and the vault gets an interior with door tiers and NPC identities (Section 10).
 - **NPC roles for the vault:** the spec has only 6 Executives. Plenty of identities in the vault wing means more high-tier NPCs, while the total stays 74. The role counts need a decision.
