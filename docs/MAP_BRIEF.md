@@ -150,3 +150,21 @@ Density is a weight on each room, tuned by playtest, and no room is empty for lo
    move to a warm dusk?
 4. **The blue-teal security wing.** Keep it as the cool contrast to the amber public side?
 5. **Anything in the screenshots you do not want** (the retro 1970s look, the bright orange, the teal)?
+
+---
+
+## Decided (2026-10-23)
+
+| Question | Answer |
+|---|---|
+| Pond court as the centrepiece | Yes. |
+| Bridges and skybridges | Yes. Built: a red footbridge over the koi pond, a skybridge from the mezzanine terrace to a belvedere deck, and short bridges in the atrium. |
+| Garden islands | Two small garden islands with short bridges on opposite sides of the atrium floor, standing in a shallow reflecting pool under the open void, which stays clear above them. |
+| Lighting | Night outside, with a warm dusk-like glow inside (amber in public rooms, cooler as the tier rises). |
+| Security wing | Keep a cooler look, noticeable but muted. Its colour is now purple (see below). |
+| Reference screenshots | Use them freely for mood and shape and imagine a world from them. Saved as the `build-map` skill (`.claude/skills/build-map/SKILL.md`) so new maps can be built the same way. |
+| Tier readability | Tiers are shown by suits, not ties and armbands: Staff light navy suits with black accessories and black fedoras; Security black suits with purple lapels, tie and sunglasses; Executives cream suits with gold lapels, tie, pocket square and pin. Guests wear colourful formalwear, never navy, black or cream, and no hat. Zone colours follow: Staff muted navy, Security purple, Executive gold. |
+
+Built in this pass: glass-walled rooms facing the gardens, round pillars and tables, a skylight over the atrium, the koi
+pond court with statue, waterfall and lanterns, the belvedere deck with a ramp up from the lawn, a glass-and-timber
+pavilion boardwalk on the lawn, 110 interior lights, and 90 NPCs spread by role and tier.

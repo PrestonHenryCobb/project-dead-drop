@@ -23,7 +23,7 @@ export type ModeConfig = {
 }
 
 -- Spec 25.3: an outfit is a data record. Characters are built from these, never from Roblox avatar items.
-export type AccessoryKind = "Tie" | "BowTie" | "Armband" | "LapelPin" | "Apron"
+export type AccessoryKind = "Tie" | "BowTie" | "Lapels" | "PocketSquare" | "LapelPin" | "Fedora" | "Sunglasses"
 
 export type AccessoryDef = {
 	Kind: AccessoryKind,

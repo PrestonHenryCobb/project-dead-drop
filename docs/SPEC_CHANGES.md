@@ -20,3 +20,12 @@ been edited. Review this list, then tell me to apply it.
 | 16 (agents) | 4 free, 4 unlockable | 6 agents: 3 free, 3 unlockable |
 | 18 (monetisation) | Cosmetic only | Cosmetics plus XP boost |
 | 25 (map) | The Gala | One map at launch, two more later |
+
+## Added 2026-10-23
+
+| Spec section | Current | Proposed |
+|---|---|---|
+| 4.2 (zone colours) | Public white, Staff blue, Security orange, Executive purple | Public white, Staff muted navy, Security purple, Executive gold, matching the new outfits |
+| 5.1 (NPC outfits) | Staff blue-trimmed uniforms, Security orange armbands, Executives purple accents | Staff light navy suits with black accessories and fedoras, Security black suits with purple trim and sunglasses, Executives cream suits with gold trim |
+| 5.1 (NPC counts) | 74: Guest 40, Staff 18, Security 10, Executive 6 | 90: Guest 40, Staff 18, Security 16, Executive 16 |
+| 4.3 (NPCNode count) | 150 to 250 | 150 to 320 |

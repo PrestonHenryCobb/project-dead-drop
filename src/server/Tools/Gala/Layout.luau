@@ -29,6 +29,7 @@ export type Room = {
 	density: number?, -- how many NPCs favour it; 1 is normal
 	activities: { string }?, -- what NPC nodes in it do; defaults by tier
 	props: { string }?, -- what fills it (see Build.luau)
+	glass: boolean?, -- its walls facing a garden are glass above a low sill
 }
 
 export type Door = {
@@ -48,6 +49,24 @@ export type Ramp = {
 }
 
 export type Marker = { id: string, level: string, x: number, z: number }
+
+-- Things that are not rooms: water, garden islands, bridges, a skylight, a waterfall, a statue, lanterns, a pavilion.
+export type Feature = {
+	kind: string,
+	level: string,
+	rect: Rect?,
+	x: number?,
+	z: number?,
+	width: number?,
+	height: number?,
+	top: number?, -- bridges: how high the deck sits above the floor
+	color: Color3?,
+	count: number?,
+	points: { { number } }?,
+}
+
+-- A node NPCs can walk to that the grid would not place (on an island, on a bridge).
+export type NodeSpec = { level: string, x: number, z: number, activity: string }
 
 local rooms: { Room } = {}
 
@@ -97,8 +116,24 @@ room(
 	{ density = 1.5, props = { "planters", "fountain" } }
 )
 room("g_valet", "G", "Valet lane", 0, OUT, { -225, 130, -120, 225 }, { props = { "trees", "planters" } })
-room("g_orchard", "G", "Orchard path", 0, OUT, { 120, 130, 225, 225 }, { props = { "trees", "hedges" } })
-room("g_maze", "G", "Garden maze", 0, OUT, { 120, 20, 225, 130 }, { density = 0.8, props = { "hedgemaze" } })
+room(
+	"g_orchard",
+	"G",
+	"Hedge maze and orchard",
+	0,
+	OUT,
+	{ 120, 130, 225, 225 },
+	{ density = 0.8, props = { "trees", "hedgemaze" } }
+)
+room(
+	"g_maze",
+	"G",
+	"Koi pond garden",
+	0,
+	OUT,
+	{ 120, 20, 225, 130 },
+	{ density = 1.2, props = { "trees", "planters" } }
+)
 room(
 	"g_lawn",
 	"G",
@@ -139,12 +174,28 @@ room(
 )
 
 room("g_coat", "G", "Coat check", 1, IN, { -120, 70, -80, 130 }, { props = { "desks" } })
-room("g_lobby", "G", "Grand lobby", 0, IN, { -80, 70, 50, 130 }, { density = 1.5, props = { "reception", "pillars" } })
+room(
+	"g_lobby",
+	"G",
+	"Grand lobby",
+	0,
+	IN,
+	{ -80, 70, 50, 130 },
+	{ glass = true, density = 1.5, props = { "reception", "pillars" } }
+)
 room("g_concierge", "G", "Concierge office", 1, IN, { -80, 100, -50, 130 }, { parent = "g_lobby", props = { "desks" } })
-room("g_bar", "G", "Cocktail bar", 0, IN, { 50, 70, 120, 130 }, { density = 1.5, props = { "bar", "tables" } })
+room(
+	"g_bar",
+	"G",
+	"Cocktail bar",
+	0,
+	IN,
+	{ 50, 70, 120, 130 },
+	{ glass = true, density = 1.5, props = { "bar", "tables" } }
+)
 room("g_sculpt", "G", "Sculpture hall", 0, IN, { -120, -50, -60, 70 }, { props = { "partitions" } })
 room("g_ballroom", "G", "Ballroom", 0, IN, { -60, -50, 60, 70 }, { density = 2, props = { "pillars", "tables" } })
-room("g_lounge", "G", "Smoking lounge", 0, IN, { 60, -50, 120, 70 }, { props = { "tables" } })
+room("g_lounge", "G", "Smoking lounge", 0, IN, { 60, -50, 120, 70 }, { glass = true, props = { "tables" } })
 room("g_humidor", "G", "Humidor", 1, IN, { 90, 30, 120, 70 }, { parent = "g_lounge" })
 room("g_kitchen", "G", "Kitchen", 1, IN, { -120, -150, -40, -50 }, { density = 1.2, props = { "islands" } })
 room("g_service", "G", "Service corridor", 1, IN, { -40, -150, 40, -50 }, { props = { "pillars" } })
@@ -153,8 +204,24 @@ room("g_vaultc_ante", "G", "Vault C antechamber", 2, IN, { 80, -90, 120, -50 })
 room("g_vaultc", "G", "Vault C", 3, IN, { 80, -150, 120, -90 }, { density = 0.5 })
 
 -- M: mezzanine (24) -----------------------------------------------------------------------------------------------------
-room("m_gallery", "M", "Grand gallery", 0, IN, { -105, -45, -45, 115 }, { density = 1.5, props = { "partitions" } })
-room("m_promenade", "M", "Sculpture promenade", 0, IN, { -45, 55, 45, 115 }, { props = { "planters", "pillars" } })
+room(
+	"m_gallery",
+	"M",
+	"Grand gallery",
+	0,
+	IN,
+	{ -105, -45, -45, 115 },
+	{ glass = true, density = 1.5, props = { "partitions" } }
+)
+room(
+	"m_promenade",
+	"M",
+	"Sculpture promenade",
+	0,
+	IN,
+	{ -45, 55, 45, 115 },
+	{ glass = true, props = { "planters", "pillars" } }
+)
 room("m_balcony", "M", "Atrium balcony", 0, IN, { -45, -45, 45, 55 }, { density = 1.2 })
 room(
 	"m_masq",
@@ -163,9 +230,9 @@ room(
 	0,
 	IN,
 	{ 45, -45, 105, 115 },
-	{ density = 2, props = { "stage", "pillars", "tables" } }
+	{ glass = true, density = 2, props = { "stage", "pillars", "tables" } }
 )
-room("m_offices", "M", "Staff offices", 1, IN, { -105, -135, -15, -45 }, { props = { "desks" } })
+room("m_offices", "M", "Staff offices", 1, IN, { -105, -135, -15, -45 }, { glass = true, props = { "desks" } })
 room("m_checkpoint", "M", "Security checkpoint", 2, IN, { -75, -80, -45, -45 }, { parent = "m_offices" })
 room("m_hub", "M", "Security hub", 2, IN, { -15, -135, 45, -45 }, { props = { "desks" } })
 room("m_records", "M", "Executive records", 3, IN, { 15, -135, 45, -100 }, { parent = "m_hub", density = 0.5 })
@@ -180,9 +247,20 @@ room(
 	{ holes = { FM }, density = 1, props = { "planters", "tables" } }
 )
 
+room("m_skybridge", "M", "Skybridge", 0, OUT, { 120, 29, 138, 35 }, { density = 0.3 })
+room(
+	"m_belvedere",
+	"M",
+	"Belvedere deck",
+	0,
+	OUT,
+	{ 138, 15, 178, 70 },
+	{ density = 1, props = { "trees", "planters", "tables" } }
+)
+
 -- T: top floor (48) -----------------------------------------------------------------------------------------------------
-room("t_great", "T", "Penthouse great room", 3, IN, { -45, -45, 45, 55 }, { density = 1 })
-room("t_gallery", "T", "Private gallery", 3, IN, { -45, 55, 45, 85 }, { props = { "partitions" } })
+room("t_great", "T", "Penthouse great room", 3, IN, { -45, -45, 45, 55 }, { glass = true, density = 1 })
+room("t_gallery", "T", "Private gallery", 3, IN, { -45, 55, 45, 85 }, { glass = true, props = { "partitions" } })
 room("t_vaultb_ante", "T", "Vault B antechamber", 2, IN, { -45, -75, 45, -45 })
 room("t_vaultb", "T", "Vault B", 3, IN, { -45, -105, 45, -75 }, { density = 0.5 })
 room("t_west", "T", "West guard hall", 2, IN, { -75, -105, -45, 85 }, { props = { "pillars" } })
@@ -192,7 +270,15 @@ room("t_office", "T", "Executive office", 3, IN, { 45, 20, 75, 45 }, { parent = 
 room("t_terrace", "T", "Upper terrace", 0, OUT, FM, { holes = { FT }, density = 1, props = { "planters", "tables" } })
 
 -- R: roof (72) ----------------------------------------------------------------------------------------------------------
-room("r_roof", "R", "Rooftop cocktail party", 0, OUT, FT, { density = 2, props = { "tables", "planters", "bar" } })
+room(
+	"r_roof",
+	"R",
+	"Rooftop cocktail party",
+	0,
+	OUT,
+	FT,
+	{ holes = { { -30, -25, 30, 35 } }, density = 2, props = { "tables", "planters", "bar" } }
+)
 
 -- The atrium: open shafts through the mezzanine and top floors, with railings round them.
 local voids = {
@@ -215,6 +301,8 @@ local ramps: { Ramp } = {
 	{ from = "G", x = 60, z = -130, dir = "+z" },
 	{ from = "G", x = -90, z = -40, dir = "+z" },
 	{ from = "G", x = 90, z = -40, dir = "+z" },
+	-- G -> belvedere deck (up from the lawn, under the deck)
+	{ from = "G", x = 158, z = 20, dir = "+z" },
 	-- M -> T
 	{ from = "M", x = -38, z = 5, dir = "+z" },
 	{ from = "M", x = 38, z = 5, dir = "+z" },
@@ -344,6 +432,41 @@ door("t_east", "t_vaultb_ante", -60, 8)
 door("t_west", "t_panic", -60, 8, { gate = 3 })
 door("t_east", "t_office", 60, 8, { gate = 3 })
 
+-- Water, islands, bridges and set pieces. The atrium floor is a shallow reflecting pool under the open void, with two
+-- garden islands joined by short bridges; the pond court has a red footbridge, a statue island, a waterfall and lanterns.
+local features: { Feature } = {
+	{ kind = "pool", level = "G", rect = { -30, -22, 30, 32 } },
+	{ kind = "island", level = "G", rect = { -26, -8, -12, 20 } },
+	{ kind = "island", level = "G", rect = { 12, -8, 26, 20 } },
+	{ kind = "bridge", level = "G", rect = { -22, 20, -16, 32 } },
+	{ kind = "bridge", level = "G", rect = { 16, 20, 22, 32 } },
+	{ kind = "skylight", level = "R", rect = { -30, -25, 30, 35 } },
+	{ kind = "pool", level = "G", rect = { 126, 76, 210, 124 } },
+	{ kind = "bridge", level = "G", rect = { 132, 95, 213, 101 }, top = 1.2, color = Color3.fromRGB(185, 45, 40) },
+	{ kind = "island", level = "G", rect = { 165, 106, 180, 120 } },
+	{ kind = "statue", level = "G", x = 172.5, z = 113 },
+	{ kind = "waterfall", level = "G", x = 124.5, z = 100, width = 8, height = 22 },
+	{
+		kind = "lanterns",
+		level = "G",
+		points = { { 130, 72 }, { 130, 128 }, { 170, 72 }, { 170, 128 }, { 205, 72 }, { 205, 128 } },
+	},
+	{ kind = "pavilion", level = "G", rect = { 190, -120, 214, -50 }, count = 5 },
+}
+
+local nodes: { NodeSpec } = {
+	{ level = "G", x = -19, z = 6, activity = "Idle" },
+	{ level = "G", x = 19, z = 6, activity = "Talk" },
+	{ level = "G", x = -19, z = 26, activity = "Walk" },
+	{ level = "G", x = 19, z = 26, activity = "Walk" },
+	{ level = "G", x = 140, z = 98, activity = "Walk" },
+	{ level = "G", x = 172, z = 98, activity = "Walk" },
+	{ level = "G", x = 205, z = 98, activity = "Walk" },
+	{ level = "M", x = 126, z = 32, activity = "Walk" },
+	{ level = "M", x = 134, z = 32, activity = "Walk" },
+	{ level = "M", x = 142, z = 32, activity = "Walk" },
+}
+
 -- Places that are not rooms: where teams arrive and where the Package leaves (spec 4.3).
 local extraction: { Marker } = {
 	{ id = "Helipad", level = "R", x = 0, z = 50 },
@@ -382,4 +505,6 @@ return {
 	extraction = extraction,
 	insertion = insertion,
 	vaults = vaults,
+	features = features,
+	nodes = nodes,
 }

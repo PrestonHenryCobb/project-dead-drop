@@ -58,6 +58,8 @@ local EPS = 1e-4
 local NODE_MARGIN = 8 -- studs a node keeps from a room's walls
 local NODE_SPACING = { [0] = 70, [1] = 50, [2] = 55, [3] = 60 }
 local NODE_CAP = 320 -- see GameConfig.Map.NPCNodeCount
+local LIGHT_SPACING = 55 -- studs between ceiling lights in a room
+local LIGHT_CAP = 110 -- the most lights in the map (each is a dynamic light on a phone)
 local DOOR_CLEAR = 7 -- studs props keep clear in front of a doorway
 local NODE_PROP_CLEAR = 3 -- studs a node keeps from a prop
 
@@ -455,6 +457,185 @@ function Build.run()
 		table.insert(reserved[upper], inflate(footprint, 3))
 	end
 
+	-- Features: water, islands, bridges, skylights and set pieces that are not rooms (Layout.features) -----------------------------
+	local WATER = Color3.fromRGB(70, 135, 190)
+	local GRASS = Color3.fromRGB(90, 135, 80)
+	local BRONZE = Color3.fromRGB(190, 125, 60)
+	local DARK_WOOD = Color3.fromRGB(100, 72, 52)
+	local STONE_GREY = Color3.fromRGB(170, 170, 175)
+	local GLASS = Color3.fromRGB(190, 220, 240)
+
+	local function featureTree(level: string, x: number, z: number, lift: number)
+		local y = levels[level] + lift
+		part(propsFolder, "Tree", Vector3.new(1.6, 6, 1.6), CFrame.new(x, y + 3, z), Color3.fromRGB(90, 65, 45))
+		local canopy = part(propsFolder, "Canopy", Vector3.new(10, 8, 10), CFrame.new(x, y + 9.5, z), GRASS)
+		canopy.Shape = Enum.PartType.Ball
+		canopy.CanCollide = false
+	end
+
+	for _, feature in Layout.features do
+		local level = feature.level
+		local y = levels[level]
+		local r: Rect? = if feature.rect then toRect(feature.rect) else nil
+		if r and feature.kind ~= "skylight" then
+			table.insert(reserved[level], inflate(r, 1)) -- props and doorways keep clear of it
+		end
+		if feature.kind == "pool" and r then
+			local water = part(
+				propsFolder,
+				"Water",
+				Vector3.new(r.x2 - r.x1, 0.5, r.z2 - r.z1),
+				CFrame.new((r.x1 + r.x2) / 2, y + 0.25, (r.z1 + r.z2) / 2),
+				WATER
+			)
+			water.Material = Enum.Material.Glass
+			water.Transparency = 0.35
+			water.CanCollide = false
+		elseif feature.kind == "island" and r then
+			part(
+				propsFolder,
+				"Island",
+				Vector3.new(r.x2 - r.x1, 1, r.z2 - r.z1),
+				CFrame.new((r.x1 + r.x2) / 2, y + 0.5, (r.z1 + r.z2) / 2),
+				GRASS
+			)
+			local cx, cz = (r.x1 + r.x2) / 2, (r.z1 + r.z2) / 2
+			local long = (r.x2 - r.x1) > (r.z2 - r.z1)
+			for _, side in { -1, 1 } do
+				local ox = if long then side * (r.x2 - r.x1) * 0.28 else 0
+				local oz = if long then 0 else side * (r.z2 - r.z1) * 0.28
+				featureTree(level, cx + ox, cz + oz, 1)
+			end
+		elseif feature.kind == "bridge" and r then
+			local top = feature.top or 1
+			local color = feature.color or DARK_WOOD
+			part(
+				propsFolder,
+				"Bridge",
+				Vector3.new(r.x2 - r.x1, 0.4, r.z2 - r.z1),
+				CFrame.new((r.x1 + r.x2) / 2, y + top - 0.2, (r.z1 + r.z2) / 2),
+				color
+			)
+			local lengthAlongX = (r.x2 - r.x1) > (r.z2 - r.z1)
+			for _, side in { -1, 1 } do
+				if lengthAlongX then
+					part(
+						propsFolder,
+						"BridgeRail",
+						Vector3.new(r.x2 - r.x1, 2.2, 0.3),
+						CFrame.new((r.x1 + r.x2) / 2, y + top + 1.1, if side < 0 then r.z1 + 0.15 else r.z2 - 0.15),
+						color
+					)
+				else
+					part(
+						propsFolder,
+						"BridgeRail",
+						Vector3.new(0.3, 2.2, r.z2 - r.z1),
+						CFrame.new(if side < 0 then r.x1 + 0.15 else r.x2 - 0.15, y + top + 1.1, (r.z1 + r.z2) / 2),
+						color
+					)
+				end
+			end
+		elseif feature.kind == "skylight" and r then
+			local pane = part(
+				geometry,
+				"Skylight",
+				Vector3.new(r.x2 - r.x1, SLAB, r.z2 - r.z1),
+				CFrame.new((r.x1 + r.x2) / 2, y - SLAB / 2, (r.z1 + r.z2) / 2),
+				GLASS
+			)
+			pane.Material = Enum.Material.Glass
+			pane.Transparency = 0.55
+		elseif feature.kind == "waterfall" then
+			local height = feature.height or 22
+			local fall = part(
+				propsFolder,
+				"Waterfall",
+				Vector3.new(feature.width or 6, height, 0.6),
+				CFrame.new(feature.x :: number, y + height / 2, feature.z :: number),
+				Color3.fromRGB(215, 235, 250)
+			)
+			fall.Material = Enum.Material.Glass
+			fall.Transparency = 0.4
+			fall.CanCollide = false
+		elseif feature.kind == "statue" then
+			part(
+				propsFolder,
+				"Pedestal",
+				Vector3.new(4, 2, 4),
+				CFrame.new(feature.x :: number, y + 1, feature.z :: number),
+				STONE_GREY
+			)
+			part(
+				propsFolder,
+				"Statue legs",
+				Vector3.new(2, 3.5, 1.2),
+				CFrame.new(feature.x :: number, y + 3.75, feature.z :: number),
+				BRONZE
+			)
+			part(
+				propsFolder,
+				"Statue torso",
+				Vector3.new(2.4, 3, 1.4),
+				CFrame.new(feature.x :: number, y + 7, feature.z :: number),
+				BRONZE
+			)
+			local head = part(
+				propsFolder,
+				"Statue head",
+				Vector3.new(1.6, 1.6, 1.6),
+				CFrame.new(feature.x :: number, y + 9.3, feature.z :: number),
+				BRONZE
+			)
+			head.Shape = Enum.PartType.Ball
+		elseif feature.kind == "lanterns" then
+			for _, position in feature.points do
+				part(
+					propsFolder,
+					"Lantern post",
+					Vector3.new(0.7, 4, 0.7),
+					CFrame.new(position[1], y + 2, position[2]),
+					STONE_GREY
+				)
+				local lamp = part(
+					propsFolder,
+					"Lantern",
+					Vector3.new(1.3, 1.3, 1.3),
+					CFrame.new(position[1], y + 4.6, position[2]),
+					Color3.fromRGB(255, 200, 120)
+				)
+				lamp.Material = Enum.Material.Neon
+				lamp.CanCollide = false
+			end
+		elseif feature.kind == "pavilion" and r then
+			-- A boardwalk deck and a row of A-frame glass-and-timber arches along it.
+			part(
+				propsFolder,
+				"Boardwalk",
+				Vector3.new(r.x2 - r.x1, 0.4, r.z2 - r.z1),
+				CFrame.new((r.x1 + r.x2) / 2, y + 0.2, (r.z1 + r.z2) / 2),
+				DARK_WOOD
+			)
+			local count = feature.count or 4
+			local spacing = (r.z2 - r.z1) / count
+			for index = 1, count do
+				local z = r.z1 + spacing * (index - 0.5)
+				for _, side in { -1, 1 } do
+					local panel = part(
+						propsFolder,
+						"Arch",
+						Vector3.new(0.8, 14, spacing * 0.7),
+						CFrame.new((r.x1 + r.x2) / 2 + side * 3.6, y + 7.2, z)
+							* CFrame.Angles(0, 0, side * math.rad(-32)),
+						Color3.fromRGB(235, 150, 60)
+					)
+					panel.Material = Enum.Material.Glass
+					panel.Transparency = 0.35
+				end
+			end
+		end
+	end
+
 	-- Walls ----------------------------------------------------------------------------------------------------------------------
 	local function alongSize(axis: string, length: number, height: number, depth: number): Vector3
 		return if axis == "x" then Vector3.new(length, height, depth) else Vector3.new(depth, height, length)
@@ -462,8 +643,30 @@ function Build.run()
 	local function alongPoint(axis: string, line: number, pos: number, y: number): Vector3
 		return if axis == "x" then Vector3.new(pos, y, line) else Vector3.new(line, y, pos)
 	end
+	local currentGlass = false -- the wall being built is glass above a low sill (an indoor room facing a garden)
 	local function wallPiece(edge: Edge, a: number, b: number, height: number, color: Color3)
 		if b - a < 0.5 then
+			return
+		end
+		if currentGlass and height == WALL_H then
+			local sill = 3
+			local base = levels[edge.level]
+			part(
+				geometry,
+				"Sill",
+				alongSize(edge.axis, b - a, sill, WALL_T),
+				CFrame.new(alongPoint(edge.axis, edge.line, (a + b) / 2, base + sill / 2)),
+				color
+			)
+			local pane = part(
+				geometry,
+				"Glass",
+				alongSize(edge.axis, b - a, height - sill, WALL_T - 0.6),
+				CFrame.new(alongPoint(edge.axis, edge.line, (a + b) / 2, base + sill + (height - sill) / 2)),
+				Color3.fromRGB(170, 210, 235)
+			)
+			pane.Material = Enum.Material.Glass
+			pane.Transparency = 0.55
 			return
 		end
 		local y = levels[edge.level] + height / 2
@@ -502,6 +705,12 @@ function Build.run()
 			continue
 		end
 		wallCount += 1
+		currentGlass = false
+		if edge.kind == "shared" then
+			local other = edge.roomB :: Room
+			currentGlass = (edge.roomA.glass == true or other.glass == true)
+				and (edge.roomA.kind == "outdoor" or other.kind == "outdoor")
+		end
 
 		table.sort(edge.gaps, function(p, q)
 			return p.center < q.center
@@ -718,7 +927,8 @@ function Build.run()
 		sy: number,
 		sz: number,
 		color: Color3,
-		solid: boolean?
+		solid: boolean?,
+		round: boolean?
 	): boolean
 		local rect: Rect = { x1 = cx - sx / 2, z1 = cz - sz / 2, x2 = cx + sx / 2, z2 = cz + sz / 2 }
 		if not freeFor(room, rect) then
@@ -726,6 +936,12 @@ function Build.run()
 		end
 		local p =
 			part(propsFolder, name, Vector3.new(sx, sy, sz), CFrame.new(cx, levels[room.level] + sy / 2, cz), color)
+		if round then
+			-- A cylinder's axis is X, so it is sized with its height along X and turned upright.
+			p.Shape = Enum.PartType.Cylinder
+			p.Size = Vector3.new(sy, sx, sz)
+			p.CFrame = CFrame.new(cx, levels[room.level] + sy / 2, cz) * CFrame.Angles(0, 0, math.rad(90))
+		end
 		if solid == false then
 			p.CanCollide = false
 		end
@@ -749,7 +965,7 @@ function Build.run()
 			while x < b.x2 - 10 do
 				local z = b.z1 + 20
 				while z < b.z2 - 10 do
-					addProp(room, "Pillar", x, z, 3, WALL_H, 3, STONE)
+					addProp(room, "Pillar", x, z, 3, WALL_H, 3, STONE, true, true)
 					z += 24
 				end
 				x += 24
@@ -811,7 +1027,18 @@ function Build.run()
 				local z = b.z1 + 18
 				while z < b.z2 - 12 do
 					if rng:NextNumber() < 0.85 then
-						addProp(room, "Table", x + rng:NextNumber(-4, 4), z + rng:NextNumber(-4, 4), 6, 3.5, 6, WOOD)
+						addProp(
+							room,
+							"Table",
+							x + rng:NextNumber(-4, 4),
+							z + rng:NextNumber(-4, 4),
+							6,
+							3.5,
+							6,
+							WOOD,
+							true,
+							true
+						)
 					end
 					z += 17
 				end
@@ -912,7 +1139,7 @@ function Build.run()
 		end,
 		fountain = function(room)
 			local b = bounds(room)
-			addProp(room, "Fountain", (b.x1 + b.x2) / 2, (b.z1 + b.z2) / 2, 18, 3, 18, STONE)
+			addProp(room, "Fountain", (b.x1 + b.x2) / 2, (b.z1 + b.z2) / 2, 18, 3, 18, STONE, true, true)
 		end,
 		pool = function(room)
 			local b = bounds(room)
@@ -937,6 +1164,49 @@ function Build.run()
 			local before = #propRects[room.level]
 			build(room)
 			propCount += #propRects[room.level] - before
+		end
+	end
+
+	-- Interior lights: warm amber in the public rooms, cooler as the tier rises, a handful per room (dusk-like inside).
+	local LIGHT_COLORS: { [number]: Color3 } = {
+		[0] = Color3.fromRGB(255, 205, 150),
+		[1] = Color3.fromRGB(225, 232, 255),
+		[2] = Color3.fromRGB(205, 190, 255),
+		[3] = Color3.fromRGB(255, 220, 160),
+	}
+	local lightCount = 0
+	for _, room in rooms do
+		if room.kind == "indoor" then
+			for _, piece in piecesOfRoom[room.id] do
+				local p = piece.rect
+				local x = p.x1 + LIGHT_SPACING / 2
+				while x < p.x2 do
+					local z = p.z1 + LIGHT_SPACING / 2
+					while z < p.z2 do
+						if lightCount < LIGHT_CAP then
+							local lamp = part(
+								propsFolder,
+								"CeilingLight",
+								Vector3.new(3, 0.3, 3),
+								CFrame.new(x, levels[room.level] + WALL_H - 0.4, z),
+								LIGHT_COLORS[room.tier]
+							)
+							lamp.Material = Enum.Material.Neon
+							lamp.CanCollide = false
+							lamp.CanQuery = false
+							local light = Instance.new("PointLight")
+							light.Color = LIGHT_COLORS[room.tier]
+							light.Range = 30
+							light.Brightness = 0.7
+							light.Shadows = false
+							light.Parent = lamp
+							lightCount += 1
+						end
+						z += LIGHT_SPACING
+					end
+					x += LIGHT_SPACING
+				end
+			end
 		end
 	end
 
@@ -1048,10 +1318,13 @@ function Build.run()
 			local step = (NODE_SPACING[room.tier] / math.sqrt(room.density or 1)) * spacingScale
 			for _, piece in piecesOfRoom[room.id] do
 				local r = piece.rect
-				local x = r.x1 + NODE_MARGIN
-				while x <= r.x2 - NODE_MARGIN do
-					local z = r.z1 + NODE_MARGIN
-					while z <= r.z2 - NODE_MARGIN do
+				-- A strip narrower than twice the margin (a terrace, a bridge) still gets nodes, down its middle.
+				local marginX = math.min(NODE_MARGIN, math.max((r.x2 - r.x1) / 2 - 0.1, 0))
+				local marginZ = math.min(NODE_MARGIN, math.max((r.z2 - r.z1) / 2 - 0.1, 0))
+				local x = r.x1 + marginX
+				while x <= r.x2 - marginX do
+					local z = r.z1 + marginZ
+					while z <= r.z2 - marginZ do
 						if not blockedForNode(room.level, x, z) then
 							table.insert(list, {
 								level = room.level,
@@ -1066,6 +1339,15 @@ function Build.run()
 					x += step
 				end
 			end
+		end
+		for _, node in Layout.nodes do
+			table.insert(list, {
+				level = node.level,
+				x = node.x,
+				z = node.z,
+				tier = tierAtPoint(node.level, node.x, node.z),
+				activity = node.activity,
+			})
 		end
 		-- Every doorway gets a walking node on each side so routes connect through it.
 		for _, d in doorPoints do
@@ -1138,10 +1420,12 @@ function Build.run()
 	spawn.Duration = 0
 	spawn.Parent = objects
 
-	-- Temporary lighting: dim, with enough ambient light to see the layout. The art pass replaces it.
-	Lighting.Ambient = Color3.fromRGB(110, 110, 120)
-	Lighting.OutdoorAmbient = Color3.fromRGB(95, 95, 110)
-	Lighting.ExposureCompensation = 0.2
+	-- Night outside, with a warm dusk-like glow inside (STYLE_QUESTIONS: night with nice ambient light). The art pass refines it.
+	Lighting.ClockTime = 20.5
+	Lighting.Ambient = Color3.fromRGB(135, 105, 90)
+	Lighting.OutdoorAmbient = Color3.fromRGB(78, 86, 125)
+	Lighting.Brightness = 1.2
+	Lighting.ExposureCompensation = 0.35
 
 	-- Checks -----------------------------------------------------------------------------------------------------------------------------------
 	local function count(tagName: string): number

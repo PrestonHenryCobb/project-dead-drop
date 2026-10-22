@@ -1,11 +1,11 @@
 --!strict
 -- Every NPC and every player disguise is one of these outfits (spec 5.1, 6, 25.3).
 --
--- Each role has a uniform signature so the tier is readable at a glance:
---   Guest      varied formalwear
---   Staff      white shirts with blue trim (apron or tie)
---   Security   dark suits with an orange armband
---   Executive  dark suits with a purple tie and lapel pin
+-- Each role has a uniform signature so the tier is readable at a glance, and matches its zone colour (GameConfig.Zones):
+--   Guest      varied colourful formalwear, never navy, black or cream, and no hat
+--   Staff      light navy suits with black accessories (hat, tie, lapels): navy
+--   Security   black suits with purple accessories (lapels, tie) and sunglasses: purple
+--   Executive  cream suits with gold accessories (lapels, tie, pocket square, pin): gold
 -- Outfits are generated from small palettes so every role has well over GameConfig.NPC.MinOutfitsPerRole of them
 -- and no two share an OutfitId. Colors, accessories and hair are the only things that differ; the rig is shared.
 --
@@ -46,14 +46,16 @@ local SHOES = { Color3.fromRGB(25, 25, 28), Color3.fromRGB(70, 45, 30), Color3.f
 
 -- Formal jackets and trousers for guests.
 local GUEST_JACKETS = {
-	Color3.fromRGB(28, 40, 80),
-	Color3.fromRGB(60, 60, 66),
 	Color3.fromRGB(110, 25, 45),
-	Color3.fromRGB(35, 80, 55),
-	Color3.fromRGB(225, 215, 190),
-	Color3.fromRGB(20, 20, 24),
-	Color3.fromRGB(70, 90, 110),
-	Color3.fromRGB(130, 60, 90),
+	Color3.fromRGB(35, 110, 75),
+	Color3.fromRGB(95, 45, 120),
+	Color3.fromRGB(180, 140, 40),
+	Color3.fromRGB(200, 110, 140),
+	Color3.fromRGB(30, 110, 120),
+	Color3.fromRGB(140, 90, 50),
+	Color3.fromRGB(110, 100, 150),
+	Color3.fromRGB(215, 100, 85),
+	Color3.fromRGB(95, 110, 50),
 }
 local GUEST_PANTS =
 	{ Color3.fromRGB(20, 20, 24), Color3.fromRGB(45, 45, 52), Color3.fromRGB(32, 38, 60), Color3.fromRGB(85, 70, 55) }
@@ -65,16 +67,11 @@ local ACCENTS = {
 	Color3.fromRGB(200, 120, 160),
 }
 
-local STAFF_SHIRTS = { Color3.fromRGB(245, 245, 245), Color3.fromRGB(225, 232, 245), Color3.fromRGB(235, 225, 205) }
-local STAFF_PANTS = { Color3.fromRGB(20, 20, 24), Color3.fromRGB(50, 50, 58), Color3.fromRGB(30, 36, 60) }
-
-local DARK_SUITS = {
-	Color3.fromRGB(18, 18, 22),
-	Color3.fromRGB(38, 40, 48),
-	Color3.fromRGB(24, 30, 52),
-	Color3.fromRGB(50, 24, 32),
-	Color3.fromRGB(26, 46, 40),
-}
+local STAFF_SUITS = { Color3.fromRGB(62, 88, 138), Color3.fromRGB(56, 80, 128), Color3.fromRGB(68, 95, 145) }
+local STAFF_TROUSERS = { Color3.fromRGB(48, 66, 108), Color3.fromRGB(44, 60, 100), Color3.fromRGB(52, 72, 116) }
+local SECURITY_SUITS = { Color3.fromRGB(16, 16, 20), Color3.fromRGB(22, 22, 26), Color3.fromRGB(28, 28, 32) }
+local EXECUTIVE_SUITS = { Color3.fromRGB(236, 228, 208), Color3.fromRGB(228, 222, 206), Color3.fromRGB(240, 234, 218) }
+local BLACK = Color3.fromRGB(14, 14, 16)
 
 local tierColors = GameConfig.Zones.TierColors
 
@@ -134,36 +131,34 @@ local builders: { [Role]: (number) -> OutfitDef } = {
 		)
 	end,
 	Staff = function(index)
-		local blue = tierColors[Enums.Tier.Staff]
-		local accessories: { AccessoryDef } = {}
-		if index % 2 == 0 then
-			table.insert(accessories, { Kind = "Apron", Color = blue })
-		else
-			table.insert(accessories, { Kind = "Tie", Color = blue })
+		local suit = pick(STAFF_SUITS, index, 1)
+		local accessories: { AccessoryDef } = {
+			{ Kind = "Tie", Color = BLACK },
+			{ Kind = "Lapels", Color = BLACK },
+		}
+		-- Most staff wear the black fedora; a few go bare-headed so a hat is not the only tell.
+		if index % 4 ~= 3 then
+			table.insert(accessories, { Kind = "Fedora", Color = BLACK })
 		end
-		return outfit(
-			"Staff",
-			Enums.Tier.Staff,
-			index,
-			pick(STAFF_SHIRTS, index, 1),
-			index % 4 ~= 3,
-			pick(STAFF_PANTS, index, 2),
-			accessories
-		)
+		return outfit("Staff", Enums.Tier.Staff, index, suit, true, pick(STAFF_TROUSERS, index, 1), accessories)
 	end,
 	Security = function(index)
-		local suit = pick(DARK_SUITS, index, 1)
+		local suit = pick(SECURITY_SUITS, index, 1)
+		local purple = tierColors[Enums.Tier.Security]
 		return outfit("Security", Enums.Tier.Security, index, suit, true, suit, {
-			{ Kind = "Tie", Color = Color3.fromRGB(15, 15, 18) },
-			{ Kind = "Armband", Color = tierColors[Enums.Tier.Security] },
+			{ Kind = "Tie", Color = purple },
+			{ Kind = "Lapels", Color = purple },
+			{ Kind = "Sunglasses", Color = BLACK },
 		})
 	end,
 	Executive = function(index)
-		local suit = pick(DARK_SUITS, index, 2)
-		local purple = tierColors[Enums.Tier.Executive]
+		local suit = pick(EXECUTIVE_SUITS, index, 1)
+		local gold = tierColors[Enums.Tier.Executive]
 		return outfit("Executive", Enums.Tier.Executive, index, suit, true, suit, {
-			{ Kind = "Tie", Color = purple },
-			{ Kind = "LapelPin", Color = purple },
+			{ Kind = "Tie", Color = gold },
+			{ Kind = "Lapels", Color = gold },
+			{ Kind = "PocketSquare", Color = gold },
+			{ Kind = "LapelPin", Color = gold },
 		})
 	end,
 }

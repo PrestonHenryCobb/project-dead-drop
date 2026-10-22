@@ -84,27 +84,47 @@ local function buildAccessory(kind: Types.AccessoryKind, color: Color3): Accesso
 			newPart("Handle", Vector3.new(0.9, 0.35, 0.15), color),
 			CFrame.new(0, 0.65, -0.05)
 		)
-	elseif kind == "Armband" then
+	elseif kind == "Lapels" then
+		-- Two slim strips down the front of a jacket, one each side of the tie, in the trim colour.
+		local accessory = newAccessory(
+			"Lapels",
+			"BodyFrontAttachment",
+			newPart("Handle", Vector3.new(0.3, 1.5, 0.12), color),
+			CFrame.new(-0.55, 0.05, -0.08)
+		)
+		addExtra(accessory, newPart("LapelRight", Vector3.new(0.3, 1.5, 0.12), color), CFrame.new(1.1, 0, 0))
+		return accessory
+	elseif kind == "PocketSquare" then
 		return newAccessory(
-			"Armband",
-			"LeftShoulderAttachment",
-			newPart("Handle", Vector3.new(1.3, 0.4, 1.3), color),
-			CFrame.new(0, -0.35, 0)
+			"PocketSquare",
+			"BodyFrontAttachment",
+			newPart("Handle", Vector3.new(0.35, 0.3, 0.12), color),
+			CFrame.new(-0.75, 0.45, -0.1)
 		)
 	elseif kind == "LapelPin" then
 		return newAccessory(
 			"LapelPin",
 			"BodyFrontAttachment",
 			newPart("Handle", Vector3.new(0.3, 0.3, 0.3), color, Enum.PartType.Ball),
-			CFrame.new(-0.65, 0.45, -0.1)
+			CFrame.new(0.65, 0.45, -0.1)
 		)
+	elseif kind == "Fedora" then
+		-- A brim and a crown. Hats mean "employee": Guests never wear one.
+		local accessory = newAccessory(
+			"Fedora",
+			"HatAttachment",
+			newPart("Handle", Vector3.new(2.9, 0.15, 2.9), color),
+			CFrame.new(0, 0.02, 0)
+		)
+		addExtra(accessory, newPart("Crown", Vector3.new(1.6, 0.8, 1.6), color), CFrame.new(0, 0.5, 0))
+		return accessory
 	end
-	-- Apron
+	-- Sunglasses
 	return newAccessory(
-		"Apron",
-		"BodyFrontAttachment",
-		newPart("Handle", Vector3.new(1.8, 1.6, 0.15), color),
-		CFrame.new(0, -0.45, -0.1)
+		"Sunglasses",
+		"FaceFrontAttachment",
+		newPart("Handle", Vector3.new(1.3, 0.3, 0.12), color),
+		CFrame.new(0, 0.1, -0.05)
 	)
 end
 

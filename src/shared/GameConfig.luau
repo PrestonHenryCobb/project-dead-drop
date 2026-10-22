@@ -50,9 +50,9 @@ local GameConfig = {
 		CheckInterval = 0.25, -- server samples each player's tier at 4 Hz
 		TierColors = {
 			[0] = Color3.fromRGB(215, 215, 215), -- Public: white/gray
-			[1] = Color3.fromRGB(60, 130, 255), -- Staff: blue
-			[2] = Color3.fromRGB(255, 140, 30), -- Security: orange
-			[3] = Color3.fromRGB(150, 70, 230), -- Executive: purple
+			[1] = Color3.fromRGB(85, 115, 175), -- Staff: muted navy blue, matching the light navy suits
+			[2] = Color3.fromRGB(150, 95, 215), -- Security: purple, matching the black suits with purple trim
+			[3] = Color3.fromRGB(225, 190, 95), -- Executive: gold, matching the cream suits with gold trim
 		},
 	},
 
