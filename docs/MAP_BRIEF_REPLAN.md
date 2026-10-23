@@ -250,3 +250,23 @@ gone.
 **SPEC-QUESTION:** clear interior glass blocks NPC and camera sight like a wall, the same as the city windows always
 have. Letting sight through glass needs a separate collision group for sight rays. That is worth deciding before the
 art pass.
+
+## Stage 3 built (2026-10-23): real doors, signs, tier colours
+
+The self-check passes with 0 problems.
+- **Tier colours:** Staff green, Security dark purple, Executive gold, plus Vault red (`GameConfig.Zones`). Staff
+  uniforms keep the navy suit and black fedora, with green ties and lapels. Guests no longer wear green accents.
+- **Real doors** on all 30 clearance and keycard doors:
+  - Framed glass for Public and Staff, solid wood for Security, heavy strapped steel for Executive and vault wings.
+  - Glowing handle bars in the tier colour on both faces (red into vault wings), with one pip per tier.
+  - The openings are 13 studs tall, and double leaves are used from 10 studs wide.
+  - DoorService still owns each door. It switches an invisible blocker and sets an `Open` attribute, and
+    `DoorController` swings the leaves on each client into the higher-tier room. Checked in a playtest.
+- **Signs** (96, never for vaults):
+  - EXIT over doorways with a stair end within 30 studs, EXTRACTION into extraction rooms, and RESTROOMS.
+  - A hanging "UP TO ... / DOWN TO ..." sign at both ends of every stair.
+  - Each sign is a lit panel on the wall. **Floating signs** (your request): within 40 studs the text of the side facing
+    you floats out in front of the panel, faces your camera at a fixed readable size, and is fully shown by 25 studs,
+    while the printed text fades out (`SignController`, `GameConfig.Map.Signs`). Walls still hide it.
+- **Bug fixed:** the coloured floor strips at doorways were sometimes on the wrong side of the wall (the same cause as
+  the vault hack zones in stage 2).

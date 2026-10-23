@@ -3,8 +3,8 @@
 --
 -- Each role has a uniform signature so the tier is readable at a glance, and matches its zone colour (GameConfig.Zones):
 --   Guest      varied colourful formalwear, never navy, black or cream, and no hat
---   Staff      light navy suits with black accessories (hat, tie, lapels): navy
---   Security   black suits with purple accessories (lapels, tie) and sunglasses: purple
+--   Staff      light navy suits with green ties and lapels, and a black hat: green
+--   Security   black suits with dark purple accessories (lapels, tie) and sunglasses: dark purple
 --   Executive  cream suits with gold accessories (lapels, tie, pocket square, pin): gold
 -- Outfits are generated from small palettes so every role has well over GameConfig.NPC.MinOutfitsPerRole of them
 -- and no two share an OutfitId. Colors, accessories and hair are the only things that differ; the rig is shared.
@@ -62,7 +62,7 @@ local GUEST_PANTS =
 local ACCENTS = {
 	Color3.fromRGB(190, 40, 50),
 	Color3.fromRGB(230, 200, 80),
-	Color3.fromRGB(60, 150, 90),
+	Color3.fromRGB(230, 140, 60), -- not green: green ties and lapels are the Staff signature
 	Color3.fromRGB(240, 240, 240),
 	Color3.fromRGB(200, 120, 160),
 }
@@ -132,9 +132,10 @@ local builders: { [Role]: (number) -> OutfitDef } = {
 	end,
 	Staff = function(index)
 		local suit = pick(STAFF_SUITS, index, 1)
+		local green = tierColors[Enums.Tier.Staff]
 		local accessories: { AccessoryDef } = {
-			{ Kind = "Tie", Color = BLACK },
-			{ Kind = "Lapels", Color = BLACK },
+			{ Kind = "Tie", Color = green },
+			{ Kind = "Lapels", Color = green },
 		}
 		-- Most staff wear the black fedora; a few go bare-headed so a hat is not the only tell.
 		if index % 4 ~= 3 then
@@ -144,7 +145,7 @@ local builders: { [Role]: (number) -> OutfitDef } = {
 	end,
 	Security = function(index)
 		local suit = pick(SECURITY_SUITS, index, 1)
-		local purple = tierColors[Enums.Tier.Security]
+		local purple = tierColors[Enums.Tier.Security] -- dark purple
 		return outfit("Security", Enums.Tier.Security, index, suit, true, suit, {
 			{ Kind = "Tie", Color = purple },
 			{ Kind = "Lapels", Color = purple },

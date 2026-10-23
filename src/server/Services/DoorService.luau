@@ -2,6 +2,10 @@
 -- Doors that open for NPCs (spec 5.2) and for clearance (STEP 7B). A door closes DoorCloseDelay seconds after the last
 -- body was near it, so someone slipping through behind an opener is the tailgating the game allows.
 --
+-- The tagged part is the doorway's invisible blocker: solid while the door is shut (it stops bodies and sight), and not
+-- while it is open. Its Open attribute tells clients to swing the visible leaves (DoorController); the server never
+-- moves them (map re-plan stage 3).
+--
 --   * Keycard doors (spec 4.3) open for any NPC. Players opening them with keycards, gadgets and lockpicks is Step 14.
 --   * Clearance doors open only for a body whose clearance tier is at least the door's Tier attribute: an NPC of that
 --     role, or a player wearing a disguise of that tier. An Exposed player has no clearance, so these stay shut for them.
@@ -24,7 +28,6 @@ type Door = {
 	tier: number?, -- the clearance needed, for a clearance door
 	open: boolean,
 	lastHeld: number,
-	closedTransparency: number,
 }
 
 local DoorService = {}
@@ -35,7 +38,7 @@ local doors: { Door } = {}
 local function setOpen(door: Door, open: boolean)
 	door.open = open
 	door.part.CanCollide = not open
-	door.part.Transparency = if open then config.Door.OpenTransparency else door.closedTransparency
+	door.part:SetAttribute("Open", open)
 end
 
 function DoorService.Init()
@@ -47,8 +50,8 @@ function DoorService.Init()
 					tier = if tagName == Enums.Tag.ClearanceDoor then instance:GetAttribute("Tier") else nil,
 					open = false,
 					lastHeld = 0,
-					closedTransparency = instance.Transparency,
 				})
+				instance:SetAttribute("Open", false)
 				if config.Door.OpenForNpcs then
 					-- Pathfinding treats the door as open ground, so NPC routes can go through it.
 					local modifier = Instance.new("PathfindingModifier")

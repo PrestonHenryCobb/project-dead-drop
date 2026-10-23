@@ -48,12 +48,18 @@ local GameConfig = {
 	-- Spec 4.2: clearance zones.
 	Zones = {
 		CheckInterval = 0.25, -- server samples each player's tier at 4 Hz
+		-- Brighter, easier to tell apart (SPEC_CHANGES 4.2, 2026-10-23): door handles, pips, floor inlays, signs and the
+		-- uniform trims all use these. Asset rarities follow them too (Field Agent grey, Infiltrator green, Black Ops
+		-- dark purple, Ghost gold).
 		TierColors = {
-			[0] = Color3.fromRGB(215, 215, 215), -- Public: white/gray
-			[1] = Color3.fromRGB(85, 115, 175), -- Staff: muted navy blue, matching the light navy suits
-			[2] = Color3.fromRGB(150, 95, 215), -- Security: purple, matching the black suits with purple trim
+			[0] = Color3.fromRGB(215, 215, 215), -- Public: white/grey
+			[1] = Color3.fromRGB(60, 175, 90), -- Staff: green, matching the green ties and lapels on the navy suits
+			[2] = Color3.fromRGB(105, 45, 160), -- Security: dark purple, matching the black suits with purple trim
 			[3] = Color3.fromRGB(225, 190, 95), -- Executive: gold, matching the cream suits with gold trim
 		},
+		VaultColor = Color3.fromRGB(205, 45, 45), -- vault doors, vault-wing trim and the vault strongroom lights
+		-- How many pips a tier door's handles carry (Public doors have plain handles).
+		TierPips = { [0] = 0, [1] = 1, [2] = 2, [3] = 3 },
 	},
 
 	-- Spec 4.3 / 4.4: what the map must contain (used by map validation).
@@ -86,6 +92,19 @@ local GameConfig = {
 		MaxLongSightLines = 3, -- sight lines over 150 studs
 		LongSightLineStuds = 150,
 		MinIntelPerTierOnActivation = 2,
+		-- Tier and keycard doors (MAP_BRIEF_REPLAN stage 3): how the visible leaves swing when DoorService opens one.
+		Doors = {
+			SwingSeconds = 0.35,
+			SwingDegrees = 95,
+		},
+		-- Signs (MAP_BRIEF_REPLAN stage 3): from close by, a sign's text floats in front of it facing the camera at a
+		-- fixed readable size, fading in between FadeOutStuds and FadeInStuds while the wall text fades out.
+		Signs = {
+			FadeInStuds = 25, -- fully shown at this distance or closer
+			FadeOutStuds = 40, -- hidden at this distance or further
+			FloatSize = UDim2.fromOffset(240, 48), -- on-screen size of the floating text, the same at any distance
+			FloatOffset = 1.5, -- studs: how far it floats out from the sign, toward the reader
+		},
 		-- One-way windows (MAP_BRIEF_REPLAN stage 2): how a pane looks from the room that sees out, and from outside.
 		-- Each client decides from its own camera; the pane blocks movement, shots and sight checks either way.
 		OneWayGlass = {
@@ -155,7 +174,7 @@ local GameConfig = {
 		-- Spec 5.2: NPCs open doors automatically and the doors close DoorCloseDelay after the last body passes.
 		-- SPEC-QUESTION: the spec doesn't say whether NPCs open keycard shortcut doors. They do here, which lets a
 		-- player slip through behind an NPC. Set OpenForNpcs to false to keep them shut.
-		Door = { OpenStuds = 8, OpenForNpcs = true, OpenTransparency = 0.7, PlayerCheckSeconds = 0.1 },
+		Door = { OpenStuds = 8, OpenForNpcs = true, PlayerCheckSeconds = 0.1 },
 		-- Guards investigate gunfire and explosions (OPEN_QUESTIONS A6). SPEC-QUESTION: the spec has Security ignore
 		-- noise. A guard on the same floor within SameFloorStuds goes to look. A guard on another floor goes only if it
 		-- is within OpenFloorStuds and can see the source, which is how a stair or balcony open to the floor counts.

@@ -52,6 +52,14 @@ local WALL_T = 2
 local RAIL_H = 4
 local BARRIER_H = 9 -- glass at the open edge of a terrace or deck: higher than a jump (about 7.2 studs), over a long drop
 local GAP_H = 10 -- doorway height (an arched doorway rises a further half its width at the middle)
+local DOOR_H = 13 -- a clearance or keycard door's opening: taller than an ordinary doorway, so it reads as important
+local LEAF_T = 0.6 -- a door leaf's thickness
+local DOOR_POST_W = 1.2 -- the posts either side of a doorway between tiers; door leaves hang between them
+local SIGN_W, SIGN_H = 3.6, 1.1 -- a doorway sign over a doorway
+local STAIR_SIGN_W, STAIR_SIGN_H, STAIR_SIGN_Y = 6, 1.4, 9 -- a sign hanging over each end of a stair, and its height
+local SIGN_PIXELS = 50 -- SurfaceGui resolution on signs
+local EXIT_SIGN_REACH = 30 -- studs: a doorway gets an EXIT sign when a stair end is this close beyond it
+local HANDLE_LOW, HANDLE_HIGH = 2.5, 8 -- a door handle bar's bottom and top, above the floor
 local ARCH_SLICE = 1 -- studs: the infill over an arch is built in vertical slices this wide
 local GLASS_SILL, GLASS_HEAD = 3, 15 -- a glass window's sill and head heights above the floor
 -- A serving hatch's opening: low and short, so a body (about 5 studs tall) can see through it but never climb through.
@@ -84,6 +92,14 @@ local RAIL_GREY = Color3.fromRGB(96, 100, 114)
 local CITY_GLASS = Color3.fromRGB(110, 140, 180)
 local MIRROR = Color3.fromRGB(150, 156, 168) -- one-way glass seen from outside (OneWayGlassController clears it inside)
 local COUNTER = Color3.fromRGB(70, 66, 64) -- the counter top under a serving hatch
+local DOOR_FRAME = Color3.fromRGB(46, 42, 44) -- door frames and the frames of glass door leaves
+-- Signs: dark LED panels. EXIT and stair signs are white, extraction cyan, so none of them reads as a tier colour.
+local SIGN_PANEL = Color3.fromRGB(20, 22, 26)
+local SIGN_EXIT = Color3.fromRGB(235, 240, 245)
+local SIGN_EXTRACTION = Color3.fromRGB(80, 220, 235)
+local SIGN_PLAIN = Color3.fromRGB(215, 215, 215)
+local DOOR_WOOD = Color3.fromRGB(78, 56, 44) -- a Security door's solid leaves
+local DOOR_STEEL = Color3.fromRGB(104, 108, 118) -- an Executive or vault-wing door's heavy leaves
 local EPS = 1e-4
 
 local NODE_MARGIN = 8 -- studs a node keeps from a room's walls
@@ -1598,6 +1614,229 @@ function Build.run()
 	end
 	print(`[Gala]      curves: {roundedCorners} rounded corners, {roundedVoids} rounded voids`)
 
+	-- Signs (MAP_BRIEF_REPLAN stage 3): stairs, exits, extraction and restrooms only, never vaults. Rooms that hold a stair
+	-- end, an extraction site, or a restroom are what doorway signs point to.
+	-- Where each stair end is, by the room it stands in.
+	local stairEnds: { [Room]: { Vector2 } } = {}
+	for _, s in stairs do
+		for _, area in { { level = s.ramp.from, rect = s.entry }, { level = s.upper, rect = s.arrival } } do
+			local x, z = (area.rect.x1 + area.rect.x2) / 2, (area.rect.z1 + area.rect.z2) / 2
+			local found = pieceAt(area.level, x, z)
+			if found then
+				stairEnds[found.room] = stairEnds[found.room] or {}
+				table.insert(stairEnds[found.room], Vector2.new(x, z))
+			end
+		end
+	end
+	local extractionRooms: { [Room]: boolean } = {}
+	for _, site in Layout.extraction do
+		local found = pieceAt(site.level, site.x, site.z)
+		if found then
+			extractionRooms[found.room] = true
+		end
+	end
+	local function isRestroom(room: Room): boolean
+		return string.find(room.id, "restroom") ~= nil
+			or string.find(room.id, "washroom") ~= nil
+			or room.id == "g_staffwc"
+	end
+	local signCount = 0
+	-- Writes text on one face of a sign part, lit so it reads in the dark like an LED panel.
+	local function signText(p: BasePart, face: Enum.NormalId, text: string, color: Color3)
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = face
+		gui.PixelsPerStud = SIGN_PIXELS
+		gui.LightInfluence = 0
+		gui.Brightness = 2
+		gui.Parent = p
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.fromScale(1, 1)
+		label.BackgroundTransparency = 1
+		label.TextColor3 = color
+		label.Font = Enum.Font.GothamBold
+		label.TextScaled = true
+		label.Text = text
+		label.Parent = gui
+	end
+	-- Writes each side of a sign and tags it for SignController, which floats the text toward a nearby reader. A side is
+	-- the face it is printed on, the direction it looks (out of that face), its text and its colour.
+	type SignSide = { face: Enum.NormalId, normal: Vector3, text: string, color: Color3 }
+	local function writeSign(p: BasePart, sides: { SignSide })
+		for index, side in sides do
+			signText(p, side.face, side.text, side.color)
+			p:SetAttribute(`Text{index}`, side.text)
+			p:SetAttribute(`Color{index}`, side.color)
+			p:SetAttribute(`Normal{index}`, side.normal)
+		end
+		tag(p, Tag.Sign)
+	end
+	-- The face of an axis-aligned part that looks toward `side` (+1 or -1) across a wall running along `axis`.
+	local function faceToward(axis: string, side: number): Enum.NormalId
+		if axis == "x" then
+			return if side > 0 then Enum.NormalId.Back else Enum.NormalId.Front
+		end
+		return if side > 0 then Enum.NormalId.Right else Enum.NormalId.Left
+	end
+	-- What a doorway sign says about the room beyond it, and in what colour (nil: no sign that way).
+	-- EXIT means a stair close beyond the doorway, not just somewhere in a big room.
+	local function signFor(room: Room, doorway: Vector2): (string?, Color3)
+		local stairNear = false
+		for _, stairEnd in stairEnds[room] or {} do
+			stairNear = stairNear or (stairEnd - doorway).Magnitude <= EXIT_SIGN_REACH
+		end
+		if extractionRooms[room] then
+			return "EXTRACTION", SIGN_EXTRACTION
+		elseif stairNear then
+			return "EXIT", SIGN_EXIT
+		elseif isRestroom(room) then
+			return "RESTROOMS", SIGN_PLAIN
+		end
+		return nil, SIGN_PLAIN
+	end
+	-- A small lit sign over a doorway; each face tells someone on that side what lies through it.
+	local function doorwaySign(edge: Edge, gap: Gap, openingH: number, height: number, sideOfRoom: (Room) -> number)
+		if height - openingH < SIGN_H + 1 then
+			return
+		end
+		local roomB = edge.roomB :: Room
+		local faces: { { side: number, text: string, color: Color3 } } = {}
+		for _, pair in { { edge.roomA, roomB }, { roomB, edge.roomA } } do
+			local here, beyond = pair[1], pair[2]
+			local doorway = if edge.axis == "x"
+				then Vector2.new(gap.center, edge.line)
+				else Vector2.new(edge.line, gap.center)
+			local text, color = signFor(beyond, doorway)
+			if text then
+				table.insert(faces, { side = sideOfRoom(here), text = text, color = color })
+			end
+		end
+		if #faces == 0 then
+			return
+		end
+		-- Read from both sides it goes through the wall; read from one side it sits flat on that face.
+		local depth = if #faces == 2 then WALL_T + 0.3 else 0.3
+		local line = if #faces == 2 then edge.line else edge.line + faces[1].side * (WALL_T / 2 + 0.15)
+		local sign = part(
+			trim,
+			"Sign",
+			alongSize(edge.axis, SIGN_W, SIGN_H, depth),
+			CFrame.new(alongPoint(edge.axis, line, gap.center, levels[edge.level] + openingH + 0.4 + SIGN_H / 2)),
+			SIGN_PANEL
+		)
+		sign.CanCollide = false
+		sign.CanQuery = false
+		local sides: { SignSide } = {}
+		for _, f in faces do
+			local normal = if edge.axis == "x" then Vector3.new(0, 0, f.side) else Vector3.new(f.side, 0, 0)
+			table.insert(
+				sides,
+				{ face = faceToward(edge.axis, f.side), normal = normal, text = f.text, color = f.color }
+			)
+		end
+		writeSign(sign, sides)
+		signCount += 1
+	end
+
+	-- The leaves of a clearance or keycard door (MAP_BRIEF_REPLAN stage 3), under its blocker. The style follows the tier:
+	-- framed glass for Public and Staff, solid wood for Security, heavy steel for Executive and the vault wings. Every
+	-- leaf has a glowing handle bar on each face in the tier colour (red into a vault wing) with a pip per tier above it.
+	-- Each leaf is a Model pivoting on its hinge; DoorController swings it by Swing (+1 or -1) times the swing angle,
+	-- toward `side` (the higher tier's side of the wall). Leaves never collide: the blocker does.
+	local function doorLeaves(
+		blocker: Part,
+		edge: Edge,
+		gap: Gap,
+		height: number,
+		tier: number,
+		vaultWing: boolean,
+		side: number
+	)
+		local baseY = levels[edge.level]
+		local u = if edge.axis == "x" then Vector3.xAxis else Vector3.zAxis -- along the wall
+		local n = if edge.axis == "x" then Vector3.zAxis else Vector3.xAxis -- across it
+		local style = if vaultWing or tier >= 3 then "heavy" elseif tier == 2 then "solid" else "glass"
+		local glow = if vaultWing then GameConfig.Zones.VaultColor else tierColor(tier)
+		local pips = GameConfig.Zones.TierPips[tier] or 0
+		local clear = gap.width - DOOR_POST_W * 2 -- the leaves hang between the door posts
+		local count = if gap.width >= 10 then 2 else 1
+		local leafW = clear / count
+		local leafH = height - 0.2
+		local leaves = Instance.new("Folder")
+		leaves.Name = "Leaves"
+		leaves.Parent = blocker
+		for i = 1, count do
+			local dsign = if i == 1 then 1 else -1 -- the leaf runs from its hinge toward the middle of the doorway
+			local hinge = alongPoint(edge.axis, edge.line, gap.center - dsign * clear / 2, baseY)
+			local hingeFrame = CFrame.fromMatrix(hinge, u, Vector3.yAxis)
+			local model = Instance.new("Model")
+			model.Name = "Leaf"
+			-- A piece of the leaf: `along` is measured from the hinge, `across` from the middle of the leaf.
+			local function piece(
+				name: string,
+				a1: number,
+				a2: number,
+				y1: number,
+				y2: number,
+				across: number,
+				depth: number,
+				color: Color3
+			): Part
+				local p = part(
+					model,
+					name,
+					alongSize(edge.axis, a2 - a1, y2 - y1, depth),
+					CFrame.new(hinge + u * (dsign * (a1 + a2) / 2) + n * across + Vector3.new(0, (y1 + y2) / 2, 0)),
+					color
+				)
+				p.CanCollide = false
+				p.CanQuery = false
+				p.CanTouch = false
+				return p
+			end
+			if style == "glass" then
+				local pane = piece("DoorGlass", 0.5, leafW - 0.5, 0.5, leafH - 0.5, 0, 0.2, CITY_GLASS)
+				pane.Material = Enum.Material.Glass
+				pane.Transparency = 0.5
+				piece("DoorStile", 0, 0.5, 0, leafH, 0, LEAF_T, DOOR_FRAME)
+				piece("DoorStile", leafW - 0.5, leafW, 0, leafH, 0, LEAF_T, DOOR_FRAME)
+				piece("DoorRail", 0.5, leafW - 0.5, 0, 0.5, 0, LEAF_T, DOOR_FRAME)
+				piece("DoorRail", 0.5, leafW - 0.5, leafH - 0.5, leafH, 0, LEAF_T, DOOR_FRAME)
+			elseif style == "solid" then
+				piece("DoorPanel", 0, leafW, 0, leafH, 0, LEAF_T, DOOR_WOOD).Material = Enum.Material.Wood
+			else
+				piece("DoorPanel", 0, leafW, 0, leafH, 0, LEAF_T, DOOR_STEEL).Material = Enum.Material.Metal
+				for _, y in { leafH / 3, leafH * 2 / 3 } do
+					piece("DoorStrap", 0, leafW, y - 0.3, y + 0.3, 0, LEAF_T + 0.2, DOOR_FRAME).Material =
+						Enum.Material.DiamondPlate
+				end
+			end
+			for _, face in { -1, 1 } do
+				local bar = piece(
+					"DoorHandle",
+					leafW - 1.1,
+					leafW - 0.7,
+					HANDLE_LOW,
+					HANDLE_HIGH,
+					face * (LEAF_T / 2 + 0.35),
+					0.3,
+					glow
+				)
+				bar.Material = Enum.Material.Neon
+				for k = 1, pips do
+					local y = HANDLE_HIGH + 0.4 + (k - 1) * 0.7
+					piece("DoorPip", leafW - 1.1, leafW - 0.7, y, y + 0.4, face * (LEAF_T / 2 + 0.3), 0.4, glow).Material =
+						Enum.Material.Neon
+				end
+			end
+			-- Which way the leaf turns about its hinge to swing toward `side`.
+			local towardSide = u:Cross(Vector3.yAxis):Dot(n * side)
+			model.WorldPivot = hingeFrame
+			model:SetAttribute("Closed", hingeFrame)
+			model:SetAttribute("Swing", -dsign * (if towardSide > 0 then 1 else -1))
+			model.Parent = leaves
+		end
+	end
+
 	-- A window in a wall (Layout.Window): wall under the sill and over the head, and between them a pane or an open
 	-- hatch over a counter.
 	local function windowPiece(edge: Edge, gap: Gap, window: Layout.Window, height: number, color: Color3)
@@ -1726,7 +1965,10 @@ function Build.run()
 					then roomById[gapDoor.a]
 					else if roomById[gapDoor.b].duct then roomById[gapDoor.b] else nil)
 				else nil
-			local openingH = if ventRoom then VENT_OPENING_H else GAP_H
+			local openingH = if ventRoom
+				then VENT_OPENING_H
+				elseif gapDoor and (gapDoor.gate or gapDoor.keycard) then DOOR_H
+				else GAP_H
 			if height <= openingH then
 				continue -- a gap in a railing has nothing over it
 			end
@@ -1787,29 +2029,35 @@ function Build.run()
 			local high = math.max(edge.roomA.tier, roomB.tier)
 			local door = gap.door :: Layout.Door
 			-- A clearance door or keycard door fills the doorway until it is opened (DoorService).
-			if door.gate or door.keycard then
-				local doorPart = part(
-					objects,
-					if door.gate then "ClearanceDoor" else "KeycardDoor",
-					alongSize(edge.axis, gap.width, GAP_H, WALL_T - 0.4),
-					CFrame.new(alongPoint(edge.axis, edge.line, gap.center, baseY + GAP_H / 2)),
-					tierColor(if door.gate then door.gate else high)
-				)
-				doorPart.Transparency = 0.35
-				if door.gate then
-					gateCount += 1
-					tag(doorPart, Tag.ClearanceDoor, { Tier = door.gate })
-				else
-					keycardCount += 1
-					tag(doorPart, Tag.KeycardDoor, { Tier = high })
-				end
-			end
 			-- Which side of this wall a room is on: -1 for the low side, 1 for the high side (judged from the middle of
 			-- the room's rectangle, since either room of an edge can be on either side).
 			local function sideOf(room: Room): number
 				local r = toRect(room.rect)
 				local middle = if edge.axis == "x" then (r.z1 + r.z2) / 2 else (r.x1 + r.x2) / 2
 				return if middle > edge.line then 1 else -1
+			end
+			-- A clearance door or keycard door: an invisible blocker that DoorService opens and shuts, and real door
+			-- leaves in front of it that each client swings (DoorController).
+			if door.gate or door.keycard then
+				local doorTier = if door.gate then door.gate :: number else high
+				local blocker = part(
+					objects,
+					if door.gate then "ClearanceDoor" else "KeycardDoor",
+					alongSize(edge.axis, gap.width, openingH, WALL_T - 0.4),
+					CFrame.new(alongPoint(edge.axis, edge.line, gap.center, baseY + openingH / 2)),
+					DOOR_FRAME
+				)
+				blocker.Transparency = 1
+				if door.gate then
+					gateCount += 1
+					tag(blocker, Tag.ClearanceDoor, { Tier = door.gate })
+				else
+					keycardCount += 1
+					tag(blocker, Tag.KeycardDoor, { Tier = high })
+				end
+				local vaultWing = string.find(edge.roomA.id, "vault") ~= nil or string.find(roomB.id, "vault") ~= nil
+				local higher = if edge.roomA.tier > roomB.tier then edge.roomA else roomB
+				doorLeaves(blocker, edge, gap, openingH, doorTier, vaultWing, sideOf(higher))
 			end
 			if door.vault then
 				-- The inner vault door (spec 10), in its vault's style, with the hack zone in front of it and the Package
@@ -1844,13 +2092,13 @@ function Build.run()
 				local grid = part(
 					objects,
 					"LaserGrid",
-					alongSize(edge.axis, gap.width, GAP_H, 0.2),
+					alongSize(edge.axis, gap.width, openingH, 0.2),
 					CFrame.new(
 						alongPoint(
 							edge.axis,
 							edge.line + sideOf(roomById[door.a]) * (WALL_T / 2 + 3),
 							gap.center,
-							baseY + GAP_H / 2
+							baseY + openingH / 2
 						)
 					),
 					Color3.fromRGB(255, 40, 40)
@@ -1861,32 +2109,86 @@ function Build.run()
 				grid.CanQuery = false
 				tag(grid, Tag.LaserGrid)
 			end
-			-- Coloured posts and floor decals show which tiers a doorway joins.
-			if edge.roomA.tier ~= roomB.tier or door.gate then
-				local postColor = tierColor(if door.gate then door.gate else high)
-				for _, offset in { -gap.width / 2 + 0.6, gap.width / 2 - 0.6 } do
+			-- Posts and floor inlays show which tiers a doorway joins. A real door has a plain dark frame (its handles
+			-- carry the colour); an open doorway between tiers keeps coloured posts.
+			local hasDoor = door.gate ~= nil or door.keycard == true
+			if edge.roomA.tier ~= roomB.tier or hasDoor then
+				local postColor = if hasDoor then DOOR_FRAME else tierColor(high)
+				for _, offset in { -gap.width / 2 + DOOR_POST_W / 2, gap.width / 2 - DOOR_POST_W / 2 } do
 					part(
 						trim,
 						"DoorPost",
-						alongSize(edge.axis, 1.2, GAP_H, WALL_T + 0.6),
-						CFrame.new(alongPoint(edge.axis, edge.line, gap.center + offset, baseY + GAP_H / 2)),
+						alongSize(edge.axis, DOOR_POST_W, openingH, WALL_T + 0.6),
+						CFrame.new(alongPoint(edge.axis, edge.line, gap.center + offset, baseY + openingH / 2)),
 						postColor
 					)
 				end
-				for sign, room in { [-1] = edge.roomA, [1] = roomB } do
+				for _, room in { edge.roomA, roomB } do
 					local decal = part(
 						trim,
 						"FloorDecal",
 						alongSize(edge.axis, gap.width, 0.2, 4),
-						CFrame.new(alongPoint(edge.axis, edge.line + sign * (WALL_T / 2 + 2), gap.center, baseY + 0.1)),
+						CFrame.new(
+							alongPoint(edge.axis, edge.line + sideOf(room) * (WALL_T / 2 + 2), gap.center, baseY + 0.1)
+						),
 						tierColor(room.tier)
 					)
 					decal.CanCollide = false
 				end
 			end
+			if not door.vault then
+				local top = if door.arch then openingH + gap.width / 2 else openingH
+				doorwaySign(edge, gap, top, height, sideOf)
+			end
 		end
 		wallPiece(edge, cursor, edge.b, height, color)
 	end
+
+	-- A sign hanging over each end of every stair, naming where it goes.
+	local LEVEL_NAMES =
+		{ B = "BASEMENT", G = "GROUND", GH = "GALLERY", M = "MEZZANINE", T = "TOP FLOOR", R = "ROOF", X = "SKY DECK" }
+	for _, s in stairs do
+		local dx = dirVector(s.ramp.dir)
+		local alongX = dx ~= 0
+		for _, stairEnd in
+			{
+				{ level = s.ramp.from, rect = s.entry, text = `UP TO {LEVEL_NAMES[s.upper]}` },
+				{ level = s.upper, rect = s.arrival, text = `DOWN TO {LEVEL_NAMES[s.ramp.from]}` },
+			}
+		do
+			local r = stairEnd.rect
+			local sign = part(
+				trim,
+				"StairSign",
+				if alongX
+					then Vector3.new(0.3, STAIR_SIGN_H, STAIR_SIGN_W)
+					else Vector3.new(STAIR_SIGN_W, STAIR_SIGN_H, 0.3),
+				CFrame.new((r.x1 + r.x2) / 2, levels[stairEnd.level] + STAIR_SIGN_Y, (r.z1 + r.z2) / 2),
+				SIGN_PANEL
+			)
+			sign.CanCollide = false
+			sign.CanQuery = false
+			writeSign(
+				sign,
+				if alongX
+					then {
+						{ face = Enum.NormalId.Left, normal = -Vector3.xAxis, text = stairEnd.text, color = SIGN_EXIT },
+						{ face = Enum.NormalId.Right, normal = Vector3.xAxis, text = stairEnd.text, color = SIGN_EXIT },
+					}
+					else {
+						{
+							face = Enum.NormalId.Front,
+							normal = -Vector3.zAxis,
+							text = stairEnd.text,
+							color = SIGN_EXIT,
+						},
+						{ face = Enum.NormalId.Back, normal = Vector3.zAxis, text = stairEnd.text, color = SIGN_EXIT },
+					}
+			)
+			signCount += 1
+		end
+	end
+	print(`[Gala]      signs: {signCount}`)
 
 	-- Floors and ceilings --------------------------------------------------------------------------------------------------------
 	for levelName, list in piecesByLevel do

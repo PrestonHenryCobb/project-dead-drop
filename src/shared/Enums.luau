@@ -90,6 +90,9 @@ local Enums = {
 		-- Map re-plan stage 2: a one-way window pane. Its Inside attribute (a unit vector) points into the room that sees
 		-- out; OneWayGlassController draws it clear for a camera on that side and mirrored for everyone else.
 		OneWayGlass = "OneWayGlass",
+		-- Map re-plan stage 3: a lit sign. Text1/Color1/Normal1 (and Text2/Color2/Normal2 for a sign read from both sides)
+		-- say what each side reads; SignController floats that text toward a nearby camera.
+		Sign = "Sign",
 	},
 
 	-- Spec 5.3, 6.7, 5.4: the code-built animations NPCs (and later the Blend wheel) play.
