@@ -68,5 +68,4 @@ so Attire, Finishes and effects show only in True Form, in the lobby, on podiums
 - **Earnable without paying:** Credits buy some cosmetics (basic Attire alternates, calling cards, sprays); the Dossier free
   track; titles and frames from achievements.
 
-## Open
-1. The two flags above: the "Invisible" Man silhouette, and whether sprays are allowed mid-match.
+**Flags decided:** the "Invisible" Man is smoked glass with a readable silhouette; placing a spray mid-match raises suspicion like any action NPCs never do.
