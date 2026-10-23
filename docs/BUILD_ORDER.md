@@ -286,6 +286,7 @@ checkpoint (finding each other in the crowd) and the routes feel varied.
 
 ### Step 19: Real HUD + minimap + pings + settings
 **Spec:** 21, 24 (replace debug HUD; keyboard and mouse plus gamepad controls, with basic touch as a fallback)
+**Decided (2026-10-23):** Claude designs and builds all UI itself, in code under `src/` (no Figma or UI plugins). Each screen is shown as a mock-up for review before it is built.
 
 ### Step 20: Audio
 **Spec:** 23
