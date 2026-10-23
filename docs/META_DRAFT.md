@@ -35,6 +35,8 @@ is the record until then.
 Every cosmetic follows the identity rule (CLAUDE.md rule 3): while disguised, an agent looks exactly like the NPC they copied,
 so Attire, Finishes and effects show only in True Form, in the lobby, on podiums and in kill and win screens.
 
+**All Attire and Finishes are agent-specific** (2026-10-23): each skin is made for one agent and each Finish for one of that agent's weapons, so the catalogue ideas below become per-agent versions (for example Guise's Gala gown, Bastion's Janitor Elite).
+
 **Attire (agent skins), with alternates**
 - High society, the best sellers: the Gala tuxedo and evening gown, Monochrome Noir (black-and-white detective, optional
   fedora), the VIP Escort (white blazer, gold aviators, earpiece).
