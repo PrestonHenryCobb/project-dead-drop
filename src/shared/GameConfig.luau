@@ -58,7 +58,7 @@ local GameConfig = {
 
 	-- Spec 4.3 / 4.4: what the map must contain (used by map validation).
 	Map = {
-		FootprintStuds = 450,
+		FootprintStuds = 520, -- the map re-plan (docs/MAP_BRIEF_REPLAN.md)
 		Counts = {
 			InsertionPoint = 12,
 			IntelSpawn = 32, -- 8 per tier (spec 18; more now that intel is also spent)
@@ -76,7 +76,7 @@ local GameConfig = {
 			FoodSpot = 20,
 			AssetSafe = 12,
 		},
-		NPCNodeCount = { Min = 150, Max = 650 }, -- spec says 150 to 250; 200 NPCs on the larger layout need more (SPEC-QUESTION)
+		NPCNodeCount = { Min = 150, Max = 800 }, -- spec says 150 to 250; 200 NPCs on the larger re-planned layout need more (SPEC-QUESTION)
 		SupplyCachesPerTier = { [0] = 2, [1] = 2, [2] = 1, [3] = 1 },
 		InsertionMinSpacing = 60,
 		TeamSpawnRadius = 8, -- teammates spawn within this many studs of each other

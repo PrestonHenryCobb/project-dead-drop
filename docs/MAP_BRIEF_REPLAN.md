@@ -1,0 +1,224 @@
+# Map re-plan brief: The Gala, pass 3 (draft, 2026-10-23)
+
+A full re-plan of the two-tower map, written for review before any data or generator work. It keeps every earlier
+decision (MAP_BRIEF.md, BUILD_ORDER Step 7B) and every placed feature, and adds the two-player checkpoint feedback and
+the reference-video decisions. The Deceive Inc. videos are inspiration only: mood, proportions, readability. No layout,
+name or asset is copied (spec IP note).
+
+## What this pass fixes
+
+From the two-player checkpoint:
+1. **Too many ways in to the important areas.** Players couldn't tell which door mattered.
+2. **Dead ends:** the terrace ring corners, the basement and staff areas, the wing hallways and the suites.
+3. **Too boxy:** a grid of rectangles with flat walls.
+4. **Hard to read:** laser-slab gates you can barely see, and similar-looking zones.
+
+## The numbers
+
+| Topic | Now | Re-plan |
+|---|---|---|
+| Footprint | About 450 × 450 overall; Gala tower 240 × 280, wing 100 × 180 | **About 520 × 520 overall; Gala 280 × 320, wing 120 × 210**, still 20 studs apart across the void |
+| Where the growth goes | n/a | **Into circulation, not bigger rooms:** curved halls, loops, arches, wider corridors for the bigger doors. Room sizes stay 15 to 40 studs, and hubs stay the exception. |
+| Levels | B, G (+GH galleries), M, T, R, wing sky deck X | Same, 24 studs per storey |
+| Doors | 10 × 10 default; clearance doors are slabs | **Grand 16 × 16** (lobby and atrium arches), **clearance 12 × 13**, **staff 10 × 10**, narrow service doors 8 × 10 |
+| Tier colours | White, navy, purple, gold | **Public white, Staff green, Security dark purple, Executive gold, Vault red** |
+| NPCs | 200 | 200 (growth spreads them a little thinner; densities get retuned) |
+| Part budget | About 15,000 target | Re-measured after the build. Curves and arches cost parts, and the quality setting can drop trim on Low. |
+
+## Wing themes (approved)
+
+| Theme | Where | Look |
+|---|---|---|
+| **Gala art deco** (black and gold) | Gala public: lobby, atrium, ballroom, bar, galleries, masquerade hall, penthouse, rooftop | Black lacquer, gold fluting, sunburst inlays, fan-shaped arches, amber light |
+| **Casino** (red velvet and neon) | Wing ground: casino floor, VIP tables, high-roller lounge | Red velvet, neon tube trim, dark carpet with gold pattern, low warm light |
+| **Mediterranean** (tile and arches) | Wing mezzanine and top: hotel lobby, suites, wing roof garden | White plaster, terracotta, blue-and-white tile bands, round arches, potted lemon trees |
+| **Back of house** (green tile, utilitarian) | Kitchens, catering, storage, loading bay, laundry, housekeeping, staff offices | Green subway tile, steel, fluorescent strips, rubber floors |
+| **Security** (clean white and blue) | Guard halls, the hub, checkpoints, wing security | White panels, blue strip light, glass. Tier dark purple only on handles, inlays and signs |
+| **Vaults** (brass and steel) | All four vault wings | Brushed steel and brass rivets, red vault-tier lights. Each vault keeps its sub-theme: A bank, B art, C cold store, D counting room |
+
+## Circulation rules (new, enforced by the self-check where it can)
+
+1. **Two loops per floor.** A **public loop** (Tier 0) circles the atrium, and a **staff loop** (Tier 1) runs behind the
+   rooms on the outer edge. They meet at 3 or 4 points, so you can always switch between being seen and staying hidden.
+2. **Important areas get one front door and one back exit.** That covers vault wings, guard rooms, nested rooms,
+   Executive rooms and intel-heavy rooms. The front door faces the public or staff loop; the back exit leads to the
+   other loop, a stair or a vent. Vent links count toward a vault's 3 routes out (spec 4.4), not as doors.
+3. **Hubs can be wide open.** The atrium, ballroom, casino floor, rooftop and lobbies have 3 to 5 grand arches, because
+   you are meant to drift through them.
+4. **No dead ends.** Every corridor, ring and balcony connects at both ends. Small rooms off a loop can have one door
+   only if they hold nothing important (restrooms, closets). The self-check lists any dead-end corridor.
+5. **Signs at every junction.** Small lit **EXIT** signs above stair doors and exits. Hanging **direction signs** at loop
+   junctions, with icons for stairs, exits, extraction and restrooms only. Signs never point to vaults: vault
+   locations come from the HUD and the objective.
+
+## Floor by floor
+
+North is −z. Sketches are rough proportions, not final coordinates.
+
+### Gala basement (B): security core over back of house
+```
++---------+-------------------------------------+---------+
+| STORAGE |  SECURITY LOOP (white/blue, T2)     | STORAGE |
+|  west   |  +-------------------------------+  |  east   |
+| (green, |  |  VAULT A wing (brass/steel)   |  | (green, |
+|  T1)    |  |  ante -> laser hall -> round  |  |  T1)    |
+|         |  |  door -> strongroom           |  |         |
+| STAFF   |  +-------------------------------+  | STAFF   |
+| LOOP    |  armory - camera room - guard post  | LOOP  ->|== tunnel to wing
++---------+-------------------------------------+---------+
+```
+- The **staff loop** circles the whole floor through both storage halls: each hall has two doors onto it, so no more
+  storage dead ends. The service tunnel to the wing leaves from the east side.
+- The **security loop** (T2) rings Vault A, with the armory, camera room and a guard post on it.
+- **Vault A (bank):** front door off the security loop's south side; back exit through a vent to west storage; third
+  route by the security stair up to the Gala kitchen. Door order T1, T2, T3 inside, as before.
+
+### Gala ground (G): the grand level
+```
++--------+---------+-----------------------+----------+--------+
+| VAULT C| KITCHEN |   STAFF LOOP (green)  | CATERING | COLD   |
+| (cold) | pass-   |  break room, staff WC | PREP     | STORE  |
++--------+ windows +--+----------------+---+----------+--------+
+| LOADING|  SCULPTURE  (    ATRIUM     )   BALLROOM    | SMOKING |
+| BAY    |  WALK, a    (  pond, islands)   colonnade,  | LOUNGE  |
+| (T1)   |  curved     (  curved grand )   gallery     | humidor |
+|        |  hall       (  staircase    )   above       | (T1)    |
++--------+-----+-----arches 16-----+----------+--------+---------+
+| COAT   |     GRAND LOBBY: elevator bank (6 insertions) |  BAR + loft
+| CHECK  |     concierge (one-way glass onto the lobby)  |
++--------+-----------------------------------------------+-----------
+```
+- **Atrium:** the pond and islands stay. The straight grand stair is replaced by a **curved grand staircase** sweeping
+  from the pond's edge up to the mezzanine balcony. Four 16-stud arches open it to the lobby, ballroom, sculpture walk
+  and bar.
+- **The Sculpture Walk** replaces the boxy sculpture hall: a **curved gallery hall** bending round the atrium's west
+  side, with plinths and wide arches into the atrium.
+- **Ballroom** shrinks from 120 × 120 to about 90 × 100, with a colonnade and its upper gallery (GH). The space freed
+  goes to the curved halls and the staff loop.
+- **Back of house:** one continuous staff loop from the loading bay to cold storage and back down the east side to the
+  bar's service door. The kitchen gets **pass-through windows** into the bar (you can see in and out, and they're not
+  glass).
+- **Vault C (cold store):** front door off the kitchen chain (staff loop); back exit to the loading bay; vent to the
+  sculpture walk.
+- **Lobby:** the grand entrance, where the elevator bank is the 6 ground insertion points. The coat check and concierge
+  are the staff front of house, linked to the staff loop.
+
+### Gala mezzanine (M): galleries and offices
+- **Public loop:** the curved **atrium balcony** ring, where the grand staircase lands, joined to the Grand Gallery
+  (west), the Masquerade Hall (east) and the gallery restrooms.
+- **Staff and security band (north):** staff offices (green) with **one-way glass** onto the balcony; the security
+  checkpoint (T2) nested inside, with one-way glass; the **security hub** (white/blue) with its one-way monitor room
+  and Executive records (T3) nested two deep; catering offices. One front door each from the balcony side, one back exit
+  onto the staff loop.
+- **Terrace ring (outdoor):** fully continuous all the way round. Each corner becomes a small **pavilion** (a planter
+  court with benches) instead of a dead end. Six insertion points sit on it. The skybridge to the lawn deck (an
+  extraction site) leaves from its east side.
+
+### Gala top floor (T): the penthouse
+- **Penthouse great room** (art deco, T3) with a balcony over the atrium, and the **private gallery** (T3).
+- **Guard ring:** the west and east guard halls (today two long dead-end halls) are joined by a north guard corridor
+  behind Vault B, making one **ring**. The panic room and executive office stay nested T3 rooms off it.
+- **Vault B (art):** front door through the glass display hall off the guard ring; back exit to the upper terrace;
+  vent to the penthouse.
+- **Upper terrace ring:** continuous with corner pavilions, and the zipline arrival from the wing's sky deck.
+
+### Gala roof (R): the rooftop party
+- Rooftop cocktail party (T0) with the cantilevered pool deck and cabanas, the **helipad** (extraction), the zipline
+  down to the pool deck's far end, and the open catwalk to the wing roof. Two stairs up from the terrace, at opposite
+  corners, so it's a loop.
+
+### Wing basement (WB): laundry and the counting room
+- A staff loop around the laundry and the hotel service corridor, joining the service tunnel from the Gala.
+- **Wing security** (T2) on the loop. **Vault D (counting room):** front door through the wing security antechamber;
+  back exit up the cage stair to the casino; vent to the laundry.
+
+### Wing ground (WG): the casino
+- **Casino floor** (red velvet and neon): table islands, slot rows as cover, and the **VIP tables** half-level (GH).
+  Three grand arches.
+- **Cashier's cage** (T1) with a teller window you can see through; **high-roller lounge** (T3) with one-way glass onto
+  the floor. Front and back doors as the rules say.
+
+### Wing mezzanine (WM): the hotel lobby
+- **Hotel lobby** (Mediterranean): a reception desk under round arches, and **housekeeping** (T1) behind it on a staff
+  loop. It opens onto the **lawn deck** (extraction), next to the skybridge.
+
+### Wing top floor (WT): the suites
+- **Courtyard loop** instead of the straight 180-stud hallway: two arcaded corridors round an open-air **tiled light
+  well** (Mediterranean courtyard, with a fountain and lemon trees) that you can look into from both sides.
+- **Suites** on the outer side, each with a door onto the corridor and a door onto a **continuous balcony** that runs
+  along the facade. So the balcony is a second, exposed route, with no dead ends. The Executive suite (T3) has its own
+  private balcony section, gated.
+
+### Wing roof (WR) and sky deck (X)
+- Roof garden and plant room. The **sky deck** extraction is on top, with the zipline start down to the Gala upper
+  terrace, and the gondola and catwalk links as now.
+
+## Doors and readability (approved, built in this pass)
+- **Real doors replace the slab gates:** glass double doors for public and staff, solid for security, heavy metal for
+  executive and vault. Every tiered door has **glowing handle bars in the tier colour with tier pips**, and the doors
+  swing open. The server owns whether a door is open and solid; each player's game animates the swing.
+- **Laser grids** stay separate: bright red beams, only in vault wings and two security corridors.
+- **One-way glass** on tiered offices: inside sees out, outside sees mirrored glass. It blocks shots and sight both
+  ways.
+- **Zone carpets** per tier inside each theme, tier-colour floor inlays at every tier boundary, and the HUD area name.
+
+## Everything kept (the self-check counts these)
+4 vaults with themed strongrooms and climbing doors; 32 intel stations (8 per type); about 6 restrooms with health
+stations; 8 ammo caches; about 20 food spots; 6 supply caches; asset safes in tiered rooms; 12 cameras; laser grids; 6
+vent pairs; 2 ziplines; the gondola; galleries (GH); 3 extraction sites (helipad, lawn deck, sky deck); 12 insertion
+points; the two towers on skyscrapers over the procedural city; 200 NPCs; 6 keycard doors.
+
+## Generator upgrades needed (Build.luau, NavGraph, services)
+1. **Footprint growth:** new rects throughout (Layout rewrite).
+2. **Curved walls and halls:** arc wall segments built from short straight parts, with NPC nodes along the arc.
+3. **Arches:** a door option for wide arched openings (round for Mediterranean, fan-shaped for art deco).
+4. **Interior windows and one-way glass:** a wall-segment window option (sill and head heights). One-way glass is tagged
+   with the room it belongs to; each player's client shows it clear or mirrored depending on which side they stand.
+5. **Real doors:** hinged leaves, glowing tier handles with pips, sized by importance. DoorService keeps the authority;
+   clients animate.
+6. **Curved grand staircase:** a new stair builder, and a curved StairLink for NavGraph.
+7. **Themes:** a per-room `theme` option driving materials, trim and carpet; tier inlays at boundaries.
+8. **Signs:** EXIT signs and direction signs as tagged parts with lit text.
+9. **New tier colours** in GameConfig, and suit trims in OutfitDefs.
+10. **Self-check additions:** dead-end detection, front/back door counts on important rooms, door size by importance.
+
+## Decided (2026-10-23)
+| Question | Answer |
+|---|---|
+| Entrances | Important areas get one front door and one back exit, with vents in selected rooms only. Hubs get 3 to 5 grand arches. |
+| Vents (6 pairs) | Vault A to west storage, Vault B to the penthouse, Vault C to the sculpture walk, Vault D to the laundry, the security hub to the staff offices, the casino cage to the casino floor. |
+| Growth | Into circulation (curved halls, loops, wider corridors, arches), not bigger rooms. The ballroom shrinks to about 90 × 100. |
+| Grand staircase | Curved, from the atrium floor to the mezzanine balcony only. The penthouse stays behind gated stairs. |
+| Suites | Courtyard loop: two arcaded corridors round an open-air tiled light well, with suites opening onto a continuous outside balcony. |
+| Terrace corners | Corner pavilions (a planter court with benches and a pergola) that the ring runs through. |
+| Direction signs | Stairs, exits, extraction and restrooms only. Never vaults. |
+| Build order | 1) Layout data at the new size with the loops, on today's generator. 2) Curves, arches, windows, one-way glass. 3) Real doors, signs, tier colours. 4) Curved staircase and themes. Screenshots go to your phone after each stage, for a remote review before the next stage starts. |
+
+## Stage 1 built (2026-10-23): the layout at the new size, with the loops
+
+Built on today's generator (no curves, arches, windows or new doors yet; those are stages 2 to 4). The self-check passes
+with 0 problems: 109 rooms, 24 clearance doors, 6 keycard doors, 4 laser grids, 6 vents, 29 stairs, 769 NPC nodes.
+Floor plans: `node tools/map-plan.js` writes one SVG per level to `docs/plans/` (or a folder you name).
+
+**Where the build differs from the sketches above**
+- Vault A's back door opens onto the central security hall, and its vent comes in from west storage. Vault B's back
+  door opens onto the north guard corridor (not the terrace), and its vent comes from the penthouse study. Vault C's back
+  door is the loading bay, and its vent comes from the sculpture walk through the loading bay wall.
+- The mezzanine has no separate staff corridor. The terrace ring is the back loop: every office has its front door on
+  the balcony and its back door on the terrace.
+- One public stair reaches the roof (from the upper terrace to the pool deck), plus the two guard stairs.
+- The kitchen pass-through windows wait for stage 2 (windows). The kitchen no longer touches the bar, so they will face
+  the staff corridor.
+- The Executive suite has its own balcony section, gated from the shared east balcony.
+- The void through the top floor is 12 studs narrower than at the mezzanine, so the penthouse keeps a walkway round it.
+
+**Fixes found while checking NPC routes**
+- A row of planters down a terrace strip used to delete most of the strip's NPC nodes, so the ring corners read as dead
+  ends. The generator now slides a blocked node to the nearest free spot (Build.luau, `NODE_NUDGES`).
+- The bigger map needs more nodes: the cap went from 650 to 800 (GameConfig `NPCNodeCount`, SPEC-QUESTION). The graph
+  still builds in about 20 s, and the NPC tick is unchanged at about 8.5 ms for 200 NPCs.
+- Run NavReport with NPCs absent: a crowd on a narrow stair blocks pathfinding and makes the report look broken.
+
+**Known leftovers.** A courtyard spot boxed in by planters, a private-gallery corner behind partitions, and door-side
+nodes inside a guarded room's zone padding are cut off. NPCs never stop at them. Prop placement in small rooms is
+tidied in stage 4 (themes).

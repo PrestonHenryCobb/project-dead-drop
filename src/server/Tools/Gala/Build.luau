@@ -84,6 +84,22 @@ local CRATES_PER_ROOM = 14 -- crates tried in a storage room; more choke the rou
 local PLACE_STEP = 3 -- studs between the spots tried along a wall for a placed object
 local PLACE_SPREAD = 60 -- placed objects in one room are spread up to this far apart
 local NODE_PROP_CLEAR = 3 -- studs a node keeps from a prop
+-- Where a node tries next when its grid spot is taken by a prop, nearest first (studs along x and z).
+local NODE_NUDGES = {
+	{ 0, 0 },
+	{ 0, 4 },
+	{ 0, -4 },
+	{ 4, 0 },
+	{ -4, 0 },
+	{ 0, 8 },
+	{ 0, -8 },
+	{ 8, 0 },
+	{ -8, 0 },
+	{ 4, 4 },
+	{ -4, -4 },
+	{ 4, -4 },
+	{ -4, 4 },
+}
 
 local ACTIVITIES: { [number]: { string } } = {
 	[0] = { "Walk", "Walk", "Idle", "Talk", "Sit", "Lean", "Drink" },
@@ -2155,14 +2171,21 @@ function Build.run()
 				while x <= r.x2 - marginX do
 					local z = r.z1 + marginZ
 					while z <= r.z2 - marginZ do
-						if not blockedForNode(room.level, x, z) then
-							table.insert(list, {
-								level = room.level,
-								x = x,
-								z = z,
-								tier = room.tier,
-								activity = pool[nodeRng:NextInteger(1, #pool)],
-							})
+						-- A spot taken by a prop slides to the nearest free one close by, so a row of planters down a
+						-- terrace does not leave the strip without nodes (and its corners cut off).
+						for _, offset in NODE_NUDGES do
+							local nx = math.clamp(x + offset[1], r.x1 + marginX, r.x2 - marginX)
+							local nz = math.clamp(z + offset[2], r.z1 + marginZ, r.z2 - marginZ)
+							if not blockedForNode(room.level, nx, nz) then
+								table.insert(list, {
+									level = room.level,
+									x = nx,
+									z = nz,
+									tier = room.tier,
+									activity = pool[nodeRng:NextInteger(1, #pool)],
+								})
+								break
+							end
 						end
 						z += step
 					end
