@@ -80,6 +80,7 @@ local NODE_SPACING = { [0] = 30, [1] = 32, [2] = 36, [3] = 36 }
 local LIGHT_SPACING = 55 -- studs between ceiling lights in a room
 local LIGHT_CAP = 110 -- the most lights in the map (each is a dynamic light on a phone)
 local DOOR_CLEAR = 7 -- studs props keep clear in front of a doorway
+local CRATES_PER_ROOM = 14 -- crates tried in a storage room; more choke the routes NPCs need
 local PLACE_STEP = 3 -- studs between the spots tried along a wall for a placed object
 local PLACE_SPREAD = 60 -- placed objects in one room are spread up to this far apart
 local NODE_PROP_CLEAR = 3 -- studs a node keeps from a prop
@@ -1663,7 +1664,7 @@ function Build.run()
 		end,
 		crates = function(room)
 			local b = bounds(room)
-			for _ = 1, 28 do
+			for _ = 1, CRATES_PER_ROOM do
 				addProp(
 					room,
 					"Crate",
@@ -2111,7 +2112,7 @@ function Build.run()
 	end
 
 	-- NPC nodes ------------------------------------------------------------------------------------------------------------------------------
-	type NodeSpec = { level: string, x: number, z: number, tier: number, activity: string }
+	type NodeSpec = { level: string, x: number, z: number, tier: number, activity: string, stairLink: string? }
 	local function blockedForNode(level: string, x: number, z: number): boolean
 		for _, r in rampFootprints[level] do
 			if x > r.x1 - 6 and x < r.x2 + 6 and z > r.z1 - 6 and z < r.z2 + 6 then
@@ -2195,7 +2196,7 @@ function Build.run()
 			end
 		end
 		-- Both ends of every stair: the middle of the floor at its foot and at its head.
-		for _, s in stairs do
+		for stairIndex, s in stairs do
 			for _, stairEnd in { { level = s.ramp.from, rect = s.entry }, { level = s.upper, rect = s.arrival } } do
 				local x, z = (stairEnd.rect.x1 + stairEnd.rect.x2) / 2, (stairEnd.rect.z1 + stairEnd.rect.z2) / 2
 				table.insert(list, {
@@ -2204,6 +2205,7 @@ function Build.run()
 					z = z,
 					tier = tierAtPoint(stairEnd.level, x, z),
 					activity = "Walk",
+					stairLink = `stair{stairIndex}`, -- NavGraph always links a stair's two ends
 				})
 			end
 		end
@@ -2227,7 +2229,7 @@ function Build.run()
 			Color3.fromRGB(255, 255, 0)
 		)
 		ghost(node)
-		tag(node, Tag.NPCNode, { Tier = spec.tier, Activity = spec.activity })
+		tag(node, Tag.NPCNode, { Tier = spec.tier, Activity = spec.activity, StairLink = spec.stairLink })
 	end
 
 	-- The city round the Gala (City.luau): each tower stands on its own skyscraper.

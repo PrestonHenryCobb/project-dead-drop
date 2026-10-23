@@ -312,13 +312,13 @@ room("wm_restroom", "M", "Hotel restrooms", 0, IN, { 220, 90, 240, 110 }, { pare
 room("wm_corridor", "M", "Hotel corridor", 0, IN, { 180, -10, 240, 40 }, { glass = true, props = { "planters" } })
 room("wm_housekeeping", "M", "Housekeeping", 1, IN, { 140, -70, 240, -10 }, { glass = true, props = { "crates" } })
 -- T: suites either side of a hallway, with balconies over the lawn deck.
-room("wt_hall", "T", "Suite hallway", 0, IN, { 200, -70, 220, 110 })
-room("wt_suite1", "T", "Garden suite", 0, IN, { 180, 50, 200, 110 }, { glass = true, props = { "tables" } })
-room("wt_suite2", "T", "Corner suite", 0, IN, { 180, -10, 200, 50 }, { glass = true, props = { "tables" } })
-room("wt_suite3", "T", "Skyline suite", 0, IN, { 180, -70, 200, -10 }, { glass = true, props = { "tables" } })
-room("wt_suite4", "T", "City suite", 0, IN, { 220, 50, 240, 110 }, { glass = true, props = { "tables" } })
-room("wt_suite5", "T", "Moon suite", 0, IN, { 220, -10, 240, 50 }, { glass = true, props = { "tables" } })
-room("wt_exec", "T", "Executive suite", 3, IN, { 220, -70, 240, -10 }, { glass = true, density = 0.5 })
+room("wt_hall", "T", "Suite hallway", 0, IN, { 196, -70, 224, 110 })
+room("wt_suite1", "T", "Garden suite", 0, IN, { 180, 50, 196, 110 }, { glass = true, props = { "tables" } })
+room("wt_suite2", "T", "Corner suite", 0, IN, { 180, -10, 196, 50 }, { glass = true, props = { "tables" } })
+room("wt_suite3", "T", "Skyline suite", 0, IN, { 180, -70, 196, -10 }, { glass = true, props = { "tables" } })
+room("wt_suite4", "T", "City suite", 0, IN, { 224, 50, 240, 110 }, { glass = true, props = { "tables" } })
+room("wt_suite5", "T", "Moon suite", 0, IN, { 224, -10, 240, 50 }, { glass = true, props = { "tables" } })
+room("wt_exec", "T", "Executive suite", 3, IN, { 224, -70, 240, -10 }, { glass = true, density = 0.5 })
 room("wt_balcony1", "T", "Garden suite balcony", 0, OUT, { 172, 60, 180, 100 }, { density = 0.3 })
 room("wt_balcony2", "T", "Corner suite balcony", 0, OUT, { 172, 0, 180, 40 }, { density = 0.3 })
 room("wt_balcony3", "T", "Skyline suite balcony", 0, OUT, { 172, -60, 180, -20 }, { density = 0.3 })
@@ -329,10 +329,11 @@ room(
 	"Wing roof garden",
 	0,
 	OUT,
-	{ 180, 20, 240, 110 },
+	{ 180, -40, 240, 110 },
 	{ density = 1.5, props = { "trees", "planters", "bar" } }
 )
-room("wr_plant", "R", "Rooftop plant room", 1, IN, { 180, -70, 240, 20 }, { props = { "crates" } })
+room("wr_plant", "R", "Rooftop plant room", 1, IN, { 210, -70, 240, -40 }, { props = { "crates" } })
+room("wr_landing", "R", "Sky deck stair landing", 0, OUT, { 180, -70, 210, -40 }, { density = 0.4 })
 -- X: the sky deck, the wing's top and an extraction site.
 room("wx_skydeck", "X", "Sky deck", 0, OUT, { 180, -70, 240, 20 }, { density = 0.8, props = { "planters" } })
 
@@ -418,7 +419,13 @@ local ramps: { Ramp } = {
 	{ from = "G", x = 160, z = -20, dir = "-z", turn = true },
 	{ from = "M", x = 210, z = 33, dir = "-z", turn = true },
 	{ from = "T", x = 210, z = 100, dir = "-z", turn = true },
-	{ from = "R", x = 210, z = -60, dir = "+z", turn = true },
+	-- R -> X: a public stair from the roof garden up to the sky deck
+	{ from = "R", x = 195, z = 0, dir = "-z", turn = true },
+	-- M -> T: public stairs from the grand gallery and the masquerade hall up to the upper terrace
+	{ from = "M", x = -70, z = 105, dir = "-z", turn = true },
+	{ from = "M", x = 70, z = 105, dir = "-z", turn = true },
+	-- T -> R: a public stair from the upper terrace up to the pool deck
+	{ from = "T", x = -95, z = 50, dir = "-z", turn = true },
 }
 
 -- Doors: { a, b, at, width, options }. `at` is x for a wall that runs along x, and z for one that runs along z.
@@ -474,7 +481,7 @@ door("g_service", "g_staffwc", -141, 6)
 door("g_sculpt", "g_kitchen", -70, 8, { keycard = true })
 door("g_ballroom", "g_service", 0, 10, { keycard = true })
 door("g_lounge", "g_catering", 70, 8)
-door("g_lounge", "g_humidor", 45, 6, { gate = 1 })
+door("g_lounge", "g_humidor", 45, 8, { gate = 1 })
 door("g_lounge", "g_breakroom", 100, 8)
 door("g_kitchen", "g_service", -100, 10)
 door("g_service", "g_catering", -100, 10)
@@ -541,8 +548,8 @@ door("wt_suite5", "wt_exec", 230, 8)
 door("wt_suite1", "wt_balcony1", 80, 8)
 door("wt_suite2", "wt_balcony2", 20, 8)
 door("wt_suite3", "wt_balcony3", -40, 8)
-door("wr_garden", "wr_plant", 200, 8)
-door("wr_garden", "wr_plant", 230, 8)
+door("wr_garden", "wr_plant", 225, 8)
+door("wr_landing", "wr_plant", -55, 8)
 
 -- Vent grates: in from the room the duct sits in, out into the room it leads to.
 door("b_west", "v_vaulta", -32, 3)
@@ -663,6 +670,12 @@ local nodes: { NodeSpec } = {
 	{ level = "R", x = 100, z = 33, activity = "Walk" },
 	{ level = "R", x = 130, z = 33, activity = "Walk" },
 	{ level = "R", x = 160, z = 33, activity = "Walk" },
+	-- Down the suite hallway's open east side, past the stair openings, so its two ends stay joined.
+	{ level = "T", x = 219, z = -45, activity = "Walk" },
+	{ level = "T", x = 219, z = -15, activity = "Walk" },
+	{ level = "T", x = 219, z = 15, activity = "Walk" },
+	{ level = "T", x = 219, z = 45, activity = "Walk" },
+	{ level = "T", x = 219, z = 65, activity = "Walk" },
 }
 
 -- Places that are not rooms: where teams arrive and where the Package leaves (spec 4.3).

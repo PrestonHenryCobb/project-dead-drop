@@ -59,6 +59,20 @@ every vault has 3 routes out, sight lines over 150 studs are rare (2 or 3), zone
    check passes.
 3. Read the console for the `[Gala]` lines. The console is long; the self-check lines are at the end.
 
+## 3b. Check NPCs can walk everywhere
+
+In a playtest (pathfinding needs the running world), run the report from a game Script so it shares the services:
+```lua
+local out = Instance.new("StringValue"); out.Name = "NavReport"; out.Parent = game.ServerStorage
+local s = Instance.new("Script")
+s.Source = [[game.ServerStorage.NavReport.Value = require(game.ServerScriptService.Server.Tools.NavReport).run()]]
+s.Parent = game.ServerScriptService
+-- wait until out.Value is set (about 20 s), then read it and destroy s
+```
+It lists, for each tier limit (Guests 0 up to Executives 3), the rooms with nodes cut off from the main group, and any
+stair whose ends did not link. Fix layout causes (a public area reached only through a guarded room, a doorway or
+passage narrower than 4 studs, a long corridor with too few nodes) until each tier is one group.
+
 ## 4. Review with screenshots
 
 - `screen_capture` (Edit mode) with `camera_position` and `look_at_position` gives you the Studio viewport. The Studio

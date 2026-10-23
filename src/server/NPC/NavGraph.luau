@@ -101,6 +101,26 @@ function NavGraph.build(nodes: { BasePart }, tierAt: (Vector3) -> number): Graph
 			end
 		end
 	end
+	-- The two ends of each stair (nodes sharing a StairLink attribute) are always linked, and exempt from the detour
+	-- check: a switchback arrives right above where it starts, and a long flight's top is rarely among the nearest
+	-- nodes, but the stair is exactly the route between them.
+	local stairPairs: { [string]: boolean } = {}
+	local stairEnds: { [string]: { number } } = {}
+	for index, node in nodes do
+		local stairLink = node:GetAttribute("StairLink")
+		if type(stairLink) == "string" then
+			stairEnds[stairLink] = stairEnds[stairLink] or {}
+			table.insert(stairEnds[stairLink], index)
+		end
+	end
+	for _, ends in stairEnds do
+		if #ends == 2 then
+			local a, b = math.min(ends[1], ends[2]), math.max(ends[1], ends[2])
+			seen[`{a}:{b}`] = true
+			stairPairs[`{a}:{b}`] = true
+			table.insert(pairs, { a, b })
+		end
+	end
 	for a = 1, #nodes do
 		local sameLevel: { { index: number, distance: number } } = {}
 		local otherLevel: { { index: number, distance: number } } = {}
@@ -141,7 +161,8 @@ function NavGraph.build(nodes: { BasePart }, tierAt: (Vector3) -> number): Graph
 			return
 		end
 		local length = pathLength(points)
-		if length > (graph.feet[a] - graph.feet[b]).Magnitude * config.MaxDetourRatio then
+		local isStair = stairPairs[if a < b then `{a}:{b}` else `{b}:{a}`] == true
+		if not isStair and length > (graph.feet[a] - graph.feet[b]).Magnitude * config.MaxDetourRatio then
 			return
 		end
 		local maxTier = maxTierAlong(points, tierAt)
