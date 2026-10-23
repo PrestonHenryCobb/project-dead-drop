@@ -61,7 +61,7 @@ local GameConfig = {
 		FootprintStuds = 450,
 		Counts = {
 			InsertionPoint = 12,
-			IntelSpawn = 18,
+			IntelSpawn = 32, -- 8 per tier (spec 18; more now that intel is also spent)
 			VaultSpawn = 4, -- the spec has 3; a fourth sits in the hotel wing (BUILD_ORDER Step 7B)
 			ExtractionSite = 3,
 			SupplyCache = 6,
@@ -71,6 +71,10 @@ local GameConfig = {
 			VentPairs = 6,
 			ZiplineAnchorPairs = 2,
 			PickupSpawn = 30,
+			HealthStation = 6,
+			AmmoCache = 8,
+			FoodSpot = 20,
+			AssetSafe = 12,
 		},
 		NPCNodeCount = { Min = 150, Max = 650 }, -- spec says 150 to 250; 200 NPCs on the larger layout need more (SPEC-QUESTION)
 		SupplyCachesPerTier = { [0] = 2, [1] = 2, [2] = 1, [3] = 1 },
@@ -303,6 +307,13 @@ local GameConfig = {
 
 	-- Spec 9: intel.
 	Intel = {
+		-- Step 7B: four station types, one per tier. Points is the intel a station gives; HackSeconds how long it takes.
+		Stations = {
+			[0] = { Name = "Guest book", Points = 1, HackSeconds = 4 },
+			[1] = { Name = "Staff laptop", Points = 2, HackSeconds = 7 },
+			[2] = { Name = "Server rack", Points = 3, HackSeconds = 11 },
+			[3] = { Name = "Wall safe", Points = 4, HackSeconds = 16 },
+		},
 		ActiveSpawns = 10,
 		TerminalSeconds = 6,
 		TerminalProgressKeepSeconds = 20, -- per team

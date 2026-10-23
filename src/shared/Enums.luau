@@ -76,6 +76,14 @@ local Enums = {
 		ClimbSurface = "ClimbSurface",
 		Seat = "Seat", -- a place the Blend wheel's Sit emote works near (spec 6.7)
 		ZoneVolume = "ZoneVolume", -- Spec 4.2: invisible volumes carrying the Tier attribute.
+		-- Step 7B pass 2: vault parts, and things players use (bought with intel, free, or looted).
+		VaultDoor = "VaultDoor", -- the inner vault door (spec 10); VaultId names its vault
+		VaultHackZone = "VaultHackZone", -- the 10 x 10 floor zone in front of the inner door (spec 10.2)
+		PackagePedestal = "PackagePedestal", -- where the Package sits, and returns to (spec 11)
+		HealthStation = "HealthStation", -- wall health station in a restroom, bought with intel
+		AmmoCache = "AmmoCache", -- wall ammo cache, bought with intel
+		FoodSpot = "FoodSpot", -- free food: heals less than a health station
+		AssetSafe = "AssetSafe", -- a safe holding an asset; its Tier sets the rarity odds
 	},
 
 	-- Spec 5.3, 6.7, 5.4: the code-built animations NPCs (and later the Blend wheel) play.

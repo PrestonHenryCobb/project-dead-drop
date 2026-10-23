@@ -36,6 +36,8 @@ export type Room = {
 	props: { string }?, -- what fills it (see Build.luau)
 	glass: boolean?, -- its walls facing a garden are glass above a low sill
 	height: number?, -- an indoor room's wall height when it is lower than a full storey (a bridge)
+	noNodes: boolean?, -- no NPC nodes (a vault strongroom: NPCs never stop at the vault)
+	theme: string?, -- a vault's look: "bank", "gallery", "cold" or "counting"
 }
 
 export type Door = {
@@ -45,6 +47,8 @@ export type Door = {
 	width: number?,
 	gate: number?, -- a clearance door that stays shut below this tier
 	keycard: boolean?, -- a keycard shortcut door between tiers (spec 4.3)
+	vault: string?, -- the inner vault door (spec 10): shut until the vault is hacked; names the vault
+	laser: boolean?, -- a laser grid across this doorway (spec 18.2)
 }
 
 export type Ramp = {
@@ -73,6 +77,13 @@ export type Feature = {
 	count: number?,
 	points: { { number } }?,
 }
+
+-- Things placed in rooms (BUILD_ORDER Step 7B pass 2): Build.luau finds each a free spot along a wall of its room.
+--   intel     an intel station; its type follows the room's tier (tablet, laptop cart, server rack, wall safe)
+--   health    a wall health station (in the restrooms)        ammo    a wall ammo cache
+--   food      a buffet with a plate of food                   safe    a safe holding an asset (rarity by room tier)
+--   cache     a supply cache                                  camera  a security camera high on a wall
+export type Placement = { kind: string, room: string }
 
 -- A node NPCs can walk to that the grid would not place (on an island, on a bridge).
 export type NodeSpec = { level: string, x: number, z: number, activity: string }
@@ -117,7 +128,8 @@ room("b_south", "B", "South security corridor", 2, IN, { -75, 40, 75, 130 }, { p
 room("b_west", "B", "West security corridor", 2, IN, { -75, -60, -30, 40 })
 room("b_east", "B", "East security corridor", 2, IN, { 30, -60, 75, 40 })
 room("b_vaulta_ante", "B", "Vault A antechamber", 2, IN, { -30, 0, 30, 40 })
-room("b_vaulta", "B", "Vault A", 3, IN, { -30, -60, 30, 0 }, { density = 0.5 })
+room("b_vaulta", "B", "Vault A", 3, IN, { -30, -60, 30, 0 }, { density = 0.5, theme = "bank" })
+room("b_vaulta_core", "B", "Vault A strongroom", 3, IN, { -15, -60, 15, -35 }, { parent = "b_vaulta", noNodes = true })
 
 -- G: ground (0). Entirely indoors: the tower footprint, with windows onto the cityscape. -------------------------------------------
 room(
@@ -130,7 +142,16 @@ room(
 	{ glass = true, density = 0.7, props = { "crates" } }
 )
 room("g_vaultc_ante", "G", "Vault C antechamber", 2, IN, { -120, -115, -80, -85 })
-room("g_vaultc", "G", "Vault C", 3, IN, { -120, -150, -80, -115 }, { density = 0.5 })
+room("g_vaultc", "G", "Vault C", 3, IN, { -120, -150, -80, -115 }, { density = 0.5, theme = "cold" })
+room(
+	"g_vaultc_core",
+	"G",
+	"Vault C strongroom",
+	3,
+	IN,
+	{ -120, -150, -95, -130 },
+	{ parent = "g_vaultc", noNodes = true }
+)
 room("g_kitchen", "G", "Kitchen", 1, IN, { -80, -150, -40, -50 }, { density = 1.2, props = { "islands" } })
 room("g_service", "G", "Service corridor", 1, IN, { -40, -150, 40, -50 }, { props = { "pillars" } })
 room("g_catering", "G", "Catering prep", 1, IN, { 40, -150, 80, -50 }, { glass = true, props = { "islands" } })
@@ -151,6 +172,8 @@ room(
 	{ glass = true, density = 1.5, props = { "reception", "pillars" } }
 )
 room("g_concierge", "G", "Concierge office", 1, IN, { -80, 100, -50, 130 }, { parent = "g_lobby", props = { "desks" } })
+room("g_restroom", "G", "Lobby restrooms", 0, IN, { 25, 110, 50, 130 }, { parent = "g_lobby" })
+room("g_staffwc", "G", "Staff washroom", 1, IN, { 20, -150, 40, -132 }, { parent = "g_service" })
 room(
 	"g_bar",
 	"G",
@@ -202,6 +225,7 @@ room("m_checkpoint", "M", "Security checkpoint", 2, IN, { -75, -80, -45, -45 }, 
 room("m_hub", "M", "Security hub", 2, IN, { -15, -135, 45, -45 }, { props = { "desks" } })
 room("m_records", "M", "Executive records", 3, IN, { 15, -135, 45, -100 }, { parent = "m_hub", density = 0.5 })
 room("m_cater", "M", "Catering offices", 1, IN, { 45, -135, 105, -45 }, { props = { "desks" } })
+room("m_restroom", "M", "Gallery restrooms", 0, IN, { -105, 95, -85, 115 }, { parent = "m_gallery" })
 room(
 	"m_terrace",
 	"M",
@@ -231,7 +255,16 @@ room("wb_laundry", "B", "Hotel laundry", 1, IN, { 140, -10, 190, 50 }, { props =
 room("wb_service", "B", "Hotel service corridor", 1, IN, { 140, 50, 240, 110 }, { props = { "pillars" } })
 room("wb_security", "B", "Wing security office", 2, IN, { 140, -70, 190, -10 }, { props = { "desks" } })
 room("wb_vaultd_ante", "B", "Vault D antechamber", 2, IN, { 190, -10, 240, 50 })
-room("wb_vaultd", "B", "Vault D", 3, IN, { 190, -70, 240, -10 }, { density = 0.5 })
+room("wb_vaultd", "B", "Vault D", 3, IN, { 190, -70, 240, -10 }, { density = 0.5, theme = "counting" })
+room(
+	"wb_vaultd_core",
+	"B",
+	"Vault D strongroom",
+	3,
+	IN,
+	{ 215, -70, 240, -45 },
+	{ parent = "wb_vaultd", noNodes = true }
+)
 -- G: the casino floor, the cashier's cage and the high-roller lounge.
 room(
 	"wg_casino",
@@ -243,6 +276,7 @@ room(
 	{ glass = true, density = 2, props = { "pillars", "tables" } }
 )
 room("wg_cage", "G", "Cashier's cage", 1, IN, { 140, -70, 180, 10 }, { glass = true, props = { "desks" } })
+room("wg_restroom", "G", "Casino restrooms", 0, IN, { 215, 90, 240, 110 }, { parent = "wg_casino" })
 room("wg_highroller", "G", "High-roller lounge", 3, IN, { 180, -70, 240, 10 }, { glass = true, props = { "tables" } })
 -- M: the hotel lobby and corridor beside the lawn deck, and housekeeping.
 room(
@@ -254,6 +288,7 @@ room(
 	{ 180, 40, 240, 110 },
 	{ glass = true, density = 1.5, props = { "reception" } }
 )
+room("wm_restroom", "M", "Hotel restrooms", 0, IN, { 220, 90, 240, 110 }, { parent = "wm_lobby" })
 room("wm_corridor", "M", "Hotel corridor", 0, IN, { 180, -10, 240, 40 }, { glass = true, props = { "planters" } })
 room("wm_housekeeping", "M", "Housekeeping", 1, IN, { 140, -70, 240, -10 }, { glass = true, props = { "crates" } })
 -- T: suites either side of a hallway, with balconies over the lawn deck.
@@ -284,12 +319,14 @@ room("wx_skydeck", "X", "Sky deck", 0, OUT, { 180, -70, 240, 20 }, { density = 0
 -- T: top floor (48) -----------------------------------------------------------------------------------------------------
 room("t_great", "T", "Penthouse great room", 3, IN, { -45, -45, 45, 55 }, { glass = true, density = 1 })
 room("t_gallery", "T", "Private gallery", 3, IN, { -45, 55, 45, 85 }, { glass = true, props = { "partitions" } })
-room("t_vaultb_ante", "T", "Vault B antechamber", 2, IN, { -45, -75, 45, -45 })
-room("t_vaultb", "T", "Vault B", 3, IN, { -45, -105, 45, -75 }, { density = 0.5 })
+room("t_vaultb_ante", "T", "Vault B antechamber", 2, IN, { -45, -75, 45, -45 }, { props = { "vitrines" } })
+room("t_vaultb", "T", "Vault B", 3, IN, { -45, -105, 45, -75 }, { density = 0.5, theme = "gallery" })
+room("t_vaultb_core", "T", "Vault B strongroom", 3, IN, { -15, -105, 15, -90 }, { parent = "t_vaultb", noNodes = true })
 room("t_west", "T", "West guard hall", 2, IN, { -75, -105, -45, 85 }, { props = { "pillars" } })
 room("t_panic", "T", "Panic room", 3, IN, { -75, 20, -45, 45 }, { parent = "t_west", density = 0.5 })
 room("t_east", "T", "East guard hall", 2, IN, { 45, -105, 75, 85 }, { props = { "pillars" } })
 room("t_office", "T", "Executive office", 3, IN, { 45, 20, 75, 45 }, { parent = "t_east", density = 0.5 })
+room("t_washroom", "T", "Guard washroom", 2, IN, { 55, 60, 75, 85 }, { parent = "t_east" })
 room(
 	"t_terrace",
 	"T",
@@ -390,8 +427,9 @@ door("b_south", "b_east", 52, 10)
 door("b_west", "b_vaulta_ante", 20, 8)
 door("b_east", "b_vaulta_ante", 20, 8)
 door("b_south", "b_vaulta_ante", 0, 10)
-door("b_vaulta_ante", "b_vaulta", 0, 8, { gate = 3 })
+door("b_vaulta_ante", "b_vaulta", 0, 8, { gate = 3, laser = true })
 door("b_west", "b_vaulta", -30, 8, { gate = 3 })
+door("b_vaulta", "b_vaulta_core", 0, 8, { vault = "VaultA" })
 
 -- G
 door("g_coat", "g_lobby", 85, 8)
@@ -408,8 +446,11 @@ door("g_sculpt", "g_dock", -100, 10)
 door("g_dock", "g_kitchen", -78, 8)
 door("g_dock", "g_vaultc_ante", -100, 8, { gate = 2 })
 door("g_kitchen", "g_vaultc_ante", -100, 8, { gate = 2 })
-door("g_vaultc_ante", "g_vaultc", -100, 8, { gate = 3 })
-door("g_kitchen", "g_vaultc", -130, 8, { gate = 3 })
+door("g_vaultc_ante", "g_vaultc", -100, 8, { gate = 3, laser = true })
+door("g_kitchen", "g_vaultc", -122, 8, { gate = 3 })
+door("g_vaultc", "g_vaultc_core", -108, 8, { vault = "VaultC" })
+door("g_lobby", "g_restroom", 38, 6)
+door("g_service", "g_staffwc", -141, 6)
 door("g_sculpt", "g_kitchen", -70, 8, { keycard = true })
 door("g_ballroom", "g_service", 0, 10, { keycard = true })
 door("g_lounge", "g_catering", 70, 8)
@@ -445,6 +486,7 @@ door("m_offices", "m_hub", -90, 8, { keycard = true })
 door("m_hub", "m_cater", -90, 8, { keycard = true })
 door("m_offices", "m_checkpoint", -60, 8, { gate = 2 })
 door("m_hub", "m_records", -115, 8, { gate = 3 })
+door("m_gallery", "m_restroom", -95, 6)
 
 door("m_terrace", "m_skybridge", 32, 10)
 door("m_skybridge", "m_belvedere", 32, 10)
@@ -456,8 +498,11 @@ door("wb_laundry", "wb_service", 165, 10)
 door("wb_laundry", "wb_security", 165, 8)
 door("wb_laundry", "wb_vaultd_ante", 20, 8, { gate = 2 })
 door("wb_service", "wb_vaultd_ante", 215, 8, { gate = 2 })
-door("wb_vaultd_ante", "wb_vaultd", 215, 8, { gate = 3 })
+door("wb_vaultd_ante", "wb_vaultd", 215, 8, { gate = 3, laser = true })
 door("wb_security", "wb_vaultd", -40, 8, { gate = 3 })
+door("wb_vaultd", "wb_vaultd_core", 227, 8, { vault = "VaultD" })
+door("wg_casino", "wg_restroom", 227, 6)
+door("wm_lobby", "wm_restroom", 227, 6)
 door("wg_casino", "wg_cage", 160, 8)
 door("wg_casino", "wg_highroller", 210, 10)
 door("wg_cage", "wg_highroller", -30, 8)
@@ -490,7 +535,9 @@ door("t_great", "t_east", 10, 8)
 door("t_gallery", "t_west", 70, 8)
 door("t_gallery", "t_east", 70, 8)
 door("t_great", "t_vaultb_ante", 0, 10, { gate = 2 })
-door("t_vaultb_ante", "t_vaultb", 0, 8, { gate = 3 })
+door("t_vaultb_ante", "t_vaultb", 0, 8, { gate = 3, laser = true })
+door("t_vaultb", "t_vaultb_core", 0, 8, { vault = "VaultB" })
+door("t_east", "t_washroom", 65, 6)
 door("t_west", "t_vaultb_ante", -60, 8)
 door("t_east", "t_vaultb_ante", -60, 8)
 door("t_west", "t_panic", -60, 8, { gate = 3 })
@@ -519,6 +566,37 @@ local features: { Feature } = {
 	{ kind = "pool", level = "R", rect = { -145, -30, -125, 10 } },
 	{ kind = "pavilion", level = "R", rect = { -142, 22, -130, 56 }, count = 3 },
 }
+
+local placements: { Placement } = {}
+local function place(kind: string, list: { string })
+	for _, roomId in list do
+		table.insert(placements, { kind = kind, room = roomId })
+	end
+end
+-- 32 intel stations, 8 per tier; the room's tier sets the type.
+place("intel", { "g_lobby", "g_ballroom", "g_bar", "g_sculpt", "m_gallery", "m_masq", "wg_casino", "wm_lobby" })
+place(
+	"intel",
+	{ "g_kitchen", "g_service", "g_catering", "g_coat", "m_offices", "m_cater", "wb_laundry", "wm_housekeeping" }
+)
+place("intel", { "b_north", "b_south", "b_west", "b_east", "m_hub", "t_west", "t_east", "wb_security" })
+place("intel", { "t_great", "t_great", "t_gallery", "t_office", "t_panic", "m_records", "wg_highroller", "wt_exec" })
+place("health", { "g_restroom", "g_staffwc", "m_restroom", "t_washroom", "wm_restroom", "wg_restroom" })
+place("ammo", { "g_service", "g_dock", "m_hub", "b_north", "t_west", "wg_cage", "wm_corridor", "wt_hall" })
+-- Food: plenty where the party is, little in the guard areas.
+place(
+	"food",
+	{ "g_ballroom", "g_ballroom", "g_ballroom", "g_bar", "g_bar", "g_lounge", "m_masq", "m_masq", "m_promenade" }
+)
+place("food", { "wg_casino", "wg_casino", "wm_lobby", "wr_garden", "wr_garden", "r_roof", "r_roof", "g_kitchen" })
+place("food", { "g_kitchen", "wt_suite1", "t_great" })
+-- Safes: four each in Staff, Security and Executive rooms.
+place("safe", { "g_coat", "m_cater", "wb_laundry", "wr_plant" })
+place("safe", { "b_east", "m_checkpoint", "t_east", "wb_security" })
+place("safe", { "t_office", "t_panic", "wg_highroller", "wt_exec" })
+place("cache", { "g_sculpt", "m_balcony", "t_terrace", "wg_cage", "b_west_s", "wr_garden" })
+place("camera", { "g_service", "g_kitchen", "g_dock", "m_hub", "m_offices", "b_north", "b_south", "t_west", "t_east" })
+place("camera", { "wb_service", "wg_cage", "wm_housekeeping" })
 
 local nodes: { NodeSpec } = {
 	{ level = "G", x = -24, z = 8, activity = "Idle" },
@@ -559,10 +637,10 @@ local insertion: { Marker } = {
 }
 
 local vaults: { Marker } = {
-	{ id = "VaultA", level = "B", x = 0, z = -30 },
-	{ id = "VaultB", level = "T", x = 0, z = -90 },
-	{ id = "VaultC", level = "G", x = -100, z = -132 },
-	{ id = "VaultD", level = "B", x = 215, z = -40 },
+	{ id = "VaultA", level = "B", x = 0, z = -47.5 },
+	{ id = "VaultB", level = "T", x = 0, z = -97.5 },
+	{ id = "VaultC", level = "G", x = -107.5, z = -140 },
+	{ id = "VaultD", level = "B", x = 227.5, z = -57.5 },
 }
 
 return {
@@ -577,5 +655,6 @@ return {
 	insertion = insertion,
 	vaults = vaults,
 	features = features,
+	placements = placements,
 	nodes = nodes,
 }

@@ -77,6 +77,8 @@ local NODE_SPACING = { [0] = 30, [1] = 32, [2] = 36, [3] = 36 }
 local LIGHT_SPACING = 55 -- studs between ceiling lights in a room
 local LIGHT_CAP = 110 -- the most lights in the map (each is a dynamic light on a phone)
 local DOOR_CLEAR = 7 -- studs props keep clear in front of a doorway
+local PLACE_STEP = 3 -- studs between the spots tried along a wall for a placed object
+local PLACE_SPREAD = 60 -- placed objects in one room are spread up to this far apart
 local NODE_PROP_CLEAR = 3 -- studs a node keeps from a prop
 
 local ACTIVITIES: { [number]: { string } } = {
@@ -954,6 +956,45 @@ function Build.run()
 		)
 	end
 
+	-- An inner vault door filling a doorway, in one of four styles (BUILD_ORDER Step 7B): a round bank door, a glass
+	-- gallery door, a frosted cold-store door, or a green counting-room door.
+	local function vaultDoor(edge: Edge, center: number, baseY: number, theme: string, vaultId: string)
+		local width = 8
+		local styles: { [string]: { color: Color3, material: Enum.Material } } = {
+			bank = { color = Color3.fromRGB(150, 152, 160), material = Enum.Material.DiamondPlate },
+			gallery = { color = Color3.fromRGB(175, 205, 230), material = Enum.Material.Glass },
+			cold = { color = Color3.fromRGB(205, 225, 240), material = Enum.Material.Ice },
+			counting = { color = Color3.fromRGB(60, 95, 70), material = Enum.Material.Metal },
+		}
+		local style = styles[theme] or styles.bank
+		local pos = alongPoint(edge.axis, edge.line, center, baseY + GAP_H / 2)
+		local slab =
+			part(objects, "VaultDoor", alongSize(edge.axis, width, GAP_H, WALL_T), CFrame.new(pos), style.color)
+		slab.Material = style.material
+		if theme == "gallery" then
+			slab.Transparency = 0.4
+		end
+		tag(slab, Tag.VaultDoor, { VaultId = vaultId, Theme = theme })
+		local gold = Color3.fromRGB(210, 170, 70)
+		if theme == "bank" then
+			-- A round door face with a hub, on the vault-room side.
+			for _, sign in { -1, 1 } do
+				local face = part(
+					trim,
+					"VaultWheel",
+					Vector3.new(0.6, GAP_H - 1, GAP_H - 1),
+					CFrame.new(
+						pos + (if edge.axis == "x" then Vector3.new(0, 0, sign) else Vector3.new(sign, 0, 0)) * 1.2
+					) * (if edge.axis == "x" then CFrame.Angles(0, math.rad(90), 0) else CFrame.new()),
+					gold
+				)
+				face.Shape = Enum.PartType.Cylinder
+			end
+		else
+			part(trim, "VaultHandle", alongSize(edge.axis, width * 0.6, 0.6, WALL_T + 1), CFrame.new(pos), gold)
+		end
+	end
+
 	local wallCount, gateCount, keycardCount = 0, 0, 0
 	for _, edge in edges do
 		local height = 0
@@ -1047,6 +1088,60 @@ function Build.run()
 					keycardCount += 1
 					tag(doorPart, Tag.KeycardDoor, { Tier = high })
 				end
+			end
+			-- Which side of this wall a room is on: -1 for the low side, 1 for the high side.
+			local function sideOf(room: Room): number
+				return if edge.roomA == room then -1 else 1
+			end
+			if door.vault then
+				-- The inner vault door (spec 10), in its vault's style, with the hack zone in front of it and the Package
+				-- pedestal in the strongroom behind it.
+				local vaultRoom, core = roomById[door.a], roomById[door.b]
+				vaultDoor(edge, gap.center, baseY, vaultRoom.theme or "bank", door.vault)
+				local out = -sideOf(core) -- from the door toward the vault room
+				local size = GameConfig.Vault.HackZoneSize
+				local zone = part(
+					objects,
+					"VaultHackZone",
+					alongSize(edge.axis, size, 0.2, size),
+					CFrame.new(alongPoint(edge.axis, edge.line + out * (size / 2 + WALL_T), gap.center, baseY + 0.1)),
+					Color3.fromRGB(255, 70, 60)
+				)
+				zone.Transparency = 0.6
+				zone.CanCollide = false
+				zone.Material = Enum.Material.Neon
+				tag(zone, Tag.VaultHackZone, { VaultId = door.vault })
+				local c = toRect(core.rect)
+				local pedestal = part(
+					objects,
+					"PackagePedestal",
+					Vector3.new(3, 3.5, 3),
+					CFrame.new((c.x1 + c.x2) / 2, baseY + 1.75, (c.z1 + c.z2) / 2),
+					Color3.fromRGB(60, 62, 70)
+				)
+				tag(pedestal, Tag.PackagePedestal, { VaultId = door.vault })
+			end
+			if door.laser then
+				-- A laser grid across the doorway, on the antechamber's side (spec 18.2).
+				local grid = part(
+					objects,
+					"LaserGrid",
+					alongSize(edge.axis, gap.width, GAP_H, 0.2),
+					CFrame.new(
+						alongPoint(
+							edge.axis,
+							edge.line + sideOf(roomById[door.a]) * (WALL_T / 2 + 3),
+							gap.center,
+							baseY + GAP_H / 2
+						)
+					),
+					Color3.fromRGB(255, 40, 40)
+				)
+				grid.Material = Enum.Material.Neon
+				grid.Transparency = 0.7
+				grid.CanCollide = false
+				grid.CanQuery = false
+				tag(grid, Tag.LaserGrid)
 			end
 			-- Coloured posts and floor decals show which tiers a doorway joins.
 			if edge.roomA.tier ~= roomB.tier or door.gate then
@@ -1435,10 +1530,26 @@ function Build.run()
 				)
 			end
 		end,
-		trucks = function(room)
+		vitrines = function(room)
+			-- Glass display cases on plinths, in rows (the art vault's display hall).
 			local b = bounds(room)
-			addProp(room, "Truck", b.x1 + 18, (b.z1 + b.z2) / 2 - 20, 12, 9, 28, METAL)
-			addProp(room, "Truck", b.x1 + 18, (b.z1 + b.z2) / 2 + 24, 12, 9, 28, METAL)
+			local x = b.x1 + 12
+			while x < b.x2 - 8 do
+				for _, z in { b.z1 + 8, b.z2 - 8 } do
+					if addProp(room, "Plinth", x, z, 3, 3, 3, STONE) then
+						local case = part(
+							propsFolder,
+							"Vitrine",
+							Vector3.new(3, 3, 3),
+							CFrame.new(x, levels[room.level] + 4.5, z),
+							Color3.fromRGB(190, 220, 240)
+						)
+						case.Material = Enum.Material.Glass
+						case.Transparency = 0.5
+					end
+				end
+				x += 12
+			end
 		end,
 		desks = function(room)
 			local b = bounds(room)
@@ -1523,6 +1634,217 @@ function Build.run()
 			propCount += #propRects[room.level] - before
 		end
 	end
+
+	-- Crates and stacked boxes can be climbed (climbing breaks Cover, spec 7.2).
+	for _, item in propsFolder:GetChildren() do
+		if item.Name == "Crate" then
+			tag(item, Tag.ClimbSurface)
+		end
+	end
+
+	-- Placed objects (Layout.placements): each goes to a free spot along a wall of its room, as far as possible from the
+	-- other things placed in that room, clear of doorways, stairs and props. Wall-mounted ones sit against the wall.
+	type Spot = { x: number, z: number, nx: number, nz: number }
+	local placedIn: { [string]: { Spot } } = {}
+	local function wallSpot(room: Room, width: number, depth: number): Spot?
+		local best: Spot? = nil
+		local bestScore = -math.huge
+		for _, piece in piecesOfRoom[room.id] do
+			local r = piece.rect
+			-- each side: the inward normal, the wall line, and its extent
+			for _, side in
+				{
+					{ nx = 0, nz = 1, line = r.z1, a = r.x1, b = r.x2 },
+					{ nx = 0, nz = -1, line = r.z2, a = r.x1, b = r.x2 },
+					{ nx = 1, nz = 0, line = r.x1, a = r.z1, b = r.z2 },
+					{ nx = -1, nz = 0, line = r.x2, a = r.z1, b = r.z2 },
+				}
+			do
+				-- Not along an atrium railing: that is no wall.
+				local facesVoid = false
+				for _, void in voidRects[room.level] or {} do
+					local onLine = if side.nz ~= 0
+						then math.abs(void.z1 - side.line) < EPS or math.abs(void.z2 - side.line) < EPS
+						else math.abs(void.x1 - side.line) < EPS or math.abs(void.x2 - side.line) < EPS
+					if onLine then
+						facesVoid = true
+					end
+				end
+				if facesVoid then
+					continue
+				end
+				local t = side.a + width / 2 + 3
+				while t <= side.b - width / 2 - 3 do
+					local across = side.line + (side.nx + side.nz) * (2 + depth / 2) -- 2 studs in from the wall
+					local cx = if side.nz ~= 0 then t else across
+					local cz = if side.nz ~= 0 then across else t
+					local hw, hd =
+						if side.nz ~= 0 then width / 2 else depth / 2, if side.nz ~= 0 then depth / 2 else width / 2
+					local rect: Rect = { x1 = cx - hw, z1 = cz - hd, x2 = cx + hw, z2 = cz + hd }
+					if freeFor(room, rect) then
+						local nearest = PLACE_SPREAD
+						for _, other in placedIn[room.id] or {} do
+							nearest = math.min(nearest, math.sqrt((other.x - cx) ^ 2 + (other.z - cz) ^ 2))
+						end
+						-- prefer spots far from the others, then nearer the middle of the wall
+						local score = nearest - math.abs(t - (side.a + side.b) / 2) * 0.01
+						if score > bestScore then
+							bestScore = score
+							best = { x = cx, z = cz, nx = side.nx, nz = side.nz }
+						end
+					end
+					t += PLACE_STEP
+				end
+			end
+		end
+		return best
+	end
+
+	local intelByTier: { [number]: number } = { [0] = 0, [1] = 0, [2] = 0, [3] = 0 }
+	local unplaced: { string } = {}
+	local PLACE_SIZES: { [string]: Vector2 } = { -- width along the wall, depth into the room
+		intel = Vector2.new(4, 3),
+		health = Vector2.new(4, 2),
+		ammo = Vector2.new(4, 2),
+		food = Vector2.new(7, 4),
+		safe = Vector2.new(4, 4),
+		cache = Vector2.new(5, 4),
+		camera = Vector2.new(3, 2),
+	}
+	for _, placement in Layout.placements do
+		local room = roomById[placement.room]
+		assert(room, `Placement names an unknown room: {placement.room}`)
+		local size = PLACE_SIZES[placement.kind]
+		assert(size, `Unknown placement kind {placement.kind}`)
+		local spot = wallSpot(room, size.X, size.Y)
+		if not spot then
+			table.insert(unplaced, `{placement.kind} in {room.name}`)
+			continue
+		end
+		placedIn[room.id] = placedIn[room.id] or {}
+		table.insert(placedIn[room.id], spot)
+		local half = Vector2.new(size.X / 2, size.Y / 2)
+		local hw, hd = if spot.nz ~= 0 then half.X else half.Y, if spot.nz ~= 0 then half.Y else half.X
+		table.insert(propRects[room.level], { x1 = spot.x - hw, z1 = spot.z - hd, x2 = spot.x + hw, z2 = spot.z + hd })
+
+		local floorY = levels[room.level]
+		local facing = Vector3.new(spot.nx, 0, spot.nz) -- into the room
+		local wall = Vector3.new(spot.x, floorY, spot.z) - facing * (2 + size.Y / 2) -- the foot of the wall behind it
+		local function at(out: number, up: number): CFrame
+			-- a frame facing into the room, `out` studs from the wall and `up` studs above the floor
+			local p = wall + facing * out + Vector3.new(0, up, 0)
+			return CFrame.lookAt(p, p + facing)
+		end
+		local kind = placement.kind
+		if kind == "intel" then
+			local tier = room.tier
+			local station = GameConfig.Intel.Stations[tier]
+			intelByTier[tier] += 1
+			local trimColor = tierColor(tier)
+			local stationPart: Part
+			if tier == 0 then
+				-- a guest-book tablet on a stand
+				part(propsFolder, "Stand", Vector3.new(0.5, 3.4, 0.5), at(3, 1.7), STEEL)
+				stationPart = part(
+					propsFolder,
+					"IntelStation",
+					Vector3.new(2, 1.4, 0.3),
+					at(3, 3.6) * CFrame.Angles(math.rad(-30), 0, 0),
+					trimColor
+				)
+			elseif tier == 1 then
+				-- a laptop on a staff cart
+				part(propsFolder, "Cart", Vector3.new(3.5, 3, 2.2), at(3, 1.5), STEEL)
+				stationPart =
+					part(propsFolder, "IntelStation", Vector3.new(2, 0.2, 1.4), at(3, 3.1), Color3.fromRGB(40, 40, 46))
+				part(
+					propsFolder,
+					"Screen",
+					Vector3.new(2, 1.3, 0.1),
+					at(2.4, 3.8) * CFrame.Angles(math.rad(15), 0, 0),
+					trimColor
+				)
+			elseif tier == 2 then
+				-- a server rack with a screen
+				stationPart =
+					part(propsFolder, "IntelStation", Vector3.new(3, 7, 2.2), at(1.2, 3.5), Color3.fromRGB(35, 36, 42))
+				local screen = part(propsFolder, "Screen", Vector3.new(2, 1.2, 0.1), at(2.35, 5), trimColor)
+				screen.Material = Enum.Material.Neon
+			else
+				-- a wall safe with a keypad
+				stationPart =
+					part(propsFolder, "IntelStation", Vector3.new(3, 3, 0.8), at(0.5, 4), Color3.fromRGB(50, 50, 56))
+				local keypad = part(propsFolder, "Keypad", Vector3.new(0.8, 1, 0.2), at(1, 4), trimColor)
+				keypad.Material = Enum.Material.Neon
+			end
+			tag(stationPart, Tag.IntelSpawn, {
+				Tier = tier,
+				Points = station.Points,
+				HackSeconds = station.HackSeconds,
+				Station = station.Name,
+			})
+		elseif kind == "health" then
+			local box =
+				part(propsFolder, "HealthStation", Vector3.new(2.5, 3, 0.8), at(0.4, 4), Color3.fromRGB(235, 235, 240))
+			tag(box, Tag.HealthStation)
+			for _, bar in { Vector3.new(1.4, 0.4, 0.1), Vector3.new(0.4, 1.4, 0.1) } do
+				local cross = part(propsFolder, "Cross", bar, at(0.85, 4), Color3.fromRGB(230, 50, 50))
+				cross.Material = Enum.Material.Neon
+			end
+		elseif kind == "ammo" then
+			local box = part(propsFolder, "AmmoCache", Vector3.new(3, 2, 1), at(0.5, 3.5), Color3.fromRGB(75, 85, 55))
+			tag(box, Tag.AmmoCache)
+			local stripe =
+				part(propsFolder, "Stripe", Vector3.new(3, 0.3, 0.1), at(1.05, 3.5), Color3.fromRGB(240, 200, 40))
+			stripe.Material = Enum.Material.Neon
+		elseif kind == "food" then
+			part(propsFolder, "Buffet", Vector3.new(6, 3.2, 3), at(2, 1.6), Color3.fromRGB(235, 230, 220))
+			local plate =
+				part(propsFolder, "Food", Vector3.new(1.4, 0.4, 1.4), at(2, 3.4), Color3.fromRGB(215, 140, 70))
+			plate.Shape = Enum.PartType.Cylinder
+			plate.CFrame = at(2, 3.4) * CFrame.Angles(0, 0, math.rad(90))
+			plate.Size = Vector3.new(0.4, 1.4, 1.4)
+			tag(plate, Tag.FoodSpot)
+		elseif kind == "safe" then
+			local safe =
+				part(propsFolder, "AssetSafe", Vector3.new(3, 3.2, 3), at(1.6, 1.6), Color3.fromRGB(45, 46, 52))
+			tag(safe, Tag.AssetSafe, { Tier = room.tier })
+			local dial = part(
+				propsFolder,
+				"Dial",
+				Vector3.new(0.3, 1, 1),
+				at(3.15, 1.8) * CFrame.Angles(0, math.rad(90), 0),
+				tierColor(room.tier)
+			)
+			dial.Shape = Enum.PartType.Cylinder
+		elseif kind == "cache" then
+			local crate =
+				part(propsFolder, "SupplyCache", Vector3.new(4.5, 3, 3), at(1.6, 1.5), Color3.fromRGB(60, 70, 85))
+			tag(crate, Tag.SupplyCache)
+			local band =
+				part(propsFolder, "Band", Vector3.new(4.6, 0.4, 3.1), at(1.6, 2.4), Color3.fromRGB(240, 200, 40))
+			band.Material = Enum.Material.Neon
+		elseif kind == "camera" then
+			local high = roomHeight(room) - 2
+			part(propsFolder, "CameraMount", Vector3.new(0.4, 0.4, 1.2), at(0.6, high), STEEL)
+			local body = part(
+				propsFolder,
+				"SecurityCamera",
+				Vector3.new(1, 1, 2),
+				at(1.6, high) * CFrame.Angles(math.rad(-25), 0, 0),
+				Color3.fromRGB(230, 230, 235)
+			)
+			tag(body, Tag.SecurityCamera, { Tier = room.tier })
+		end
+	end
+	check(#unplaced == 0, `Every placement found a spot ({#Layout.placements - #unplaced}/{#Layout.placements})`)
+	for _, missing in unplaced do
+		print(`[Gala]      no room for {missing}`)
+	end
+	check(
+		intelByTier[0] == 8 and intelByTier[1] == 8 and intelByTier[2] == 8 and intelByTier[3] == 8,
+		`Intel stations by tier: {intelByTier[0]}, {intelByTier[1]}, {intelByTier[2]}, {intelByTier[3]} (want 8 each)`
+	)
 
 	-- Interior lights: warm amber in the public rooms, cooler as the tier rises, a handful per room (dusk-like inside).
 	local LIGHT_COLORS: { [number]: Color3 } = {
@@ -1671,6 +1993,9 @@ function Build.run()
 		local list: { NodeSpec } = {}
 		local nodeRng = Random.new(11)
 		for _, room in rooms do
+			if room.noNodes then
+				continue
+			end
 			local pool = room.activities
 				or (if room.kind == "outdoor" then OUTDOOR_ACTIVITIES else ACTIVITIES[room.tier])
 			local step = (NODE_SPACING[room.tier] / math.sqrt(room.density or 1)) * spacingScale
@@ -1844,6 +2169,23 @@ function Build.run()
 	)
 	check(count(Tag.KeycardDoor) == counts.KeycardDoor, `KeycardDoor {count(Tag.KeycardDoor)}/{counts.KeycardDoor}`)
 	check(count(Tag.ZoneVolume) == zoneCount, `ZoneVolume {count(Tag.ZoneVolume)}/{zoneCount}`)
+	for _, name in
+		{
+			"IntelSpawn",
+			"SupplyCache",
+			"SecurityCamera",
+			"LaserGrid",
+			"HealthStation",
+			"AmmoCache",
+			"FoodSpot",
+			"AssetSafe",
+		}
+	do
+		check(count(Tag[name]) == counts[name], `{name} {count(Tag[name])}/{counts[name]}`)
+	end
+	for _, name in { "VaultDoor", "VaultHackZone", "PackagePedestal" } do
+		check(count(Tag[name]) == counts.VaultSpawn, `{name} {count(Tag[name])}/{counts.VaultSpawn} (one per vault)`)
+	end
 	local nodeRange = GameConfig.Map.NPCNodeCount
 	check(
 		#specs >= nodeRange.Min and #specs <= nodeRange.Max,
