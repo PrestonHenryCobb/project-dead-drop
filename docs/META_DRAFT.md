@@ -6,7 +6,7 @@ is the record until then.
 
 ## Assets (per-match perks)
 - Found in supply caches and in safes in tiered rooms. Four rarities, coloured like the tiers: Field Agent (grey),
-  Infiltrator (blue), Black Ops (dark purple), Ghost (gold). Effects by rarity are in BUILD_ORDER.md (Step 7B).
+  Infiltrator (green), Black Ops (dark purple), Ghost (gold), matching the tier colours (2026-10-23). Effects by rarity are in BUILD_ORDER.md (Step 7B).
 - **Odds:** the higher the rarity, the rarer. Base odds: Field Agent 60%, Infiltrator 28%, Black Ops 10%, Ghost 2%. A
   safe in a higher-tier room shifts the odds up a little, but Ghost never goes above about 8%, even in an Executive safe.
 

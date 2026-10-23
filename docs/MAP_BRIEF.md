@@ -177,3 +177,38 @@ This replaces the grounds in the sections above. There is no outdoor ground leve
 inside the tower, with windows onto a cityscape that lies far below. The koi pond court, the arrival court, the hedge maze,
 the pool terrace, the valet lane, the service yard and the outdoor loading dock are gone. The only outdoor spaces are the
 mezzanine and upper terraces, the roof, the skybridge and the lawn deck. See the table in BUILD_ORDER.md, Step 7B.
+
+## Decided (2026-10-23, from the Deceive Inc. reference video; inspiration only, no copied layouts)
+
+- **Doors replace the laser/LED slab gates.** The style depends on the tier. Public and staff doors are framed glass
+  double doors. Security doors are solid. Executive and vault doors are heavy metal. Every tiered door has tall handle
+  bars that glow in the tier colour, with pips for the tier number. Doors swing open (they no longer fade out).
+  Laser grids stay as their own security feature (spec 18.2), but they are no longer how a door looks.
+- **Door size depends on importance.** Main lobby and atrium doors are 16 x 16 studs, clearance doors about 12 x 13,
+  and small staff doors stay 10 x 10.
+- **Tier colours get brighter and easier to tell apart:** Staff green, Security dark purple, Executive gold, Vault red, each
+  with a pip count. Disguise suit trims are retuned to match. This replaces the navy and purple in GameConfig TierColors.
+- **Food and healing pickups** give off small glowing plus icons that drift upward and fade, on a loop, so they read
+  as pickups and not decor.
+- **Map size grows about 15%, to about 520 x 520 studs**, to fit the bigger doors, door surrounds and wider halls.
+- **Strong theme per wing.** Each wing has its own materials, trim and door surround. Tier colour comes from handles,
+  carpet inlays and signs. Approved themes: Gala Ballroom black-and-gold art deco; Casino red velvet and neon; Hotel
+  suites Mediterranean tile and arches; Staff and kitchen green tile, utilitarian; Security clean white and blue (its
+  tier colour, dark purple, shows on handles, inlays and signs); Vaults brass and steel bank.
+- **Glass office walls** on tiered rooms are **one-way**: the player inside sees out, a player outside sees mirrored or
+  frosted glass. This is done per client, so the server never reveals who is inside. The glass blocks shots and NPC,
+  guard and camera line of sight both ways, like a wall: a scouting spot, never a firing position.
+- **Zone carpets and hanging direction signs** (stairs, vaults, exits), and a **grand curved atrium staircase**.
+- Not chosen: the warm sunset haze (the night city stays).
+
+## HUD decisions for Step 19 (2026-10-23)
+- Area name under a compass strip, in the tier colour, turning red with a "wrong cover" warning when your disguise
+  doesn't cover the area.
+- Objective banner top left (phase label plus objective), with a progress ring for vault security.
+- Bottom left: agent portrait, HP number and segmented health bar, the intel counter, and **the assets the agent is
+  carrying**: a row of small square icons under the health bar with rarity-coloured borders, names and effects on
+  Tab, and a small ring or count on timed or limited assets.
+- Bottom right: ability ring with its key, stacked gadget cards with charges, and a large ammo count.
+
+## Still open
+- Menu choices for Step 19.
