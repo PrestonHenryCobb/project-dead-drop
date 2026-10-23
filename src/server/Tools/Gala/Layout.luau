@@ -257,7 +257,8 @@ room(
 )
 
 -- An enclosed glass skybridge to the lawn deck, like the links between hospital wings, carried on a steel truss.
-room("m_skybridge", "M", "Skybridge", 0, IN, { 120, 26, 140, 38 }, { glass = true, height = 12, density = 0.3 })
+-- A passage, not a place to stand: no NPC nodes of its own (the nodes at its doors join its two ends).
+room("m_skybridge", "M", "Skybridge", 0, IN, { 120, 26, 140, 38 }, { glass = true, height = 12, noNodes = true })
 room(
 	"m_belvedere",
 	"M",
@@ -662,9 +663,6 @@ local nodes: { NodeSpec } = {
 	{ level = "G", x = 24, z = 8, activity = "Talk" },
 	{ level = "G", x = -23, z = 36, activity = "Walk" },
 	{ level = "G", x = 23, z = 36, activity = "Walk" },
-	{ level = "M", x = 126, z = 32, activity = "Walk" },
-	{ level = "M", x = 134, z = 32, activity = "Walk" },
-	{ level = "M", x = 142, z = 32, activity = "Walk" },
 	{ level = "B", x = 126, z = 26, activity = "Walk" },
 	{ level = "B", x = 134, z = 26, activity = "Walk" },
 	{ level = "R", x = 100, z = 33, activity = "Walk" },

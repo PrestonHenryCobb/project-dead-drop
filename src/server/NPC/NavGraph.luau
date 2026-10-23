@@ -254,8 +254,9 @@ local function pointsTo(found: Search, from: number, destination: number): { Vec
 	return points
 end
 
--- Picks a random reachable, free node at least minTrip studs of walking away. Returns the node and the points to
--- walk, or nil if nothing qualifies.
+-- Picks a random reachable, free node at least minTrip studs of walking away, favouring nearer ones (a node twice
+-- GameConfig.NPC.TripPreferStuds away is a fifth as likely as a near one), so the crowd mills about where it is and only
+-- sometimes crosses the map. Returns the node and the points to walk, or nil if nothing qualifies.
 function NavGraph.route(
 	graph: Graph,
 	from: number,
@@ -277,9 +278,11 @@ function NavGraph.route(
 			table.insert(options, index)
 		end
 	end
-	local destination = if weightOf
-		then Weighted.pick(options, weightOf, rng)
-		else options[rng:NextInteger(1, math.max(1, #options))]
+	local prefer = GameConfig.NPC.TripPreferStuds
+	local destination = Weighted.pick(options, function(index: number): number
+		local nearness = 1 / (1 + (found.distance[index] / prefer) ^ 2)
+		return nearness * (if weightOf then weightOf(index) else 1)
+	end, rng)
 	if not destination then
 		return nil, nil
 	end

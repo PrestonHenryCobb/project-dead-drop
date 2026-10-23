@@ -62,13 +62,69 @@ local function makeAnonymous(model: Model)
 	end
 end
 
+-- Roblox now builds rigs with physics joints (an AnimationConstraint and a BallSocketConstraint per joint), no-collision
+-- constraints between limbs and layered-clothing wrap targets. With 200 NPCs that is about 56,000 instances and most of
+-- the client's frame time. Classic Motor6D joints animate the same way at a fraction of the cost, and the game has no
+-- layered clothing, so the template is converted. Players and NPCs both come from it, so they stay identical.
+local function useClassicJoints(rig: Model)
+	for _, joint in rig:GetDescendants() do
+		if joint.ClassName == "AnimationConstraint" then
+			local constraint = joint :: any
+			local attachment0, attachment1 =
+				constraint.Attachment0 :: Attachment?, constraint.Attachment1 :: Attachment?
+			if attachment0 and attachment1 then
+				local motor = Instance.new("Motor6D")
+				motor.Name = joint.Name
+				motor.Part0 = attachment0.Parent :: BasePart
+				motor.Part1 = attachment1.Parent :: BasePart
+				motor.C0 = attachment0.CFrame
+				motor.C1 = attachment1.CFrame
+				motor.Parent = attachment1.Parent
+			end
+			joint:Destroy()
+		end
+	end
+	for _, extra in rig:GetDescendants() do
+		if
+			extra:IsA("BallSocketConstraint")
+			or extra:IsA("NoCollisionConstraint")
+			or extra.ClassName == "WrapTarget"
+		then
+			extra:Destroy()
+		end
+	end
+end
+
 local function buildTemplate(): Model
 	-- A blank R15 body: no avatar items, no clothing, no player's look.
 	local rig =
 		Players:CreateHumanoidModelFromDescription(Instance.new("HumanoidDescription"), Enum.HumanoidRigType.R15)
 	OutfitApplier.strip(rig)
+	useClassicJoints(rig)
 	rig.Name = STARTER_CHARACTER
 	return rig
+end
+
+-- What an NPC rig no longer needs once it is dressed and its Humanoid is gone: the values the Humanoid used to scale
+-- the body, and all of the Animate script but its walk and idle animations, which NPCController plays so NPCs move
+-- exactly like players. The script itself never runs on an NPC, so it is disabled.
+local NPC_ANIMATIONS = { walk = true, idle = true }
+local function trimNpcRig(rig: Model)
+	local animate = rig:FindFirstChild("Animate")
+	if animate and animate:IsA("BaseScript") then
+		animate.Enabled = false
+		for _, child in animate:GetChildren() do
+			if not NPC_ANIMATIONS[child.Name] then
+				child:Destroy()
+			end
+		end
+	end
+	for _, extra in rig:GetDescendants() do
+		local insideAnimate = animate ~= nil and extra:IsDescendantOf(animate)
+		if not insideAnimate and (extra:IsA("ValueBase") or extra:IsA("HumanoidDescription")) then
+			extra:Destroy()
+		end
+	end
 end
 
 local function getTemplate(): Model
@@ -127,6 +183,7 @@ function RigService.createNpcRig(outfit: OutfitDef, cframe: CFrame): (Model, num
 	local rootHeight = humanoid.HipHeight + root.Size.Y / 2
 	weldAccessories(rig)
 	humanoid:Destroy()
+	trimNpcRig(rig)
 
 	local controller = Instance.new("AnimationController")
 	Instance.new("Animator").Parent = controller

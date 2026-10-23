@@ -191,6 +191,7 @@ local GameConfig = {
 			TierSampleStuds = 4, -- how often a link is sampled to find the highest tier it passes through
 		},
 		MinTripStuds = 30, -- an NPC's next destination is at least this far away
+		TripPreferStuds = 120, -- destinations this far (walking) are half as likely as near ones; keeps long trips rare
 		ArrivalSpread = 3, -- NPCs stand within this many studs of a node, so they don't stack on one point
 		NodeCapacity = 2, -- NPCs that may stand at or head to one node at once (a pair chatting at a spot)
 		SeparationMaxOffset = 1.25, -- how far separation may push an NPC off its path
