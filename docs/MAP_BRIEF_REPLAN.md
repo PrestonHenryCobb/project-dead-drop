@@ -270,3 +270,71 @@ The self-check passes with 0 problems.
     while the printed text fades out (`SignController`, `GameConfig.Map.Signs`). Walls still hide it.
 - **Bug fixed:** the coloured floor strips at doorways were sometimes on the wrong side of the wall (the same cause as
   the vault hack zones in stage 2).
+
+## Stage 4 built (2026-10-23): curved grand staircase and wing themes
+
+The self-check passes with 0 problems at 8,270 parts. Every stair links, the grand staircase included (NavReport), and
+routes are as good as stage 3. With 200 NPCs the graph builds in 20.6 s, the server NPC tick averages about 9 to 10 ms
+(8.5 before), and the client NPC frame cost is about 2.3 ms.
+- **Grand staircase:** a curved marble stair with gilded balustrades (`curvedStairs` in Layout). It sweeps round the west
+  side of the fountain inside the open atrium void, climbing 24 studs over about 90, with a solid base where it is low
+  and columns where it is high. It steps onto a short bridge through a gap in the balcony railing. It replaces the
+  straight grand stair.
+- **Wing themes** (`STYLES` and `styleOf` in Build): Gala art deco (warm black lacquer, cream marble, gold trim),
+  casino (red velvet, dark carpet, gold), Mediterranean hotel (white plaster, terracotta tiles, a blue tile band), back
+  of house (green tile, rubber floors), security (white panels, blue-grey floors, a blue light strip), and vaults
+  (brushed steel, diamond plate, brass). Each wall shows each room's own style on its side. Every Staff, Security
+  and Executive room has a carpet in its tier colour.
+- **Props:** the private gallery's partitions are gone (they boxed a corner off).
+- **Not themed yet:** props (pillars, tables, planters) keep their old plain colours. Theming them is art-pass work.
+
+## Review after stage 4 (2026-10-23): your notes and the fixes decided
+
+| Your note | Fix |
+|---|---|
+| The gondola isn't realistically connected to its wire | Hang the platform from the rail on a trolley with cables, all moving together. |
+| Platforms on the roof float; the roof staff room has an open wall and a missing ceiling | The sky deck only sits on walls (over the plant room and an enclosed stair hall), the plant room keeps off the courtyard shaft, and the roof catwalk gets a truss. New self-checks: no floating floors, no indoor room open to the sky. |
+| The zipline is blocked by the glass | A gap in every glass barrier where a zipline crosses it. |
+| Helipad and zipline mast look like placeholders | A proper helipad (H marking, edge lights) and a steel zipline tower. |
+| Vent ducts look like broken cubicles | Ducts run at ceiling height in a steel casing. A floor-level grate at each end opens into a ladder shaft up to the duct, and the duct passes through the wall high up. |
+| Carpets overlap the stairs | Carpets are cut round stairs, stair openings and doorways. |
+| Grand staircase rails are heavy, zig-zag, and cross the landing; there's an opening at the landing | Slim gilded handrails on posts, a smoother curve, landing rails that line up, and the landing closed round the top step. |
+| Signs: the dark panel shows behind the floating word, it doesn't fade gradually, and it's too sharp and too far | Up close the whole wall sign fades out. The floating word is soft text with no box, fades smoothly, and shows only within about 12 to 20 studs. A tier-colour outline shows the tier of the area beyond. |
+| More floating signs | Room names at doorways, and direction arrows (stairs, exits, restrooms, extraction, never vaults) at corridor junctions. The arrow turns to point at the target from where you stand. A first-visit room animation is left for a later polish step. |
+| Staff and guard doors are free to pass | Every doorway into a higher tier becomes a real door. NPCs and disguised players with clearance open it free; anyone else hacks it with intel (built in Step 18). |
+| Door prices like Deceive Inc., far more intel, stations not tied to tiers, intel in vaults | The intel economy is scaled up (SPEC_CHANGES): stations give 2, 4, 6 or 10; doors cost Staff 4, Security 7, Executive 10; the vault unlock rises to match. There are about 50% more stations (48). Station type no longer follows the room's tier, except the 10-intel safe, which is only in Security and Executive rooms. Vault rooms hold some intel. |
+
+## Review fixes built (2026-10-23)
+
+Every note above is fixed. The self-check passes with 0 problems at 9,483 parts (8,270 after stage 4). NavReport gives
+the same routes with and without the new doors (one more node joined at tier 3 with them), and every stair links. In a
+playtest with 200 NPCs, NPCs opened 23 different clearance doors in 20 s, and a player climbed the security hub vent
+(in through the grate, up the ladder, along the duct to the far shaft).
+- **Levels:** the sky deck (X) is gone; the plant room sits off the courtyard shaft; the wing's roof extraction and
+  Zipline 2 start on the roof (R). Trusses carry the pool deck and the roof catwalk. New self-checks: no floating
+  floors, no indoor room open to the sky.
+- **Gondola, ziplines, helipad:** the gondola hangs from its rail on a trolley; each zipline crosses a glass barrier
+  through a gap with a low rail; extraction sites are landing pads (H, ring, rim lights); zipline masts are lattice
+  towers.
+- **Vents** (`vents` in Layout): ladder shafts with a floor grate at each end, and a steel duct at ceiling height
+  (14.5 to 21 studs) that passes through walls high up.
+- **Carpets** are cut round stairs, openings, doorways, vent shafts and the curved stair. The grand staircase has slim
+  gilded handrails on posts, smaller steps, and a railed landing.
+- **Signs** (`SignController`, `GameConfig.Map.Signs`): soft floating text with no box and a tier-colour outline (the
+  tier of the area it leads to), fading smoothly between 20 and 12 studs. There are no sign panels at all (your
+  follow-up): every sign is an invisible anchor, so from further away there is nothing on the walls.
+  Billboards exist only while a sign is in range. New: the room's name floats over every doorway (144), and 78
+  direction signposts (`signposts` in Layout) list the nearest stairs, restrooms and extraction on the same level and
+  tower, each with an arrow that turns toward it and the distance in metres. Stairs and restrooms only count in rooms
+  of the signpost's tier or lower, so a sign never sends a guest into staff areas. Signposts stand at least 18 studs
+  apart, so two rooms sharing a doorway get one.
+- **Clearance doors:** Build makes every doorway between two tiers a clearance door of the higher tier unless the
+  layout made it a keycard door, a vault door or an open arch: 28 new doors, 54 in all. A new self-check makes sure
+  every clearance door has a wall to stand in; it found the Executive balcony's gate standing on an open line between
+  two balconies (a free pass until now), which now has a privacy screen. Hack prices (Staff 4, Security 7, Executive 10)
+  are recorded for Step 18.
+- **Intel:** 48 stations (`placeIntel` in Layout): 14 tablets (2 intel), 14 laptop carts (4), 12 server racks (6),
+  8 wall safes (10), 236 intel in all. Safes stand only in Security and Executive rooms (self-checked), and four
+  stations sit in vault rooms. The vault unlock is min(35, 5 + 5 per team).
+- **Plans** (`node tools/map-plan.js`): vents drawn as ducts with their shafts; doorways between tiers show as
+  clearance doors.

@@ -24,8 +24,12 @@
 <rect x="790.0" y="420.0" width="70.0" height="100.0" fill="#d9534f" stroke="#111" fill-opacity="0.8" stroke-width="1.5" />
 <rect x="790.0" y="300.0" width="70.0" height="120.0" fill="#d9534f" stroke="#111" fill-opacity="0.8" stroke-width="1.5" />
 <rect x="820.0" y="300.0" width="40.0" height="40.0" fill="#d9534f" stroke="#111" fill-opacity="0.95" stroke-width="1.5" />
-<rect x="162.0" y="250.0" width="8.0" height="40.0" fill="#f08a24" stroke="#f08a24" fill-opacity="0.8"/>
-<rect x="782.0" y="330.0" width="8.0" height="40.0" fill="#f08a24" stroke="#f08a24" fill-opacity="0.8"/>
+<polyline points="156.0,270.0 184.0,270.0" fill="none" stroke="#f08a24" stroke-width="8" stroke-opacity="0.85" stroke-linejoin="round"/>
+<rect x="151.0" y="265.0" width="10.0" height="10.0" fill="#f08a24" stroke="#000" stroke-width="1"/>
+<rect x="179.0" y="265.0" width="10.0" height="10.0" fill="#f08a24" stroke="#000" stroke-width="1"/>
+<polyline points="776.0,350.0 804.0,350.0" fill="none" stroke="#f08a24" stroke-width="8" stroke-opacity="0.85" stroke-linejoin="round"/>
+<rect x="771.0" y="345.0" width="10.0" height="10.0" fill="#f08a24" stroke="#000" stroke-width="1"/>
+<rect x="799.0" y="345.0" width="10.0" height="10.0" fill="#f08a24" stroke="#000" stroke-width="1"/>
 <text x="125.0" y="230.0" text-anchor="middle" font-size="9" fill="#111" >West storage north</text>
 <text x="125.0" y="550.0" text-anchor="middle" font-size="9" fill="#111" >West storage south</text>
 <text x="595.0" y="230.0" text-anchor="middle" font-size="9" fill="#111" >East storage north</text>
@@ -57,11 +61,11 @@
 <rect x="547.0" y="682.0" width="6.0" height="16.0" fill="#ffffff" stroke="#000" stroke-width="0.8"/>
 <rect x="167.0" y="142.0" width="6.0" height="16.0" fill="#28d7e8" stroke="#000" stroke-width="0.8"/>
 <rect x="547.0" y="142.0" width="6.0" height="16.0" fill="#28d7e8" stroke="#000" stroke-width="0.8"/>
-<rect x="452.0" y="107.0" width="16.0" height="6.0" fill="#ffffff" stroke="#000" stroke-width="0.8"/>
-<rect x="167.0" y="612.0" width="6.0" height="16.0" fill="#ffffff" stroke="#000" stroke-width="0.8"/>
-<rect x="547.0" y="612.0" width="6.0" height="16.0" fill="#ffffff" stroke="#000" stroke-width="0.8"/>
-<rect x="432.0" y="667.0" width="16.0" height="6.0" fill="#ffffff" stroke="#000" stroke-width="0.8"/>
-<rect x="547.0" y="442.0" width="6.0" height="16.0" fill="#ffffff" stroke="#000" stroke-width="0.8"/>
+<rect x="452.0" y="107.0" width="16.0" height="6.0" fill="#5b2a9a" stroke="#000" stroke-width="0.8"/>
+<rect x="167.0" y="612.0" width="6.0" height="16.0" fill="#5b2a9a" stroke="#000" stroke-width="0.8"/>
+<rect x="547.0" y="612.0" width="6.0" height="16.0" fill="#5b2a9a" stroke="#000" stroke-width="0.8"/>
+<rect x="432.0" y="667.0" width="16.0" height="6.0" fill="#5b2a9a" stroke="#000" stroke-width="0.8"/>
+<rect x="547.0" y="442.0" width="6.0" height="16.0" fill="#5b2a9a" stroke="#000" stroke-width="0.8"/>
 <rect x="380.0" y="187.0" width="20.0" height="6.0" fill="#ffffff" stroke="#000" stroke-width="0.8"/>
 <rect x="470.0" y="187.0" width="20.0" height="6.0" fill="#ffffff" stroke="#000" stroke-width="0.8"/>
 <rect x="407.0" y="262.0" width="6.0" height="16.0" fill="#ffffff" stroke="#000" stroke-width="0.8"/>
@@ -77,17 +81,13 @@
 <rect x="677.0" y="452.0" width="6.0" height="20.0" fill="#ffffff" stroke="#000" stroke-width="0.8"/>
 <rect x="710.0" y="417.0" width="20.0" height="6.0" fill="#ffffff" stroke="#000" stroke-width="0.8"/>
 <rect x="730.0" y="517.0" width="20.0" height="6.0" fill="#ffffff" stroke="#000" stroke-width="0.8"/>
-<rect x="712.0" y="297.0" width="16.0" height="6.0" fill="#ffffff" stroke="#000" stroke-width="0.8"/>
-<rect x="882.0" y="297.0" width="16.0" height="6.0" fill="#ffffff" stroke="#000" stroke-width="0.8"/>
+<rect x="712.0" y="297.0" width="16.0" height="6.0" fill="#5b2a9a" stroke="#000" stroke-width="0.8"/>
+<rect x="882.0" y="297.0" width="16.0" height="6.0" fill="#5b2a9a" stroke="#000" stroke-width="0.8"/>
 <rect x="888.0" y="517.0" width="16.0" height="6.0" fill="#ffffff" stroke="#000" stroke-width="0.8"/>
 <rect x="812.0" y="517.0" width="24.0" height="6.0" fill="#5b2a9a" stroke="#000" stroke-width="0.8"/>
 <rect x="812.0" y="417.0" width="24.0" height="6.0" fill="#e3a400" stroke="#ff2d2d" stroke-width="2.5"/>
 <rect x="792.0" y="297.0" width="24.0" height="6.0" fill="#e3a400" stroke="#000" stroke-width="0.8"/>
 <rect x="832.0" y="297.0" width="16.0" height="6.0" fill="#ff2d2d" stroke="#000" stroke-width="0.8"/>
-<rect x="167.0" y="267.0" width="6.0" height="6.0" fill="#f08a24" stroke="#000" stroke-width="0.8"/>
-<rect x="167.0" y="267.0" width="6.0" height="6.0" fill="#f08a24" stroke="#000" stroke-width="0.8"/>
-<rect x="787.0" y="347.0" width="6.0" height="6.0" fill="#f08a24" stroke="#000" stroke-width="0.8"/>
-<rect x="787.0" y="347.0" width="6.0" height="6.0" fill="#f08a24" stroke="#000" stroke-width="0.8"/>
 <rect x="106.0" y="450.0" width="28.0" height="60.0" fill="#3b3f4a" stroke="#ffd23f" stroke-width="1.5"/>
 <text x="120.0" y="480.0" text-anchor="middle" font-size="10" fill="#ffd23f">&#8593;G</text>
 <rect x="586.0" y="90.0" width="28.0" height="60.0" fill="#3b3f4a" stroke="#ffd23f" stroke-width="1.5"/>

@@ -42,11 +42,12 @@ for (const m of flat.matchAll(roomRe)) {
 		round: Number((extra.match(/round = (\d+)/) || [])[1]) || 0,
 	});
 }
-// Vent ducts: duct("v_x", "B", "Name", 3, { ... }, "parent")
-for (const m of flat.matchAll(new RegExp(String.raw`duct\("(\w+)", "(\w+)", "([^"]+)", (\d), ${RECT}, "(\w+)"\)`, "g"))) {
-	rooms.push({ id: m[1], level: m[2], name: m[3], tier: Number(m[4]), kind: "DUCT", rect: rectOf(m[5]), holes: [], parent: m[6] });
-}
 const byId = Object.fromEntries(rooms.map((r) => [r.id, r]));
+// Vents: { id = "v_x", level = "B", name = "...", points = { { x, z }, ... } }, a duct at ceiling height through the points
+const vents = [];
+for (const m of flat.matchAll(/\{ id = "(\w+)", level = "(\w+)", name = "[^"]+", points = \{ ((?:\{ -?[\d.]+, -?[\d.]+ \},? ?)+)\},? \}/g)) {
+	vents.push({ id: m[1], level: m[2], points: [...m[3].matchAll(/\{ (-?[\d.]+), (-?[\d.]+) \}/g)].map((p) => [Number(p[1]), Number(p[2])]) });
+}
 
 const doors = [];
 for (const m of flat.matchAll(/door\("(\w+)", "(\w+)", (-?[\d.]+|nil), (-?[\d.]+|nil)(?:, \{([^}]*)\})?\)/g)) {
@@ -132,9 +133,9 @@ const LEVELS = [
 	{ key: "G", title: "Ground (G), galleries (GH) dashed", levels: ["G", "GH"] },
 	{ key: "M", title: "Mezzanine (M)", levels: ["M"] },
 	{ key: "T", title: "Top floor (T)", levels: ["T"] },
-	{ key: "R", title: "Roof (R) and sky deck (X, dashed)", levels: ["R", "X"] },
+	{ key: "R", title: "Roof (R)", levels: ["R"] },
 ];
-const NEXT = { B: "G", G: "M", M: "T", T: "R", R: "X" };
+const NEXT = { B: "G", G: "M", M: "T", T: "R" };
 
 fs.mkdirSync(outDir, { recursive: true });
 for (const L of LEVELS) {
@@ -146,7 +147,7 @@ for (const L of LEVELS) {
 	for (const lvl of [main, second].filter(Boolean)) {
 		const dashed = lvl === second;
 		// Rings first (their holes are painted as background), then the rooms inside them.
-		const onLevel = rooms.filter((q) => q.level === lvl && q.kind !== "DUCT").sort((p, q) => q.holes.length - p.holes.length);
+		const onLevel = rooms.filter((q) => q.level === lvl).sort((p, q) => q.holes.length - p.holes.length);
 		for (const r of onLevel) {
 			const isVault = /vault/.test(r.id);
 			let fill = isVault ? VAULT : TIER[r.tier];
@@ -181,11 +182,15 @@ for (const L of LEVELS) {
 	for (const f of fountains.filter((q) => q.level === main)) {
 		out.push(`<circle cx="${px(f.x)}" cy="${pz(f.z)}" r="${f.r * S}" fill="#f0eee8" stroke="#2042a0" stroke-width="4"/><circle cx="${px(f.x)}" cy="${pz(f.z)}" r="${9 * S}" fill="#6eb4e1" stroke="#2042a0" stroke-width="2"/><circle cx="${px(f.x)}" cy="${pz(f.z)}" r="${3 * S}" fill="#f0eee8" stroke="#d4ac4a" stroke-width="2"/><text x="${px(f.x)}" y="${(Number(pz(f.z + f.r)) + 16).toFixed(1)}" text-anchor="middle" font-size="12" fill="#111" font-weight="700">Porcelain fountain</text>`);
 	}
-	// Ducts
-	for (const r of rooms.filter((q) => q.level === main && q.kind === "DUCT")) out.push(rectSvg(r.rect, "#f08a24", "#f08a24", `fill-opacity="0.8"`));
+	// Vents: the duct as a thick line, the ladder shaft (a square) at each end
+	for (const v of vents.filter((q) => q.level === main)) {
+		const pts = v.points.map(([x, z]) => `${px(x)},${pz(z)}`).join(" ");
+		out.push(`<polyline points="${pts}" fill="none" stroke="#f08a24" stroke-width="${4 * S}" stroke-opacity="0.85" stroke-linejoin="round"/>`);
+		for (const [x, z] of [v.points[0], v.points[v.points.length - 1]]) out.push(rectSvg([x - 2.5, z - 2.5, x + 2.5, z + 2.5], "#f08a24", "#000", `stroke-width="1"`));
+	}
 	// Labels
 	for (const lvl of [main, second].filter(Boolean)) {
-		for (const r of rooms.filter((q) => q.level === lvl && q.kind !== "DUCT")) {
+		for (const r of rooms.filter((q) => q.level === lvl)) {
 			const [x1, z1, x2, z2] = r.rect;
 			const wide = Math.abs(x2 - x1) * S;
 			if (wide < 40 && Math.abs(z2 - z1) * S < 40) continue;
@@ -201,8 +206,10 @@ for (const L of LEVELS) {
 		if (!A || !L.levels.includes(A.level)) continue;
 		const s = doorSpot(d);
 		if (!s) continue;
-		const isVent = byId[d.a].kind === "DUCT" || byId[d.b].kind === "DUCT";
-		const color = d.vault ? "#ff2d2d" : isVent ? "#f08a24" : d.keycard ? "#28d7e8" : d.gate ? ["#fff", "#2f9e44", "#5b2a9a", "#e3a400"][d.gate] : "#ffffff";
+		// Build.luau makes every other doorway between two tiers a clearance door of the higher tier.
+		const B = byId[d.b];
+		const gate = d.gate || (!d.keycard && !d.vault && !d.arch && B && A.tier !== B.tier ? Math.max(A.tier, B.tier) : 0);
+		const color = d.vault ? "#ff2d2d" : d.keycard ? "#28d7e8" : gate ? ["#fff", "#2f9e44", "#5b2a9a", "#e3a400"][gate] : "#ffffff";
 		out.push(rectSvg([s.x1, s.z1, s.x2, s.z2], d.arch ? "#ffe9a8" : color, d.laser ? "#ff2d2d" : "#000", `stroke-width="${d.laser ? 2.5 : 0.8}"`));
 	}
 	// Windows
@@ -246,4 +253,4 @@ for (const L of LEVELS) {
 	out.push(`</svg>`);
 	fs.writeFileSync(path.join(outDir, `plan-${L.key}.svg`), out.join("\n"));
 }
-console.log(`rooms ${rooms.length}, doors ${doors.length}, ramps ${ramps.length}, voids ${voids.length}, markers ${insertion.length}/${extraction.length}/${vaults.length} -> ${outDir}`);
+console.log(`rooms ${rooms.length}, vents ${vents.length}, doors ${doors.length}, ramps ${ramps.length}, voids ${voids.length}, markers ${insertion.length}/${extraction.length}/${vaults.length} -> ${outDir}`);

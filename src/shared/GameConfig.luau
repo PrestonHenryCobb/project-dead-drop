@@ -67,7 +67,7 @@ local GameConfig = {
 		FootprintStuds = 520, -- the map re-plan (docs/MAP_BRIEF_REPLAN.md)
 		Counts = {
 			InsertionPoint = 12,
-			IntelSpawn = 32, -- 8 per tier (spec 18; more now that intel is also spent)
+			IntelSpawn = 48, -- SPEC_CHANGES (intel amounts): about 50% more, since intel also opens doors
 			VaultSpawn = 4, -- the spec has 3; a fourth sits in the hotel wing (BUILD_ORDER Step 7B)
 			ExtractionSite = 3,
 			SupplyCache = 6,
@@ -100,10 +100,14 @@ local GameConfig = {
 		-- Signs (MAP_BRIEF_REPLAN stage 3): from close by, a sign's text floats in front of it facing the camera at a
 		-- fixed readable size, fading in between FadeOutStuds and FadeInStuds while the wall text fades out.
 		Signs = {
-			FadeInStuds = 25, -- fully shown at this distance or closer
-			FadeOutStuds = 40, -- hidden at this distance or further
-			FloatSize = UDim2.fromOffset(240, 48), -- on-screen size of the floating text, the same at any distance
+			FadeInStuds = 12, -- fully shown at this distance or closer
+			FadeOutStuds = 20, -- hidden at this distance or further
+			FadeSeconds = 0.25, -- how long a fade takes to catch up with the distance, so it never pops
+			FloatSize = UDim2.fromOffset(170, 30), -- on-screen size of the floating text, the same at any distance
 			FloatOffset = 1.5, -- studs: how far it floats out from the sign, toward the reader
+			OutlineThickness = 1.5, -- the tier-colour outline round the floating text
+			RowSize = UDim2.fromOffset(190, 24), -- one row of a direction signpost (arrow, place, distance)
+			MetersPerStud = 0.28, -- distances on signposts are shown in metres
 		},
 		-- One-way windows (MAP_BRIEF_REPLAN stage 2): how a pane looks from the room that sees out, and from outside.
 		-- Each client decides from its own camera; the pane blocks movement, shots and sight checks either way.
@@ -333,12 +337,13 @@ local GameConfig = {
 
 	-- Spec 9: intel.
 	Intel = {
-		-- Step 7B: four station types, one per tier. Points is the intel a station gives; HackSeconds how long it takes.
+		-- Four station types (SPEC_CHANGES, intel amounts), chosen per station on the map. Points is the intel a station
+		-- gives; HackSeconds how long it takes; MinRoomTier the lowest room tier it may stand in.
 		Stations = {
-			[0] = { Name = "Guest book", Points = 1, HackSeconds = 4 },
-			[1] = { Name = "Staff laptop", Points = 2, HackSeconds = 7 },
-			[2] = { Name = "Server rack", Points = 3, HackSeconds = 11 },
-			[3] = { Name = "Wall safe", Points = 4, HackSeconds = 16 },
+			[0] = { Name = "Tablet", Points = 2, HackSeconds = 4, MinRoomTier = 0 },
+			[1] = { Name = "Staff laptop", Points = 4, HackSeconds = 7, MinRoomTier = 0 },
+			[2] = { Name = "Server rack", Points = 6, HackSeconds = 11, MinRoomTier = 0 },
+			[3] = { Name = "Wall safe", Points = 10, HackSeconds = 16, MinRoomTier = 2 },
 		},
 		ActiveSpawns = 10,
 		TerminalSeconds = 6,
@@ -361,7 +366,7 @@ local GameConfig = {
 			ExtraIntelFrom = 5,
 		},
 		-- 9.4: vault unlocks when GlobalIntel >= min(Cap, Base + teams * PerTeam).
-		Unlock = { Base = 2, PerTeam = 2, Cap = 14 },
+		Unlock = { Base = 5, PerTeam = 5, Cap = 35 },
 	},
 
 	-- Spec 10: vault.

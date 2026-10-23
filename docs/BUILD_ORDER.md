@@ -190,7 +190,7 @@ The map should feel alive without the crowd clogging corridors or leaving rooms 
 
 **Economy and assets (2026-10-23, changes the spec: see SPEC_CHANGES)**
 - **Intel is the one currency.** It is spent to open tier doors, unlock vaults, and buy healing and ammo. Spending it is a real trade-off: what you spend no longer counts toward the unlock. Intel is more plentiful to match.
-- **Tier doors always cost intel** to hack open. Wearing a disguise of that tier or higher means the hack does not blow your Cover; otherwise it does.
+- **Tier doors** (changed in the map review after stage 4): every doorway into a higher tier is a real clearance door. Clearance (an NPC of that tier, or a disguise of it) opens it free; anyone else hacks it open with intel: Staff 4, Security 7, Executive 10 (Step 18).
 - **No passive healing**, except an agent's own kit (Suture). Healing comes from wall health stations (bought with intel) and free food, which heals less and is rarer in most areas.
 - **Assets** (per-match perks) are found in supply caches and in safes in tiered rooms. Four rarities, coloured like the tiers: **Field Agent** (grey, common), **Infiltrator** (green, rare), **Black Ops** (dark purple, epic), **Ghost** (gold, legendary). A room's tier sets which rarities its safe can hold. Looking at an asset shows a short description and its rarity, for example "Black Ops Tier Asset". Assets: Light Feet, Quick Hands, Steady Nerves, Deep Pockets, Field Medic, Duct Rat, each stronger by rarity. Supply caches also hold armor plates, a disguise kit and a weapon swap.
 - **Agents**: one ability on a cooldown and one passive tied to the playstyle. Roster draft in `docs/AGENTS_DRAFT.md`.
@@ -279,6 +279,8 @@ checkpoint (finding each other in the crowd) and the routes feel varied.
 
 ### Step 18: Funds, pickups, Supply Caches, Rescue
 **Spec:** 17, 14.2
+**Decided (2026-10-23, map review after stage 4):** hacking a clearance door open without clearance costs intel: Staff 4,
+Security 7, Executive 10 (SPEC_CHANGES). The doors are already built and tagged `ClearanceDoor` with their `Tier`.
 
 ---
 

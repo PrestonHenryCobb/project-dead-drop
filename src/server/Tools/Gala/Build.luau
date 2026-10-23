@@ -33,7 +33,14 @@ type Room = Layout.Room
 type Piece = { room: Room, rect: Rect, index: number }
 -- A gap in a wall: a doorway (door), a window (window), or, with neither, an opening in a railing (a stair's arrival
 -- on a gallery, a gondola dock, a rounded void corner).
-type Gap = { center: number, width: number, door: Layout.Door?, window: Layout.Window? }
+type Gap = {
+	center: number,
+	width: number,
+	door: Layout.Door?,
+	window: Layout.Window?,
+	lowRail: boolean?, -- a zipline's gap in a glass barrier, with a low rail across it
+	duct: boolean?, -- a vent duct passing through the wall at ceiling height
+}
 type Edge = {
 	level: string,
 	axis: string, -- "x": runs along x at z = line; "z": runs along z at x = line
@@ -53,12 +60,16 @@ local RAIL_H = 4
 local BARRIER_H = 9 -- glass at the open edge of a terrace or deck: higher than a jump (about 7.2 studs), over a long drop
 local GAP_H = 10 -- doorway height (an arched doorway rises a further half its width at the middle)
 local DOOR_H = 13 -- a clearance or keycard door's opening: taller than an ordinary doorway, so it reads as important
+local SCREEN_H = 16 -- a privacy screen between two outdoor areas where a clearance door stands, over the door's lintel
 local LEAF_T = 0.6 -- a door leaf's thickness
 local DOOR_POST_W = 1.2 -- the posts either side of a doorway between tiers; door leaves hang between them
-local SIGN_W, SIGN_H = 3.6, 1.1 -- a doorway sign over a doorway
-local STAIR_SIGN_W, STAIR_SIGN_H, STAIR_SIGN_Y = 6, 1.4, 9 -- a sign hanging over each end of a stair, and its height
-local SIGN_PIXELS = 50 -- SurfaceGui resolution on signs
+local SIGN_LIFT = 1 -- studs over a doorway's top where its EXIT, RESTROOMS or EXTRACTION sign floats
+local STAIR_SIGN_Y = 9 -- studs above the floor where the sign over each end of a stair floats
 local EXIT_SIGN_REACH = 30 -- studs: a doorway gets an EXIT sign when a stair end is this close beyond it
+local ROOM_NAME_LIFT = 2.6 -- studs over a doorway's top where the floating name of the room beyond hangs
+local SIGNPOST_IN = 6 -- studs: a direction signpost floats this far inside a doorway of its room
+local SIGNPOST_Y = 8 -- studs above the floor
+local SIGNPOST_SPACING = 18 -- studs: signposts stand at least this far apart (two rooms sharing a doorway get one)
 local HANDLE_LOW, HANDLE_HIGH = 2.5, 8 -- a door handle bar's bottom and top, above the floor
 local ARCH_SLICE = 1 -- studs: the infill over an arch is built in vertical slices this wide
 local GLASS_SILL, GLASS_HEAD = 3, 15 -- a glass window's sill and head heights above the floor
@@ -67,6 +78,85 @@ local HATCH_SILL, HATCH_HEAD = 4, 8
 local WINDOW_CLEAR = 3 -- studs props keep clear of a window, on each side of the wall
 local CURVE_SEGMENT = 2.5 -- studs: curved walls and railings are built from straight pieces about this long
 local FOUNTAIN_STATUE_H = 11 -- studs: the porcelain statue on top of the atrium fountain
+local CURVED_STAIR_STEP = 1.5 -- studs: a curved stair is built from straight pieces about this long (short, so it reads as a curve)
+local CURVED_STAIR_POST_EVERY = 3 -- pieces between the posts of a curved stair's handrail
+local HANDRAIL_W = 0.35 -- studs: a slim handrail's thickness
+local HANDRAIL_INSET = 0.3 -- studs a handrail sits in from the edge of the stair
+local CURVED_STAIR_COLUMN_EVERY = 3 -- pieces between the columns under the high part of a curved stair
+local STAIR_MARBLE = Color3.fromRGB(232, 226, 214)
+
+-- Wing themes (MAP_BRIEF_REPLAN, approved): each room's walls, floor and trim take its wing's look. A room's style is
+-- its `style` in Layout, or else follows from its id and tier (see styleOf). Tier colour stays on door handles, floor
+-- inlays and carpets; the style is never a flat tier colour.
+type Style = {
+	wall: Color3,
+	wallMaterial: Enum.Material,
+	floor: Color3,
+	floorMaterial: Enum.Material,
+	trim: Color3?, -- a strip near the top of each wall face
+	trimMaterial: Enum.Material?,
+}
+local STYLES: { [string]: Style } = {
+	-- The Gala's public rooms and penthouse: warm black lacquer, cream marble, gold. The lacquer is a shade lighter than
+	-- true black so the rooms still read under the night lighting.
+	deco = {
+		wall = Color3.fromRGB(64, 52, 48),
+		wallMaterial = Enum.Material.SmoothPlastic,
+		floor = Color3.fromRGB(226, 206, 176),
+		floorMaterial = Enum.Material.Marble,
+		trim = Color3.fromRGB(212, 172, 74),
+		trimMaterial = Enum.Material.Metal,
+	},
+	-- The casino: red velvet, dark patterned carpet, gold.
+	casino = {
+		wall = Color3.fromRGB(112, 22, 34),
+		wallMaterial = Enum.Material.Fabric,
+		floor = Color3.fromRGB(46, 22, 32),
+		floorMaterial = Enum.Material.Carpet,
+		trim = Color3.fromRGB(212, 172, 74),
+		trimMaterial = Enum.Material.Metal,
+	},
+	-- The hotel: white plaster, terracotta tile, a blue tile band.
+	mediterranean = {
+		wall = Color3.fromRGB(236, 228, 214),
+		wallMaterial = Enum.Material.Plaster,
+		floor = Color3.fromRGB(184, 98, 64),
+		floorMaterial = Enum.Material.CeramicTiles,
+		trim = Color3.fromRGB(44, 86, 160),
+		trimMaterial = Enum.Material.CeramicTiles,
+	},
+	-- Back of house: green tile walls, rubber floors.
+	service = {
+		wall = Color3.fromRGB(150, 186, 160),
+		wallMaterial = Enum.Material.CeramicTiles,
+		floor = Color3.fromRGB(82, 86, 88),
+		floorMaterial = Enum.Material.Rubber,
+	},
+	-- Security: clean white panels, blue-grey floors, a blue light strip.
+	security = {
+		wall = Color3.fromRGB(226, 230, 236),
+		wallMaterial = Enum.Material.SmoothPlastic,
+		floor = Color3.fromRGB(70, 82, 108),
+		floorMaterial = Enum.Material.SmoothPlastic,
+		trim = Color3.fromRGB(70, 130, 230),
+		trimMaterial = Enum.Material.Neon,
+	},
+	-- Vault wings: brushed steel, diamond plate, brass.
+	vault = {
+		wall = Color3.fromRGB(120, 124, 132),
+		wallMaterial = Enum.Material.Metal,
+		floor = Color3.fromRGB(72, 74, 80),
+		floorMaterial = Enum.Material.DiamondPlate,
+		trim = Color3.fromRGB(184, 142, 70),
+		trimMaterial = Enum.Material.Metal,
+	},
+}
+local TRIM_H = 0.6 -- the trim strip's height
+local TRIM_DROP = 2 -- studs from the top of a wall face down to its trim strip
+local CARPET_INSET = 4 -- studs a tier carpet keeps from a room's walls
+local CARPET_MIN = 10 -- studs: rooms narrower than this get no carpet
+local CARPET_PIECE_MIN = 4 -- studs: smaller scraps left after cutting a carpet round stairs and doorways are dropped
+local GILT = Color3.fromRGB(212, 172, 74)
 local SLAB = 2
 local RAMP_W = 6 -- a stair's width; it climbs one stud in two
 -- A switchback climbs half the height in each of two legs, side by side with a gap, joined by a landing.
@@ -76,8 +166,24 @@ local STAIR_LANDING_CLEAR = 6 -- studs of open floor kept at the foot and head o
 local STAIR_GAP = 2 -- studs kept between one stair (or its opening) and another
 local STAIR_RAIL_H = 3 -- the handrails along the sides of a flight
 local TRUSS_DEPTH, TRUSS_BAY = 8, 6 -- the steel truss under a bridge: how deep, and how long each bay
-local VENT_OPENING_H = 6 -- a vent grate's opening; players fit through its 3-stud width, NPCs (radius 2) never path it
+local VENT_OPENING_H = 6 -- a vent grate's opening; players fit through its GRATE_W width, NPCs (radius 2) never path it
+local GRATE_W = 3 -- studs: the width of a vent grate
+local SHAFT_W = 5 -- studs: a vent's ladder shaft, outside to outside
+local DUCT_W = 4.4 -- studs: a vent duct's casing, outside to outside
+local DUCT_PLATE = 0.4 -- studs: the steel plate of a vent's shafts and casing
+local DUCT_BOTTOM, DUCT_TOP = 14.5, 21 -- a vent duct's inside, above the floor: high enough to crawl, under the ceiling
+local DUCT_STEEL = Color3.fromRGB(150, 154, 162)
 local GONDOLA_RAIL_H = 13 -- the gondola's overhead rail, above its floor
+local GONDOLA_YOKE_DROP = 2.5 -- studs from the rail down to the yoke the gondola hangs from
+local ZIPLINE_GAP = 8 -- studs: the opening left in a glass barrier where a zipline crosses it
+local ZIPLINE_GAP_RAIL = 2.5 -- studs: the low rail left across a zipline's gap in a barrier
+local ZIPLINE_BODY = 4 -- studs of a rider below their root, which hangs Traversal.Zipline.HangStuds under the cable
+local BALCONY_MAX = 10 -- studs: a floor (or a strip of one) this narrow is a balcony or a lip cantilevered off what holds it
+local SUPPORT_SLACK = 40 -- square studs of a floor that may overhang its supports (wall thicknesses, trims)
+local ZIPLINE_TOWER_W = 2.4 -- studs: the lattice tower round a zipline mast
+local ZIPLINE_BRACE_STEP = 4 -- studs between the tower's cross braces
+local PAD_RADIUS = 8 -- studs: an extraction landing pad
+local PAD_LIGHTS = 8 -- lights round a landing pad's rim
 local GONDOLA_DOCK_CLEAR = 8 -- studs of floor kept clear in front of each gondola dock
 local ZONE_PAD = 2
 local ZONE_H = 24 -- a zone's height where there is no storey above it
@@ -93,8 +199,7 @@ local CITY_GLASS = Color3.fromRGB(110, 140, 180)
 local MIRROR = Color3.fromRGB(150, 156, 168) -- one-way glass seen from outside (OneWayGlassController clears it inside)
 local COUNTER = Color3.fromRGB(70, 66, 64) -- the counter top under a serving hatch
 local DOOR_FRAME = Color3.fromRGB(46, 42, 44) -- door frames and the frames of glass door leaves
--- Signs: dark LED panels. EXIT and stair signs are white, extraction cyan, so none of them reads as a tier colour.
-local SIGN_PANEL = Color3.fromRGB(20, 22, 26)
+-- Sign text: EXIT and stair signs are white, extraction cyan, so none of them reads as a tier colour.
 local SIGN_EXIT = Color3.fromRGB(235, 240, 245)
 local SIGN_EXTRACTION = Color3.fromRGB(80, 220, 235)
 local SIGN_PLAIN = Color3.fromRGB(215, 215, 215)
@@ -142,6 +247,28 @@ local Build = {}
 -- An indoor room's wall height: a full storey unless the layout gives it a lower one (a bridge).
 local function roomHeight(room: Layout.Room): number
 	return room.height or WALL_H
+end
+
+-- A room's wing theme: its own `style`, else vault wings are vault, Security rooms security, Staff rooms back of
+-- house, the wing's casino floor casino, the rest of the wing Mediterranean, and the Gala's public and Executive rooms
+-- art deco.
+local function styleOf(room: Layout.Room): string
+	if room.style then
+		return room.style
+	elseif string.find(room.id, "vault") then
+		return "vault"
+	elseif room.tier == 2 then
+		return "security"
+	elseif room.tier == 1 then
+		return "service"
+	end
+	local prefix = string.sub(room.id, 1, 3)
+	if prefix == "wg_" then
+		return "casino"
+	elseif prefix == "wm_" or prefix == "wt_" or prefix == "wr_" or prefix == "wx_" then
+		return "mediterranean"
+	end
+	return "deco"
 end
 
 local function toRect(r: { number }): Rect
@@ -479,6 +606,7 @@ function Build.run()
 		doorClear[name] = {}
 	end
 	local doorsUnplaced = 0
+	local autoGates = 0
 	local doorsPerRoom: { [string]: number } = {}
 	for _, door in Layout.doors do
 		local ra, rb = roomById[door.a], roomById[door.b]
@@ -512,14 +640,21 @@ function Build.run()
 		local width = math.min(door.width or 10, best.b - best.a - 2)
 		local center = door.at or (best.a + best.b) / 2
 		center = math.clamp(center, best.a + width / 2 + 1, best.b - width / 2 - 1)
-		table.insert(best.gaps, { center = center, width = width, door = door })
+		-- Every doorway into a higher tier is a real clearance door (review after stage 4), unless the layout made it
+		-- something else or an open arch. A copy, so the layout data stays as written.
+		local placed = door
+		if not (door.gate or door.keycard or door.vault or door.arch) and ra.tier ~= rb.tier then
+			local copy = table.clone(door)
+			copy.gate = math.max(ra.tier, rb.tier)
+			placed = copy
+			autoGates += 1
+		end
+		table.insert(best.gaps, { center = center, width = width, door = placed })
 		doorsPerRoom[ra.id] = (doorsPerRoom[ra.id] or 0) + 1
 		doorsPerRoom[rb.id] = (doorsPerRoom[rb.id] or 0) + 1
 		local x, z = if best.axis == "x" then center else best.line, if best.axis == "x" then best.line else center
 		local nx, nz = if best.axis == "x" then 0 else 1, if best.axis == "x" then 1 else 0
-		if not (ra.duct or rb.duct) then
-			table.insert(doorPoints, { level = best.level, x = x, z = z, nx = nx, nz = nz, a = ra, b = rb })
-		end
+		table.insert(doorPoints, { level = best.level, x = x, z = z, nx = nx, nz = nz, a = ra, b = rb })
 		local clear: Rect = {
 			x1 = x - (if best.axis == "x" then width / 2 + 2 else DOOR_CLEAR),
 			z1 = z - (if best.axis == "x" then DOOR_CLEAR else width / 2 + 2),
@@ -530,6 +665,7 @@ function Build.run()
 		table.insert(doorClear[best.level], clear)
 	end
 	check(doorsUnplaced == 0, `Every door placed ({#Layout.doors - doorsUnplaced}/{#Layout.doors})`)
+	print(`[Gala]      doors: {autoGates} doorways into a higher tier made clearance doors`)
 
 	-- Windows (MAP_BRIEF_REPLAN stage 2): a gap in a shared wall like a doorway, but filled with a sill, a pane or a
 	-- hatch, and never a route. A window may not overlap a doorway on the same wall.
@@ -1229,6 +1365,48 @@ function Build.run()
 			)
 			tag(mast, Tag.ZiplineAnchor, { ZiplineId = line.id, End = endName })
 			table.insert(reserved[spot.level], { x1 = spot.x - 4, z1 = spot.z - 4, x2 = spot.x + 4, z2 = spot.z + 4 })
+			-- A steel lattice tower round the mast: four legs, cross braces, a base plate and a head the cable runs from.
+			local half = ZIPLINE_TOWER_W / 2
+			part(
+				trim,
+				"ZiplineBase",
+				Vector3.new(ZIPLINE_TOWER_W + 1, 0.4, ZIPLINE_TOWER_W + 1),
+				CFrame.new(base + Vector3.new(0, 0.2, 0)),
+				STEEL_POST
+			).Material =
+				Enum.Material.DiamondPlate
+			for _, corner in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
+				part(
+					trim,
+					"ZiplineLeg",
+					Vector3.new(0.4, spot.mast, 0.4),
+					CFrame.new(base + Vector3.new(corner[1] * half, spot.mast / 2, corner[2] * half)),
+					STEEL_POST
+				).Material =
+					Enum.Material.Metal
+			end
+			for level = ZIPLINE_BRACE_STEP, spot.mast - 1, ZIPLINE_BRACE_STEP do
+				for _, face in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
+					local brace = part(
+						trim,
+						"ZiplineBrace",
+						if face[1] ~= 0
+							then Vector3.new(0.25, 0.25, ZIPLINE_TOWER_W)
+							else Vector3.new(ZIPLINE_TOWER_W, 0.25, 0.25),
+						CFrame.new(base + Vector3.new(face[1] * half, level, face[2] * half)),
+						STEEL_POST
+					)
+					brace.Material = Enum.Material.Metal
+				end
+			end
+			local head = part(
+				trim,
+				"ZiplineHead",
+				Vector3.new(ZIPLINE_TOWER_W + 0.6, 0.8, ZIPLINE_TOWER_W + 0.6),
+				CFrame.new(base + Vector3.new(0, spot.mast - 0.4, 0)),
+				Color3.fromRGB(200, 60, 40)
+			)
+			head.Material = Enum.Material.Metal
 			return base + Vector3.new(0, spot.mast, 0)
 		end
 		local top, bottom = anchor(line.top, "Top"), anchor(line.bottom, "Bottom")
@@ -1262,6 +1440,10 @@ function Build.run()
 		model.Name = "Gondola"
 		model.Parent = objects
 		local floor = part(model, "GondolaFloor", Vector3.new(g.length, 1, g.width), CFrame.new(startPos), STEEL_POST)
+		-- How it hangs: a trolley rides on top of the rail, two drop links come down from it to a yoke, and the yoke's posts
+		-- come down to the platform's sides. Everything is in the model, so it all moves together.
+		local railAbove = railY - startPos.Y -- from the floor's middle up to the rail's middle
+		local yokeY = railAbove - GONDOLA_YOKE_DROP
 		for _, side in { -1, 1 } do
 			part(
 				model,
@@ -1270,13 +1452,64 @@ function Build.run()
 				CFrame.new(startPos + Vector3.new(0, 2, side * (g.width / 2 - 0.15))),
 				RAIL_GREY
 			)
+			for _, endSign in { -1, 1 } do
+				-- the yoke's posts at the platform's four corners
+				part(
+					model,
+					"GondolaHanger",
+					Vector3.new(0.4, yokeY, 0.4),
+					CFrame.new(
+						startPos + Vector3.new(endSign * (g.length / 2 - 0.3), yokeY / 2, side * (g.width / 2 - 0.15))
+					),
+					STEEL_POST
+				)
+			end
+		end
+		for _, endSign in { -1, 1 } do
+			-- the yoke's crossbars, and a drop link from each up to the trolley
 			part(
 				model,
-				"GondolaHanger",
-				Vector3.new(0.3, GONDOLA_RAIL_H - 0.5, 0.3),
-				CFrame.new(startPos + Vector3.new(0, GONDOLA_RAIL_H / 2, side * (g.width / 2 - 0.15))),
+				"GondolaYoke",
+				Vector3.new(0.5, 0.5, g.width),
+				CFrame.new(startPos + Vector3.new(endSign * (g.length / 2 - 0.3), yokeY, 0)),
 				STEEL_POST
 			)
+			for _, side in { -1, 1 } do
+				-- either side of the rail, up into the trolley that straddles it
+				part(
+					model,
+					"GondolaLink",
+					Vector3.new(0.3, GONDOLA_YOKE_DROP + 1.2, 0.3),
+					CFrame.new(
+						startPos
+							+ Vector3.new(
+								endSign * (g.length / 2 - 1.5),
+								yokeY + (GONDOLA_YOKE_DROP + 1.2) / 2,
+								side * 1
+							)
+					),
+					STEEL_POST
+				)
+			end
+		end
+		-- the trolley sits on the rail, with a wheel at each end
+		part(
+			model,
+			"GondolaTrolley",
+			Vector3.new(g.length - 2, 0.8, 2.4),
+			CFrame.new(startPos + Vector3.new(0, railAbove + 0.9, 0)),
+			STEEL_POST
+		)
+		for _, endSign in { -1, 1 } do
+			local wheel = part(
+				model,
+				"GondolaWheel",
+				Vector3.new(0.6, 1.4, 1.4),
+				CFrame.new(startPos + Vector3.new(endSign * (g.length / 2 - 1.8), railAbove + 0.9, 0))
+					* CFrame.Angles(0, math.rad(90), 0),
+				Color3.fromRGB(30, 30, 34)
+			)
+			wheel.Shape = Enum.PartType.Cylinder
 		end
 		model.PrimaryPart = floor
 		tag(floor, Tag.Gondola, { Start = startPos, End = endPos })
@@ -1307,6 +1540,123 @@ function Build.run()
 	local function alongPoint(axis: string, line: number, pos: number, y: number): Vector3
 		return if axis == "x" then Vector3.new(pos, y, line) else Vector3.new(line, y, pos)
 	end
+	-- Which side of an edge's wall a room is on (-1 the low side, 1 the high side). A ring room (with holes) or a parent
+	-- round a nested room is judged from the room across the wall, whose middle is reliably on its own side.
+	local function sideAcross(edge: Edge, room: Room): number
+		local other = if edge.roomA == room then edge.roomB else edge.roomA
+		local ref, flip = room, 1
+		if other and (room.holes or other.parent == room.id) then
+			ref, flip = other, -1
+		end
+		local r = toRect(ref.rect)
+		local middle = if edge.axis == "x" then (r.z1 + r.z2) / 2 else (r.x1 + r.x2) / 2
+		return flip * (if middle > edge.line then 1 else -1)
+	end
+	-- The two faces of a wall: each side's colour, material and trim, by the style of the room on that side (the outside
+	-- of the building is the slate shell). Nil for a railing or a wall with nothing styled to show.
+	type WallFace = { side: number, color: Color3, material: Enum.Material, trim: Color3?, trimMaterial: Enum.Material? }
+	local function wallFaces(edge: Edge): { WallFace }?
+		local function faceFor(room: Room?, side: number): WallFace
+			if room and (room.kind == "indoor" or room.kind == "gallery") then
+				local style = STYLES[styleOf(room)]
+				return {
+					side = side,
+					color = style.wall,
+					material = style.wallMaterial,
+					trim = style.trim,
+					trimMaterial = style.trimMaterial,
+				}
+			end
+			return { side = side, color = SHELL, material = Enum.Material.Plastic }
+		end
+		if edge.kind == "shared" then
+			local roomB = edge.roomB :: Room
+			local sideA = sideAcross(edge, edge.roomA)
+			return { faceFor(edge.roomA, sideA), faceFor(roomB, -sideA) }
+		elseif edge.kind == "free" and edge.roomA.kind == "indoor" then
+			local inside = sideAcross(edge, edge.roomA)
+			return { faceFor(edge.roomA, inside), faceFor(nil, -inside) }
+		end
+		return nil
+	end
+	-- A block of wall from y1 to y2 above the floor between a and b along the edge, built as one face per side in that
+	-- side's style (or as one solid block in `color` where the edge has no styled faces). Trim runs along a face's top
+	-- when `withTrim` is set and the block reaches that high.
+	local function wallBlock(
+		name: string,
+		edge: Edge,
+		a: number,
+		b: number,
+		y1: number,
+		y2: number,
+		color: Color3,
+		withTrim: boolean?
+	)
+		if b - a < 0.05 or y2 - y1 < 0.05 then
+			return
+		end
+		local base = levels[edge.level]
+		local faces = wallFaces(edge)
+		if not faces then
+			part(
+				geometry,
+				name,
+				alongSize(edge.axis, b - a, y2 - y1, WALL_T),
+				CFrame.new(alongPoint(edge.axis, edge.line, (a + b) / 2, base + (y1 + y2) / 2)),
+				color
+			)
+			return
+		end
+		local same = faces[1].color == faces[2].color and faces[1].material == faces[2].material
+		if same then
+			local p = part(
+				geometry,
+				name,
+				alongSize(edge.axis, b - a, y2 - y1, WALL_T),
+				CFrame.new(alongPoint(edge.axis, edge.line, (a + b) / 2, base + (y1 + y2) / 2)),
+				faces[1].color
+			)
+			p.Material = faces[1].material
+		else
+			for _, face in faces do
+				local p = part(
+					geometry,
+					name,
+					alongSize(edge.axis, b - a, y2 - y1, WALL_T / 2),
+					CFrame.new(
+						alongPoint(edge.axis, edge.line + face.side * WALL_T / 4, (a + b) / 2, base + (y1 + y2) / 2)
+					),
+					face.color
+				)
+				p.Material = face.material
+			end
+		end
+		if withTrim then
+			for _, face in faces do
+				local trimTop = y2 - TRIM_DROP
+				if face.trim and trimTop - TRIM_H > y1 then
+					local strip = part(
+						trim,
+						"WallTrim",
+						alongSize(edge.axis, b - a, TRIM_H, 0.3),
+						CFrame.new(
+							alongPoint(
+								edge.axis,
+								edge.line + face.side * (WALL_T / 2 + 0.15),
+								(a + b) / 2,
+								base + trimTop - TRIM_H / 2
+							)
+						),
+						face.trim
+					)
+					strip.Material = face.trimMaterial or Enum.Material.Plastic
+					strip.CanCollide = false
+					strip.CanQuery = false
+				end
+			end
+		end
+	end
+
 	local currentGlass = false -- the wall being built is glass above a low sill (an indoor room facing a garden)
 	local currentBarrier = false -- the wall being built is the glass barrier at the open edge of a terrace or deck
 	local function wallPiece(edge: Edge, a: number, b: number, height: number, color: Color3)
@@ -1354,14 +1704,7 @@ function Build.run()
 			pane.Transparency = 0.55
 			return
 		end
-		local y = levels[edge.level] + height / 2
-		part(
-			geometry,
-			"Wall",
-			alongSize(edge.axis, b - a, height, WALL_T),
-			CFrame.new(alongPoint(edge.axis, edge.line, (a + b) / 2, y)),
-			color
-		)
+		wallBlock("Wall", edge, a, b, 0, height, color, true)
 	end
 
 	-- An inner vault door filling a doorway, in one of four styles (BUILD_ORDER Step 7B): a round bank door, a glass
@@ -1404,8 +1747,8 @@ function Build.run()
 	end
 
 	-- A floor slab whose top is at topY.
-	local function slab(parent: Instance, name: string, rect: Rect, topY: number, color: Color3)
-		part(
+	local function slab(parent: Instance, name: string, rect: Rect, topY: number, color: Color3): Part
+		return part(
 			parent,
 			name,
 			Vector3.new(rect.x2 - rect.x1, SLAB, rect.z2 - rect.z1),
@@ -1482,7 +1825,7 @@ function Build.run()
 		return px + sx * r, pz + sz * r, a0, a1
 	end
 	local function floorColor(room: Room): Color3
-		return if room.kind == "outdoor" then DECK else tierColor(room.tier):Lerp(FLOOR_WARM, 0.65)
+		return if room.kind == "outdoor" and not room.style then DECK else STYLES[styleOf(room)].floor
 	end
 	local function pieceAt(level: string, x: number, z: number): Piece?
 		for _, piece in piecesByLevel[level] do
@@ -1540,6 +1883,402 @@ function Build.run()
 						levels[void.level],
 						color
 					)
+				end
+			end
+		end
+	end
+
+	-- Curved stairs (MAP_BRIEF_REPLAN stage 4): a marble ramp in short straight pieces following a circle, with gilded
+	-- balustrades, a solid base where it is too low to walk under and columns where it is higher, then a landing bridge
+	-- that steps off through a gap in the void railing. The floor under it is kept clear of props and NPC nodes, and its
+	-- two ends become a linked pair of NPC nodes like any stair's.
+	type CurvedEnd = { level: string, x: number, z: number, link: string }
+	local curvedEnds: { CurvedEnd } = {}
+	for index, cs in Layout.curvedStairs do
+		local baseY, topY = levels[cs.from], levels[cs.to]
+		local a0, a1 = math.rad(cs.fromAngle), math.rad(cs.toAngle)
+		local count = math.max(8, math.ceil(cs.radius * math.abs(a1 - a0) / CURVED_STAIR_STEP))
+		local function point(t: number): Vector3
+			local angle = a0 + (a1 - a0) * t
+			return Vector3.new(
+				cs.x + cs.radius * math.cos(angle),
+				baseY + (topY - baseY) * t,
+				cs.z + cs.radius * math.sin(angle)
+			)
+		end
+		for i = 1, count do
+			local p0, p1 = point((i - 1) / count), point(i / count)
+			local mid = (p0 + p1) / 2
+			local along = CFrame.lookAt(mid, p1)
+			local length = (p1 - p0).Magnitude + 0.6 -- overlap closes the joints on the outside of the curve
+			local tread = part(
+				geometry,
+				"GrandStair",
+				Vector3.new(cs.width, SLAB, length),
+				along * CFrame.new(0, -SLAB / 2, 0),
+				STAIR_MARBLE
+			)
+			tread.Material = Enum.Material.Marble
+			local flat = CFrame.lookAt(Vector3.new(mid.X, baseY, mid.Z), Vector3.new(p1.X, baseY, p1.Z))
+			-- Open balustrades: a slim gilded handrail on posts, each side (not on the pieces over the landing, which has
+			-- its own rails).
+			local land = cs.landing
+			local onLanding = mid.X > land[1] and mid.X < land[3] and mid.Z > land[2] and mid.Z < land[4]
+			for _, sideSign in if onLanding then {} else { -1, 1 } do
+				local inset = sideSign * (cs.width / 2 - HANDRAIL_INSET)
+				part(
+					geometry,
+					"GrandStairHandrail",
+					Vector3.new(HANDRAIL_W, HANDRAIL_W, length),
+					along * CFrame.new(inset, STAIR_RAIL_H, 0),
+					GILT
+				).Material =
+					Enum.Material.Metal
+				if i % CURVED_STAIR_POST_EVERY == 1 then
+					local post = part(
+						geometry,
+						"GrandStairPost",
+						Vector3.new(HANDRAIL_W * 0.7, STAIR_RAIL_H, HANDRAIL_W * 0.7),
+						CFrame.new(p0 + flat.RightVector * inset + Vector3.new(0, STAIR_RAIL_H / 2, 0)),
+						GILT
+					)
+					post.Material = Enum.Material.Metal
+				end
+			end
+			local underside = mid.Y - SLAB - baseY
+			if underside < HEADROOM then
+				-- Too low to walk under: a solid marble base down to the floor.
+				if underside > 0.2 then
+					part(
+						geometry,
+						"GrandStairBase",
+						Vector3.new(cs.width, underside, length),
+						flat * CFrame.new(0, underside / 2, 0),
+						STAIR_MARBLE
+					).Material =
+						Enum.Material.Marble
+				end
+			elseif i % CURVED_STAIR_COLUMN_EVERY == 0 then
+				local column = part(
+					geometry,
+					"GrandStairColumn",
+					Vector3.new(underside, 1.6, 1.6),
+					flat * CFrame.new(0, underside / 2, 0) * CFrame.Angles(0, 0, math.rad(90)),
+					STAIR_MARBLE
+				)
+				column.Shape = Enum.PartType.Cylinder
+				column.Material = Enum.Material.Marble
+			end
+			-- Keep props and nodes off the floor under it.
+			local reach = cs.width / 2 + 1
+			local footprint = {
+				x1 = math.min(p0.X, p1.X) - reach,
+				z1 = math.min(p0.Z, p1.Z) - reach,
+				x2 = math.max(p0.X, p1.X) + reach,
+				z2 = math.max(p0.Z, p1.Z) + reach,
+			}
+			table.insert(solidFeatures[cs.from], footprint)
+			table.insert(reserved[cs.from], footprint)
+		end
+		-- The landing bridge round the top step. Its sides are railed except where the stair comes onto it and where it
+		-- meets the floor (the gap in the void railing, made below).
+		local landing = toRect(cs.landing)
+		slab(geometry, "GrandStairLanding", landing, topY, STAIR_MARBLE)
+		-- Where the stair comes onto the landing: walk back down from the top until the stair leaves the landing.
+		local entrySide, entryAt = "", 0
+		for step = 1, 400 do
+			local p = point(1 - step / 400)
+			if p.X < landing.x1 or p.X > landing.x2 or p.Z < landing.z1 or p.Z > landing.z2 then
+				if p.X < landing.x1 then
+					entrySide, entryAt = "x1", p.Z
+				elseif p.X > landing.x2 then
+					entrySide, entryAt = "x2", p.Z
+				elseif p.Z < landing.z1 then
+					entrySide, entryAt = "z1", p.X
+				else
+					entrySide, entryAt = "z2", p.X
+				end
+				break
+			end
+		end
+		local function onVoidEdge(line: number, axis: string): boolean
+			for _, edge in edges do
+				if
+					edge.kind == "void"
+					and edge.level == cs.to
+					and edge.axis == axis
+					and math.abs(edge.line - line) < EPS
+				then
+					return true
+				end
+			end
+			return false
+		end
+		for _, side in
+			{
+				{ name = "x1", axis = "z", line = landing.x1, a = landing.z1, b = landing.z2 },
+				{ name = "x2", axis = "z", line = landing.x2, a = landing.z1, b = landing.z2 },
+				{ name = "z1", axis = "x", line = landing.z1, a = landing.x1, b = landing.x2 },
+				{ name = "z2", axis = "x", line = landing.z2, a = landing.x1, b = landing.x2 },
+			}
+		do
+			if onVoidEdge(side.line, side.axis) then
+				continue -- this side steps off onto the floor
+			end
+			local pieces = { { side.a, side.b } }
+			if side.name == entrySide then
+				pieces = subtractIntervals(side.a, side.b, { { entryAt - cs.width / 2, entryAt + cs.width / 2 } })
+			end
+			for _, piece in pieces do
+				local lo, hi = piece[1], piece[2]
+				if hi - lo > 0.5 then
+					local mid = (lo + hi) / 2
+					local position = if side.axis == "x"
+						then Vector3.new(mid, topY + STAIR_RAIL_H, side.line)
+						else Vector3.new(side.line, topY + STAIR_RAIL_H, mid)
+					part(
+						geometry,
+						"GrandStairHandrail",
+						if side.axis == "x"
+							then Vector3.new(hi - lo, HANDRAIL_W, HANDRAIL_W)
+							else Vector3.new(HANDRAIL_W, HANDRAIL_W, hi - lo),
+						CFrame.new(position),
+						GILT
+					).Material =
+						Enum.Material.Metal
+					for _, endAt in { lo, hi } do
+						local base = if side.axis == "x"
+							then Vector3.new(endAt, topY, side.line)
+							else Vector3.new(side.line, topY, endAt)
+						part(
+							geometry,
+							"GrandStairPost",
+							Vector3.new(HANDRAIL_W * 0.7, STAIR_RAIL_H, HANDRAIL_W * 0.7),
+							CFrame.new(base + Vector3.new(0, STAIR_RAIL_H / 2, 0)),
+							GILT
+						).Material =
+							Enum.Material.Metal
+					end
+				end
+			end
+		end
+		local headX, headZ = (landing.x1 + landing.x2) / 2, (landing.z1 + landing.z2) / 2
+		for _, edge in edges do
+			if edge.kind == "void" and edge.level == cs.to then
+				local onX = edge.axis == "x"
+					and (math.abs(edge.line - landing.z1) < EPS or math.abs(edge.line - landing.z2) < EPS)
+				local onZ = edge.axis == "z"
+					and (math.abs(edge.line - landing.x1) < EPS or math.abs(edge.line - landing.x2) < EPS)
+				if onX or onZ then
+					local lo = math.max(edge.a, if onX then landing.x1 else landing.z1)
+					local hi = math.min(edge.b, if onX then landing.x2 else landing.z2)
+					if hi - lo > EPS then
+						table.insert(edge.gaps, { center = (lo + hi) / 2, width = hi - lo })
+						-- The top node stands on the floor just past the gap.
+						local outward = if onX
+							then (if edge.line < headZ then -1 else 1)
+							else (if edge.line < headX then -1 else 1)
+						headX = if onX then (lo + hi) / 2 else edge.line + outward * STAIR_LANDING_CLEAR
+						headZ = if onX then edge.line + outward * STAIR_LANDING_CLEAR else (lo + hi) / 2
+					end
+				end
+			end
+		end
+		-- The foot node stands just before the first step.
+		local tangent = Vector3.new(-math.sin(a0), 0, math.cos(a0)) * (if a1 > a0 then 1 else -1)
+		local foot = point(0) - tangent * STAIR_LANDING_CLEAR
+		local link = `grandstair{index}`
+		table.insert(curvedEnds, { level = cs.from, x = foot.X, z = foot.Z, link = link })
+		table.insert(curvedEnds, { level = cs.to, x = headX, z = headZ, link = link })
+	end
+
+	-- Vents (spec 4.3; review 2026-10-23): a crawl duct in a steel casing at ceiling height, from a ladder shaft in one
+	-- room to a ladder shaft in another. Each shaft has a grate at floor level on the side away from the duct. Where the
+	-- duct passes through a wall, the wall is built under and over it. The insides of the shafts and of every run are
+	-- tagged VentDuct: VentService breaks the Cover of anyone in them.
+	local ventDuctVolumes, ventProblems = 0, 0
+	for _, vent in Layout.vents do
+		local base = levels[vent.level]
+		local points = vent.points
+		local function steel(name: string, size: Vector3, position: Vector3): Part
+			local p = part(geometry, name, size, CFrame.new(position), DUCT_STEEL)
+			p.Material = Enum.Material.Metal
+			return p
+		end
+		local function volume(size: Vector3, position: Vector3)
+			local v = part(objects, "VentDuct", size, CFrame.new(position), DUCT_STEEL)
+			ghost(v)
+			tag(v, Tag.VentDuct, { VentId = vent.id })
+			ventDuctVolumes += 1
+		end
+		-- The shafts at each end.
+		for _, index in { 1, #points } do
+			local p = points[index]
+			local neighbour = points[if index == 1 then 2 else #points - 1]
+			local runX, runZ = math.sign(neighbour[1] - p[1]), math.sign(neighbour[2] - p[2])
+			local half = SHAFT_W / 2
+			for _, side in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
+				local alongX = side[1] == 0 -- this wall of the shaft runs along x
+				local function wallSize(height: number, length: number): Vector3
+					return if alongX
+						then Vector3.new(length, height, DUCT_PLATE)
+						else Vector3.new(DUCT_PLATE, height, length)
+				end
+				local wx, wz = p[1] + side[1] * half, p[2] + side[2] * half
+				if side[1] == runX and side[2] == runZ then
+					-- toward the duct: open where the duct joins
+					steel("VentShaft", wallSize(DUCT_BOTTOM, SHAFT_W), Vector3.new(wx, base + DUCT_BOTTOM / 2, wz))
+				elseif side[1] == -runX and side[2] == -runZ then
+					-- away from the duct: the grate at the foot, with wall either side of it and above it
+					steel(
+						"VentShaft",
+						wallSize(DUCT_TOP - VENT_OPENING_H, SHAFT_W),
+						Vector3.new(wx, base + (VENT_OPENING_H + DUCT_TOP) / 2, wz)
+					)
+					local jamb = (SHAFT_W - GRATE_W) / 2
+					for _, endSign in { -1, 1 } do
+						local offset = endSign * (GRATE_W / 2 + jamb / 2)
+						steel(
+							"VentShaft",
+							wallSize(VENT_OPENING_H, jamb),
+							Vector3.new(
+								wx + (if alongX then offset else 0),
+								base + VENT_OPENING_H / 2,
+								wz + (if alongX then 0 else offset)
+							)
+						)
+					end
+					local grate = part(
+						objects,
+						"VentGrate",
+						wallSize(VENT_OPENING_H, GRATE_W),
+						CFrame.new(wx, base + VENT_OPENING_H / 2, wz),
+						RAIL_GREY
+					)
+					grate.Material = Enum.Material.DiamondPlate
+					grate.Transparency = 0.5
+					grate.CanCollide = false
+					tag(grate, Tag.Vent, { VentId = vent.id })
+				else
+					steel("VentShaft", wallSize(DUCT_TOP, SHAFT_W), Vector3.new(wx, base + DUCT_TOP / 2, wz))
+				end
+			end
+			steel(
+				"VentShaft",
+				Vector3.new(SHAFT_W, DUCT_PLATE, SHAFT_W),
+				Vector3.new(p[1], base + DUCT_TOP + DUCT_PLATE / 2, p[2])
+			)
+			-- A ladder up one side wall (one across the run).
+			local ladderSide = if runX ~= 0 then { 0, 1 } else { 1, 0 }
+			local ladder = Instance.new("TrussPart")
+			ladder.Name = "VentLadder"
+			ladder.Size = Vector3.new(2, math.ceil((DUCT_BOTTOM + 1) / 2) * 2, 2)
+			ladder.Anchored = true
+			ladder.Color = DUCT_STEEL
+			ladder.CFrame = CFrame.new(
+				p[1] + ladderSide[1] * (half - 1.2),
+				base + ladder.Size.Y / 2,
+				p[2] + ladderSide[2] * (half - 1.2)
+			)
+			ladder.Parent = geometry
+			volume(
+				Vector3.new(SHAFT_W - DUCT_PLATE * 2, DUCT_TOP, SHAFT_W - DUCT_PLATE * 2),
+				Vector3.new(p[1], base + DUCT_TOP / 2, p[2])
+			)
+			local keep = { x1 = p[1] - half - 1, z1 = p[2] - half - 1, x2 = p[1] + half + 1, z2 = p[2] + half + 1 }
+			table.insert(solidFeatures[vent.level], keep)
+			table.insert(reserved[vent.level], keep)
+		end
+		-- The runs between the points, and the walls they pass through.
+		for i = 1, #points - 1 do
+			local a, b = points[i], points[i + 1]
+			local alongX = a[2] == b[2]
+			if not alongX and a[1] ~= b[1] then
+				ventProblems += 1
+				print(`[Gala]      vent {vent.id}: a run must go along x or z`)
+				continue
+			end
+			local lo = if alongX then math.min(a[1], b[1]) else math.min(a[2], b[2])
+			local hi = if alongX then math.max(a[1], b[1]) else math.max(a[2], b[2])
+			-- start and end at the shafts' walls, and reach into the corner where two runs meet
+			local startTrim = if i == 1 then SHAFT_W / 2 else -DUCT_W / 2
+			local endTrim = if i == #points - 1 then SHAFT_W / 2 else -DUCT_W / 2
+			local first = if (if alongX then a[1] else a[2]) < (if alongX then b[1] else b[2])
+				then startTrim
+				else endTrim
+			local last = if first == startTrim then endTrim else startTrim
+			lo, hi = lo + first, hi - last
+			local fixed = if alongX then a[2] else a[1]
+			local length = hi - lo
+			local middle = (lo + hi) / 2
+			local function at(across: number, y: number): Vector3
+				return if alongX
+					then Vector3.new(middle, base + y, fixed + across)
+					else Vector3.new(fixed + across, base + y, middle)
+			end
+			local function size(width: number, height: number): Vector3
+				return if alongX then Vector3.new(length, height, width) else Vector3.new(width, height, length)
+			end
+			steel("VentDuctCasing", size(DUCT_W, DUCT_PLATE), at(0, DUCT_BOTTOM - DUCT_PLATE / 2))
+			steel("VentDuctCasing", size(DUCT_W, DUCT_PLATE), at(0, DUCT_TOP + DUCT_PLATE / 2))
+			for _, sideSign in { -1, 1 } do
+				steel(
+					"VentDuctCasing",
+					size(DUCT_PLATE, DUCT_TOP - DUCT_BOTTOM),
+					at(sideSign * (DUCT_W / 2 - DUCT_PLATE / 2), (DUCT_BOTTOM + DUCT_TOP) / 2)
+				)
+			end
+			volume(size(DUCT_W - DUCT_PLATE * 2, DUCT_TOP - DUCT_BOTTOM), at(0, (DUCT_BOTTOM + DUCT_TOP) / 2))
+			-- Walls it passes through: an opening in each, built round it later.
+			for _, edge in edges do
+				if
+					edge.kind == "shared"
+					and edge.level == vent.level
+					and edge.axis == (if alongX then "z" else "x")
+					and edge.line > lo
+					and edge.line < hi
+					and fixed > edge.a
+					and fixed < edge.b
+				then
+					local width = DUCT_W + 0.4
+					for _, gap in edge.gaps do
+						if math.abs(gap.center - fixed) < (gap.width + width) / 2 then
+							ventProblems += 1
+							print(`[Gala]      vent {vent.id} passes through a doorway or window`)
+						end
+					end
+					table.insert(edge.gaps, { center = fixed, width = width, duct = true })
+				end
+			end
+		end
+	end
+	check(ventProblems == 0, `Every vent placed ({#Layout.vents} vents)`)
+
+	-- Ziplines cross glass barriers at the open edges of decks: open a gap wherever a rider hanging under the cable would
+	-- hit one.
+	for _, line in Layout.ziplines do
+		local top = Vector3.new(line.top.x, levels[line.top.level] + line.top.mast, line.top.z)
+		local bottom = Vector3.new(line.bottom.x, levels[line.bottom.level] + line.bottom.mast, line.bottom.z)
+		local riderDrop = GameConfig.Traversal.Zipline.HangStuds + ZIPLINE_BODY
+		for _, edge in edges do
+			if edge.kind == "free" and edge.roomA.kind == "outdoor" then
+				local from = if edge.axis == "x" then top.Z else top.X
+				local to = if edge.axis == "x" then bottom.Z else bottom.X
+				if (from - edge.line) * (to - edge.line) < 0 then
+					local crossing = top:Lerp(bottom, (edge.line - from) / (to - from))
+					local along = if edge.axis == "x" then crossing.X else crossing.Z
+					local base = levels[edge.level]
+					if
+						along > edge.a
+						and along < edge.b
+						and crossing.Y > base
+						and crossing.Y - riderDrop < base + BARRIER_H + 1
+					then
+						local width = math.min(ZIPLINE_GAP, edge.b - edge.a)
+						local center = math.clamp(along, edge.a + width / 2, edge.b - width / 2)
+						-- A low rail stays across it, under the rider, so nobody walks off the edge by accident.
+						table.insert(edge.gaps, { center = center, width = width, lowRail = true })
+					end
 				end
 			end
 		end
@@ -1641,41 +2380,24 @@ function Build.run()
 			or room.id == "g_staffwc"
 	end
 	local signCount = 0
-	-- Writes text on one face of a sign part, lit so it reads in the dark like an LED panel.
-	local function signText(p: BasePart, face: Enum.NormalId, text: string, color: Color3)
-		local gui = Instance.new("SurfaceGui")
-		gui.Face = face
-		gui.PixelsPerStud = SIGN_PIXELS
-		gui.LightInfluence = 0
-		gui.Brightness = 2
-		gui.Parent = p
-		local label = Instance.new("TextLabel")
-		label.Size = UDim2.fromScale(1, 1)
-		label.BackgroundTransparency = 1
-		label.TextColor3 = color
-		label.Font = Enum.Font.GothamBold
-		label.TextScaled = true
-		label.Text = text
-		label.Parent = gui
-	end
-	-- Writes each side of a sign and tags it for SignController, which floats the text toward a nearby reader. A side is
-	-- the face it is printed on, the direction it looks (out of that face), its text and its colour.
-	type SignSide = { face: Enum.NormalId, normal: Vector3, text: string, color: Color3 }
+	-- Signs have no panel (the user's review): each is an invisible anchor that SignController floats words from, only
+	-- for a nearby reader. A side is the direction it reads toward, its text, its colour, and the tier of the area it
+	-- leads to (the words' outline colour).
+	type SignSide = { normal: Vector3, text: string, color: Color3, tier: number }
 	local function writeSign(p: BasePart, sides: { SignSide })
 		for index, side in sides do
-			signText(p, side.face, side.text, side.color)
 			p:SetAttribute(`Text{index}`, side.text)
 			p:SetAttribute(`Color{index}`, side.color)
 			p:SetAttribute(`Normal{index}`, side.normal)
+			p:SetAttribute(`Tier{index}`, side.tier)
 		end
 		tag(p, Tag.Sign)
 	end
-	-- The face of an axis-aligned part that looks toward `side` (+1 or -1) across a wall running along `axis`.
-	local function faceToward(axis: string, side: number): Enum.NormalId
-		if axis == "x" then
-			return if side > 0 then Enum.NormalId.Back else Enum.NormalId.Front
-		end
-		return if side > 0 then Enum.NormalId.Right else Enum.NormalId.Left
+	-- An invisible point a floating sign hangs from.
+	local function signAnchor(name: string, position: Vector3): Part
+		local p = part(trim, name, Vector3.new(1, 1, 1), CFrame.new(position), SIGN_PLAIN)
+		ghost(p)
+		return p
 	end
 	-- What a doorway sign says about the room beyond it, and in what colour (nil: no sign that way).
 	-- EXIT means a stair close beyond the doorway, not just somewhere in a big room.
@@ -1693,13 +2415,10 @@ function Build.run()
 		end
 		return nil, SIGN_PLAIN
 	end
-	-- A small lit sign over a doorway; each face tells someone on that side what lies through it.
-	local function doorwaySign(edge: Edge, gap: Gap, openingH: number, height: number, sideOfRoom: (Room) -> number)
-		if height - openingH < SIGN_H + 1 then
-			return
-		end
+	-- A sign over a doorway; each side tells someone on that side what lies through it.
+	local function doorwaySign(edge: Edge, gap: Gap, openingH: number, sideOfRoom: (Room) -> number)
 		local roomB = edge.roomB :: Room
-		local faces: { { side: number, text: string, color: Color3 } } = {}
+		local faces: { { side: number, text: string, color: Color3, tier: number } } = {}
 		for _, pair in { { edge.roomA, roomB }, { roomB, edge.roomA } } do
 			local here, beyond = pair[1], pair[2]
 			local doorway = if edge.axis == "x"
@@ -1707,35 +2426,48 @@ function Build.run()
 				else Vector2.new(edge.line, gap.center)
 			local text, color = signFor(beyond, doorway)
 			if text then
-				table.insert(faces, { side = sideOfRoom(here), text = text, color = color })
+				table.insert(faces, { side = sideOfRoom(here), text = text, color = color, tier = beyond.tier })
 			end
 		end
 		if #faces == 0 then
 			return
 		end
-		-- Read from both sides it goes through the wall; read from one side it sits flat on that face.
-		local depth = if #faces == 2 then WALL_T + 0.3 else 0.3
-		local line = if #faces == 2 then edge.line else edge.line + faces[1].side * (WALL_T / 2 + 0.15)
-		local sign = part(
-			trim,
-			"Sign",
-			alongSize(edge.axis, SIGN_W, SIGN_H, depth),
-			CFrame.new(alongPoint(edge.axis, line, gap.center, levels[edge.level] + openingH + 0.4 + SIGN_H / 2)),
-			SIGN_PANEL
-		)
-		sign.CanCollide = false
-		sign.CanQuery = false
+		local sign =
+			signAnchor("Sign", alongPoint(edge.axis, edge.line, gap.center, levels[edge.level] + openingH + SIGN_LIFT))
 		local sides: { SignSide } = {}
 		for _, f in faces do
 			local normal = if edge.axis == "x" then Vector3.new(0, 0, f.side) else Vector3.new(f.side, 0, 0)
-			table.insert(
-				sides,
-				{ face = faceToward(edge.axis, f.side), normal = normal, text = f.text, color = f.color }
-			)
+			table.insert(sides, { normal = normal, text = f.text, color = f.color, tier = f.tier })
 		end
 		writeSign(sign, sides)
 		signCount += 1
 	end
+	-- The name of the room beyond a doorway, floating over it on each side (nothing printed: it only shows up close).
+	local roomNameCount = 0
+	local function roomNameSign(edge: Edge, gap: Gap, openingH: number, sideOfRoom: (Room) -> number)
+		local roomB = edge.roomB :: Room
+		local sides: { SignSide } = {}
+		for _, pair in { { edge.roomA, roomB }, { roomB, edge.roomA } } do
+			local here, beyond = pair[1], pair[2]
+			local side = sideOfRoom(here)
+			table.insert(sides, {
+				normal = if edge.axis == "x" then Vector3.new(0, 0, side) else Vector3.new(side, 0, 0),
+				text = string.upper(beyond.name),
+				color = SIGN_PLAIN,
+				tier = beyond.tier,
+			})
+		end
+		local anchor = signAnchor(
+			"RoomNameSign",
+			alongPoint(edge.axis, edge.line, gap.center, levels[edge.level] + openingH + ROOM_NAME_LIFT)
+		)
+		anchor:SetAttribute("Kind", "RoomName")
+		writeSign(anchor, sides)
+		roomNameCount += 1
+	end
+	-- Every doorway a room-name sign went over, for the direction signposts (by room).
+	type Doorway = { edge: Edge, gap: Gap, side: number }
+	local doorwaysOf: { [Room]: { Doorway } } = {}
 
 	-- The leaves of a clearance or keycard door (MAP_BRIEF_REPLAN stage 3), under its blocker. The style follows the tier:
 	-- framed glass for Public and Staff, solid wood for Security, heavy steel for Executive and the vault wings. Every
@@ -1852,8 +2584,9 @@ function Build.run()
 				partColor
 			)
 		end
-		band("Sill", 0, sill, color, WALL_T)
-		band("Lintel", head, height, color, WALL_T)
+		local half = gap.width / 2
+		wallBlock("Sill", edge, gap.center - half, gap.center + half, 0, sill, color)
+		wallBlock("Lintel", edge, gap.center - half, gap.center + half, head, height, color, true)
 		if window.kind == "hatch" then
 			band("Counter", sill - 0.4, sill, COUNTER, WALL_T + 2)
 			return
@@ -1879,6 +2612,7 @@ function Build.run()
 	end
 
 	local wallCount, gateCount, keycardCount = 0, 0, 0
+	local gatesBuilt: { [Gap]: boolean } = {}
 	for _, edge in edges do
 		local height = 0
 		local color = INTERIOR_WALL
@@ -1892,10 +2626,12 @@ function Build.run()
 					if edge.roomA.kind == "indoor" then roomHeight(edge.roomA) else 0,
 					if roomB.kind == "indoor" then roomHeight(roomB) else 0
 				)
-				-- A low room nested in another (a vent duct) is a box inside it: its walls stop at its own ceiling.
-				for _, pair in { { edge.roomA, roomB }, { roomB, edge.roomA } } do
-					if pair[1].parent == pair[2].id and pair[1].height then
-						height = (pair[1].height :: number) + SLAB
+			else
+				-- Two outdoor areas are open to each other, unless a real door stands between them: then a privacy
+				-- screen fills the rest of the line, so the door is the only way through.
+				for _, gap in edge.gaps do
+					if gap.door and (gap.door.gate or gap.door.keycard) then
+						height, color = SCREEN_H, SHELL
 					end
 				end
 			end
@@ -1959,16 +2695,26 @@ function Build.run()
 				windowPiece(edge, gap, gap.window, height, color)
 				continue
 			end
+			if gap.lowRail then
+				local rail = part(
+					geometry,
+					"ZiplineGapRail",
+					alongSize(edge.axis, gap.width, 0.4, 0.6),
+					CFrame.new(alongPoint(edge.axis, edge.line, gap.center, levels[edge.level] + ZIPLINE_GAP_RAIL)),
+					RAIL_GREY
+				)
+				rail.Material = Enum.Material.Metal
+				continue
+			end
+			if gap.duct then
+				-- A vent duct passes through the wall high up: wall under it and over it.
+				local half = gap.width / 2
+				wallBlock("Wall", edge, gap.center - half, gap.center + half, 0, DUCT_BOTTOM, color)
+				wallBlock("Wall", edge, gap.center - half, gap.center + half, DUCT_TOP, height, color, true)
+				continue
+			end
 			local gapDoor = gap.door
-			local ventRoom = if gapDoor
-				then (if roomById[gapDoor.a].duct
-					then roomById[gapDoor.a]
-					else if roomById[gapDoor.b].duct then roomById[gapDoor.b] else nil)
-				else nil
-			local openingH = if ventRoom
-				then VENT_OPENING_H
-				elseif gapDoor and (gapDoor.gate or gapDoor.keycard) then DOOR_H
-				else GAP_H
+			local openingH = if gapDoor and (gapDoor.gate or gapDoor.keycard) then DOOR_H else GAP_H
 			if height <= openingH then
 				continue -- a gap in a railing has nothing over it
 			end
@@ -1978,52 +2724,29 @@ function Build.run()
 				-- An arched doorway: the lintel starts at the crown, and the corners under it are filled in slices that
 				-- follow the curve.
 				local crown = openingH + radius
-				part(
-					geometry,
-					"Lintel",
-					alongSize(edge.axis, gap.width, height - crown, WALL_T),
-					CFrame.new(alongPoint(edge.axis, edge.line, gap.center, baseY + crown + (height - crown) / 2)),
-					color
-				)
+				wallBlock("Lintel", edge, gap.center - radius, gap.center + radius, crown, height, color, true)
 				local slices = math.max(4, math.ceil(gap.width / ARCH_SLICE))
 				local step = gap.width / slices
 				for i = 1, slices do
 					local u = -radius + (i - 0.5) * step
 					local fill = radius - math.sqrt(math.max(radius * radius - u * u, 0))
 					if fill > 0.05 then
-						part(
-							geometry,
+						local at = gap.center + u
+						wallBlock(
 							"Arch",
-							alongSize(edge.axis, step + 0.05, fill, WALL_T),
-							CFrame.new(alongPoint(edge.axis, edge.line, gap.center + u, baseY + crown - fill / 2)),
+							edge,
+							at - step / 2 - 0.025,
+							at + step / 2 + 0.025,
+							crown - fill,
+							crown,
 							color
 						)
 					end
 				end
 			else
 				-- Lintel above the doorway.
-				part(
-					geometry,
-					"Lintel",
-					alongSize(edge.axis, gap.width, height - openingH, WALL_T),
-					CFrame.new(alongPoint(edge.axis, edge.line, gap.center, baseY + openingH + (height - openingH) / 2)),
-					color
-				)
-			end
-			if ventRoom then
-				-- A vent grate (spec 4.3): see-through, walk-through for a player, and the way in or out of a duct.
-				local grate = part(
-					objects,
-					"VentGrate",
-					alongSize(edge.axis, gap.width, VENT_OPENING_H, 0.3),
-					CFrame.new(alongPoint(edge.axis, edge.line, gap.center, baseY + VENT_OPENING_H / 2)),
-					RAIL_GREY
-				)
-				grate.Material = Enum.Material.DiamondPlate
-				grate.Transparency = 0.5
-				grate.CanCollide = false
-				tag(grate, Tag.Vent, { VentId = ventRoom.id })
-				continue
+				local half = gap.width / 2
+				wallBlock("Lintel", edge, gap.center - half, gap.center + half, openingH, height, color, true)
 			end
 			local roomB = edge.roomB :: Room
 			local high = math.max(edge.roomA.tier, roomB.tier)
@@ -2050,6 +2773,7 @@ function Build.run()
 				blocker.Transparency = 1
 				if door.gate then
 					gateCount += 1
+					gatesBuilt[gap] = true
 					tag(blocker, Tag.ClearanceDoor, { Tier = door.gate })
 				else
 					keycardCount += 1
@@ -2138,57 +2862,191 @@ function Build.run()
 			end
 			if not door.vault then
 				local top = if door.arch then openingH + gap.width / 2 else openingH
-				doorwaySign(edge, gap, top, height, sideOf)
+				doorwaySign(edge, gap, top, sideOf)
+				roomNameSign(edge, gap, top, sideOf)
+				for _, room in { edge.roomA, roomB } do
+					doorwaysOf[room] = doorwaysOf[room] or {}
+					table.insert(doorwaysOf[room], { edge = edge, gap = gap, side = sideOf(room) })
+				end
 			end
 		end
 		wallPiece(edge, cursor, edge.b, height, color)
 	end
 
 	-- A sign hanging over each end of every stair, naming where it goes.
-	local LEVEL_NAMES =
-		{ B = "BASEMENT", G = "GROUND", GH = "GALLERY", M = "MEZZANINE", T = "TOP FLOOR", R = "ROOF", X = "SKY DECK" }
+	-- A clearance door needs a wall to stand in, tall enough for its opening; one on an open edge would be a free pass.
+	local gatesMissing: { string } = {}
+	for _, edge in edges do
+		for _, gap in edge.gaps do
+			local door = gap.door
+			if door and door.gate and not gatesBuilt[gap] then
+				table.insert(gatesMissing, `{door.a} / {door.b}`)
+			end
+		end
+	end
+	check(#gatesMissing == 0, `Every clearance door built ({gateCount} built, {#gatesMissing} missing)`)
+	for _, missing in gatesMissing do
+		print(`[Gala]      no wall for the clearance door {missing}`)
+	end
+
+	local LEVEL_NAMES = { B = "BASEMENT", G = "GROUND", GH = "GALLERY", M = "MEZZANINE", T = "TOP FLOOR", R = "ROOF" }
+	-- The tier of the room a stair end stands in (Public if it stands in none).
+	local function tierAt(level: string, rect: Rect): number
+		local found = pieceAt(level, (rect.x1 + rect.x2) / 2, (rect.z1 + rect.z2) / 2)
+		return if found then found.room.tier else 0
+	end
 	for _, s in stairs do
 		local dx = dirVector(s.ramp.dir)
 		local alongX = dx ~= 0
 		for _, stairEnd in
 			{
-				{ level = s.ramp.from, rect = s.entry, text = `UP TO {LEVEL_NAMES[s.upper]}` },
-				{ level = s.upper, rect = s.arrival, text = `DOWN TO {LEVEL_NAMES[s.ramp.from]}` },
+				{
+					level = s.ramp.from,
+					rect = s.entry,
+					text = `UP TO {LEVEL_NAMES[s.upper]}`,
+					tier = tierAt(s.upper, s.arrival),
+				},
+				{
+					level = s.upper,
+					rect = s.arrival,
+					text = `DOWN TO {LEVEL_NAMES[s.ramp.from]}`,
+					tier = tierAt(s.ramp.from, s.entry),
+				},
 			}
 		do
 			local r = stairEnd.rect
-			local sign = part(
-				trim,
+			local sign = signAnchor(
 				"StairSign",
-				if alongX
-					then Vector3.new(0.3, STAIR_SIGN_H, STAIR_SIGN_W)
-					else Vector3.new(STAIR_SIGN_W, STAIR_SIGN_H, 0.3),
-				CFrame.new((r.x1 + r.x2) / 2, levels[stairEnd.level] + STAIR_SIGN_Y, (r.z1 + r.z2) / 2),
-				SIGN_PANEL
+				Vector3.new((r.x1 + r.x2) / 2, levels[stairEnd.level] + STAIR_SIGN_Y, (r.z1 + r.z2) / 2)
 			)
-			sign.CanCollide = false
-			sign.CanQuery = false
-			writeSign(
-				sign,
-				if alongX
-					then {
-						{ face = Enum.NormalId.Left, normal = -Vector3.xAxis, text = stairEnd.text, color = SIGN_EXIT },
-						{ face = Enum.NormalId.Right, normal = Vector3.xAxis, text = stairEnd.text, color = SIGN_EXIT },
-					}
-					else {
-						{
-							face = Enum.NormalId.Front,
-							normal = -Vector3.zAxis,
-							text = stairEnd.text,
-							color = SIGN_EXIT,
-						},
-						{ face = Enum.NormalId.Back, normal = Vector3.zAxis, text = stairEnd.text, color = SIGN_EXIT },
-					}
-			)
+			local sides: { SignSide } = {}
+			for _, normal in if alongX then { -Vector3.xAxis, Vector3.xAxis } else { -Vector3.zAxis, Vector3.zAxis } do
+				table.insert(sides, { normal = normal, text = stairEnd.text, color = SIGN_EXIT, tier = stairEnd.tier })
+			end
+			writeSign(sign, sides)
 			signCount += 1
 		end
 	end
-	print(`[Gala]      signs: {signCount}`)
+
+	-- Direction signposts (review after stage 4): just inside the doorways of busy rooms and junctions, a floating list of
+	-- the nearest stairs, restrooms and extraction site on the same level and in the same tower, never a vault. Stairs and
+	-- restrooms count only in rooms of the signpost room's tier or lower, so a sign never leads a guest into staff areas.
+	-- SignController turns each row's arrow toward its target.
+	local function towerOf(x: number, z: number): number
+		local best, bestDistance = 1, math.huge
+		for index, outline in Layout.towers do
+			local r = toRect(outline)
+			local dx = math.max(r.x1 - x, 0, x - r.x2)
+			local dz = math.max(r.z1 - z, 0, z - r.z2)
+			local distance = math.sqrt(dx * dx + dz * dz)
+			if distance < bestDistance then
+				best, bestDistance = index, distance
+			end
+		end
+		return best
+	end
+	type Destination = { label: string, color: Color3, level: string, position: Vector3, tier: number }
+	local destinations: { Destination } = {}
+	for _, s in stairs do
+		for _, stairEnd in { { level = s.ramp.from, rect = s.entry }, { level = s.upper, rect = s.arrival } } do
+			local r = stairEnd.rect
+			local x, z = (r.x1 + r.x2) / 2, (r.z1 + r.z2) / 2
+			table.insert(destinations, {
+				label = "STAIRS",
+				color = SIGN_EXIT,
+				level = stairEnd.level,
+				position = Vector3.new(x, levels[stairEnd.level], z),
+				tier = tierAt(stairEnd.level, r),
+			})
+		end
+	end
+	for _, curvedEnd in curvedEnds do
+		local found = pieceAt(curvedEnd.level, curvedEnd.x, curvedEnd.z)
+		table.insert(destinations, {
+			label = "STAIRS",
+			color = SIGN_EXIT,
+			level = curvedEnd.level,
+			position = Vector3.new(curvedEnd.x, levels[curvedEnd.level], curvedEnd.z),
+			tier = if found then found.room.tier else 0,
+		})
+	end
+	for _, room in rooms do
+		if isRestroom(room) then
+			local r = toRect(room.rect)
+			table.insert(destinations, {
+				label = "RESTROOMS",
+				color = SIGN_PLAIN,
+				level = room.level,
+				position = Vector3.new((r.x1 + r.x2) / 2, levels[room.level], (r.z1 + r.z2) / 2),
+				tier = room.tier,
+			})
+		end
+	end
+	for _, site in Layout.extraction do
+		table.insert(destinations, {
+			label = "EXTRACTION",
+			color = SIGN_EXTRACTION,
+			level = site.level,
+			position = Vector3.new(site.x, levels[site.level], site.z),
+			tier = 0,
+		})
+	end
+	local signpostCount = 0
+	local placed: { Vector3 } = {}
+	for _, id in Layout.signposts do
+		local room = roomById[id]
+		assert(room, `Signpost room {id} does not exist`)
+		for _, doorway in doorwaysOf[room] or {} do
+			local edge = doorway.edge
+			local into = if edge.axis == "x" then Vector3.new(0, 0, doorway.side) else Vector3.new(doorway.side, 0, 0)
+			local position = alongPoint(edge.axis, edge.line, doorway.gap.center, levels[room.level] + SIGNPOST_Y)
+				+ into * (WALL_T / 2 + SIGNPOST_IN)
+			local found = pieceAt(room.level, position.X, position.Z)
+			local crowded = false
+			for _, other in placed do
+				crowded = crowded or (other - position).Magnitude < SIGNPOST_SPACING
+			end
+			if crowded or not found or found.room ~= room then
+				continue
+			end
+			local tower = towerOf(position.X, position.Z)
+			local rows: { Destination } = {}
+			for _, label in { "STAIRS", "RESTROOMS", "EXTRACTION" } do
+				local best: Destination? = nil
+				local bestDistance = math.huge
+				for _, d in destinations do
+					local flat = Vector3.new(d.position.X - position.X, 0, d.position.Z - position.Z)
+					if
+						d.label == label
+						and d.level == room.level
+						and d.tier <= room.tier
+						and towerOf(d.position.X, d.position.Z) == tower
+						and flat.Magnitude < bestDistance
+					then
+						best, bestDistance = d, flat.Magnitude
+					end
+				end
+				if best then
+					table.insert(rows, best)
+				end
+			end
+			if #rows == 0 then
+				continue
+			end
+			local anchor = signAnchor("Signpost", position)
+			anchor:SetAttribute("Kind", "Directions")
+			for index, row in rows do
+				anchor:SetAttribute(`Label{index}`, row.label)
+				anchor:SetAttribute(`Color{index}`, row.color)
+				anchor:SetAttribute(`Target{index}`, row.position)
+				anchor:SetAttribute(`Tier{index}`, row.tier)
+			end
+			tag(anchor, Tag.Sign)
+			table.insert(placed, position)
+			signpostCount += 1
+		end
+	end
+	print(`[Gala]      signs: {signCount}, room names: {roomNameCount}, signposts: {signpostCount}`)
 
 	-- Floors and ceilings --------------------------------------------------------------------------------------------------------
 	for levelName, list in piecesByLevel do
@@ -2197,35 +3055,64 @@ function Build.run()
 			for _, hole in rampHoles[levelName] do
 				pieces = subtract(pieces, hole)
 			end
-			local color
-			if piece.room.kind ~= "outdoor" then
-				color = tierColor(piece.room.tier):Lerp(FLOOR_WARM, 0.65)
-			else
-				color = DECK
-			end
+			-- Floors take the room's wing theme; terraces and decks stay deck unless the layout gives them a style.
+			local styled = piece.room.kind ~= "outdoor" or piece.room.style ~= nil
+			local style = STYLES[styleOf(piece.room)]
 			for _, rect in pieces do
-				slab(geometry, `Floor_{levelName}_{piece.room.id}`, rect, levels[levelName], color)
+				local floor = slab(
+					geometry,
+					`Floor_{levelName}_{piece.room.id}`,
+					rect,
+					levels[levelName],
+					if styled then style.floor else DECK
+				)
+				if styled then
+					floor.Material = style.floorMaterial
+				end
+			end
+			-- A carpet in the tier colour in every Staff, Security and Executive room (not vaults), so the zone reads from the
+			-- floor as well as from the doors. It is cut round stairs, stair openings, doorways and vent shafts.
+			local area = piece.rect
+			if
+				piece.room.kind == "indoor"
+				and piece.room.tier >= 1
+				and styleOf(piece.room) ~= "vault"
+				and area.x2 - area.x1 >= CARPET_MIN + CARPET_INSET * 2
+				and area.z2 - area.z1 >= CARPET_MIN + CARPET_INSET * 2
+			then
+				local rugs = { inflate(area, -CARPET_INSET) }
+				-- solidFeatures holds the vent shafts and the curved stair's footprint
+				for _, cuts in
+					{ rampFootprints[levelName], rampHoles[levelName], doorClear[levelName], solidFeatures[levelName] }
+				do
+					for _, cut in cuts do
+						rugs = subtract(rugs, inflate(cut, 1))
+					end
+				end
+				for _, s in stairs do
+					if s.ramp.from == levelName then
+						rugs = subtract(rugs, inflate(s.entry, 1))
+					elseif s.upper == levelName then
+						rugs = subtract(rugs, inflate(s.arrival, 1))
+					end
+				end
+				for _, rug in rugs do
+					if rug.x2 - rug.x1 >= CARPET_PIECE_MIN and rug.z2 - rug.z1 >= CARPET_PIECE_MIN then
+						local carpet = part(
+							trim,
+							"Carpet",
+							Vector3.new(rug.x2 - rug.x1, 0.12, rug.z2 - rug.z1),
+							CFrame.new((rug.x1 + rug.x2) / 2, levels[levelName] + 0.06, (rug.z1 + rug.z2) / 2),
+							tierColor(piece.room.tier):Lerp(Color3.new(0, 0, 0), 0.35)
+						)
+						carpet.Material = Enum.Material.Carpet
+						carpet.CanCollide = false
+						carpet.CanQuery = false
+					end
+				end
 			end
 			-- An indoor room is roofed wherever no room sits above it; a shaft stays open where the void is.
-			if piece.room.duct then
-				slab(
-					geometry,
-					`Roof_{levelName}_{piece.room.id}`,
-					piece.rect,
-					levels[levelName] + roomHeight(piece.room) + SLAB,
-					SHELL
-				)
-				local r = piece.rect
-				local volume = part(
-					objects,
-					"VentDuct",
-					Vector3.new(r.x2 - r.x1, roomHeight(piece.room), r.z2 - r.z1),
-					CFrame.new((r.x1 + r.x2) / 2, levels[levelName] + roomHeight(piece.room) / 2, (r.z1 + r.z2) / 2),
-					RAIL_GREY
-				)
-				ghost(volume)
-				tag(volume, Tag.VentDuct, { VentId = piece.room.id })
-			elseif piece.room.kind == "indoor" then
+			if piece.room.kind == "indoor" then
 				local above = nextLevel[levelName]
 				local uncovered = { piece.rect }
 				if above then
@@ -2729,7 +3616,9 @@ function Build.run()
 		return best
 	end
 
-	local intelByTier: { [number]: number } = { [0] = 0, [1] = 0, [2] = 0, [3] = 0 }
+	local intelByType: { [number]: number } = { [0] = 0, [1] = 0, [2] = 0, [3] = 0 }
+	local intelMisplaced: { string } = {} -- stations in a room below their type's lowest tier
+	local intelInVaults = 0
 	local unplaced: { string } = {}
 	local PLACE_SIZES: { [string]: Vector2 } = { -- width along the wall, depth into the room
 		intel = Vector2.new(4, 3),
@@ -2766,21 +3655,28 @@ function Build.run()
 		end
 		local kind = placement.kind
 		if kind == "intel" then
-			local tier = room.tier
-			local station = GameConfig.Intel.Stations[tier]
-			intelByTier[tier] += 1
-			local trimColor = tierColor(tier)
+			local stationType = placement.station :: number
+			local station = GameConfig.Intel.Stations[stationType]
+			assert(station, `Intel in {room.id} has no station type`)
+			intelByType[stationType] += 1
+			if room.tier < station.MinRoomTier then
+				table.insert(intelMisplaced, `{station.Name} in {room.id}`)
+			end
+			if string.find(room.id, "vault") and not string.find(room.id, "ante") then
+				intelInVaults += 1
+			end
+			local tier = stationType -- the station's look follows its type
+			local trimColor = tierColor(room.tier)
 			local stationPart: Part
 			if tier == 0 then
-				-- a guest-book tablet on a stand
+				-- a tablet on a stand, its lit screen tilted up toward someone standing in the room
 				part(propsFolder, "Stand", Vector3.new(0.5, 3.4, 0.5), at(3, 1.7), STEEL)
-				stationPart = part(
-					propsFolder,
-					"IntelStation",
-					Vector3.new(2, 1.4, 0.3),
-					at(3, 3.6) * CFrame.Angles(math.rad(-30), 0, 0),
-					trimColor
-				)
+				local tilt = at(3, 3.6) * CFrame.Angles(math.rad(60), 0, 0)
+				stationPart =
+					part(propsFolder, "IntelStation", Vector3.new(2, 1.4, 0.3), tilt, Color3.fromRGB(40, 40, 46))
+				local screen =
+					part(propsFolder, "Screen", Vector3.new(1.7, 1.1, 0.05), tilt * CFrame.new(0, 0, -0.17), trimColor)
+				screen.Material = Enum.Material.Neon
 			elseif tier == 1 then
 				-- a laptop on a staff cart
 				part(propsFolder, "Cart", Vector3.new(3.5, 3, 2.2), at(3, 1.5), STEEL)
@@ -2807,7 +3703,7 @@ function Build.run()
 				keypad.Material = Enum.Material.Neon
 			end
 			tag(stationPart, Tag.IntelSpawn, {
-				Tier = tier,
+				Type = stationType,
 				Points = station.Points,
 				HackSeconds = station.HackSeconds,
 				Station = station.Name,
@@ -2870,10 +3766,12 @@ function Build.run()
 	for _, missing in unplaced do
 		print(`[Gala]      no room for {missing}`)
 	end
-	check(
-		intelByTier[0] == 8 and intelByTier[1] == 8 and intelByTier[2] == 8 and intelByTier[3] == 8,
-		`Intel stations by tier: {intelByTier[0]}, {intelByTier[1]}, {intelByTier[2]}, {intelByTier[3]} (want 8 each)`
-	)
+	print(`[Gala]      intel stations by type: {intelByType[0]}, {intelByType[1]}, {intelByType[2]}, {intelByType[3]}`)
+	check(#intelMisplaced == 0, `Intel types in rooms of their tier ({#intelMisplaced} misplaced)`)
+	for _, what in intelMisplaced do
+		print(`[Gala]      too low a tier for {what}`)
+	end
+	check(intelInVaults > 0, `Intel in the vault rooms ({intelInVaults})`)
 
 	-- Interior lights: warm amber in the public rooms, cooler as the tier rises, a handful per room (dusk-like inside).
 	local LIGHT_COLORS: { [number]: Color3 } = {
@@ -2955,18 +3853,73 @@ function Build.run()
 		p.Transparency = 0.4
 		p.CanCollide = false
 	end
+	-- Extraction sites: the tagged zone is invisible; what players see is a landing pad: a dark disc, a white ring and H,
+	-- and lights round its rim.
 	for _, m in Layout.extraction do
 		local p = marker(
 			m.id,
 			m.level,
 			m.x,
 			m.z,
-			Vector3.new(16, 0.5, 16),
+			Vector3.new(PAD_RADIUS * 2, 0.5, PAD_RADIUS * 2),
 			Color3.fromRGB(255, 215, 0),
 			Tag.ExtractionSite,
 			{ Site = m.id }
 		)
-		p.Transparency = 0.2
+		p.Transparency = 1
+		p.CanCollide = false
+		local y = levels[m.level]
+		local pad = part(
+			trim,
+			"PadDisc",
+			Vector3.new(0.2, PAD_RADIUS * 2, PAD_RADIUS * 2),
+			CFrame.new(m.x, y + 0.1, m.z) * CFrame.Angles(0, 0, math.rad(90)),
+			Color3.fromRGB(46, 48, 54)
+		)
+		pad.Shape = Enum.PartType.Cylinder
+		pad.Material = Enum.Material.Asphalt
+		local ringCount = 24
+		for i = 1, ringCount do
+			local angle = 2 * math.pi * (i - 0.5) / ringCount
+			local r = PAD_RADIUS - 1.2
+			local segment = part(
+				trim,
+				"PadRing",
+				Vector3.new(0.05, 0.6, 2 * math.pi * r / ringCount + 0.2),
+				CFrame.new(m.x + r * math.cos(angle), y + 0.22, m.z + r * math.sin(angle)) * CFrame.Angles(0, -angle, 0),
+				Color3.fromRGB(240, 240, 240)
+			)
+			segment.CanCollide = false
+		end
+		-- the H
+		for _, bar in
+			{
+				{ Vector3.new(1, 0.05, 6), Vector3.new(-2, 0, 0) },
+				{ Vector3.new(1, 0.05, 6), Vector3.new(2, 0, 0) },
+				{ Vector3.new(4, 0.05, 1), Vector3.new(0, 0, 0) },
+			}
+		do
+			local h = part(
+				trim,
+				"PadH",
+				bar[1],
+				CFrame.new(Vector3.new(m.x, y + 0.23, m.z) + bar[2]),
+				Color3.fromRGB(240, 240, 240)
+			)
+			h.CanCollide = false
+		end
+		for i = 1, PAD_LIGHTS do
+			local angle = 2 * math.pi * i / PAD_LIGHTS
+			local light = part(
+				trim,
+				"PadLight",
+				Vector3.new(0.6, 0.4, 0.6),
+				CFrame.new(m.x + PAD_RADIUS * math.cos(angle), y + 0.3, m.z + PAD_RADIUS * math.sin(angle)),
+				SIGN_EXTRACTION
+			)
+			light.Material = Enum.Material.Neon
+			light.CanCollide = false
+		end
 	end
 	for index, m in Layout.vaults do
 		marker(
@@ -3110,6 +4063,16 @@ function Build.run()
 				})
 			end
 		end
+		for _, stairEnd in curvedEnds do
+			table.insert(list, {
+				level = stairEnd.level,
+				x = stairEnd.x,
+				z = stairEnd.z,
+				tier = tierAtPoint(stairEnd.level, stairEnd.x, stairEnd.z),
+				activity = "Walk",
+				stairLink = stairEnd.link,
+			})
+		end
 		return list
 	end
 	local scale = 1
@@ -3233,7 +4196,11 @@ function Build.run()
 		check(count(Tag[name]) == counts[name], `{name} {count(Tag[name])}/{counts[name]}`)
 	end
 	check(count(Tag.Vent) == counts.VentPairs * 2, `Vent grates {count(Tag.Vent)}/{counts.VentPairs * 2}`)
-	check(count(Tag.VentDuct) == counts.VentPairs, `Vent ducts {count(Tag.VentDuct)}/{counts.VentPairs}`)
+	check(#Layout.vents == counts.VentPairs, `Vents {#Layout.vents}/{counts.VentPairs}`)
+	check(
+		count(Tag.VentDuct) == ventDuctVolumes,
+		`Vent duct volumes {count(Tag.VentDuct)}/{ventDuctVolumes} (two shafts and each run, per vent)`
+	)
 	check(
 		count(Tag.ZiplineAnchor) == counts.ZiplineAnchorPairs * 2,
 		`ZiplineAnchor {count(Tag.ZiplineAnchor)}/{counts.ZiplineAnchorPairs * 2}`
@@ -3275,6 +4242,90 @@ function Build.run()
 		extractionOk,
 		`Every extraction site is at least {GameConfig.Map.MinExtractionPathDistanceFromVault} studs from every vault`
 	)
+
+	-- No floating floors (review 2026-10-23): every floor above the basement stands on rooms with walls on the level below
+	-- (indoor rooms), on a truss, or is a narrow balcony.
+	local prevLevel: { [string]: string } = {}
+	for name, above in nextLevel do
+		prevLevel[above] = name
+	end
+	local trusses: { [string]: { Rect } } = {}
+	local skylights: { Rect } = {}
+	for _, feature in Layout.features do
+		if feature.rect and feature.kind == "truss" then
+			trusses[feature.level] = trusses[feature.level] or {}
+			table.insert(trusses[feature.level], toRect(feature.rect))
+		elseif feature.rect and feature.kind == "skylight" then
+			table.insert(skylights, toRect(feature.rect))
+		end
+	end
+	local function areaOf(list: { Rect }): number
+		local total = 0
+		for _, r in list do
+			total += (r.x2 - r.x1) * (r.z2 - r.z1)
+		end
+		return total
+	end
+	local floating: { string } = {}
+	for levelName, list in piecesByLevel do
+		local below = prevLevel[levelName]
+		if below and not isGalleryLevel[levelName] then
+			for _, piece in list do
+				local r = piece.rect
+				local balcony = piece.room.kind == "outdoor" and math.min(r.x2 - r.x1, r.z2 - r.z1) <= BALCONY_MAX
+				if not balcony then
+					local left = { r }
+					for _, under in piecesByLevel[below] do
+						if under.room.kind == "indoor" then
+							left = subtract(left, under.rect)
+						end
+					end
+					for _, truss in trusses[levelName] or {} do
+						left = subtract(left, truss)
+					end
+					-- A thin lip cantilevered out over a shaft (the penthouse floor over the atrium) is fine.
+					local unsupported: { Rect } = {}
+					for _, rest in left do
+						if math.min(rest.x2 - rest.x1, rest.z2 - rest.z1) > BALCONY_MAX then
+							table.insert(unsupported, rest)
+						end
+					end
+					left = unsupported
+					if areaOf(left) > SUPPORT_SLACK then
+						table.insert(floating, `{piece.room.id} ({math.floor(areaOf(left))} sq studs)`)
+					end
+				end
+			end
+		end
+	end
+	check(#floating == 0, "No floating floors")
+	if #floating > 0 then
+		print(`[Gala]      floating: {table.concat(floating, ", ")}`)
+	end
+	-- No indoor room open to the sky: a shaft through the floor above an indoor room must be under a skylight.
+	local openToSky: { string } = {}
+	for levelName, list in piecesByLevel do
+		local above = nextLevel[levelName]
+		for _, piece in list do
+			if piece.room.kind == "indoor" and above then
+				for _, void in voidRects[above] or {} do
+					local open = { void }
+					for _, skylight in skylights do
+						open = subtract(open, skylight)
+					end
+					for _, rest in open do
+						if overlaps(piece.rect, rest) then
+							table.insert(openToSky, piece.room.id)
+						end
+					end
+				end
+			end
+		end
+	end
+	check(#openToSky == 0, "No indoor room open to the sky")
+	if #openToSky > 0 then
+		print(`[Gala]      open to the sky: {table.concat(openToSky, ", ")}`)
+	end
 
 	-- Spec 4.4: every Tier 1+ zone has at least two entrances. A room nested inside another, or a vault wing, is reached
 	-- through a single guarded door on purpose (SPEC-QUESTION), and a gallery by stairs from the room it stands in, so
