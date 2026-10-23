@@ -86,6 +86,12 @@ local GameConfig = {
 		MaxLongSightLines = 3, -- sight lines over 150 studs
 		LongSightLineStuds = 150,
 		MinIntelPerTierOnActivation = 2,
+		-- One-way windows (MAP_BRIEF_REPLAN stage 2): how a pane looks from the room that sees out, and from outside.
+		-- Each client decides from its own camera; the pane blocks movement, shots and sight checks either way.
+		OneWayGlass = {
+			InsideTransparency = 0.6,
+			OutsideReflectance = 0.5,
+		},
 	},
 
 	-- Spec 5.1 to 5.5: NPCs.

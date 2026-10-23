@@ -46,6 +46,7 @@ export type Room = {
 	noNodes: boolean?, -- no NPC nodes (a vault strongroom: NPCs never stop at the vault)
 	theme: string?, -- a vault's look: "bank", "gallery", "cold" or "counting"
 	duct: boolean?, -- a vent duct (spec 4.3): low, nested in a room, joined by grates; entering breaks Cover
+	round: number?, -- its corners are rounded off with curved walls of this radius (corners with a doorway near stay square)
 }
 
 export type Door = {
@@ -57,7 +58,26 @@ export type Door = {
 	keycard: boolean?, -- a keycard shortcut door between tiers (spec 4.3)
 	vault: string?, -- the inner vault door (spec 10): shut until the vault is hacked; names the vault
 	laser: boolean?, -- a laser grid across this doorway (spec 18.2)
+	arch: boolean?, -- an open doorway with a round arch over it
+	line: number?, -- the wall's own coordinate (z for a wall along x), when the two rooms share more than one wall
 }
+
+-- A window in the wall two rooms share (MAP_BRIEF_REPLAN stage 2):
+--   "hatch"   an open serving hatch over a counter: you see and talk through it, nobody climbs through it
+--   "glass"   clear glass: you see through it, but it blocks movement, shots and sight checks like a wall
+--   "oneWay"  one-way glass: clear from `inside`, a mirror from the other side; it blocks shots and sight both ways
+export type Window = {
+	a: string,
+	b: string,
+	at: number,
+	width: number,
+	kind: string,
+	inside: string?, -- oneWay: the room that sees out
+	line: number?,
+}
+
+-- An open shaft through a floor, railed round; `round` rounds its corners off with curved railings and floor.
+export type Void = { level: string, rect: Rect, round: number? }
 
 export type Ramp = {
 	from: string, -- the lower level
@@ -84,6 +104,9 @@ export type Feature = {
 	color: Color3?,
 	count: number?,
 	points: { { number } }?,
+	radius: number?, -- fountain: the outer basin's radius
+	userId: number?, -- fountain: whose avatar the porcelain statue on top is cast from
+	text: string?, -- fountain: the words on the plaque
 }
 
 -- Things placed in rooms (BUILD_ORDER Step 7B pass 2): Build.luau finds each a free spot along a wall of its room.
@@ -193,7 +216,7 @@ room("g_breakroom", "G", "Staff break room", 1, IN, { 70, -170, 100, -120 }, { g
 room("g_cold", "G", "Cold storage", 1, IN, { 100, -170, 140, -120 }, { glass = true, props = { "crates" } })
 room("g_staff_n", "G", "Staff corridor", 1, IN, { -100, -120, 140, -100 })
 -- The middle: the sculpture walk, the atrium round the pond, the ballroom and the smoking lounge.
-room("g_sculpt", "G", "Sculpture walk", 0, IN, { -100, -100, -60, 70 }, { props = { "partitions" } })
+room("g_sculpt", "G", "Sculpture walk", 0, IN, { -100, -100, -60, 70 }, { props = { "partitions" }, round = 12 })
 room("g_atrium", "G", "Atrium", 0, IN, { -60, -100, 60, 70 }, { density = 2, props = { "planters" } })
 room(
 	"g_ballroom",
@@ -299,7 +322,7 @@ room(
 	0,
 	OUT,
 	FG,
-	{ holes = { FM }, density = 1, props = { "planters", "tables", "trees" } }
+	{ holes = { FM }, density = 1, props = { "planters", "tables", "trees" }, round = 12 }
 )
 
 -- An enclosed glass skybridge to the lawn deck, like the links between hospital wings, carried on a steel truss.
@@ -363,7 +386,7 @@ room("wm_corridor", "M", "Hotel corridor", 0, IN, { 205, -15, 280, 45 }, { glass
 room("wm_housekeeping", "M", "Housekeeping", 1, IN, { 160, -85, 280, -15 }, { glass = true, props = { "crates" } })
 -- T: suites round an arcaded courtyard, each opening onto a balcony that runs the length of the facade.
 room("wt_arcade", "T", "Suite arcade", 0, IN, { 221, -85, 264, 125 }, { holes = { COURT }, props = { "planters" } })
-room("wt_court", "T", "Suite courtyard", 0, OUT, COURT, { density = 0.8, props = { "trees", "planters" } })
+room("wt_court", "T", "Suite courtyard", 0, OUT, COURT, { density = 0.8, props = { "trees", "planters" }, round = 8 })
 room("wt_suite1", "T", "Garden suite", 0, IN, { 205, 55, 221, 125 }, { glass = true, props = { "tables" } })
 room("wt_suite2", "T", "Corner suite", 0, IN, { 205, -15, 221, 55 }, { glass = true, props = { "tables" } })
 room("wt_suite3", "T", "Skyline suite", 0, IN, { 205, -85, 221, -15 }, { glass = true, props = { "tables" } })
@@ -390,15 +413,15 @@ room("wx_skydeck", "X", "Sky deck", 0, OUT, { 205, -85, 280, 30 }, { density = 0
 
 -- T: top floor (48) -----------------------------------------------------------------------------------------------------
 -- A guard ring (west, north, east and south halls) round the penthouse and Vault B.
-room("t_west", "T", "West guard hall", 2, IN, { -90, -120, -50, 100 }, { props = { "pillars" } })
+room("t_west", "T", "West guard hall", 2, IN, { -90, -120, -50, 100 }, { props = { "pillars" }, round = 10 })
 room("t_panic", "T", "Panic room", 3, IN, { -90, 40, -65, 65 }, { parent = "t_west", density = 0.5 })
-room("t_east", "T", "East guard hall", 2, IN, { 50, -120, 90, 100 }, { props = { "pillars" } })
+room("t_east", "T", "East guard hall", 2, IN, { 50, -120, 90, 100 }, { props = { "pillars" }, round = 10 })
 room("t_office", "T", "Executive office", 3, IN, { 65, 40, 90, 65 }, { parent = "t_east", density = 0.5 })
 room("t_washroom", "T", "Guard washroom", 2, IN, { 70, 75, 90, 100 }, { parent = "t_east" })
 room("t_north", "T", "North guard corridor", 2, IN, { -50, -120, 50, -104 })
 room("t_south", "T", "South guard corridor", 2, IN, { -50, 88, 50, 100 })
 room("t_vaultb", "T", "Vault B", 3, IN, { -50, -104, 50, -80 }, { density = 0.5, theme = "gallery" })
-room("t_vaultb_core", "T", "Vault B strongroom", 3, IN, { -15, -104, 15, -89 }, { parent = "t_vaultb", noNodes = true })
+room("t_vaultb_core", "T", "Vault B strongroom", 3, IN, { -15, -104, 15, -94 }, { parent = "t_vaultb", noNodes = true })
 room("t_vaultb_ante", "T", "Vault B display hall", 2, IN, { -50, -80, -10, -60 }, { props = { "vitrines" } })
 room("t_study", "T", "Penthouse study", 3, IN, { -10, -80, 50, -60 }, { props = { "desks" } })
 room("t_great", "T", "Penthouse great room", 3, IN, { -50, -60, 50, 70 }, { glass = true, density = 1 })
@@ -410,7 +433,7 @@ room(
 	0,
 	OUT,
 	FM,
-	{ holes = { FT }, density = 1, props = { "planters", "tables", "trees" } }
+	{ holes = { FT }, density = 1, props = { "planters", "tables", "trees" }, round = 12 }
 )
 
 -- R: roof (72) ----------------------------------------------------------------------------------------------------------
@@ -437,9 +460,9 @@ room("r_catwalk", "R", "Roof catwalk", 0, OUT, { 90, 30, 205, 36 }, { density = 
 
 -- The atrium: an open shaft through the mezzanine and top floors down to the pond, with railings round it. The wing's
 -- courtyard is open to the sky through its roof and sky deck.
-local voids = {
-	{ level = "M", rect = VOID },
-	{ level = "T", rect = VOID_T },
+local voids: { Void } = {
+	{ level = "M", rect = VOID, round = 14 },
+	{ level = "T", rect = VOID_T, round = 12 },
 	{ level = "R", rect = COURT },
 	{ level = "X", rect = COURT },
 }
@@ -555,25 +578,25 @@ door("g_staff_n", "g_sculpt", -80, 8, { keycard = true })
 door("g_staff_n", "g_ballroom", 100, 8, { keycard = true })
 door("g_staff_n", "g_atrium", -20, 10)
 -- G: the public loop round the atrium
-door("g_sculpt", "g_atrium", -20, 16)
-door("g_sculpt", "g_atrium", 40, 16)
+door("g_sculpt", "g_atrium", -20, 16, { arch = true })
+door("g_sculpt", "g_atrium", 40, 16, { arch = true })
 door("g_sculpt", "g_lobby", -80, 10)
-door("g_atrium", "g_lobby", 0, 16)
-door("g_atrium", "g_ballroom", -50, 16)
+door("g_atrium", "g_lobby", 0, 16, { arch = true })
+door("g_atrium", "g_ballroom", -50, 16, { arch = true })
 door("g_atrium", "g_lounge", 35, 12)
 door("g_ballroom", "g_lounge", 120, 12)
 door("g_lounge", "g_bar", 100, 10)
-door("g_lobby", "g_bar", 110, 16)
+door("g_lobby", "g_bar", 110, 16, { arch = true })
 door("g_lobby", "g_concierge", -85, 8, { gate = 1 })
 door("g_lobby", "g_restroom", 45, 6)
 door("g_lounge", "g_humidor", 55, 8, { gate = 1 })
 
 -- M: the public loop
-door("m_gallery", "m_balcony", -20, 16)
+door("m_gallery", "m_balcony", -20, 16, { arch = true })
 door("m_gallery", "m_balcony", 40, 10)
-door("m_masq", "m_balcony", 0, 16)
+door("m_masq", "m_balcony", 0, 16, { arch = true })
 door("m_masq", "m_balcony", 50, 10)
-door("m_promenade", "m_balcony", 0, 16)
+door("m_promenade", "m_balcony", 0, 16, { arch = true })
 door("m_gallery", "m_promenade", 100, 10)
 door("m_masq", "m_promenade", 100, 10)
 door("m_gallery", "m_restroom", -70, 6)
@@ -617,7 +640,7 @@ door("wg_casino", "wg_highroller", 245, 12, { gate = 3 })
 door("wg_cage", "wg_highroller", -60, 8, { gate = 3 })
 door("wg_casino", "wg_restroom", 270, 6)
 -- M: the lawn deck, the hotel lobby, the corridor and housekeeping
-door("m_belvedere", "wm_lobby", 85, 16)
+door("m_belvedere", "wm_lobby", 85, 16, { arch = true })
 door("m_belvedere", "wm_corridor", 15, 10)
 door("wm_lobby", "wm_corridor", 240, 12)
 door("wm_corridor", "wm_housekeeping", 260, 8)
@@ -637,8 +660,12 @@ door("wt_suite4", "wt_balcony_e", 90, 8)
 door("wt_suite5", "wt_balcony_e", 20, 8)
 door("wt_exec", "wt_balcony_x", -50, 8)
 door("wt_balcony_x", "wt_balcony_e", 284, 6, { gate = 3 })
-door("wt_arcade", "wt_court", 25, 12)
-door("wt_arcade", "wt_court", 60, 12)
+door("wt_arcade", "wt_court", -10, 12, { arch = true, line = 231 })
+door("wt_arcade", "wt_court", 40, 12, { arch = true, line = 231 })
+door("wt_arcade", "wt_court", 75, 12, { arch = true, line = 231 })
+door("wt_arcade", "wt_court", -25, 12, { arch = true, line = 254 })
+door("wt_arcade", "wt_court", 25, 12, { arch = true, line = 254 })
+door("wt_arcade", "wt_court", 70, 12, { arch = true, line = 254 })
 -- R: the roof garden, the plant room and the landing
 door("wr_garden", "wr_plant", 215, 8)
 door("wr_garden", "wr_landing", 258, 6)
@@ -674,7 +701,7 @@ door("t_east", "t_south", 94, 8)
 -- T: the penthouse: in from the west hall, out to the east hall; the gallery's back door to the south corridor
 door("t_west", "t_great", 0, 12, { gate = 3 })
 door("t_east", "t_great", 0, 12, { gate = 3 })
-door("t_great", "t_gallery", 0, 16)
+door("t_great", "t_gallery", 0, 16, { arch = true })
 door("t_gallery", "t_south", 20, 12, { gate = 3 })
 door("t_great", "t_study", 20, 10)
 door("t_west", "t_panic", 52, 8, { gate = 3 })
@@ -689,14 +716,46 @@ door("t_vaultb", "t_vaultb_core", 0, 8, { vault = "VaultB" })
 -- R
 door("r_roof", "r_pooldeck", 0, 12)
 
+-- Windows between rooms (MAP_BRIEF_REPLAN stage 2): { a, b, at, width, kind, options }.
+local windows: { Window } = {}
+local function window(a: string, b: string, at: number, width: number, kind: string, extra: { [string]: any }?)
+	local w: any = { a = a, b = b, at = at, width = width, kind = kind }
+	for key, value in extra or {} do
+		w[key] = value
+	end
+	table.insert(windows, w :: Window)
+end
+-- One-way glass: tiered rooms watch the public rooms beside them without being seen.
+window("m_hub", "m_balcony", -15, 24, "oneWay", { inside = "m_hub" })
+window("m_hub", "m_balcony", 12, 14, "oneWay", { inside = "m_hub" })
+window("m_checkpoint", "m_gallery", -110, 20, "oneWay", { inside = "m_checkpoint" })
+window("m_offices", "m_gallery", -78, 24, "oneWay", { inside = "m_offices" })
+window("m_cater", "m_masq", 92, 40, "oneWay", { inside = "m_cater" })
+window("wg_highroller", "wg_casino", 225, 20, "oneWay", { inside = "wg_highroller" })
+window("wg_highroller", "wg_casino", 266, 16, "oneWay", { inside = "wg_highroller" })
+window("g_concierge", "g_lobby", -75, 8, "oneWay", { inside = "g_concierge" })
+-- Serving hatches from the kitchens onto the staff corridor, and the cashier's teller window.
+window("g_kitchen", "g_staff_n", -60, 16, "hatch")
+window("g_catering", "g_staff_n", 45, 12, "hatch")
+window("wg_cage", "wg_casino", 204, 8, "glass")
+-- Clear glass between public rooms.
+window("g_lounge", "g_ballroom", 85, 24, "glass")
+window("m_gallery", "m_promenade", 82, 14, "glass")
+
 -- Water, islands, bridges and set pieces. The atrium floor is a shallow reflecting pond at the foot of the open void, with
 -- two garden islands joined to the south shore by short bridges; the lawn deck has a statue, lanterns and a glass pavilion.
 local features: { Feature } = {
-	{ kind = "pool", level = "G", rect = VOID },
-	{ kind = "island", level = "G", rect = { -36, -14, -20, 30 } },
-	{ kind = "island", level = "G", rect = { 20, -14, 36, 30 } },
-	{ kind = "bridge", level = "G", rect = { -31, 30, -25, 52 } },
-	{ kind = "bridge", level = "G", rect = { 25, 30, 31, 52 } },
+	-- The atrium's centrepiece under the open void: a tiered porcelain fountain, crowned by a porcelain statue cast from
+	-- the avatar of the user who asked for it, with a plaque facing the lobby.
+	{
+		kind = "fountain",
+		level = "G",
+		x = 0,
+		z = 6,
+		radius = 18,
+		userId = 80171669,
+		text = "IN HONOUR OF THE FOUNDER",
+	},
 	{ kind = "skylight", level = "R", rect = VOID },
 	{ kind = "statue", level = "M", x = 176, z = 45 },
 	{
@@ -763,10 +822,6 @@ local ziplines: { Zipline } = {
 local gondola: Gondola = { level = "T", z = 20, fromX = 125, toX = 197, width = 8, length = 8 }
 
 local nodes: { NodeSpec } = {
-	{ level = "G", x = -28, z = 8, activity = "Idle" },
-	{ level = "G", x = 28, z = 8, activity = "Talk" },
-	{ level = "G", x = -28, z = 41, activity = "Walk" },
-	{ level = "G", x = 28, z = 41, activity = "Walk" },
 	{ level = "B", x = 146, z = 26, activity = "Walk" },
 	{ level = "B", x = 154, z = 26, activity = "Walk" },
 	{ level = "R", x = 110, z = 33, activity = "Walk" },
@@ -810,7 +865,7 @@ local insertion: { Marker } = {
 
 local vaults: { Marker } = {
 	{ id = "VaultA", level = "B", x = -60, z = -97.5 },
-	{ id = "VaultB", level = "T", x = 0, z = -96.5 },
+	{ id = "VaultB", level = "T", x = 0, z = -99 },
 	{ id = "VaultC", level = "G", x = -129, z = -131 },
 	{ id = "VaultD", level = "B", x = 240, z = -45 },
 }
@@ -823,6 +878,7 @@ return {
 	voids = voids,
 	ramps = ramps,
 	doors = doors,
+	windows = windows,
 	extraction = extraction,
 	insertion = insertion,
 	vaults = vaults,

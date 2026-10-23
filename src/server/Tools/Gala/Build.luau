@@ -16,6 +16,7 @@
 local ChangeHistoryService = game:GetService("ChangeHistoryService")
 local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local City = require(script.Parent.City)
@@ -30,7 +31,9 @@ local Tag = Enums.Tag
 type Rect = { x1: number, z1: number, x2: number, z2: number }
 type Room = Layout.Room
 type Piece = { room: Room, rect: Rect, index: number }
-type Gap = { center: number, width: number, door: Layout.Door? } -- no door: a gap in a gallery railing for a stair
+-- A gap in a wall: a doorway (door), a window (window), or, with neither, an opening in a railing (a stair's arrival
+-- on a gallery, a gondola dock, a rounded void corner).
+type Gap = { center: number, width: number, door: Layout.Door?, window: Layout.Window? }
 type Edge = {
 	level: string,
 	axis: string, -- "x": runs along x at z = line; "z": runs along z at x = line
@@ -48,7 +51,14 @@ local WALL_H = 22
 local WALL_T = 2
 local RAIL_H = 4
 local BARRIER_H = 9 -- glass at the open edge of a terrace or deck: higher than a jump (about 7.2 studs), over a long drop
-local GAP_H = 10 -- doorway height
+local GAP_H = 10 -- doorway height (an arched doorway rises a further half its width at the middle)
+local ARCH_SLICE = 1 -- studs: the infill over an arch is built in vertical slices this wide
+local GLASS_SILL, GLASS_HEAD = 3, 15 -- a glass window's sill and head heights above the floor
+-- A serving hatch's opening: low and short, so a body (about 5 studs tall) can see through it but never climb through.
+local HATCH_SILL, HATCH_HEAD = 4, 8
+local WINDOW_CLEAR = 3 -- studs props keep clear of a window, on each side of the wall
+local CURVE_SEGMENT = 2.5 -- studs: curved walls and railings are built from straight pieces about this long
+local FOUNTAIN_STATUE_H = 11 -- studs: the porcelain statue on top of the atrium fountain
 local SLAB = 2
 local RAMP_W = 6 -- a stair's width; it climbs one stud in two
 -- A switchback climbs half the height in each of two legs, side by side with a gap, joined by a landing.
@@ -72,6 +82,8 @@ local FLOOR_WARM = Color3.fromRGB(96, 84, 78) -- indoor floors take their tier's
 local DECK = Color3.fromRGB(92, 94, 106) -- terraces, decks and the roof
 local RAIL_GREY = Color3.fromRGB(96, 100, 114)
 local CITY_GLASS = Color3.fromRGB(110, 140, 180)
+local MIRROR = Color3.fromRGB(150, 156, 168) -- one-way glass seen from outside (OneWayGlassController clears it inside)
+local COUNTER = Color3.fromRGB(70, 66, 64) -- the counter top under a serving hatch
 local EPS = 1e-4
 
 local NODE_MARGIN = 8 -- studs a node keeps from a room's walls
@@ -465,6 +477,7 @@ function Build.run()
 			if
 				edge.kind == "shared"
 				and ((edge.roomA == ra and edge.roomB == rb) or (edge.roomA == rb and edge.roomB == ra))
+				and (door.line == nil or math.abs(edge.line - door.line) < EPS)
 			then
 				local length = edge.b - edge.a
 				local containsAt = door.at ~= nil and door.at >= edge.a and door.at <= edge.b
@@ -501,6 +514,54 @@ function Build.run()
 		table.insert(doorClear[best.level], clear)
 	end
 	check(doorsUnplaced == 0, `Every door placed ({#Layout.doors - doorsUnplaced}/{#Layout.doors})`)
+
+	-- Windows (MAP_BRIEF_REPLAN stage 2): a gap in a shared wall like a doorway, but filled with a sill, a pane or a
+	-- hatch, and never a route. A window may not overlap a doorway on the same wall.
+	local windowsUnplaced = 0
+	for _, window in Layout.windows do
+		local ra, rb = roomById[window.a], roomById[window.b]
+		local best: Edge? = nil
+		for _, edge in edges do
+			if
+				edge.kind == "shared"
+				and ((edge.roomA == ra and edge.roomB == rb) or (edge.roomA == rb and edge.roomB == ra))
+				and (window.line == nil or math.abs(edge.line - window.line) < EPS)
+				and window.at >= edge.a
+				and window.at <= edge.b
+			then
+				best = edge
+			end
+		end
+		if not best then
+			windowsUnplaced += 1
+			print(`[Gala]      window {window.a} / {window.b} at {window.at}: no shared wall there`)
+			continue
+		end
+		local width = math.min(window.width, best.b - best.a - 2)
+		local center = math.clamp(window.at, best.a + width / 2 + 1, best.b - width / 2 - 1)
+		local clash = false
+		for _, gap in best.gaps do
+			if math.abs(gap.center - center) < (gap.width + width) / 2 + 1 then
+				clash = true
+			end
+		end
+		if clash then
+			windowsUnplaced += 1
+			print(`[Gala]      window {window.a} / {window.b} at {window.at} overlaps a doorway`)
+			continue
+		end
+		table.insert(best.gaps, { center = center, width = width, window = window })
+		-- Props keep off the wall in front of it, on both sides.
+		local x, z = if best.axis == "x" then center else best.line, if best.axis == "x" then best.line else center
+		local halfAlong, halfAcross = width / 2, WINDOW_CLEAR
+		table.insert(reserved[best.level], {
+			x1 = x - (if best.axis == "x" then halfAlong else halfAcross),
+			z1 = z - (if best.axis == "x" then halfAcross else halfAlong),
+			x2 = x + (if best.axis == "x" then halfAlong else halfAcross),
+			z2 = z + (if best.axis == "x" then halfAcross else halfAlong),
+		})
+	end
+	check(windowsUnplaced == 0, `Every window placed ({#Layout.windows - windowsUnplaced}/{#Layout.windows})`)
 
 	-- Ramps --------------------------------------------------------------------------------------------------------------------
 	local rampFootprints: { [string]: { Rect } } = {} -- by the level the ramp starts on
@@ -706,6 +767,221 @@ function Build.run()
 		canopy.CanCollide = false
 	end
 
+	-- Set pieces NPC nodes keep off (the fountain).
+	local solidFeatures: { [string]: { Rect } } = {}
+	for _, name in allLevels do
+		solidFeatures[name] = {}
+	end
+
+	-- The atrium fountain: a tiered porcelain fountain in blue and white with gold trim, water falling from its bowls,
+	-- a plaque, and on top a porcelain statue cast from a Roblox avatar (its shape only: clothes, colours, textures and
+	-- face are stripped, and it is no character: no Humanoid, no collision, nothing to scan).
+	local PORCELAIN = Color3.fromRGB(240, 238, 232)
+	local COBALT = Color3.fromRGB(32, 66, 150)
+	local GOLD = Color3.fromRGB(212, 172, 74)
+	local FOUNTAIN_WATER = Color3.fromRGB(110, 180, 225)
+	local function glaze(p: BasePart)
+		p.Material = Enum.Material.SmoothPlastic
+		p.Reflectance = 0.12
+	end
+	-- A flat disc (a cylinder standing upright) from y1 to y2 above the floor.
+	local function disc(name: string, x: number, z: number, radius: number, y1: number, y2: number, color: Color3): Part
+		local p = part(
+			propsFolder,
+			name,
+			Vector3.new(y2 - y1, radius * 2, radius * 2),
+			CFrame.new(x, y1 + (y2 - y1) / 2, z) * CFrame.Angles(0, 0, math.rad(90)),
+			color
+		)
+		p.Shape = Enum.PartType.Cylinder
+		return p
+	end
+	-- A ring of short pieces round (x, z): a bowl's rim.
+	local function ring(
+		name: string,
+		x: number,
+		z: number,
+		radius: number,
+		y1: number,
+		y2: number,
+		depth: number,
+		color: Color3
+	)
+		local count = math.max(12, math.ceil(2 * math.pi * radius / CURVE_SEGMENT))
+		for i = 1, count do
+			local t0, t1 = 2 * math.pi * (i - 1) / count, 2 * math.pi * i / count
+			local p0 = Vector3.new(x + radius * math.cos(t0), 0, z + radius * math.sin(t0))
+			local p1 = Vector3.new(x + radius * math.cos(t1), 0, z + radius * math.sin(t1))
+			local piece = part(
+				propsFolder,
+				name,
+				Vector3.new((p1 - p0).Magnitude + 0.3, y2 - y1, depth),
+				CFrame.fromMatrix(
+					Vector3.new((p0.X + p1.X) / 2, y1 + (y2 - y1) / 2, (p0.Z + p1.Z) / 2),
+					(p1 - p0).Unit,
+					Vector3.yAxis
+				),
+				color
+			)
+			glaze(piece)
+		end
+	end
+	-- Water spilling over a bowl's edge, as particles falling from a ring.
+	local function spill(x: number, z: number, radius: number, y: number, rate: number)
+		local emitterPart = part(
+			propsFolder,
+			"FountainSpill",
+			Vector3.new(0.2, radius * 2, radius * 2),
+			CFrame.new(x, y, z) * CFrame.Angles(0, 0, math.rad(90)),
+			FOUNTAIN_WATER
+		)
+		emitterPart.Shape = Enum.PartType.Cylinder
+		ghost(emitterPart)
+		local emitter = Instance.new("ParticleEmitter")
+		emitter.Shape = Enum.ParticleEmitterShape.Cylinder
+		emitter.ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface
+		emitter.ShapeInOut = Enum.ParticleEmitterShapeInOut.Outward
+		emitter.Color = ColorSequence.new(FOUNTAIN_WATER)
+		emitter.LightEmission = 0.3
+		emitter.Transparency = NumberSequence.new(0.35, 1)
+		emitter.Size = NumberSequence.new(0.35, 0.15)
+		emitter.Lifetime = NumberRange.new(0.6, 0.9)
+		emitter.Speed = NumberRange.new(1, 2)
+		emitter.Acceleration = Vector3.new(0, -35, 0)
+		emitter.Rate = rate
+		emitter.Parent = emitterPart
+	end
+	local function statue(userId: number, x: number, z: number, footY: number, height: number)
+		local ok, model = pcall(function()
+			return Players:CreateHumanoidModelFromUserId(userId)
+		end)
+		if not ok or not model then
+			print(`[Gala]      fountain statue: could not load avatar {userId} ({model}); a plain figure stands in`)
+			local plain = part(
+				propsFolder,
+				"Statue",
+				Vector3.new(2.5, height, 1.6),
+				CFrame.new(x, footY + height / 2, z),
+				PORCELAIN
+			)
+			glaze(plain)
+			return
+		end
+		local figure = model :: Model
+		-- Accessories are only welded on once a character spawns: put each one where its attachment says.
+		for _, accessory in figure:GetChildren() do
+			if accessory:IsA("Accessory") then
+				local handle = accessory:FindFirstChild("Handle")
+				if handle and handle:IsA("BasePart") then
+					for _, attachment in handle:GetChildren() do
+						if attachment:IsA("Attachment") then
+							local target = figure:FindFirstChild(attachment.Name, true)
+							if target and target:IsA("Attachment") and target.Parent ~= handle then
+								handle.CFrame = target.WorldCFrame * attachment.CFrame:Inverse()
+								break
+							end
+						end
+					end
+				end
+			end
+		end
+		for _, item in figure:GetDescendants() do
+			if item:IsA("BasePart") then
+				item.Anchored = true
+				item.CanCollide = false
+				item.CanQuery = false
+				item.CanTouch = false
+				item.Color = PORCELAIN
+				glaze(item)
+				if item:IsA("MeshPart") then
+					item.TextureID = ""
+				end
+			elseif item:IsA("SpecialMesh") then
+				item.TextureId = ""
+			end
+		end
+		for _, item in figure:GetDescendants() do
+			if
+				item:IsA("Clothing")
+				or item:IsA("ShirtGraphic")
+				or item:IsA("Decal")
+				or item:IsA("BodyColors")
+				or item:IsA("Humanoid")
+				or item:IsA("LuaSourceContainer")
+				or item:IsA("FaceControls")
+			then
+				item:Destroy()
+			end
+		end
+		figure.Name = "Statue"
+		local _, size = figure:GetBoundingBox()
+		figure:ScaleTo(height / size.Y)
+		-- Stand it on the plinth, facing +z (the lobby): move its bounding box, and the model with it.
+		local box, scaled = figure:GetBoundingBox()
+		local target = CFrame.new(x, footY + scaled.Y / 2, z) * CFrame.Angles(0, math.pi, 0)
+		figure:PivotTo(target * (box:Inverse() * figure:GetPivot()))
+		figure.Parent = propsFolder
+	end
+	local function fountain(feature: Layout.Feature)
+		local x, z, y = feature.x :: number, feature.z :: number, levels[feature.level]
+		local radius = feature.radius or 18
+		-- Base step, outer basin, its rim and water.
+		glaze(disc("FountainStep", x, z, radius + 2, y, y + 0.6, COBALT))
+		glaze(disc("FountainBasin", x, z, radius, y + 0.6, y + 1.4, PORCELAIN))
+		ring("FountainRim", x, z, radius, y + 0.6, y + 3.4, 1.2, PORCELAIN)
+		ring("FountainRimBand", x, z, radius, y + 3.4, y + 3.8, 1.6, COBALT)
+		local water = disc("FountainWater", x, z, radius - 0.7, y + 1.4, y + 2.6, FOUNTAIN_WATER)
+		water.Material = Enum.Material.Glass
+		water.Transparency = 0.3
+		water.CanCollide = false
+		-- Column, middle bowl, upper column, upper bowl, and the plinth the statue stands on.
+		glaze(disc("FountainColumn", x, z, 2.5, y + 1.4, y + 8, PORCELAIN))
+		glaze(disc("FountainBand", x, z, 2.7, y + 4.4, y + 5.2, COBALT))
+		glaze(disc("FountainBowl", x, z, 9, y + 8, y + 9, PORCELAIN))
+		ring("FountainBowlRim", x, z, 9, y + 9, y + 10, 0.8, COBALT)
+		local midWater = disc("FountainWater", x, z, 8.5, y + 9, y + 9.6, FOUNTAIN_WATER)
+		midWater.Material = Enum.Material.Glass
+		midWater.Transparency = 0.3
+		glaze(disc("FountainColumn", x, z, 1.6, y + 9, y + 13, PORCELAIN))
+		glaze(disc("FountainBowl", x, z, 5, y + 13, y + 13.8, PORCELAIN))
+		ring("FountainBowlRim", x, z, 5, y + 13.8, y + 14.6, 0.6, GOLD)
+		glaze(disc("FountainPlinth", x, z, 2.4, y + 13.8, y + 16.5, PORCELAIN))
+		glaze(disc("FountainPlinthBand", x, z, 2.6, y + 16.1, y + 16.5, GOLD))
+		spill(x, z, 9.3, y + 9.8, 90)
+		spill(x, z, 5.2, y + 14.4, 50)
+		if feature.userId then
+			statue(feature.userId, x, z, y + 16.5, FOUNTAIN_STATUE_H)
+		end
+		-- The plaque, on the rim facing +z (the lobby).
+		local plaque = part(
+			propsFolder,
+			"FountainPlaque",
+			Vector3.new(8, 2.2, 0.4),
+			CFrame.new(x, y + 2.2, z + radius + 0.85),
+			COBALT
+		)
+		glaze(plaque)
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = Enum.NormalId.Back
+		gui.PixelsPerStud = 40
+		gui.LightInfluence = 0.4
+		gui.Parent = plaque
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.fromScale(1, 1)
+		label.BackgroundTransparency = 1
+		label.TextColor3 = GOLD
+		label.Font = Enum.Font.Garamond
+		label.TextScaled = true
+		label.Text = feature.text or ""
+		label.Parent = gui
+		table.insert(solidFeatures[feature.level], {
+			x1 = x - radius - 2,
+			z1 = z - radius - 2,
+			x2 = x + radius + 2,
+			z2 = z + radius + 2,
+		})
+	end
+
 	for _, feature in Layout.features do
 		local level = feature.level
 		local y = levels[level]
@@ -769,6 +1045,15 @@ function Build.run()
 					)
 				end
 			end
+		elseif feature.kind == "fountain" then
+			fountain(feature)
+			local radius = (feature.radius or 18) + 3
+			table.insert(reserved[level], {
+				x1 = (feature.x :: number) - radius,
+				z1 = (feature.z :: number) - radius,
+				x2 = (feature.x :: number) + radius,
+				z2 = (feature.z :: number) + radius,
+			})
 		elseif feature.kind == "skylight" and r then
 			local pane = part(
 				geometry,
@@ -1102,6 +1387,258 @@ function Build.run()
 		end
 	end
 
+	-- A floor slab whose top is at topY.
+	local function slab(parent: Instance, name: string, rect: Rect, topY: number, color: Color3)
+		part(
+			parent,
+			name,
+			Vector3.new(rect.x2 - rect.x1, SLAB, rect.z2 - rect.z1),
+			CFrame.new((rect.x1 + rect.x2) / 2, topY - SLAB / 2, (rect.z1 + rect.z2) / 2),
+			color
+		)
+	end
+
+	-- Curves (MAP_BRIEF_REPLAN stage 2) ----------------------------------------------------------------------------------
+	-- A curved wall, railing or glass barrier round (cx, cz) at radius r, from angle a0 to a1 (radians, measured from +x
+	-- toward +z), built from short straight pieces.
+	local function arc(
+		level: string,
+		cx: number,
+		cz: number,
+		r: number,
+		a0: number,
+		a1: number,
+		style: string,
+		height: number,
+		color: Color3
+	)
+		local base = levels[level]
+		local count = math.max(4, math.ceil(r * math.abs(a1 - a0) / CURVE_SEGMENT))
+		for i = 1, count do
+			local t0, t1 = a0 + (a1 - a0) * (i - 1) / count, a0 + (a1 - a0) * i / count
+			local p0 = Vector3.new(cx + r * math.cos(t0), 0, cz + r * math.sin(t0))
+			local p1 = Vector3.new(cx + r * math.cos(t1), 0, cz + r * math.sin(t1))
+			local along = (p1 - p0).Unit
+			local length = (p1 - p0).Magnitude + 0.3 -- a little overlap closes the joints
+			local mid = (p0 + p1) / 2
+			local function piece(name: string, y: number, h: number, depth: number, pieceColor: Color3): Part
+				return part(
+					geometry,
+					name,
+					Vector3.new(length, h, depth),
+					CFrame.fromMatrix(Vector3.new(mid.X, base + y, mid.Z), along, Vector3.yAxis),
+					pieceColor
+				)
+			end
+			if style == "barrier" then
+				local pane = piece("Barrier", height / 2, height, 0.8, CITY_GLASS)
+				pane.Material = Enum.Material.Glass
+				pane.Transparency = 0.6
+				piece("BarrierCap", height + 0.2, 0.4, 1, RAIL_GREY)
+			else
+				piece(if style == "rail" then "Railing" else "Wall", height / 2, height, WALL_T, color)
+			end
+		end
+	end
+
+	-- The pockets behind curved corners: no props, no NPC nodes.
+	type Pocket = { cx: number, cz: number, r: number, square: Rect }
+	local pockets: { [string]: { Pocket } } = {}
+	for _, name in allLevels do
+		pockets[name] = {}
+	end
+	-- The quarter circle that rounds off the corner at (px, pz), whose sides run away from it toward +x if sx is 1
+	-- (-x if -1) and toward +z if sz is 1: its centre, and the angles from one tangent point to the other.
+	local function cornerArc(
+		px: number,
+		pz: number,
+		sx: number,
+		sz: number,
+		r: number
+	): (number, number, number, number)
+		local a0 = math.atan2(0, -sx)
+		local a1 = math.atan2(-sz, 0)
+		if a1 - a0 > math.pi then
+			a1 -= 2 * math.pi
+		elseif a0 - a1 > math.pi then
+			a1 += 2 * math.pi
+		end
+		return px + sx * r, pz + sz * r, a0, a1
+	end
+	local function floorColor(room: Room): Color3
+		return if room.kind == "outdoor" then DECK else tierColor(room.tier):Lerp(FLOOR_WARM, 0.65)
+	end
+	local function pieceAt(level: string, x: number, z: number): Piece?
+		for _, piece in piecesByLevel[level] do
+			local r = piece.rect
+			if x > r.x1 and x < r.x2 and z > r.z1 and z < r.z2 then
+				return piece
+			end
+		end
+		return nil
+	end
+
+	-- Rounded voids: each corner of the shaft gets a quarter-round of floor and a curved railing, and the straight
+	-- railings stop short of the corners.
+	local roundedVoids = 0
+	for _, void in Layout.voids do
+		local r = void.round
+		if not r then
+			continue
+		end
+		roundedVoids += 1
+		local v = toRect(void.rect)
+		for _, corner in { { v.x1, v.z1, 1, 1 }, { v.x2, v.z1, -1, 1 }, { v.x1, v.z2, 1, -1 }, { v.x2, v.z2, -1, -1 } } do
+			local px, pz, sx, sz = corner[1], corner[2], corner[3], corner[4]
+			for _, edge in edges do
+				if edge.kind == "void" and edge.level == void.level then
+					local cornerAlong = if edge.axis == "x" then px else pz
+					local cornerLine = if edge.axis == "x" then pz else px
+					local inward = if edge.axis == "x" then sx else sz
+					if math.abs(edge.line - cornerLine) < EPS then
+						local lo = math.max(edge.a, math.min(cornerAlong, cornerAlong + inward * r))
+						local hi = math.min(edge.b, math.max(cornerAlong, cornerAlong + inward * r))
+						if hi - lo > EPS then
+							table.insert(edge.gaps, { center = (lo + hi) / 2, width = hi - lo })
+						end
+					end
+				end
+			end
+			local cx, cz, a0, a1 = cornerArc(px, pz, sx, sz, r)
+			arc(void.level, cx, cz, r, a0, a1, "rail", RAIL_H, RAIL_GREY)
+			-- The floor between the curve and the square corner, in strips.
+			local around = pieceAt(void.level, px - sx, pz - sz)
+			local color = if around then floorColor(around.room) else FLOOR_WARM
+			local strips = math.max(4, math.ceil(r / 2))
+			for i = 1, strips do
+				local u0, u1 = (i - 1) * r / strips, i * r / strips
+				local um = (u0 + u1) / 2
+				local depth = r - math.sqrt(math.max(r * r - (r - um) * (r - um), 0))
+				if depth > 0.05 then
+					local x1, x2 = px + sx * u0, px + sx * u1
+					local z1, z2 = pz, pz + sz * depth
+					slab(
+						geometry,
+						`Floor_{void.level}_voidcorner`,
+						{ x1 = math.min(x1, x2), z1 = math.min(z1, z2), x2 = math.max(x1, x2), z2 = math.max(z1, z2) },
+						levels[void.level],
+						color
+					)
+				end
+			end
+		end
+	end
+
+	-- Rounded rooms: each corner of the room's rectangle gets a curved wall (a glass barrier at the open edge of a terrace),
+	-- unless a doorway or window is near it or a nested room fills it.
+	local roundedCorners = 0
+	for _, room in rooms do
+		local r = room.round
+		if not r then
+			continue
+		end
+		local rect = toRect(room.rect)
+		for _, corner in
+			{
+				{ rect.x1, rect.z1, 1, 1 },
+				{ rect.x2, rect.z1, -1, 1 },
+				{ rect.x1, rect.z2, 1, -1 },
+				{ rect.x2, rect.z2, -1, -1 },
+			}
+		do
+			local px, pz, sx, sz = corner[1], corner[2], corner[3], corner[4]
+			local inside = pieceAt(room.level, px + sx, pz + sz)
+			if not (inside and inside.room == room) then
+				continue
+			end
+			local blocked, onFreeEdge = false, false
+			for _, edge in edges do
+				if edge.level == room.level and (edge.roomA == room or edge.roomB == room) then
+					local cornerAlong = if edge.axis == "x" then px else pz
+					local cornerLine = if edge.axis == "x" then pz else px
+					if
+						math.abs(edge.line - cornerLine) < EPS
+						and cornerAlong >= edge.a - EPS
+						and cornerAlong <= edge.b + EPS
+					then
+						onFreeEdge = onFreeEdge or edge.kind == "free"
+						for _, gap in edge.gaps do
+							if math.abs(gap.center - cornerAlong) - gap.width / 2 < r + 2 then
+								blocked = true
+							end
+						end
+					end
+				end
+			end
+			if blocked then
+				continue
+			end
+			roundedCorners += 1
+			local style, height, color = "wall", roomHeight(room), INTERIOR_WALL
+			if room.kind == "outdoor" then
+				if onFreeEdge then
+					style, height = "barrier", BARRIER_H
+				else
+					height, color = WALL_H, SHELL
+				end
+			elseif onFreeEdge then
+				color = SHELL
+			end
+			local cx, cz, a0, a1 = cornerArc(px, pz, sx, sz, r)
+			arc(room.level, cx, cz, r, a0, a1, style, height, color)
+			local square = {
+				x1 = math.min(px, px + sx * r),
+				z1 = math.min(pz, pz + sz * r),
+				x2 = math.max(px, px + sx * r),
+				z2 = math.max(pz, pz + sz * r),
+			}
+			table.insert(pockets[room.level], { cx = cx, cz = cz, r = r, square = square })
+			table.insert(reserved[room.level], square)
+		end
+	end
+	print(`[Gala]      curves: {roundedCorners} rounded corners, {roundedVoids} rounded voids`)
+
+	-- A window in a wall (Layout.Window): wall under the sill and over the head, and between them a pane or an open
+	-- hatch over a counter.
+	local function windowPiece(edge: Edge, gap: Gap, window: Layout.Window, height: number, color: Color3)
+		local baseY = levels[edge.level]
+		local sill = if window.kind == "hatch" then HATCH_SILL else GLASS_SILL
+		local head = math.min(if window.kind == "hatch" then HATCH_HEAD else GLASS_HEAD, height - 1)
+		local function band(name: string, y1: number, y2: number, partColor: Color3, depth: number): Part
+			return part(
+				geometry,
+				name,
+				alongSize(edge.axis, gap.width, y2 - y1, depth),
+				CFrame.new(alongPoint(edge.axis, edge.line, gap.center, baseY + (y1 + y2) / 2)),
+				partColor
+			)
+		end
+		band("Sill", 0, sill, color, WALL_T)
+		band("Lintel", head, height, color, WALL_T)
+		if window.kind == "hatch" then
+			band("Counter", sill - 0.4, sill, COUNTER, WALL_T + 2)
+			return
+		end
+		local pane =
+			band(if window.kind == "oneWay" then "OneWayGlass" else "Glass", sill, head, CITY_GLASS, WALL_T - 0.6)
+		pane.Material = Enum.Material.Glass
+		pane.Transparency = 0.55
+		if window.kind == "oneWay" then
+			-- Mirrored as built, which is how everyone outside sees it; OneWayGlassController clears it for a camera
+			-- on the inside. It blocks movement, shots and sight checks both ways, like any wall.
+			pane.Material = Enum.Material.SmoothPlastic
+			pane.Color = MIRROR
+			pane.Reflectance = GameConfig.Map.OneWayGlass.OutsideReflectance
+			pane.Transparency = 0
+			-- Which way is in: toward the middle of the inside room, across the wall.
+			local inside = toRect(roomById[window.inside :: string].rect)
+			local middle = if edge.axis == "x" then (inside.z1 + inside.z2) / 2 else (inside.x1 + inside.x2) / 2
+			local sign = if middle > edge.line then 1 else -1
+			local normal = if edge.axis == "x" then Vector3.new(0, 0, sign) else Vector3.new(sign, 0, 0)
+			tag(pane, Tag.OneWayGlass, { Inside = normal })
+		end
+	end
+
 	local wallCount, gateCount, keycardCount = 0, 0, 0
 	for _, edge in edges do
 		local height = 0
@@ -1179,6 +1716,10 @@ function Build.run()
 		for _, gap in edge.gaps do
 			wallPiece(edge, cursor, gap.center - gap.width / 2, height, color)
 			cursor = gap.center + gap.width / 2
+			if gap.window then
+				windowPiece(edge, gap, gap.window, height, color)
+				continue
+			end
 			local gapDoor = gap.door
 			local ventRoom = if gapDoor
 				then (if roomById[gapDoor.a].duct
@@ -1189,15 +1730,44 @@ function Build.run()
 			if height <= openingH then
 				continue -- a gap in a railing has nothing over it
 			end
-			-- Lintel above the doorway.
 			local baseY = levels[edge.level]
-			part(
-				geometry,
-				"Lintel",
-				alongSize(edge.axis, gap.width, height - openingH, WALL_T),
-				CFrame.new(alongPoint(edge.axis, edge.line, gap.center, baseY + openingH + (height - openingH) / 2)),
-				color
-			)
+			local radius = gap.width / 2
+			if gapDoor and gapDoor.arch and height >= openingH + radius + 1 then
+				-- An arched doorway: the lintel starts at the crown, and the corners under it are filled in slices that
+				-- follow the curve.
+				local crown = openingH + radius
+				part(
+					geometry,
+					"Lintel",
+					alongSize(edge.axis, gap.width, height - crown, WALL_T),
+					CFrame.new(alongPoint(edge.axis, edge.line, gap.center, baseY + crown + (height - crown) / 2)),
+					color
+				)
+				local slices = math.max(4, math.ceil(gap.width / ARCH_SLICE))
+				local step = gap.width / slices
+				for i = 1, slices do
+					local u = -radius + (i - 0.5) * step
+					local fill = radius - math.sqrt(math.max(radius * radius - u * u, 0))
+					if fill > 0.05 then
+						part(
+							geometry,
+							"Arch",
+							alongSize(edge.axis, step + 0.05, fill, WALL_T),
+							CFrame.new(alongPoint(edge.axis, edge.line, gap.center + u, baseY + crown - fill / 2)),
+							color
+						)
+					end
+				end
+			else
+				-- Lintel above the doorway.
+				part(
+					geometry,
+					"Lintel",
+					alongSize(edge.axis, gap.width, height - openingH, WALL_T),
+					CFrame.new(alongPoint(edge.axis, edge.line, gap.center, baseY + openingH + (height - openingH) / 2)),
+					color
+				)
+			end
 			if ventRoom then
 				-- A vent grate (spec 4.3): see-through, walk-through for a player, and the way in or out of a duct.
 				local grate = part(
@@ -1234,9 +1804,12 @@ function Build.run()
 					tag(doorPart, Tag.KeycardDoor, { Tier = high })
 				end
 			end
-			-- Which side of this wall a room is on: -1 for the low side, 1 for the high side.
+			-- Which side of this wall a room is on: -1 for the low side, 1 for the high side (judged from the middle of
+			-- the room's rectangle, since either room of an edge can be on either side).
 			local function sideOf(room: Room): number
-				return if edge.roomA == room then -1 else 1
+				local r = toRect(room.rect)
+				local middle = if edge.axis == "x" then (r.z1 + r.z2) / 2 else (r.x1 + r.x2) / 2
+				return if middle > edge.line then 1 else -1
 			end
 			if door.vault then
 				-- The inner vault door (spec 10), in its vault's style, with the hack zone in front of it and the Package
@@ -1316,15 +1889,6 @@ function Build.run()
 	end
 
 	-- Floors and ceilings --------------------------------------------------------------------------------------------------------
-	local function slab(parent: Instance, name: string, rect: Rect, topY: number, color: Color3)
-		part(
-			parent,
-			name,
-			Vector3.new(rect.x2 - rect.x1, SLAB, rect.z2 - rect.z1),
-			CFrame.new((rect.x1 + rect.x2) / 2, topY - SLAB / 2, (rect.z1 + rect.z2) / 2),
-			color
-		)
-	end
 	for levelName, list in piecesByLevel do
 		for _, piece in list do
 			local pieces = { piece.rect }
@@ -2137,6 +2701,18 @@ function Build.run()
 		end
 		for _, r in rampHoles[level] do
 			if x > r.x1 - 6 and x < r.x2 + 6 and z > r.z1 - 6 and z < r.z2 + 6 then
+				return true
+			end
+		end
+		for _, r in solidFeatures[level] do
+			if x > r.x1 and x < r.x2 and z > r.z1 and z < r.z2 then
+				return true
+			end
+		end
+		for _, pocket in pockets[level] do
+			local r = pocket.square
+			local outside = Vector2.new(x - pocket.cx, z - pocket.cz).Magnitude > pocket.r - NODE_PROP_CLEAR
+			if outside and x > r.x1 and x < r.x2 and z > r.z1 and z < r.z2 then
 				return true
 			end
 		end

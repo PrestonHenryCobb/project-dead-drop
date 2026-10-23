@@ -222,3 +222,31 @@ Floor plans: `node tools/map-plan.js` writes one SVG per level to `docs/plans/` 
 **Known leftovers.** A courtyard spot boxed in by planters, a private-gallery corner behind partitions, and door-side
 nodes inside a guarded room's zone padding are cut off. NPCs never stop at them. Prop placement in small rooms is
 tidied in stage 4 (themes).
+
+## Stage 2 built (2026-10-23): curves, arches, windows, one-way glass, and the fountain
+
+The self-check passes with 0 problems. Routes are as good as stage 1 (NavReport), and the courtyard's boxed-in spot is
+gone.
+- **Arches:** 16 arched openings (`arch = true` on a door): the atrium's grand openings, the gallery, masquerade and
+  promenade openings onto the balcony, the penthouse gallery, the hotel lobby, and six arches from the suite arcade
+  into the courtyard (`line =` picks which wall a door sits on).
+- **Curves:** `round = r` on a room rounds off its corners with curved walls (glass barriers on terraces), except where
+  a doorway is near. Used on the sculpture walk, the guard halls, the courtyard and both terrace rings: 17 curved
+  corners. `round` on a void gives the atrium opening rounded corners, with curved railings and floor fills.
+- **Windows:** a `windows` list. One-way glass on the security hub, checkpoint, staff and catering offices,
+  high-roller lounge and concierge. Serving hatches from the kitchen and catering onto the staff corridor. Clear glass
+  for the cashier's teller window, lounge to ballroom, and gallery to promenade.
+- **One-way glass:** the server builds each pane as a mirror. `OneWayGlassController` (client) draws it clear when the
+  camera is on the inside. Panes block movement, shots and sight checks both ways.
+- **Fountain** (your request): the atrium's pond, islands and bridges are replaced by a tiered blue-and-white porcelain
+  fountain with gold trim and water spilling from its bowls. On top stands a porcelain statue cast from your avatar's
+  shape (no clothes, colours, textures or face; no Humanoid, no collision). A plaque reads "IN HONOUR OF THE FOUNDER"
+  (the `text` field in Layout). If the avatar can't load at build time, a plain porcelain figure stands in.
+- **Bug fixed on the way:** vault hack zones were built inside the strongrooms, and two laser grids were on the vault
+  side. The generator assumed which side of a wall each room is on. It now works this out from the room's position,
+  so hack zones sit in front of the vault doors and lasers sit in the antechambers. Vault B's strongroom is now 10
+  deep, so its hack zone fits inside the vault.
+
+**SPEC-QUESTION:** clear interior glass blocks NPC and camera sight like a wall, the same as the city windows always
+have. Letting sight through glass needs a separate collision group for sight rays. That is worth deciding before the
+art pass.

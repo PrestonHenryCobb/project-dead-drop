@@ -39,6 +39,7 @@ for (const m of flat.matchAll(roomRe)) {
 	rooms.push({
 		id: m[1], level: m[2], name: m[3], tier: Number(m[4]), kind: m[5], rect: rectOf(m[6]), holes,
 		parent: (extra.match(/parent = "(\w+)"/) || [])[1],
+		round: Number((extra.match(/round = (\d+)/) || [])[1]) || 0,
 	});
 }
 // Vent ducts: duct("v_x", "B", "Name", 3, { ... }, "parent")
@@ -53,15 +54,25 @@ for (const m of flat.matchAll(/door\("(\w+)", "(\w+)", (-?[\d.]+|nil), (-?[\d.]+
 	doors.push({
 		a: m[1], b: m[2], at: m[3] === "nil" ? null : Number(m[3]), width: m[4] === "nil" ? 10 : Number(m[4]),
 		gate: Number((o.match(/gate = (\d)/) || [])[1]) || 0, keycard: /keycard/.test(o), vault: /vault =/.test(o), laser: /laser/.test(o),
+		arch: /arch = true/.test(o), line: /line = /.test(o) ? Number(o.match(/line = (-?[\d.]+)/)[1]) : null,
 	});
 }
 
+const windows = [];
+for (const m of flat.matchAll(/window\("(\w+)", "(\w+)", (-?[\d.]+), (-?[\d.]+), "(\w+)"/g)) {
+	windows.push({ a: m[1], b: m[2], at: Number(m[3]), width: Number(m[4]), kind: m[5], gate: 0, line: null });
+}
+const fountains = [...flat.matchAll(/kind = "fountain", level = "(\w+)", x = (-?[\d.]+), z = (-?[\d.]+), radius = (\d+)/g)].map(
+	(m) => ({ level: m[1], x: Number(m[2]), z: Number(m[3]), r: Number(m[4]) }),
+);
 const ramps = [];
 for (const m of flat.matchAll(/\{ from = "(\w+)",(?: to = "(\w+)",)? x = (-?[\d.]+), z = (-?[\d.]+), dir = "([+-][xz])"(, turn = true)? \}/g)) {
 	ramps.push({ from: m[1], to: m[2], x: Number(m[3]), z: Number(m[4]), dir: m[5], turn: !!m[6] });
 }
 const voids = [];
-for (const m of flat.matchAll(new RegExp(String.raw`\{ level = "(\w+)", rect = ${RECT} \}`, "g"))) voids.push({ level: m[1], rect: rectOf(m[2]) });
+for (const m of flat.matchAll(new RegExp(String.raw`\{ level = "(\w+)", rect = ${RECT}(?:, round = (\d+))? \}`, "g"))) {
+	voids.push({ level: m[1], rect: rectOf(m[2]), round: Number(m[3]) || 0 });
+}
 // Water and garden islands (the other set pieces are left out of the plan).
 const features = [];
 for (const m of flat.matchAll(new RegExp(String.raw`\{ kind = "(pool|island)", level = "(\w+)", rect = ${RECT} \}`, "g"))) {
@@ -97,6 +108,7 @@ function doorSpot(d) {
 	let best = null;
 	for (const s of wallsOf(A)) for (const t of wallsOf(B)) {
 		if (s.axis !== t.axis || Math.abs(s.line - t.line) > 1e-6) continue;
+		if (d.line !== null && d.line !== undefined && Math.abs(s.line - d.line) > 1e-6) continue;
 		const lo = Math.max(s.a, t.a), hi = Math.min(s.b, t.b);
 		if (hi - lo <= 0) continue;
 		const has = d.at !== null && d.at >= lo && d.at <= hi;
@@ -127,7 +139,7 @@ const NEXT = { B: "G", G: "M", M: "T", T: "R", R: "X" };
 fs.mkdirSync(outDir, { recursive: true });
 for (const L of LEVELS) {
 	const out = [];
-	out.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H + 120}" viewBox="0 0 ${W} ${H + 120}" font-family="Segoe UI, Arial, sans-serif">`);
+	out.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H + 150}" viewBox="0 0 ${W} ${H + 150}" font-family="Segoe UI, Arial, sans-serif">`);
 	out.push(`<rect width="100%" height="100%" fill="#1c1f26"/>`);
 	out.push(`<text x="16" y="28" fill="#fff" font-size="20" font-weight="700">The Gala re-plan: ${esc(L.title)}</text>`);
 	const [main, second] = L.levels;
@@ -148,6 +160,27 @@ for (const L of LEVELS) {
 		out.push(rectSvg(f.rect, f.kind === "pool" ? "#2f6fa3" : "#5f8f4f", "#111", `fill-opacity="0.85"`));
 	}
 	for (const v of voids.filter((q) => q.level === main)) out.push(rectSvg(v.rect, "#0b2b4a", "#5aa0e0", `stroke-dasharray="4 3" stroke-width="2"`));
+	const arcPath = (cx, cz, r, a0, a1) => {
+		const p = (a) => `${px(cx + r * Math.cos(a))} ${pz(cz + r * Math.sin(a))}`;
+		return `M ${p(a0)} A ${r * S} ${r * S} 0 0 ${a1 > a0 ? 1 : 0} ${p(a1)}`;
+	};
+	const corners = (rect, r, inward) => {
+		const [x1, z1, x2, z2] = rect;
+		return [[x1, z1, 1, 1], [x2, z1, -1, 1], [x1, z2, 1, -1], [x2, z2, -1, -1]].map(([x, z, sx, sz]) => {
+			let a0 = Math.atan2(0, -sx), a1 = Math.atan2(-sz, 0);
+			if (a1 - a0 > Math.PI) a1 -= 2 * Math.PI; else if (a0 - a1 > Math.PI) a1 += 2 * Math.PI;
+			return { x, z, cx: x + sx * r, cz: z + sz * r, a0, a1 };
+		});
+	};
+	for (const r of rooms.filter((q) => q.level === main && q.round)) {
+		for (const c of corners(r.rect, r.round)) out.push(`<path d="${arcPath(c.cx, c.cz, r.round, c.a0, c.a1)}" fill="none" stroke="#111" stroke-width="3"/>`);
+	}
+	for (const v of voids.filter((q) => q.level === main && q.round)) {
+		for (const c of corners(v.rect, v.round)) out.push(`<path d="${arcPath(c.cx, c.cz, v.round, c.a0, c.a1)}" fill="none" stroke="#5aa0e0" stroke-width="3"/>`);
+	}
+	for (const f of fountains.filter((q) => q.level === main)) {
+		out.push(`<circle cx="${px(f.x)}" cy="${pz(f.z)}" r="${f.r * S}" fill="#f0eee8" stroke="#2042a0" stroke-width="4"/><circle cx="${px(f.x)}" cy="${pz(f.z)}" r="${9 * S}" fill="#6eb4e1" stroke="#2042a0" stroke-width="2"/><circle cx="${px(f.x)}" cy="${pz(f.z)}" r="${3 * S}" fill="#f0eee8" stroke="#d4ac4a" stroke-width="2"/><text x="${px(f.x)}" y="${(Number(pz(f.z + f.r)) + 16).toFixed(1)}" text-anchor="middle" font-size="12" fill="#111" font-weight="700">Porcelain fountain</text>`);
+	}
 	// Ducts
 	for (const r of rooms.filter((q) => q.level === main && q.kind === "DUCT")) out.push(rectSvg(r.rect, "#f08a24", "#f08a24", `fill-opacity="0.8"`));
 	// Labels
@@ -170,7 +203,16 @@ for (const L of LEVELS) {
 		if (!s) continue;
 		const isVent = byId[d.a].kind === "DUCT" || byId[d.b].kind === "DUCT";
 		const color = d.vault ? "#ff2d2d" : isVent ? "#f08a24" : d.keycard ? "#28d7e8" : d.gate ? ["#fff", "#2f9e44", "#5b2a9a", "#e3a400"][d.gate] : "#ffffff";
-		out.push(rectSvg([s.x1, s.z1, s.x2, s.z2], color, d.laser ? "#ff2d2d" : "#000", `stroke-width="${d.laser ? 2.5 : 0.8}"`));
+		out.push(rectSvg([s.x1, s.z1, s.x2, s.z2], d.arch ? "#ffe9a8" : color, d.laser ? "#ff2d2d" : "#000", `stroke-width="${d.laser ? 2.5 : 0.8}"`));
+	}
+	// Windows
+	const WINDOW = { oneWay: "#c9ced8", glass: "#8fd3ff", hatch: "#a0703c" };
+	for (const w of windows) {
+		const A = byId[w.a];
+		if (!A || !L.levels.includes(A.level)) continue;
+		const s = doorSpot(w);
+		if (!s) continue;
+		out.push(rectSvg([s.x1, s.z1, s.x2, s.z2], WINDOW[w.kind] || "#fff", "#000", `stroke-width="0.8" ${w.kind === "oneWay" ? 'stroke-dasharray="2 2"' : ""}`));
 	}
 	// Stairs: footprint where they start, an arrow where they arrive
 	for (const r of ramps) {
@@ -194,12 +236,13 @@ for (const L of LEVELS) {
 	const legend = [
 		["Public", TIER[0]], ["Staff", TIER[1]], ["Security", TIER[2]], ["Executive", TIER[3]], ["Vault wing", VAULT],
 		["Keycard door", "#28d7e8"], ["Vent", "#f08a24"], ["Stair (start)", "#3b3f4a"], ["Insertion", "#3d8bfd"], ["Extraction", "#18c26b"],
+		["Arch", "#ffe9a8"], ["One-way glass", "#c9ced8"], ["Glass window", "#8fd3ff"], ["Serving hatch", "#a0703c"], ["Curved wall", "#111"],
 	];
 	legend.forEach(([label, color], i) => {
 		const x = 16 + (i % 5) * 190, y = ly + Math.floor(i / 5) * 26;
 		out.push(`<rect x="${x}" y="${y - 12}" width="16" height="16" fill="${color}" stroke="#fff"/><text x="${x + 22}" y="${y + 1}" fill="#ddd" font-size="13">${label}</text>`);
 	});
-	out.push(`<text x="16" y="${ly + 50}" fill="#999" font-size="12">North is up (-z). 1 grid stud = ${S} px. Clearance doors are coloured by the tier they need; a red outline is a laser grid; red fill is a vault door. Dashed yellow = a stair arriving from below.</text>`);
+	out.push(`<text x="16" y="${ly + 80}" fill="#999" font-size="12">North is up (-z). 1 grid stud = ${S} px. Clearance doors are coloured by the tier they need; a red outline is a laser grid; red fill is a vault door. Dashed yellow = a stair arriving from below.</text>`);
 	out.push(`</svg>`);
 	fs.writeFileSync(path.join(outDir, `plan-${L.key}.svg`), out.join("\n"));
 }

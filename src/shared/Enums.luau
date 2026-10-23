@@ -87,6 +87,9 @@ local Enums = {
 		VentDuct = "VentDuct", -- the inside of a vent duct; VentService breaks the Cover of anyone in it
 		Gondola = "Gondola", -- the gondola floor, with Start and End positions (GondolaService)
 		GondolaCall = "GondolaCall", -- a gondola call button at the dock named by End ("Start" or "End")
+		-- Map re-plan stage 2: a one-way window pane. Its Inside attribute (a unit vector) points into the room that sees
+		-- out; OneWayGlassController draws it clear for a camera on that side and mirrored for everyone else.
+		OneWayGlass = "OneWayGlass",
 	},
 
 	-- Spec 5.3, 6.7, 5.4: the code-built animations NPCs (and later the Blend wheel) play.
