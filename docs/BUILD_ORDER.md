@@ -134,7 +134,7 @@ The map should feel alive without the crowd clogging corridors or leaving rooms 
 | Vault door order | Climbing tiers inside each vault: Tier 1, then 2, then 3, so getting a Security and then an Executive disguise is the way in. Each of the three vaults has its own sequence and shape. |
 | How to start | Layout data first (levels, rooms, doors, outdoor areas), generated and reviewed with screenshots before the vault interiors and the four intel station types. |
 
-**Status (2026-10-23): pass 2a built (four themed vault strongrooms with vault doors, hack zones and pedestals; 32 intel stations; restrooms with health stations; ammo caches, food, safes, supply caches, cameras, laser grids, climbable crates); self-check passes with 0 problems. Next: pass 2b (ziplines, vents, gondola).**
+**Status (2026-10-23): pass 2 built. 2a: four themed vault strongrooms, 32 intel stations, restrooms, and every placed and tagged object. 2b: two ziplines (ZiplineService), six vent ducts (VentService), and the gondola (GondolaService, with PlatformController carrying riders). Each was playtested: riding a zipline, riding the gondola and entering a vent all break Cover. Self-check passes with 0 problems. Next: the Step 4 to 7 test pass and the two-player checkpoint, then Step 8.**
 - Done: the tower layout as data (`src/server/Tools/Gala/Layout.luau`) and its generator (`Build.luau`): 53 rooms over five
   levels with a central atrium, setback terraces, hedged grounds with gates, nested guard rooms, 14 clearance doors and 6
   keycard doors, 19 ramps, zone volumes, 311 NPC nodes, props and cover, 12 insertion points, 3 extraction sites and 3 vault

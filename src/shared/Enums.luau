@@ -84,6 +84,9 @@ local Enums = {
 		AmmoCache = "AmmoCache", -- wall ammo cache, bought with intel
 		FoodSpot = "FoodSpot", -- free food: heals less than a health station
 		AssetSafe = "AssetSafe", -- a safe holding an asset; its Tier sets the rarity odds
+		VentDuct = "VentDuct", -- the inside of a vent duct; VentService breaks the Cover of anyone in it
+		Gondola = "Gondola", -- the gondola floor, with Start and End positions (GondolaService)
+		GondolaCall = "GondolaCall", -- a gondola call button at the dock named by End ("Start" or "End")
 	},
 
 	-- Spec 5.3, 6.7, 5.4: the code-built animations NPCs (and later the Blend wheel) play.

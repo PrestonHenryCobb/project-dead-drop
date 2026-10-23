@@ -58,6 +58,9 @@ local STAIR_LANDING_CLEAR = 6 -- studs of open floor kept at the foot and head o
 local STAIR_GAP = 2 -- studs kept between one stair (or its opening) and another
 local STAIR_RAIL_H = 3 -- the handrails along the sides of a flight
 local TRUSS_DEPTH, TRUSS_BAY = 8, 6 -- the steel truss under a bridge: how deep, and how long each bay
+local VENT_OPENING_H = 6 -- a vent grate's opening; players fit through its 3-stud width, NPCs (radius 2) never path it
+local GONDOLA_RAIL_H = 13 -- the gondola's overhead rail, above its floor
+local GONDOLA_DOCK_CLEAR = 8 -- studs of floor kept clear in front of each gondola dock
 local ZONE_PAD = 2
 local ZONE_H = 24 -- a zone's height where there is no storey above it
 local GALLERY_POST_SPACING = 16 -- studs between the posts under a gallery's edge
@@ -468,7 +471,9 @@ function Build.run()
 		doorsPerRoom[rb.id] = (doorsPerRoom[rb.id] or 0) + 1
 		local x, z = if best.axis == "x" then center else best.line, if best.axis == "x" then best.line else center
 		local nx, nz = if best.axis == "x" then 0 else 1, if best.axis == "x" then 1 else 0
-		table.insert(doorPoints, { level = best.level, x = x, z = z, nx = nx, nz = nz, a = ra, b = rb })
+		if not (ra.duct or rb.duct) then
+			table.insert(doorPoints, { level = best.level, x = x, z = z, nx = nx, nz = nz, a = ra, b = rb })
+		end
 		local clear: Rect = {
 			x1 = x - (if best.axis == "x" then width / 2 + 2 else DOOR_CLEAR),
 			z1 = z - (if best.axis == "x" then DOOR_CLEAR else width / 2 + 2),
@@ -892,6 +897,91 @@ function Build.run()
 		end
 	end
 
+	-- Ziplines (spec 4.3): a mast at the top and a post at the bottom, tagged ZiplineAnchor with ZiplineId and End, and
+	-- the cable between their tops. ZiplineService runs the rides.
+	for _, line in Layout.ziplines do
+		local function anchor(spot: Layout.ZiplineEnd, endName: string): Vector3
+			local base = Vector3.new(spot.x, levels[spot.level], spot.z)
+			local mast = part(
+				objects,
+				"ZiplineMast",
+				Vector3.new(1.2, spot.mast, 1.2),
+				CFrame.new(base + Vector3.new(0, spot.mast / 2, 0)),
+				STEEL_POST
+			)
+			tag(mast, Tag.ZiplineAnchor, { ZiplineId = line.id, End = endName })
+			table.insert(reserved[spot.level], { x1 = spot.x - 4, z1 = spot.z - 4, x2 = spot.x + 4, z2 = spot.z + 4 })
+			return base + Vector3.new(0, spot.mast, 0)
+		end
+		local top, bottom = anchor(line.top, "Top"), anchor(line.bottom, "Bottom")
+		local cable = part(
+			geometry,
+			"ZiplineCable",
+			Vector3.new(0.3, 0.3, (bottom - top).Magnitude),
+			CFrame.lookAt((top + bottom) / 2, bottom),
+			Color3.fromRGB(30, 30, 34)
+		)
+		cable.CanCollide = false
+		cable.CanQuery = false
+	end
+
+	-- The gondola: a railed platform hanging from an overhead rail, docked at its start; a call button at each dock.
+	-- GondolaService moves it. Tagged Gondola (on the floor, with Start and End positions) and GondolaCall (End).
+	do
+		local g = Layout.gondola
+		local y = levels[g.level]
+		local startPos = Vector3.new(g.fromX + g.length / 2, y - 0.5, g.z)
+		local endPos = Vector3.new(g.toX - g.length / 2, y - 0.5, g.z)
+		local railY = y + GONDOLA_RAIL_H
+		part(
+			geometry,
+			"GondolaRail",
+			Vector3.new(g.toX - g.fromX, 1, 1.5),
+			CFrame.new((g.fromX + g.toX) / 2, railY, g.z),
+			STEEL_POST
+		)
+		local model = Instance.new("Model")
+		model.Name = "Gondola"
+		model.Parent = objects
+		local floor = part(model, "GondolaFloor", Vector3.new(g.length, 1, g.width), CFrame.new(startPos), STEEL_POST)
+		for _, side in { -1, 1 } do
+			part(
+				model,
+				"GondolaRailing",
+				Vector3.new(g.length, 3, 0.3),
+				CFrame.new(startPos + Vector3.new(0, 2, side * (g.width / 2 - 0.15))),
+				RAIL_GREY
+			)
+			part(
+				model,
+				"GondolaHanger",
+				Vector3.new(0.3, GONDOLA_RAIL_H - 0.5, 0.3),
+				CFrame.new(startPos + Vector3.new(0, GONDOLA_RAIL_H / 2, side * (g.width / 2 - 0.15))),
+				STEEL_POST
+			)
+		end
+		model.PrimaryPart = floor
+		tag(floor, Tag.Gondola, { Start = startPos, End = endPos })
+		for endName, dock in { Start = { x = g.fromX, out = -1 }, End = { x = g.toX, out = 1 } } do
+			-- the button stands on the dock's floor, beside the opening
+			local button = part(
+				objects,
+				"GondolaCall",
+				Vector3.new(1, 3.5, 1),
+				CFrame.new(dock.x + dock.out * 2, y + 1.75, g.z + g.width / 2 + 1.5),
+				Color3.fromRGB(240, 200, 40)
+			)
+			button.Material = Enum.Material.Neon
+			tag(button, Tag.GondolaCall, { End = endName })
+			table.insert(reserved[g.level], {
+				x1 = math.min(dock.x, dock.x + dock.out * GONDOLA_DOCK_CLEAR),
+				z1 = g.z - g.width / 2 - 2,
+				x2 = math.max(dock.x, dock.x + dock.out * GONDOLA_DOCK_CLEAR),
+				z2 = g.z + g.width / 2 + 3,
+			})
+		end
+	end
+
 	-- Walls ----------------------------------------------------------------------------------------------------------------------
 	local function alongSize(axis: string, length: number, height: number, depth: number): Vector3
 		return if axis == "x" then Vector3.new(length, height, depth) else Vector3.new(depth, height, length)
@@ -1009,6 +1099,12 @@ function Build.run()
 					if edge.roomA.kind == "indoor" then roomHeight(edge.roomA) else 0,
 					if roomB.kind == "indoor" then roomHeight(roomB) else 0
 				)
+				-- A low room nested in another (a vent duct) is a box inside it: its walls stop at its own ceiling.
+				for _, pair in { { edge.roomA, roomB }, { roomB, edge.roomA } } do
+					if pair[1].parent == pair[2].id and pair[1].height then
+						height = (pair[1].height :: number) + SLAB
+					end
+				end
 			end
 		elseif edge.kind == "void" then
 			height, color = RAIL_H, RAIL_GREY
@@ -1032,6 +1128,16 @@ function Build.run()
 				end
 			else
 				height = BARRIER_H
+				-- Open the barrier where the gondola docks.
+				local g = Layout.gondola
+				if edge.level == g.level and edge.axis == "z" then
+					for _, dockX in { g.fromX, g.toX } do
+						local a, b = g.z - g.width / 2, g.z + g.width / 2
+						if math.abs(edge.line - dockX) < 0.5 and a >= edge.a - EPS and b <= edge.b + EPS then
+							table.insert(edge.gaps, { center = g.z, width = g.width })
+						end
+					end
+				end
 			end
 		end
 		if height == 0 then
@@ -1056,7 +1162,14 @@ function Build.run()
 		for _, gap in edge.gaps do
 			wallPiece(edge, cursor, gap.center - gap.width / 2, height, color)
 			cursor = gap.center + gap.width / 2
-			if height <= GAP_H then
+			local gapDoor = gap.door
+			local ventRoom = if gapDoor
+				then (if roomById[gapDoor.a].duct
+					then roomById[gapDoor.a]
+					else if roomById[gapDoor.b].duct then roomById[gapDoor.b] else nil)
+				else nil
+			local openingH = if ventRoom then VENT_OPENING_H else GAP_H
+			if height <= openingH then
 				continue -- a gap in a railing has nothing over it
 			end
 			-- Lintel above the doorway.
@@ -1064,10 +1177,25 @@ function Build.run()
 			part(
 				geometry,
 				"Lintel",
-				alongSize(edge.axis, gap.width, height - GAP_H, WALL_T),
-				CFrame.new(alongPoint(edge.axis, edge.line, gap.center, baseY + GAP_H + (height - GAP_H) / 2)),
+				alongSize(edge.axis, gap.width, height - openingH, WALL_T),
+				CFrame.new(alongPoint(edge.axis, edge.line, gap.center, baseY + openingH + (height - openingH) / 2)),
 				color
 			)
+			if ventRoom then
+				-- A vent grate (spec 4.3): see-through, walk-through for a player, and the way in or out of a duct.
+				local grate = part(
+					objects,
+					"VentGrate",
+					alongSize(edge.axis, gap.width, VENT_OPENING_H, 0.3),
+					CFrame.new(alongPoint(edge.axis, edge.line, gap.center, baseY + VENT_OPENING_H / 2)),
+					RAIL_GREY
+				)
+				grate.Material = Enum.Material.DiamondPlate
+				grate.Transparency = 0.5
+				grate.CanCollide = false
+				tag(grate, Tag.Vent, { VentId = ventRoom.id })
+				continue
+			end
 			local roomB = edge.roomB :: Room
 			local high = math.max(edge.roomA.tier, roomB.tier)
 			local door = gap.door :: Layout.Door
@@ -1196,7 +1324,25 @@ function Build.run()
 				slab(geometry, `Floor_{levelName}_{piece.room.id}`, rect, levels[levelName], color)
 			end
 			-- An indoor room is roofed wherever no room sits above it; a shaft stays open where the void is.
-			if piece.room.kind == "indoor" then
+			if piece.room.duct then
+				slab(
+					geometry,
+					`Roof_{levelName}_{piece.room.id}`,
+					piece.rect,
+					levels[levelName] + roomHeight(piece.room) + SLAB,
+					SHELL
+				)
+				local r = piece.rect
+				local volume = part(
+					objects,
+					"VentDuct",
+					Vector3.new(r.x2 - r.x1, roomHeight(piece.room), r.z2 - r.z1),
+					CFrame.new((r.x1 + r.x2) / 2, levels[levelName] + roomHeight(piece.room) / 2, (r.z1 + r.z2) / 2),
+					RAIL_GREY
+				)
+				ghost(volume)
+				tag(volume, Tag.VentDuct, { VentId = piece.room.id })
+			elseif piece.room.kind == "indoor" then
 				local above = nextLevel[levelName]
 				local uncovered = { piece.rect }
 				if above then
@@ -2183,6 +2329,13 @@ function Build.run()
 	do
 		check(count(Tag[name]) == counts[name], `{name} {count(Tag[name])}/{counts[name]}`)
 	end
+	check(count(Tag.Vent) == counts.VentPairs * 2, `Vent grates {count(Tag.Vent)}/{counts.VentPairs * 2}`)
+	check(count(Tag.VentDuct) == counts.VentPairs, `Vent ducts {count(Tag.VentDuct)}/{counts.VentPairs}`)
+	check(
+		count(Tag.ZiplineAnchor) == counts.ZiplineAnchorPairs * 2,
+		`ZiplineAnchor {count(Tag.ZiplineAnchor)}/{counts.ZiplineAnchorPairs * 2}`
+	)
+	check(count(Tag.Gondola) == 1 and count(Tag.GondolaCall) == 2, "Gondola with two call buttons")
 	for _, name in { "VaultDoor", "VaultHackZone", "PackagePedestal" } do
 		check(count(Tag[name]) == counts.VaultSpawn, `{name} {count(Tag[name])}/{counts.VaultSpawn} (one per vault)`)
 	end

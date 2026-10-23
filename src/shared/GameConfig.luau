@@ -589,6 +589,26 @@ local GameConfig = {
 		CharactersCollideWithEachOther = false,
 	},
 
+	-- Ziplines, vents and the gondola (BUILD_ORDER Step 7B pass 2b). Using any of them breaks Cover (spec 7.2).
+	Traversal = {
+		Zipline = {
+			Speed = 45, -- studs per second down the cable
+			HangStuds = 3, -- how far below the cable a rider's root hangs
+			PromptDistance = 8,
+			PromptHoldSeconds = 0.3,
+			MountHeight = 3, -- the prompt sits this far up the mast, at a standing rider's height
+		},
+		Vent = {
+			CheckHz = 5, -- how often VentService looks for players inside a duct
+		},
+		Gondola = {
+			CrossSeconds = 8, -- one crossing, either way
+			RiderHeight = 8, -- studs above the floor that still count as riding
+			PromptDistance = 10,
+			PromptHoldSeconds = 0.3, -- a short hold, so nobody sends it off by accident
+		},
+	},
+
 	-- Graphics quality (BUILD_ORDER Step 7B): scenery detail for weaker machines, applied on each client. Auto follows the
 	-- Roblox graphics slider; a player can override it. Only scenery changes: the map, NPCs and players are the same.
 	Graphics = {

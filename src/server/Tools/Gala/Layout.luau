@@ -38,6 +38,7 @@ export type Room = {
 	height: number?, -- an indoor room's wall height when it is lower than a full storey (a bridge)
 	noNodes: boolean?, -- no NPC nodes (a vault strongroom: NPCs never stop at the vault)
 	theme: string?, -- a vault's look: "bank", "gallery", "cold" or "counting"
+	duct: boolean?, -- a vent duct (spec 4.3): low, nested in a room, joined by grates; entering breaks Cover
 }
 
 export type Door = {
@@ -84,6 +85,13 @@ export type Feature = {
 --   food      a buffet with a plate of food                   safe    a safe holding an asset (rarity by room tier)
 --   cache     a supply cache                                  camera  a security camera high on a wall
 export type Placement = { kind: string, room: string }
+
+-- A zipline (spec 4.3, 2 pairs): a cable from a mast at the top down to a post at the bottom. Using it breaks Cover.
+export type ZiplineEnd = { level: string, x: number, z: number, mast: number } -- mast: the cable's height above the floor
+export type Zipline = { id: string, top: ZiplineEnd, bottom: ZiplineEnd }
+
+-- The window-washer gondola: a platform that crosses between two docks at one level, along x. Riding breaks Cover.
+export type Gondola = { level: string, z: number, fromX: number, toX: number, width: number, length: number }
 
 -- A node NPCs can walk to that the grid would not place (on an island, on a bridge).
 export type NodeSpec = { level: string, x: number, z: number, activity: string }
@@ -184,10 +192,22 @@ room(
 	{ glass = true, density = 1.5, props = { "bar", "tables" } }
 )
 
+-- Vent ducts: low crawlways nested in a room, with a grate at each end, that bypass a guarded door. Each takes the
+-- tier of where it leads.
+local function duct(id: string, level: string, name: string, tier: number, rect: Rect, parent: string)
+	room(id, level, name, tier, IN, rect, { parent = parent, duct = true, height = 8, noNodes = true })
+end
+duct("v_vaulta", "B", "Vent to Vault A", 3, { -34, -58, -30, -40 }, "b_west")
+duct("v_vaultc", "G", "Vent to Vault C", 3, { -80, -148, -76, -136 }, "g_kitchen")
+duct("v_vaultd", "B", "Vent to Vault D's antechamber", 2, { 186, 30, 190, 46 }, "wb_laundry")
+duct("v_hub", "M", "Vent to the security hub", 2, { -19, -70, -15, -55 }, "m_offices")
+duct("v_penthouse", "T", "Vent to the penthouse", 3, { -49, -40, -45, -25 }, "t_west")
+duct("v_cage", "G", "Vent to the cashier's cage", 1, { 142, 10, 154, 16 }, "wg_casino")
+
 -- GH: galleries (12) ------------------------------------------------------------------------------------------------------
 room("gh_ballroom", "GH", "Ballroom gallery", 0, GALLERY, { -58, 52, 58, 68 }, { density = 1.2, props = { "tables" } })
 room("gh_bar", "GH", "Bar loft", 0, GALLERY, { 52, 112, 118, 128 }, { density = 1, props = { "tables" } })
-room("gh_kitchen", "GH", "Kitchen catwalk", 1, GALLERY, { -78, -148, -42, -140 })
+room("gh_kitchen", "GH", "Kitchen catwalk", 1, GALLERY, { -74, -148, -42, -140 })
 room("gh_dock", "GH", "Loading bay catwalk", 1, GALLERY, { -120, -83, -110, -52 })
 room("gh_vip", "GH", "VIP tables", 0, GALLERY, { 140, 72, 175, 110 }, { density = 1.2, props = { "tables" } })
 
@@ -524,6 +544,20 @@ door("wt_suite3", "wt_balcony3", -40, 8)
 door("wr_garden", "wr_plant", 200, 8)
 door("wr_garden", "wr_plant", 230, 8)
 
+-- Vent grates: in from the room the duct sits in, out into the room it leads to.
+door("b_west", "v_vaulta", -32, 3)
+door("v_vaulta", "b_vaulta", -49, 3)
+door("g_kitchen", "v_vaultc", -78, 3)
+door("v_vaultc", "g_vaultc", -142, 3)
+door("wb_laundry", "v_vaultd", 188, 3)
+door("v_vaultd", "wb_vaultd_ante", 40, 3)
+door("m_offices", "v_hub", -17, 3)
+door("v_hub", "m_hub", -62, 3)
+door("t_west", "v_penthouse", -47, 3)
+door("v_penthouse", "t_great", -32, 3)
+door("wg_casino", "v_cage", 13, 3)
+door("v_cage", "wg_cage", 148, 3)
+
 -- T
 door("t_terrace", "t_gallery", 0, 12, { gate = 3 })
 door("t_terrace", "t_west", 0, 8)
@@ -598,6 +632,24 @@ place("cache", { "g_sculpt", "m_balcony", "t_terrace", "wg_cage", "b_west_s", "w
 place("camera", { "g_service", "g_kitchen", "g_dock", "m_hub", "m_offices", "b_north", "b_south", "t_west", "t_east" })
 place("camera", { "wb_service", "wg_cage", "wm_housekeeping" })
 
+-- Ziplines: the Gala's roof down to the lawn deck, and the wing's sky deck down to the Gala's upper terrace. The masts
+-- are tall enough that a rider clears every glass barrier on the way down.
+local ziplines: { Zipline } = {
+	{
+		id = "Zipline1",
+		top = { level = "R", x = 70, z = 70, mast = 22 },
+		bottom = { level = "M", x = 160, z = 70, mast = 7 },
+	},
+	{
+		id = "Zipline2",
+		top = { level = "X", x = 186, z = -60, mast = 22 },
+		bottom = { level = "T", x = 90, z = -60, mast = 7 },
+	},
+}
+
+-- The gondola: from the Gala's upper terrace (its east edge) across the drop to the Corner suite's balcony.
+local gondola: Gondola = { level = "T", z = 20, fromX = 105, toX = 172, width = 8, length = 8 }
+
 local nodes: { NodeSpec } = {
 	{ level = "G", x = -24, z = 8, activity = "Idle" },
 	{ level = "G", x = 24, z = 8, activity = "Talk" },
@@ -656,5 +708,7 @@ return {
 	vaults = vaults,
 	features = features,
 	placements = placements,
+	ziplines = ziplines,
+	gondola = gondola,
 	nodes = nodes,
 }
