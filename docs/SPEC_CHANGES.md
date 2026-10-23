@@ -32,3 +32,9 @@ been edited. Review this list, then tell me to apply it.
 | 5.1 (NPC counts) | 90 (see above) | 200: Guest 120, Staff 40, Security 25, Executive 15 |
 | 25 (platforms, performance) | Built for low-end mobile | PC and console targets with a quality setting for weaker machines; touch kept as a fallback only |
 | 7.3 (witnesses, suspicion) | Every NPC notices every suspicious action (0.2 share); sprint and jump count only in Tier 1+ | Civilians (non-Security NPCs) notice only sprinting and jumping, at a 0.5 share; Security and cameras notice everything. Sprint and jump count in every tier. All suspicion gains and the trespass rate doubled. Cover-breaking actions unchanged. |
+| 9 and 17 (Intel and Funds) | Intel unlocks the vault; Funds buy things | Intel is the only currency: spent on tier doors, the vault unlock, healing and ammo. Spending removes it from unlock progress. Funds are removed. More intel on the map (32 stations). |
+| 4.3 / 7 (doors) | Clearance by disguise; keycard doors; lock-picking | Tier doors always cost intel to hack open; the hack keeps your Cover if you wear that tier or higher, otherwise it breaks Cover. |
+| 14 (healing) | (unspecified) | No passive healing except an agent's own kit. Wall health stations (bought with intel) in bathrooms; free food heals less. |
+| 15.10 (loadout perks) | Pick one loadout perk | Replaced by Assets: per-match perks found in supply caches and tiered-room safes, in four rarities (Field Agent, Infiltrator, Black Ops, Ghost). |
+| 15 (agents) | 8 agents with ability, passive and cover perk | 6 agents, one ability on a cooldown and one passive each (draft in AGENTS_DRAFT.md). |
+| 4.3 (map objects) | 3 vaults, 18 intel spawns | 4 vaults; 32 intel stations in 4 types; a gondola; bathrooms with health stations; ammo caches; food; safes. |

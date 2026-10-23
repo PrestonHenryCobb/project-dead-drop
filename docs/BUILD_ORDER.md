@@ -177,6 +177,33 @@ The map should feel alive without the crowd clogging corridors or leaving rooms 
 | Quality levels | High: everything. Medium: windows on the near and middle towers only, half the ceiling lights, shadows and bloom on, full void layers. Low: tower shapes kept but windows only on the nearest towers, no roof plant or spires (beacons and crowns stay), one ceiling light in three, no shadows, no bloom, haze halved, void layers merged to two. |
 | Order | 1) Fix the stairs and the openings beside them. 2) Grow the map and raise NPCs to 200, then measure. 3) The detailed city and night sky. 4) The quality setting. Then pass 2 (vaults and intel). |
 
+**Pass 2 decisions (2026-10-23)**
+| Topic | Decision |
+|---|---|
+| Vault interiors | Four themes, each with its own shape and climbing door order (Tier 1, 2, 3): A, a bank-style round door behind a laser corridor (Gala basement); B, a penthouse art vault behind a glass display hall (Gala top floor); C, a cold-storage vault behind the kitchen chain (Gala ground, west); D, a casino counting-room vault behind the cage (wing basement). High-tier NPC identities to scan are placed nearby. |
+| Closed vaults | As the spec: the outer door is shut and the wing sits behind clearance gates. In Phase 3 the chosen vault's lights turn red and its outer door opens; the other three stay shut. |
+| Intel stations | 32: 8 per type. Public: guest-book tablet on a stand (1 intel, 4 s). Staff: laptop on a cart (2, 7 s). Security: server rack with a screen (3, 11 s). Executive: wall safe with a keypad (4, 16 s). Tier-colour trim. A random 12 to 14 are active per match. More are needed now that intel is also spent (see the economy below). |
+| Gondola | Window-washer platform on the facade between the Gala and the wing. Call buttons at both ends; it arrives, then crosses in about 8 s. Up to 4 riders; riding breaks Cover; riders can be shot off. A moving system, built in this pass. |
+| Ziplines (2 pairs) | Gala roof down to the far end of the pool deck; the wing's sky deck down to the Gala's upper terrace. Both downhill; using them breaks Cover. |
+| Vents (6 pairs) | Real crawl ducts (boxy shafts in ceilings and walls) that bypass a clearance gate or link floors: into each vault wing, the security hub, the penthouse and the casino cage. Entering breaks Cover. |
+| Also placed now | Supply caches (6), cameras (12) and laser grids, climbable surfaces, about 6 bathrooms each with a wall health station, 8 wall ammo caches, about 20 food spots (buffets, bar snacks, the kitchen, room service; fewer in guard areas), and safes in tiered rooms. Placed and tagged only: their behaviour comes with combat and the economy (Steps 8, 9, 14, 18). |
+
+**Economy and assets (2026-10-23, changes the spec: see SPEC_CHANGES)**
+- **Intel is the one currency.** It is spent to open tier doors, unlock vaults, and buy healing and ammo. Spending it is a real trade-off: what you spend no longer counts toward the unlock. Intel is more plentiful to match.
+- **Tier doors always cost intel** to hack open. Wearing a disguise of that tier or higher means the hack does not blow your Cover; otherwise it does.
+- **No passive healing**, except an agent's own kit. Healing comes from wall health stations (bought with intel) and free food, which heals less and is rarer in most areas.
+- **Assets** (per-match perks) are found in supply caches and in safes in tiered rooms. Four rarities, coloured like the tiers: **Field Agent** (grey, common), **Infiltrator** (blue, rare), **Black Ops** (dark purple, epic), **Ghost** (gold, legendary). A room's tier sets which rarities its safe can hold. Looking at an asset shows a short description and its rarity, for example "Black Ops Tier Asset". Assets: Light Feet, Quick Hands, Steady Nerves, Deep Pockets, Field Medic, Duct Rat, each stronger by rarity. Supply caches also hold armor plates, a disguise kit and a weapon swap.
+- **Agents**: one ability on a cooldown and one passive tied to the playstyle. Roster draft in `docs/AGENTS_DRAFT.md`.
+
+| Asset | Field Agent | Infiltrator | Black Ops | Ghost |
+|---|---|---|---|---|
+| Light Feet: sprinting and jumping raise suspicion slower | -15% | -25% | -35% | -50% |
+| Quick Hands: intel stations, doors and the vault hack faster | +10% | +20% | +30% | +40% |
+| Steady Nerves: suspicion drains faster once unwatched | +25% | +50% | +100% | +150% |
+| Deep Pockets: intel purchases cost less | -10% | -15% | -25% | -35% |
+| Field Medic: health stations and food heal more | +15% | +30% | +50% | +75% |
+| Duct Rat: crawl through vents faster (quietly from Black Ops) | +20% | +35% | +50% | +75% |
+
 **Follow-ups this brief creates** (to settle before or during the step)
 - **Spec changes:** intel gets four station types (spec Section 9), doors become clearance gates (Sections 4.3 and 7), and the vault gets an interior with door tiers and NPC identities (Section 10).
 - **NPC roles for the vault:** the spec has only 6 Executives. Plenty of identities in the vault wing means more high-tier NPCs, while the total stays 74. The role counts need a decision.
