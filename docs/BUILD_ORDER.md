@@ -307,3 +307,32 @@ Security 7, Executive 10 (SPEC_CHANGES). The doors are already built and tagged 
 
 ### Step 25: Performance pass
 "Profile a full 12-player match with 74 NPCs on low graphics. Report costs, then optimize the top 5."
+
+---
+
+## Added from the 2026-10-24 ideas (docs/IDEAS_2026-10-24.md; existing steps above are unchanged)
+
+### Step 8B: Feel pass (after Step 8, before Step 9)
+**Answers:** IDEAS_2026-10-24.md, notes 8 to 13. Order, because each depends on the last:
+1. **Bodies** slimmer and taller for everyone (height 105% to 115%, width and depth 80% to 90%); check hit boxes, doors, vents, camera height, NPC pathing height and clothes.
+2. **Full-body first person**: your torso, legs and feet show when you look down; only the head and its accessories are hidden. Your real arms hold the gun by animation (tucked while disguised, raised when exposed).
+3. **Gun always in frame**: poses come from the real field of view and aspect ratio. **Wall tuck**: rays along the gun's length pull it back and raise or lower it near a wall, and block firing while fully tucked.
+4. A **held-item switch** so one fire/aim input layer can mean weapon or gadget (gadgets themselves are Step 17).
+5. **Movement feel**: lower gravity (about 150) and a slightly longer jump, plus smooth starts and stops on the ground **for players and NPCs alike**.
+6. **Frame stepping**: animation steps 8 a second for everything including your own body and arms, and other characters' **positions step 12 a second**, both on the shared server clock; the server rewinds shots to the snapped positions so hits stay fair. Your own movement stays smooth. Keep 55 to 60 fps.
+7. **Hit boxes** narrow with the body (radius about 1.0 stud, from 1.25).
+8. **Other players' view of a gun**: no new server message; each client recognises the True Form look and attaches the gun to a character wearing it.
+**Done when:** you can look down and see your body, the gun never leaves the screen or enters a wall, and the movement feels floaty but responsive.
+
+### Step 13B: Bots (after Step 13)
+AI agents that play like players, to fill empty Duo and Solo slots during the pre-match wait. They use the node graph and the same server systems a player does (scan, disguise, interact, intel, vault, Package, extraction, combat), so every rule applies to them, and nothing on a bot marks it as one. A new player who connects mid-match **takes a bot's place until the vault unlock**; after that they spectate. Bots earn no XP or Credits. **Two difficulty levels:** casual stealth players, and competitive ones. **Done when:** a match with one human and fillers plays from lobby to results.
+
+### Step 13C: First-run tutorial (after Step 13B)
+A short tutorial using bots and the crowd that teaches scan, disguise, intel, the vault and extraction before a first match. Shaped by the Deceive Inc. tutorial videos once they are supplied (inspiration only: no copied layouts, names or assets). **Done when:** a new player can finish it and start a match knowing the loop.
+
+### Added to existing steps
+- **Step 8 (rest):** kit-matched weapons. Parapet's heavy SMG gets shorter falloff (about 20 to 45 studs); Feint's silent pistol (short audible range, the shot's sound seems to come from 8 to 15 studs away) replaces the heavy revolver.
+- **Step 9:** spectating: living teammates first, then once the whole team is out any living player and a **bounded drone camera** that flies through walls but stays inside the building volumes and their terraces; a cycle menu; a spectator chat that living players never hear; an event hook for post-elimination rewards (mini-games are not built until you design one).
+- **Step 17:** every gadget has three phases: **equip** (keys 2 and 3, quiet, replaces the weapon in hand, and hidden from other players while you are disguised), **deploy** (fire button) and **alternate** (aim button, for example recall a deployable). Only a deploy affects Cover, at the gadget's own cover level. A recalled deployable leaves the map and its cooldown starts at normal length.
+- **Crowd tuning:** an even split between the two towers by floor area with a minimum on every floor; replacements spawn in the same tower and floor band.
+- **Map polish:** distant buildings get smaller window tiles; the skyscrapers the towers stand on get windows the same size as the towers' own.
