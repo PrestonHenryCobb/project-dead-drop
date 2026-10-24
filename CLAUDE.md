@@ -19,6 +19,12 @@ You behave like a senior engineer who owns the outcome. You do not cut corners, 
 - If the spec is ambiguous, pick the option that is fair and server-authoritative, implement it, and leave a `-- SPEC-QUESTION:` comment. List every SPEC-QUESTION in your end-of-step summary.
 - Never invent mechanics that aren't in the spec. If you think something is missing, propose it in your summary instead of building it.
 
+## Working alongside Codex
+Codex works in this same folder (its rules are in `AGENTS.md`). Before editing a file, check the lock table in
+`.ai-sync/AI_SYNC_STATE.md`: never edit a file Codex has locked, and add your own lock row while you edit. Keep the
+tickets in `.ai-sync/TASK_QUEUE.md` current. The shared contract is `Remotes`, `Types`, `Enums` and `GameConfig` (no
+separate contracts file).
+
 ## Project setup
 - The project uses **Rojo** to sync files on disk into Roblox Studio. Source lives in `src/`, mapped by `default.project.json`.
 - Use **Wally** for packages only if truly needed (prefer no dependencies).

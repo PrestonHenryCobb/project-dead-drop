@@ -63,7 +63,7 @@ so Attire, Finishes and effects show only in True Form, in the lobby, on podiums
 - No cosmetic sound or effect may play while disguised.
 
 ## Shop structure (2026-10-23)
-- **Currencies:** Robux buy **Bonds**, the premium currency, which buys Black Market items. **Credits** are earned in play and
+- **Currencies:** Robux buy **Stocks** (renamed from Bonds on 2026-10-24) in **the Mint**, the premium currency screen with a banknote-press look; Stocks buy Black Market items. **Credits** are earned in play and
   buy agents and some cosmetics.
 - **Format:** a daily rotation of items plus a weekly featured bundle, and a seasonal battle pass (the Dossier) with a free
   and a premium track.

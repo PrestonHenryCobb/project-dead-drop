@@ -51,3 +51,15 @@ been edited. Review this list, then tell me to apply it.
 | 8.2 (character size) | All outfits scale 95% to 105% | Taller and slimmer for everyone: height 105% to 115%, width and depth 80% to 90%, the same range for players and NPCs. |
 | 6.8 / 8.1 (movement feel) | Standard Roblox movement | Lower gravity and a longer jump, and smooth starts and stops on the ground for players **and NPCs** (so easing is never a tell). Character animation and other characters' positions step at 8 a second; your own movement does not. |
 | 5.1 (crowd placement) | Spawn by tier weight | An even split between the two towers by floor area, with a minimum on every floor. |
+
+## Added 2026-10-24 (the Deceive Inc. brief, answers in IDEAS_2026-10-24_BRIEF.md)
+
+| Spec section | Current | Proposed |
+|---|---|---|
+| 5.5 (killing NPCs) | Exposed 10 s, team loses 50 Funds, +1 alarm (Funds since removed) | Exposed and +1 alarm stay. The Funds loss is replaced by **Notoriety**: a civilian downed adds a level, a Security NPC half a level, up to 3; each level raises damage taken (+15%, +30%, +50%) and guard hostility; it decays while you lie low; NPCs hit by one shot or blast count once. |
+| 13 (headshots) | 1.5x for everyone (2x marksman) | A hit on a Covered or Suspicious agent always uses body damage, even on the head; multipliers apply once Exposed. |
+| 11 (Package) | Carrier pinged every 10 s | A visible ping meter fills over 10 s while walking and pings when full; sprinting or jumping fills it faster. The carrier can hold a key to reveal rival agents within about 30 studs (1 intel to start, 1 a second). |
+| 6.4 (applying a disguise) | A particle puff visible within 10 studs | No puff. Instead a disguise-swap marker visible to rival teams: Guest 5 s, Staff 10 s, Security 15 s, Executive 20 s. |
+| 15 and 16 (agent kits, unlocks) | One ability and one passive; pick 1 of 3 weapons | Each agent has 3 **Hardware** (weapons), 3 **Talents** (abilities) and 3 **Instincts** (passives). Start with one of each; agent mastery (about 10 matches to max, the 2nd item after about 2) unlocks the rest in a fair order; pick one of each in agent select. |
+| 20 (progression, shop) | Daily first-win bonus; seasonal Dossier | Adds daily and weekly contracts for Credits; Dossiers never expire (pick the active one); one game pass (cosmetic set plus XP boost); no Solo bonus. The premium currency is **Stocks**, bought in **the Mint** (banknote-press look). |
+| 22 (lobby) | Lobby place | Adds a firing range with plated targets and a damage screen (head, body, legs, totals). |
