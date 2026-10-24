@@ -16,6 +16,7 @@ Every ticket ends with the `CLAUDE.md` report, `stylua src` and `selene src` cle
 | 8.5 | Remaining 17 weapons, one agent per ticket (8.5a Guise, b Parapet, c Lattice, d Reticle, e Suture, f Feint): `WeaponDefs` entries and client feel by Codex; any new server rule (unique effects in `STEP8_QUESTIONS.md`) as a hand-off to Claude Code in `CombatService`. Includes Parapet's shorter heavy-SMG falloff and Feint's silent pistol replacing the heavy revolver. | CODEX + CLAUDE_CODE | 8.1 | TODO |
 | 8.6 | SMG model in Blender for the owner to upload. | CLAUDE_CODE | Owner uploads | TODO |
 | 8.8 | First hit on a Covered or Suspicious agent uses body damage even on the head (SPEC_CHANGES 2026-10-24). | CLAUDE_CODE | | TODO |
+| 8.9 | Per-weapon `PostMeleeFireDelay` scaled to weapon strength (brief Q14): field in `WeaponDefs` (Codex), enforced on the server in `CombatService` (Claude Code). Values set case by case with each agent's weapons in 8.5. | CODEX + CLAUDE_CODE | 8.1 | TODO |
 | 8.7 | Step 8 end report (CLAUDE.md format). | CLAUDE_CODE | 8.1 to 8.6 | TODO |
 
 ## Step 8B: feel pass (after Step 8)

@@ -3,7 +3,7 @@
 You gave me a long brief (`claude_code_deceive_inc_prompt.md`) written as a master prompt for Claude Code and Codex. It
 describes Deceive Inc.'s systems in detail. This file sorts it against what Cover Story already has, the same way as
 `IDEAS_2026-10-24.md`. Nothing here changes an earlier decision, and nothing is built until you answer.
-**All 13 answered on 2026-10-24** and recorded in `SPEC_CHANGES.md`.
+**All answered on 2026-10-24** (Q14 and Q15 came from the companion Codex brief) and recorded in `SPEC_CHANGES.md`.
 
 Two ground rules apply to everything below:
 - **Inspiration only** (your rule): no Deceive Inc. names, numbers, layouts or assets. Where a brief item is worth having,
@@ -129,6 +129,18 @@ Ordered by how much they would change the game.
 - **Options:** (a) *yes, a modest bonus (for example +20%) because Solo is harder* (b) no.
 - **Answer:** (b) No: the same Credits in every mode.
 
+### Q14. A delay before firing after a melee hit (from the Codex brief)
+- **Why:** melee does 35 and Reticle's DMR does 75 body, so a melee then one shot downs an agent with no plates before
+  they can react. A per-weapon delay stops slow, hard-hitting weapons from chaining a melee into an unavoidable kill.
+- **Answer:** Yes: a per-weapon `PostMeleeFireDelay` in `WeaponDefs` that **scales with the weapon's strength, set case by
+  case** (heavy single shots such as the DMR, pump shotgun and revolver-class get the longest; fast low-damage weapons
+  little or none). Values tuned in play.
+
+### Q15. Weapon stats in agent select (from the Codex brief)
+- **Answer:** **Exact numbers with themed graphics**: body damage, headshot multiplier, fire rate, magazine, reload time
+  and falloff range read straight from `WeaponDefs`, shown with eye-catching visuals that match the game's spy-gala
+  look. Designed as a mock-up first, with the rest of the menus (Step 19).
+
 ### Not taken up
 - **A personal hideout or trophy room:** a large new space with little play value; can be proposed after launch.
 - **Model routing for the agents** (which model runs which phase): a tooling choice for you, not part of the game.
@@ -145,3 +157,5 @@ Ordered by how much they would change the game.
 | Q6 marker | Step 6 follow-up, any time after Step 8B |
 | Q7 firing range | Step 22 (or now, if b) |
 | Q8 to Q13 meta and shop | Step 21 |
+| Q14 post-melee delay | Rest of Step 8 (combat) |
+| Q15 weapon stats screen | Step 19 (agent select) |

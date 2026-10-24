@@ -63,3 +63,5 @@ been edited. Review this list, then tell me to apply it.
 | 15 and 16 (agent kits, unlocks) | One ability and one passive; pick 1 of 3 weapons | Each agent has 3 **Hardware** (weapons), 3 **Talents** (abilities) and 3 **Instincts** (passives). Start with one of each; agent mastery (about 10 matches to max, the 2nd item after about 2) unlocks the rest in a fair order; pick one of each in agent select. |
 | 20 (progression, shop) | Daily first-win bonus; seasonal Dossier | Adds daily and weekly contracts for Credits; Dossiers never expire (pick the active one); one game pass (cosmetic set plus XP boost); no Solo bonus. The premium currency is **Stocks**, bought in **the Mint** (banknote-press look). |
 | 22 (lobby) | Lobby place | Adds a firing range with plated targets and a damage screen (head, body, legs, totals). |
+| 13 (melee) | Fire right after a melee | A per-weapon delay before firing after a melee hit, scaled to the weapon's strength and set case by case. |
+| 21 (agent select) | (unspecified) | Each weapon shows exact stats (damage, headshot multiplier, fire rate, magazine, reload, falloff) with themed graphics. |
