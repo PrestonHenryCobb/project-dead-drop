@@ -30,6 +30,7 @@ local BAR_WIDTH = 200
 local BAR_HEIGHT = 8
 local PLATE_WIDTH = 60
 local MARGIN = 24
+local VITALS_BOTTOM = combat.Hud.VitalsBottomPixels
 local CROSSHAIR_THICKNESS = 2
 local TAKEDOWN_WIDTH = 160
 local TAKEDOWN_BAR_HEIGHT = 6
@@ -86,19 +87,19 @@ local function build()
 	local health = HudKit.text(
 		gui,
 		"Health",
-		UDim2.new(0, MARGIN, 1, -MARGIN - 28),
+		UDim2.new(0, MARGIN, 1, -VITALS_BOTTOM - 28),
 		Vector2.new(0, 1),
 		UDim2.fromOffset(BAR_WIDTH, 24)
 	)
 	health.TextXAlignment = Enum.TextXAlignment.Left
 	healthText = health
 	local back = bar(gui, "HealthBack", ui.ScanRingDimColor)
-	back.Position = UDim2.new(0, MARGIN, 1, -MARGIN - 14)
+	back.Position = UDim2.new(0, MARGIN, 1, -VITALS_BOTTOM - 14)
 	back.Size = UDim2.fromOffset(BAR_WIDTH, BAR_HEIGHT)
 	healthFill = bar(back, "Fill", feedback.HealthColor)
 	for index = 1, combat.MaxPlates do
 		local plateBack = bar(gui, `PlateBack{index}`, ui.ScanRingDimColor)
-		plateBack.Position = UDim2.new(0, MARGIN + (index - 1) * (PLATE_WIDTH + 10), 1, -MARGIN)
+		plateBack.Position = UDim2.new(0, MARGIN + (index - 1) * (PLATE_WIDTH + 10), 1, -VITALS_BOTTOM)
 		plateBack.Size = UDim2.fromOffset(PLATE_WIDTH, BAR_HEIGHT)
 		plates[index] = bar(plateBack, "Fill", feedback.ArmorColor)
 	end

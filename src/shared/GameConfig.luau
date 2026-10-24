@@ -478,6 +478,10 @@ local GameConfig = {
 			LowHealthFraction = 0.3,
 			LowHealthColor = Color3.fromRGB(235, 70, 70),
 		},
+		-- Ticket 8.3: keep combat vitals above the disguise badge (16 px bottom margin + 44 px height).
+		Hud = {
+			VitalsBottomPixels = 76, -- plate bottom is 68 px above the screen edge, leaving an 8 px gap
+		},
 		-- The first-person view model (client only): where the gun sits in each pose, in studs from the camera (+x right,
 		-- -y down, -z forward) with a rotation in degrees (pitch, yaw, roll), and how fast it moves between poses.
 		ViewModel = {
