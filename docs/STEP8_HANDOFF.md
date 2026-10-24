@@ -1,6 +1,6 @@
 # Step 8 handoff (paused 2026-10-23, mid-build)
 
-Everything below is saved in local commit `5c883d1` on `main` (based on `aa65eef`, the map re-plan). The new commit has not been pushed to GitHub yet.
+Everything below is saved in local commit `48cacc8` on `main` (based on `aa65eef`, the map re-plan). The new commit has not been pushed to GitHub yet.
 Read `CLAUDE.md` first (rules, and how a step must end), then `docs/STEP8_QUESTIONS.md` (the decided design, the
 "Answers" section at the bottom is the source of truth), then this file.
 
