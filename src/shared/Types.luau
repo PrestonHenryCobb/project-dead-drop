@@ -91,6 +91,62 @@ export type TrespassInfo = {
 	Clearance: number,
 }
 
+-- Spec 13: weapons. Stats live in Defs/WeaponDefs.luau; the rest of combat's tuning is GameConfig.Combat.
+export type Falloff = {
+	StartStuds: number, -- full damage up to here
+	EndStuds: number, -- damage falls off linearly to MinMult from StartStuds to here, then stays there
+	MinMult: number,
+}
+
+export type WeaponSpread = {
+	Hip: number, -- degrees of cone, hip fire
+	Aim: number, -- degrees of cone, aimed
+	PerShot: number, -- degrees added by each shot
+	MaxExtra: number, -- most the shots can add
+	RecoverPerSecond: number, -- degrees lost per second while not firing
+	MoveMult: number, -- cone multiplier while moving
+}
+
+export type WeaponRecoil = {
+	PitchPerShot: number, -- degrees the view climbs per shot
+	YawPerShot: number, -- degrees the view drifts per shot, left or right at random
+	RecoverRate: number, -- per second, the share of the climb that settles back
+	ViewKick: number, -- studs the gun model jolts back per shot
+}
+
+export type WeaponSounds = {
+	Fire: string,
+	Reload: string,
+	Empty: string,
+}
+
+export type WeaponDef = {
+	Id: string,
+	Name: string,
+	Agent: string,
+	Automatic: boolean, -- holding the trigger keeps firing
+	Damage: number,
+	HeadshotMult: number,
+	RPM: number,
+	MagSize: number,
+	ReserveAmmo: number,
+	ReloadSeconds: number,
+	Falloff: Falloff?, -- nil: no falloff
+	Quiet: boolean, -- heard only GameConfig.Combat.QuietHearStuds away (spec 23), and no muzzle flash
+	Spread: WeaponSpread,
+	Recoil: WeaponRecoil,
+	AimZoom: number, -- the field of view is multiplied by this while aiming
+	Sounds: WeaponSounds,
+}
+
+-- Combat messages. All are sent only to the player they concern, except ShotInfo (to players within earshot).
+export type HitConfirm = { Kind: "Npc" | "Agent", Head: boolean } -- the shooter's hitmarker (spec 8.4)
+export type AmmoInfo = { Mag: number, Reserve: number, ReloadSeconds: number } -- ReloadSeconds > 0 as a reload starts
+export type HealthInfo = { HP: number, Armor: number }
+export type DamageInfo = { Position: Vector3, Amount: number } -- where the shot came from, for the direction marker
+export type ShotInfo = { Origin: Vector3, Hit: Vector3, WeaponId: string, Struck: boolean } -- Struck: a person was hit
+export type MeleeState = { Kind: "Takedown", Seconds: number, Active: boolean } -- a takedown began or ended
+
 -- Token-bucket limits for one client -> server remote (GameConfig.Network).
 export type RateLimit = {
 	PerSecond: number,

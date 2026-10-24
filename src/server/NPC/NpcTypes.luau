@@ -27,6 +27,7 @@ export type Npc = {
 	role: Types.Role,
 	outfit: Types.OutfitDef, -- what a scan of this NPC copies (spec 6.3)
 	maxTier: number,
+	hp: number, -- health left; at 0 the NPC goes down (Death)
 	baseSpeed: number,
 	speed: number,
 	rootHeight: number,

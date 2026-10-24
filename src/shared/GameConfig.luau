@@ -425,8 +425,80 @@ local GameConfig = {
 		LagCompHistoryHz = 20,
 		FireRateToleranceSeconds = 0.04,
 		FireOriginToleranceStuds = 4,
-		Melee = { Damage = 35, CooldownSeconds = 0.8, Range = 4 },
-		Takedown = { ConeDegrees = 60, HoldSeconds = 1.2, Damage = 90, BreakDistance = 4 },
+		Melee = {
+			Damage = 35,
+			CooldownSeconds = 0.8,
+			Range = 4,
+			SwingConeDegrees = 90,
+			ReachSlackStuds = 1.5,
+			HeightStuds = 3,
+		},
+		Takedown = { ConeDegrees = 60, HoldSeconds = 1.2, Damage = 90, BreakDistance = 4, CheckSeconds = 0.1 },
+		-- Weapons (STEP8_QUESTIONS). The weapon every player carries until agent select exists (Step 10).
+		DefaultWeapon = "GuiseSMG",
+		MaxShotStuds = 400, -- the longest ray the server casts for a shot
+		FireDirectionTolerance = 0.02, -- a FireRequest direction must be a unit vector within this
+		PlayerRenderDelay = 0.1, -- how far behind the server a client sees other players; the rewind adds it (NPCs: NPC.InterpolationDelay)
+		GunfireReactSeconds = 0.5, -- NPCs react to a shooter's gunfire at most this often
+		MovingSpeedStuds = 2, -- a body faster than this counts as moving for spread
+		-- Hit boxes the server tests rewound shots against: a vertical cylinder from the feet to the head, and the head.
+		Hitbox = { BodyRadius = 1.25, HeadRadiusScale = 0.6, HeadMinRadius = 0.5, CullStuds = 4.5 },
+		ViolationLogEvery = 10, -- the server warns about a player's impossible requests this often (spec 26: log, never ban on it)
+		-- Client side: what a shot, a hit and a wound look and sound like. All of it is feedback only; the server decides.
+		Feedback = {
+			HitmarkerSeconds = 0.18,
+			HitmarkerPixels = 14,
+			HeadshotHitmarkerScale = 1.6,
+			NpcHitColor = Color3.fromRGB(190, 190, 195), -- grey: an NPC (spec 8.4)
+			AgentHitColor = Color3.fromRGB(235, 60, 60), -- red: an agent
+			HitSounds = {
+				Npc = "rbxassetid://6607204501",
+				Agent = "rbxassetid://6607339542",
+				Head = "rbxassetid://6607113255",
+			},
+			HitSoundVolume = 0.6,
+			HeadshotPitch = 1.3,
+			DamageIndicatorSeconds = 1.2,
+			DamageIndicatorPixels = 90, -- distance of the marker from the centre of the screen
+			DamageIndicatorColor = Color3.fromRGB(235, 60, 60),
+			ImpactSound = "rbxassetid://85805517776968",
+			ImpactParticles = 6,
+			ImpactSeconds = 0.4,
+			ShotVolume = 0.8,
+			ShotRollOff = 8, -- studs: the shot sound is full volume within this and fades to nothing at its hearing range
+			MeleeSound = "rbxassetid://113744400706298",
+			CrosshairGapPixels = 6, -- the weapon crosshair's resting gap, before spread opens it
+			CrosshairLengthPixels = 8,
+			CrosshairColor = Color3.fromRGB(240, 240, 245),
+			HealthColor = Color3.fromRGB(90, 200, 120),
+			ArmorColor = Color3.fromRGB(110, 170, 235),
+			LowHealthFraction = 0.3,
+			LowHealthColor = Color3.fromRGB(235, 70, 70),
+		},
+		-- The first-person view model (client only): where the gun sits in each pose, in studs from the camera (+x right,
+		-- -y down, -z forward) with a rotation in degrees (pitch, yaw, roll), and how fast it moves between poses.
+		ViewModel = {
+			Poses = {
+				-- Disguised: tucked across the chest, barrel angled down (STEP8 answers).
+				Tucked = { Position = Vector3.new(0.1, -1.35, -1.25), Rotation = Vector3.new(-38, 80, 8) },
+				-- Exposed: up and combat ready, in the right third of the screen.
+				Ready = { Position = Vector3.new(1.05, -0.95, -1.85), Rotation = Vector3.new(0, -3, 0) },
+				-- Aiming: centred on the line of sight.
+				Aim = { Position = Vector3.new(0, -0.62, -1.55), Rotation = Vector3.zero },
+			},
+			PoseSpeed = 12, -- how quickly the gun settles into a pose (per second)
+			SwayStrength = 0.04, -- studs of lag per radian of view movement per second
+			SwayLimitStuds = 0.25, -- the most the gun lags behind a fast turn
+			SwaySettle = 10, -- per second, how fast that lag catches up
+			AimBobFraction = 0.2, -- the walking bob while aiming, as a share of the usual
+			BobSpeed = 7, -- walking bob cycles per second at full speed
+			BobStuds = 0.035,
+			KickRecoverSpeed = 14, -- per second, how quickly the gun returns from a shot's jolt
+			ReloadDipStuds = 0.9, -- how far the gun lowers while reloading
+			ReloadTilt = 25, -- degrees of roll while reloading
+			GunColor = Color3.fromRGB(32, 33, 38),
+			AccentColor = Color3.fromRGB(70, 72, 80),
+		},
 	},
 
 	-- Spec 14: downed, revive, rescue.
@@ -597,6 +669,14 @@ local GameConfig = {
 		BlendPad = Enum.KeyCode.DPadLeft,
 		Sprint = Enum.KeyCode.LeftShift,
 		Crouch = Enum.KeyCode.C, -- held; a toggle option arrives with the settings menu in Step 19
+		Fire = Enum.UserInputType.MouseButton1, -- spec 24; STEP8 B1: it draws and fires in one
+		FirePad = Enum.KeyCode.ButtonR2,
+		Aim = Enum.UserInputType.MouseButton2,
+		AimPad = Enum.KeyCode.ButtonL2,
+		Reload = Enum.KeyCode.R,
+		ReloadPad = Enum.KeyCode.ButtonX,
+		Melee = Enum.KeyCode.V, -- tap to strike; from behind, hold to take down (spec 13.4)
+		MeleePad = Enum.KeyCode.ButtonR3,
 	},
 
 	-- Spec 23: audio radii in studs.
@@ -685,16 +765,8 @@ local GameConfig = {
 		PrintZoneChanges = true, -- ZoneService prints a line whenever a player's zone tier changes
 		PrintNpcCost = true, -- NPCService and NPCController print their average per-update cost every few seconds
 		CostReportSeconds = 10,
-		TestEvents = true, -- the J, K, L, U and I keys fire test events (removed in Step 8, see TestKeys)
-		TestKeys = {
-			Gunshot = Enum.KeyCode.J,
-			Explosion = Enum.KeyCode.K,
-			Body = Enum.KeyCode.L,
-			Lockout = Enum.KeyCode.U, -- starts the combat lockout (spec 7.6)
-			Expose = Enum.KeyCode.I, -- exposes the sender (spec 7.2)
-		},
-		TestEventMaxStuds = 150, -- the server ignores test events further than this from the sender
-		TestBodyPickStuds = 10, -- the L key downs the NPC nearest the aimed point, if one is within this distance
+		PrintShots = false, -- enable temporarily when diagnosing FireRequest validation
+		PrintEvents = true, -- cover, guards and doors print a line when they act (exposures, investigations, door holds)
 		AutoRespawn = true, -- RigService respawns a dead player (replaced by the match flow in Step 10)
 		AutoRespawnSeconds = 3,
 	},

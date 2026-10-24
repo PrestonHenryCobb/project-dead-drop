@@ -75,7 +75,7 @@ function DoorService.holdNear(position: Vector3, clearance: number, opensKeycard
 			door.lastHeld = now
 			if not door.open then
 				setOpen(door, true)
-				if GameConfig.Debug.TestEvents then
+				if GameConfig.Debug.PrintEvents then
 					print(`[DoorService] opened {door.part.Name} for a body at {position}`)
 				end
 			end

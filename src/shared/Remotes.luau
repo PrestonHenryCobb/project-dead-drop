@@ -33,6 +33,10 @@ local Remotes = {
 		"DisguiseUpdate", -- to the owner only: the disguise worn and the slots (spec 6.3, 6.4)
 		"ScanState", -- to the scanner only: a scan started, was cancelled or finished (spec 6.3)
 		"AgentSense", -- to one player: an Agent Sense shimmer or the exposed-enemy vignette (spec 8.3)
+		"AmmoUpdate", -- to the owner only: magazine and reserve (spec 13.5), and a reload starting
+		"HealthUpdate", -- to the owner only: health and armour (spec 13.1)
+		"ShotHeard", -- to players within earshot of a shot: where it came from and where it landed (spec 23)
+		"MeleeState", -- to the owner only: a takedown started or ended (spec 13.4)
 	},
 
 	-- Client -> server (requests only; the server validates every one)
@@ -54,7 +58,7 @@ local Remotes = {
 		"RequestSprint", -- sprint on or off (spec 6.8)
 		"RequestCrouch", -- crouch on or off (spec 6.8)
 		"RequestSense", -- the character in the crosshair within Agent Sense range, or nil (spec 8.3)
-		"RequestDebugEvent", -- development only; ignored unless GameConfig.Debug.TestEvents is on
+		"RequestDraw", -- aim (draw) the weapon on or off (spec 13.2)
 	},
 
 	FolderName = "Remotes",

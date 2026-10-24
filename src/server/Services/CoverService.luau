@@ -21,6 +21,7 @@
 --   CoverService.expose(player, reason, minExposedSeconds?)   cover-breaking actions (spec 7.2) call this
 --   CoverService.startLockout(player)                         starts or refreshes the combat lockout (spec 7.6)
 --   CoverService.onNpcKilled(player)                          a player killed an NPC (spec 5.5, 7.2 #11)
+--   CoverService.setWeaponDrawn(player, drawn)                the player is aiming their weapon (spec 7.3: 40 percent a second, doubled)
 --   CoverService.isExposed(player)
 --   CoverService.setSources(sources)                          NPCService tells us who can see, and where bodies are
 
@@ -55,6 +56,7 @@ type State = {
 	exposedMinUntil: number,
 	lastSeenBySecurity: number,
 	pendingJumps: number,
+	weaponDrawn: boolean, -- aiming the weapon (CombatService)
 	-- what was last sent, so only changes go over the network
 	sentCover: string,
 	sentCanRecover: boolean,
@@ -106,6 +108,7 @@ local function newState(): State
 		exposedMinUntil = 0,
 		lastSeenBySecurity = -math.huge,
 		pendingJumps = 0,
+		weaponDrawn = false,
 		sentCover = "",
 		sentCanRecover = false,
 		sentBlocker = "",
@@ -201,7 +204,7 @@ function CoverService.expose(player: Player, reason: string, minExposedSeconds: 
 	end
 	state.cover = "Exposed"
 	state.suspicion = 0
-	if GameConfig.Debug.TestEvents then
+	if GameConfig.Debug.PrintEvents then
 		print(`[CoverService] {player.Name} exposed: {reason}`)
 	end
 	DisguiseService.expose(player)
@@ -217,6 +220,14 @@ function CoverService.startLockout(player: Player)
 	local now = os.clock()
 	state.lockoutUntil = now + config.CombatLockout
 	sendCover(player, state, now)
+end
+
+-- Aiming a weapon while disguised is suspicious to Security and cameras, once in Tier 1 or higher (spec 7.3).
+function CoverService.setWeaponDrawn(player: Player, drawn: boolean)
+	local state = states[player]
+	if state then
+		state.weaponDrawn = drawn
+	end
 end
 
 -- Spec 5.5, 7.2 #11: killing a civilian exposes the killer for at least ExposedSeconds. The Funds penalty and the
@@ -290,7 +301,13 @@ end
 
 -- Percent per second from what the player is doing and where (spec 7.3 and 7.4), before it is scaled by witnesses:
 -- what civilians notice too, and what only Security and cameras notice.
-local function suspiciousRates(player: Player, position: Vector3, zoneTier: number, clearance: number): (number, number)
+local function suspiciousRates(
+	player: Player,
+	state: State,
+	position: Vector3,
+	zoneTier: number,
+	clearance: number
+): (number, number)
 	local gain = config.SuspicionGain
 	local sprinting, crouching = DisguiseService.getMovement(player)
 	local noticed, rate = 0, 0
@@ -303,6 +320,9 @@ local function suspiciousRates(player: Player, position: Vector3, zoneTier: numb
 	end
 	if zoneTier >= 1 and crouching then
 		rate += gain.Crouch
+	end
+	if zoneTier >= 1 and state.weaponDrawn then
+		rate += gain.WeaponDrawn
 	end
 	if nearBody(position) then
 		rate += gain.NearBody
@@ -330,7 +350,7 @@ local function step(player: Player, state: State, dt: number, now: number)
 	local clearance = DisguiseService.getClearance(player)
 
 	if state.cover ~= "Exposed" then
-		local noticedRate, guardRate = suspiciousRates(player, root.Position, zoneTier, clearance)
+		local noticedRate, guardRate = suspiciousRates(player, state, root.Position, zoneTier, clearance)
 		local jumpGain = state.pendingJumps * config.SuspicionGain.Jump
 		state.pendingJumps = 0
 		local jumpShare = if config.CivilianNotices.Jump then allShare else guardShare

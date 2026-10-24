@@ -8,8 +8,8 @@
 --   been quiet for ReturnAfterQuietSeconds.
 --   A body or downed NPC within range: Guests gasp, then step back from it.
 --
--- The crowd calls update() each tick to move NPCs on to the next stage; combat (Step 8) will call gunfire() and
--- explosion() when shots and blasts happen.
+-- The crowd calls update() each tick to move NPCs on to the next stage; combat calls gunfire() when a shot is fired and
+-- will call explosion() when blasts exist.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -112,13 +112,13 @@ end
 -- Can this guard make out a noise at `position`? A guard on the same floor hears it within SameFloorStuds. On another
 -- floor it counts only if the guard is close and has a clear line to the source, as it would from a stair or balcony
 -- that is open to the floor.
-local function hears(npc: Npc, position: Vector3): boolean
+local function hears(npc: Npc, position: Vector3, audibleStuds: number): boolean
 	local settings = config.Investigate
 	local offset = npc.ground - position
 	if math.abs(offset.Y) <= settings.FloorHeightStuds then
-		return offset.Magnitude <= settings.SameFloorStuds
+		return offset.Magnitude <= math.min(settings.SameFloorStuds, audibleStuds)
 	end
-	if Vector3.new(offset.X, 0, offset.Z).Magnitude > settings.OpenFloorStuds then
+	if Vector3.new(offset.X, 0, offset.Z).Magnitude > math.min(settings.OpenFloorStuds, audibleStuds) then
 		return false
 	end
 	local from = npc.ground + EYE_LIFT
@@ -148,18 +148,18 @@ local function beginInvestigate(crowd: Crowd, npc: Npc, position: Vector3, now: 
 	npc.state = "Investigate"
 	npc.stateUntil = now + quiet
 	AnimationSync.set(npc, "")
-	if GameConfig.Debug.TestEvents then
+	if GameConfig.Debug.PrintEvents then
 		print(`[Reactions] {npc.role} {npc.id} goes to look at the noise (node {destination}, post {npc.post})`)
 	end
 end
 
-local function investigate(crowd: Crowd, position: Vector3, now: number)
+local function investigate(crowd: Crowd, position: Vector3, now: number, audibleStuds: number)
 	for _, npc in crowd.npcs do
 		if
 			config.Investigate.Roles[npc.role]
 			and not Death.isDown(npc)
 			and not reacting(npc)
-			and hears(npc, position)
+			and hears(npc, position, audibleStuds)
 		then
 			beginInvestigate(crowd, npc, position, now)
 		end
@@ -180,19 +180,21 @@ local function beginReturn(crowd: Crowd, npc: Npc, now: number)
 	npc.pathIndex = 1
 	npc.speed = npc.baseSpeed
 	npc.state = "Return"
-	if GameConfig.Debug.TestEvents then
+	if GameConfig.Debug.PrintEvents then
 		print(`[Reactions] {npc.role} {npc.id} is going back to its post (node {npc.post})`)
 	end
 end
 
-function Reactions.gunfire(crowd: Crowd, position: Vector3, now: number)
-	panic(crowd, position, config.Panic.GunfireRadius, now)
-	investigate(crowd, position, now)
+-- A shot: panic and investigation reach no further than the weapon can be heard (spec 23), which is shorter for a
+-- suppressed weapon than the usual radii.
+function Reactions.gunfire(crowd: Crowd, position: Vector3, now: number, audibleStuds: number)
+	panic(crowd, position, math.min(config.Panic.GunfireRadius, audibleStuds), now)
+	investigate(crowd, position, now, audibleStuds)
 end
 
 function Reactions.explosion(crowd: Crowd, position: Vector3, now: number)
 	panic(crowd, position, config.Panic.ExplosionRadius, now)
-	investigate(crowd, position, now)
+	investigate(crowd, position, now, math.huge)
 	for _, npc in crowd.npcs do
 		if not Death.isDown(npc) and distance(npc, position) <= config.Panic.ExplosionDownRadius then
 			Death.down(crowd, npc, position, now)

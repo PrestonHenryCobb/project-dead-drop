@@ -765,7 +765,8 @@ function Build.run()
 		local dims = stairDims(ramp)
 		local cutFrom = dims.rise - SLAB - HEADROOM
 		if ramp.turn then
-			-- leg two's step is legRise * (2 - along / legRun) high
+			-- Leg two's local `along` coordinate runs from its high end back toward its landing.
+			-- Its step is legRise * (2 - along / legRun) high, so the opening starts at along 0.
 			return 0, dims.legRun * (2 - cutFrom / dims.legRise), lane - RAMP_W / 2, lane + RAMP_W / 2
 		end
 		return dims.run * cutFrom / dims.rise, dims.run, -RAMP_W / 2, RAMP_W / 2
@@ -1573,7 +1574,7 @@ function Build.run()
 			local roomB = edge.roomB :: Room
 			local sideA = sideAcross(edge, edge.roomA)
 			return { faceFor(edge.roomA, sideA), faceFor(roomB, -sideA) }
-		elseif edge.kind == "free" and edge.roomA.kind == "indoor" then
+		elseif (edge.kind == "free" or edge.kind == "void") and edge.roomA.kind == "indoor" then
 			local inside = sideAcross(edge, edge.roomA)
 			return { faceFor(edge.roomA, inside), faceFor(nil, -inside) }
 		end
@@ -2636,7 +2637,12 @@ function Build.run()
 				end
 			end
 		elseif edge.kind == "void" then
-			height, color = RAIL_H, RAIL_GREY
+			if edge.roomA.kind == "indoor" then
+				-- An indoor room beside a shaft needs an enclosing wall, not a guardrail.
+				height, color = roomHeight(edge.roomA), SHELL
+			else
+				height, color = RAIL_H, RAIL_GREY
+			end
 		else
 			if edge.roomA.kind == "indoor" then
 				height, color = roomHeight(edge.roomA), SHELL

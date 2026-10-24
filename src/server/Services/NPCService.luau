@@ -30,7 +30,6 @@ local Reactions = require(NPC:WaitForChild("Reactions"))
 local CoverService = require(script.Parent.CoverService)
 local DisguiseService = require(script.Parent.DisguiseService)
 local DoorService = require(script.Parent.DoorService)
-local RemoteService = require(script.Parent.RemoteService)
 local RigService = require(script.Parent.RigService)
 local ZoneService = require(script.Parent.ZoneService)
 
@@ -169,6 +168,7 @@ local function createNpc(role: Types.Role, node: number, graph: NavGraph.Graph, 
 		role = role,
 		outfit = outfit,
 		maxTier = maxTier,
+		hp = config.MaxHP,
 		baseSpeed = speed,
 		speed = speed,
 		rootHeight = rootHeight,
@@ -311,49 +311,6 @@ local function tick(dt: number)
 	end
 end
 
--- Development only (removed in Step 8): the J, K and L keys ask the server for a gunshot, a blast or a downed NPC at
--- a point near the sender, so the reactions can be tried before combat exists.
-local function onDebugEvent(player: Player, kind: unknown, position: unknown)
-	if
-		not (GameConfig.Debug.TestEvents and RunService:IsStudio())
-		or typeof(kind) ~= "string"
-		or typeof(position) ~= "Vector3"
-	then
-		return
-	end
-	local character = player.Character
-	local root = character and character:FindFirstChild("HumanoidRootPart")
-	if
-		not (root and root:IsA("BasePart"))
-		or (root.Position - position).Magnitude > GameConfig.Debug.TestEventMaxStuds
-	then
-		return
-	end
-	local current = crowd :: NpcTypes.Crowd
-	local now = os.clock()
-	if kind == "Gunshot" then
-		Reactions.gunfire(current, position, now)
-	elseif kind == "Explosion" then
-		Reactions.explosion(current, position, now)
-	elseif kind == "Body" then
-		local nearest, nearestDistance = nil, GameConfig.Debug.TestBodyPickStuds
-		for _, npc in npcs do
-			local distance = (npc.ground - position).Magnitude
-			if not Death.isDown(npc) and distance <= nearestDistance then
-				nearest, nearestDistance = npc, distance
-			end
-		end
-		if nearest then
-			Death.down(current, nearest, root.Position, now)
-			CoverService.onNpcKilled(player) -- killing an NPC exposes the killer (spec 7.2 #11)
-		end
-	elseif kind == "Lockout" then
-		CoverService.startLockout(player)
-	elseif kind == "Expose" then
-		CoverService.expose(player, "TestKey")
-	end
-end
-
 -- Who can see players, for suspicion (spec 7.3): every NPC that is not down. Security counts fully, the rest less.
 -- The list is kept up to date by the NPC tick and reused, so asking for it costs nothing.
 local function describeWitnesses(): { CoverService.Witness }
@@ -377,6 +334,31 @@ local function describeNpc(id: string): DisguiseService.NpcInfo?
 		end
 	end
 	return nil
+end
+
+-- Combat (CombatService) reads the live crowd, hits NPCs and makes noise through these.
+function NPCService.getNpcs(): { Npc }
+	return npcs
+end
+
+-- An NPC takes damage; at 0 HP it goes down (spec 5.5, OPEN_QUESTIONS A7). Returns true if this hit downed it.
+function NPCService.hitNpc(npc: Npc, amount: number, from: Vector3): boolean
+	if Death.isDown(npc) then
+		return false
+	end
+	npc.hp -= amount
+	if npc.hp > 0 then
+		return false
+	end
+	Death.down(crowd :: NpcTypes.Crowd, npc, from, os.clock())
+	return true
+end
+
+-- A shot was fired at `position` and can be heard `audibleStuds` away: NPCs panic or investigate (spec 5.4).
+function NPCService.gunshot(position: Vector3, audibleStuds: number)
+	if crowd then
+		Reactions.gunfire(crowd, position, os.clock(), audibleStuds)
+	end
 end
 
 function NPCService.Init() end
@@ -407,7 +389,6 @@ function NPCService.Start()
 	end
 	spawnAll(graph)
 	print(`[NPCService] Spawned {#npcs} NPCs`)
-	RemoteService.onRequest("RequestDebugEvent", onDebugEvent)
 
 	local interval = 1 / config.ServerTickHz
 	local elapsed = 0

@@ -7,8 +7,8 @@ intel (Funds were removed). All designs are our own. Built in Step 17.
 
 **Design rules**
 - **No gadget does an agent's job better than the agent.** Healing stays weaker than Suture's kit, the recon gadgets stay
-  weaker than Glitch's drone, the Briefcase Shield is far weaker than Bastion's wall, and the Noise Maker stays weaker
-  than Mirage's double.
+  weaker than Lattice's drone, the Briefcase Shield is far weaker than Parapet's wall, and the Noise Maker stays weaker
+  than Feint's double.
 - **No throwables that hurt or blind.** Smoke Canister, Flashbang and Frag Grenade are removed from the spec's pool.
   Grapple Line is also cut: it overlaps the ziplines, gondola and vents, so the Spring Pad is the only vertical gadget.
 - **Identity secrecy (CLAUDE.md rule 3).** A deployed gadget never shows whose it is or which team owns it, and no gadget
@@ -63,7 +63,7 @@ Numbers are starting values. They will live in `GameConfig.Gadgets`.
 |---|---|---|---|
 | **Med Injector** | 1 | Heals 35 HP over 4 s, self only. Stops if you take damage. | Quiet in Tier 0, Discreet elsewhere |
 | **Plate Pack** | 2 | Restore 1 armour plate (25) to yourself, or to a teammate you're touching. Takes 1.5 s, and you can't shoot meanwhile. No HP. | Quiet in Tier 0, Discreet elsewhere |
-| **Briefcase Shield** | 1 | Snap open an armoured briefcase and hold it in front of you while you walk. 80 HP, covers head and chest, lasts up to 5 s. You move at 70% speed and can't shoot or sprint while holding it. It's for crossing an open gap or reaching a downed teammate. Bastion's Riot Wall is 400 HP, 8 × 6 studs, and lets him fire. | Breaks |
+| **Briefcase Shield** | 1 | Snap open an armoured briefcase and hold it in front of you while you walk. 80 HP, covers head and chest, lasts up to 5 s. You move at 70% speed and can't shoot or sprint while holding it. It's for crossing an open gap or reaching a downed teammate. Parapet's Riot Wall is 400 HP, 8 × 6 studs, and lets him fire. | Breaks |
 
 ## Healing balance against Suture (approved)
 | Source | Total heal | Notes |
@@ -75,6 +75,6 @@ Numbers are starting values. They will live in `GameConfig.Gadgets`.
 | Wall health station | Bought with intel (Step 18) | Fixed locations |
 
 ## Knock-on effects to handle in Step 17
-- Mirage's "smoke-burst SMG" and the spec text that names smoke, flash or frag (7.3 and the alarm rules) need rewording
+- Feint's "smoke-burst SMG" and the spec text that names smoke, flash or frag (7.3 and the alarm rules) need rewording
   once the grenades are gone.
-- Glitch's drone must stay clearly better than Long Lens plus Bug Cam. Recheck this when numbers are tuned.
+- Lattice's drone must stay clearly better than Long Lens plus Bug Cam. Recheck this when numbers are tuned.

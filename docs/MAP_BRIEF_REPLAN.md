@@ -338,3 +338,11 @@ playtest with 200 NPCs, NPCs opened 23 different clearance doors in 20 s, and a 
   stations sit in vault rooms. The vault unlock is min(35, 5 + 5 per team).
 - **Plans** (`node tools/map-plan.js`): vents drawn as ducts with their shafts; doorways between tiers show as
   clearance doors.
+
+## Follow-up walkthrough fixes (2026-10-23)
+
+- **Roof stair:** the switchback opening calculation already covers the high end of the upper flight. Rebuild
+  `Workspace.Gala` from the current builder before changing it; the screenshot may show an older generated map.
+- **Roof plant room wall:** indoor room edges beside a shaft now build a full-height, room-styled wall; only outdoor
+  edges keep the low railing. This closes the plant room side facing the roof courtyard.
+- In Studio, rebuild `Workspace.Gala`, then walk the roof stair and inspect the plant room's courtyard-facing wall.

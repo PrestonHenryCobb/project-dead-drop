@@ -11,8 +11,8 @@ is the record until then.
   safe in a higher-tier room shifts the odds up a little, but Ghost never goes above about 8%, even in an Executive safe.
 
 ## Agents
-- Three classes of two agents. **Deceiver:** Guise, Mirage (deception). **Enforcer:** Bastion, Vantage (fighting).
-  **Specialist:** Glitch, Suture (tech and support).
+- Three classes of two agents. **Deceiver:** Guise, Feint (deception). **Enforcer:** Parapet, Reticle (fighting).
+  **Specialist:** Lattice, Suture (tech and support).
 - **First launch:** each player picks one free agent from each class (three in all). The other three are earned.
 - **Earning:** Credits from matches (spec Section 20); an agent costs about 10 to 15 matches' worth.
 - **No duplicates on a team:** in agent select, the first teammate to lock an agent gets it and it greys out for the rest
@@ -35,7 +35,7 @@ is the record until then.
 Every cosmetic follows the identity rule (CLAUDE.md rule 3): while disguised, an agent looks exactly like the NPC they copied,
 so Attire, Finishes and effects show only in True Form, in the lobby, on podiums and in kill and win screens.
 
-**All Attire and Finishes are agent-specific** (2026-10-23): each skin is made for one agent and each Finish for one of that agent's weapons, so the catalogue ideas below become per-agent versions (for example Guise's Gala gown, Bastion's Janitor Elite).
+**All Attire and Finishes are agent-specific** (2026-10-23): each skin is made for one agent and each Finish for one of that agent's weapons, so the catalogue ideas below become per-agent versions (for example Guise's Gala gown, Parapet's Janitor Elite).
 
 **Attire (agent skins), with alternates**
 - High society, the best sellers: the Gala tuxedo and evening gown, Monochrome Noir (black-and-white detective, optional
