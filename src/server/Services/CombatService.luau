@@ -11,7 +11,10 @@
 --   * Reloading and aiming: ReloadRequest runs a timer here; RequestDraw tells CoverService the weapon is up (spec 7.3).
 --   * Melee and takedowns (RequestMelee, spec 13.4): V strikes; from behind it begins a held takedown instead, which the
 --     server times, and breaks if the target moves off, the attacker is hurt or either leaves reach.
---   * Falls: a fall of more than FallSafeStuds hurts (spec 13.1), measured from how fast the player lands.
+--   * Falls: a fall of more than FallSafeStuds hurts (spec 13.1), measured by height: from the highest point since the
+--     player last stood on the map to where they land. The server probes the ground itself, because its copy of a
+--     player's Humanoid state is not reliable (it reports Landed while the character is still falling). Riding a
+--     zipline (root anchored) and crawling in a vent never count as a fall.
 --
 -- At 0 HP a player's character dies; the downed state replaces that in Step 9. Until teams exist (Step 10), every other
 -- player is an enemy, so friendly fire is not checked yet.
@@ -30,6 +33,7 @@ local History = require(script.Parent.Parent.Combat.History)
 local CoverService = require(script.Parent.CoverService)
 local NPCService = require(script.Parent.NPCService)
 local RemoteService = require(script.Parent.RemoteService)
+local VentService = require(script.Parent.VentService)
 
 type WeaponDef = Types.WeaponDef
 type Target = History.Target
@@ -53,7 +57,8 @@ type State = {
 	lastDamagedAt: number,
 	lastReactAt: number,
 	takedown: Takedown?,
-	fallSpeed: number, -- the fastest downward speed of the current fall
+	fallPeakY: number, -- the highest the root has been since the player last stood on the map
+	airborne: boolean,
 	dead: boolean,
 	violations: number,
 }
@@ -194,6 +199,18 @@ end
 
 -- Firing ----------------------------------------------------------------------------------------------------------
 
+-- Puts the rounds of a reload in progress into the magazine. reloadEndsAt is 0 when no reload is running.
+local function finishReload(player: Player, state: State)
+	if state.reloadEndsAt == 0 then
+		return
+	end
+	state.reloadEndsAt = 0
+	local take = math.min(state.weapon.MagSize - state.mag, state.reserve)
+	state.mag += take
+	state.reserve -= take
+	sendAmmo(player, state, 0)
+end
+
 local function onFire(player: Player, origin: unknown, direction: unknown, timestamp: unknown, weaponId: unknown)
 	if
 		typeof(origin) ~= "Vector3"
@@ -217,8 +234,13 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 		return
 	end
 	local now = os.clock()
-	if now < state.reloadEndsAt then
-		return
+	if state.reloadEndsAt ~= 0 then
+		-- The client finishes its reload on its own clock and fires at once, which can arrive a moment before the
+		-- server's timer runs; within the fire-rate tolerance the reload is done, so that first shot is not lost.
+		if now < state.reloadEndsAt - config.FireRateToleranceSeconds then
+			return
+		end
+		finishReload(player, state)
 	end
 	if now < state.nextFireAt - config.FireRateToleranceSeconds then
 		suspect(player, state, "fired faster than the weapon's rate")
@@ -331,7 +353,7 @@ local function onReload(player: Player)
 	end
 	local def = state.weapon
 	local now = os.clock()
-	if now < state.reloadEndsAt or state.mag >= def.MagSize or state.reserve <= 0 then
+	if state.reloadEndsAt ~= 0 or state.mag >= def.MagSize or state.reserve <= 0 then
 		return
 	end
 	state.reloadId += 1
@@ -339,13 +361,9 @@ local function onReload(player: Player)
 	state.reloadEndsAt = now + def.ReloadSeconds
 	sendAmmo(player, state, def.ReloadSeconds)
 	task.delay(def.ReloadSeconds, function()
-		if states[player] ~= state or state.reloadId ~= id or state.dead then
-			return
+		if states[player] == state and state.reloadId == id and not state.dead then
+			finishReload(player, state)
 		end
-		local take = math.min(def.MagSize - state.mag, state.reserve)
-		state.mag += take
-		state.reserve -= take
-		sendAmmo(player, state, 0)
 	end)
 end
 
@@ -480,6 +498,35 @@ end
 
 -- Spawning and falling --------------------------------------------------------------------------------------------
 
+-- Falls (spec 13.1), by height: the highest point since the player last stood on the map, down to where they land.
+local function trackFall(player: Player, state: State)
+	local humanoid, root = aliveParts(player)
+	if not (humanoid and root) or state.dead then
+		return
+	end
+	local y = root.Position.Y
+	-- A zipline anchors the rider; a vent is crawled. Neither is a fall, and the height count starts again after.
+	if root.Anchored or VentService.isInside(player) then
+		state.fallPeakY = y
+		state.airborne = false
+		return
+	end
+	local probe = humanoid.HipHeight + root.Size.Y / 2 + config.GroundProbeSlackStuds
+	if workspace:Raycast(root.Position, Vector3.new(0, -probe, 0), mapParams) then
+		if state.airborne then
+			local fallen = state.fallPeakY - y
+			if fallen > config.FallSafeStuds then
+				damagePlayer(player, (fallen - config.FallSafeStuds) * config.FallDamagePerStud, root.Position, nil)
+			end
+		end
+		state.airborne = false
+		state.fallPeakY = y
+	else
+		state.airborne = true
+		state.fallPeakY = math.max(state.fallPeakY, y)
+	end
+end
+
 local function onCharacterAdded(player: Player, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 	local root = character:WaitForChild("HumanoidRootPart") :: BasePart
@@ -499,7 +546,8 @@ local function onCharacterAdded(player: Player, character: Model)
 		lastDamagedAt = -math.huge,
 		lastReactAt = -math.huge,
 		takedown = nil,
-		fallSpeed = 0,
+		fallPeakY = root.Position.Y,
+		airborne = false,
 		dead = false,
 		violations = 0,
 	}
@@ -518,17 +566,6 @@ local function onCharacterAdded(player: Player, character: Model)
 		History.track(target)
 	end
 
-	humanoid.StateChanged:Connect(function(_, new)
-		if new == Enum.HumanoidStateType.Landed then
-			local fallen = state.fallSpeed * state.fallSpeed / (2 * workspace.Gravity)
-			state.fallSpeed = 0
-			if fallen > config.FallSafeStuds then
-				damagePlayer(player, (fallen - config.FallSafeStuds) * config.FallDamagePerStud, root.Position, nil)
-			end
-		elseif new ~= Enum.HumanoidStateType.Freefall then
-			state.fallSpeed = 0
-		end
-	end)
 	humanoid.Died:Connect(function()
 		state.dead = true
 		state.takedown = nil
@@ -574,12 +611,8 @@ function CombatService.Start()
 			syncNpcTargets()
 			History.sample(workspace:GetServerTimeNow())
 		end
-		-- The fastest downward speed of a fall, which is how far it was (spec 13.1).
 		for player, state in states do
-			local humanoid, root = aliveParts(player)
-			if humanoid and root and humanoid:GetState() == Enum.HumanoidStateType.Freefall then
-				state.fallSpeed = math.max(state.fallSpeed, -root.AssemblyLinearVelocity.Y)
-			end
+			trackFall(player, state)
 		end
 		takedownAccumulator += dt
 		if takedownAccumulator >= config.Takedown.CheckSeconds then

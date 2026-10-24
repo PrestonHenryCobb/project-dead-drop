@@ -36,6 +36,11 @@ local function inDuct(position: Vector3): boolean
 	return false
 end
 
+-- Is the player inside a duct (as of the last check)? Combat skips fall damage in there.
+function VentService.isInside(player: Player): boolean
+	return inside[player] == true
+end
+
 function VentService.Init()
 	for _, duct in CollectionService:GetTagged(Enums.Tag.VentDuct) do
 		if duct:IsA("BasePart") then

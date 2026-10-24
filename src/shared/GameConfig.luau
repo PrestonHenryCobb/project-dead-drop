@@ -419,6 +419,9 @@ local GameConfig = {
 		MarksmanHeadshotMult = 2,
 		FallSafeStuds = 30,
 		FallDamagePerStud = 2,
+		-- Ticket 8.1: a player is on the ground when the map is within this many studs below their feet (falls are
+		-- measured by height on the server, from the highest point since they were last on the ground).
+		GroundProbeSlackStuds = 1.5,
 		SelfExplosionMult = 0.5,
 		-- 13.3: server validation of FireRequest.
 		LagCompSeconds = 0.25,
