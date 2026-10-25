@@ -1,5 +1,9 @@
 # Gala art direction: source pass, 2026-10-25
 
+**Latest:** original sculpted geometry is now authored, baked into the local place and integrated with both players
+and NPCs. Two-client parity/quality probes passed. Exact PBR texture installation remains blocked by the browser's
+file-upload approval gate, including a retry after explicit chat approval. See the final sculpture section below.
+
 Owner direction: Sculpted, Cinematic Stylization in an original Art Deco Gala, with clean low-poly geometry. The three
 Gemini reference images supply mood, material hierarchy and silhouette targets, not layouts or assets to copy.
 The owner's follow-up keeps the existing Public/Staff/Security/Executive tier colors and adds cyan accents.
@@ -120,7 +124,7 @@ uploaded asset ID was returned. The place is local (`PlaceId = 0`, `GameId = 0`)
 normal Studio image import, and the six PBR variants have **not** been installed. The rebuilt scene uses native
 fallback finishes. The game was not published to create an experience ID.
 
-## Remaining art and integration work
+## Remaining at the first source pass (superseded by the sculpture pass below)
 
 This is the source/material foundation, **not the finished sculpted reference scene**. The existing native R15 faces
 and body meshes are retained. Sculpted facial planes, beveled collars, tailored torso meshes, fluted architectural
@@ -140,3 +144,76 @@ not gameplay changes. Review them under the installed materials. No further clea
 
 **Ready for:** Gala source-pass Studio review and material import, then the original sculpted mesh/rig art pass.
 This does not advance an unrelated BUILD_ORDER gameplay ticket.
+
+## Original sculpture pass and two-client review
+
+The owner approved continuing all unfinished art and committing the changes. Seven original assemblies now exist:
+faceted head/face, tapered jacket/collar, planar lapels, bow tie, fluted column, stepped brass chandelier and upholstered
+settee. They use 15 material-separated components. The place uses baked native CSG from the authored recipes, so the
+geometry does not depend on fabricated/uploaded mesh IDs. Blender source, FBX and an asset preview are committed
+alongside those recipes. **The preview is a Blender render, not a Studio screenshot or final visual acceptance.**
+
+| File | Built |
+|---|---|
+| `tools/build-gala-sculptures.cjs` | Original canonical geometry recipes; writes JSON and frozen Luau definitions. |
+| `src/shared/Defs/SculptureDefs.luau` | Generated asset-space geometry for seven assemblies. |
+| `tools/render-gala-sculptures.py` | Blender authoring/export/render using the same geometry, sRGB-to-linear material colors. |
+| `assets/gala/sculptures/` | Editable `.blend`, canonical FBX, JSON, PNG asset preview and usage/provenance README. |
+| `src/server/Tools/Gala/Sculptures.luau` | Edit-only CSG bake, atomic template replacement and scenery placement. No runtime/per-NPC CSG. |
+| `src/server/Tools/Gala/Art.luau` | Fits fluted columns and chandeliers around existing collision solids/lights. |
+| `src/server/Tools/Gala/Build.luau` | Bakes the asset cache; adds four settees through existing free-space reservations/navigation exclusions. |
+| `src/shared/Util/SculptedOutfit.luau` | Same massless/nonqueryable cosmetic models on players and NPCs, with Janitor-owned body-size refitting and cleanup. |
+| `src/shared/Util/OutfitApplier.luau` | Removes/refits the new models on disguise changes and restores native visuals if the cache is absent. |
+| `src/server/Services/RigService.luau` | Finalizes NPC cosmetics after Humanoid/description cleanup, before the rig replicates. No combat/hitbox changes. |
+| `src/shared/GameConfig.luau` | Ticket sculpture cache name, facial proportion/color and scenery placement tuning. |
+| `src/client/Controllers/GraphicsController.luau` | Validated `setMode` shared by F7 and the settings/test caller. |
+| `src/server/Tools/Gala/ReviewHarness.luau` | Explicit Studio-only two-client/server probes, removed when the test ends; no remotes. |
+
+The first live check caught NPC accessory finalization removing the initial parts. The first two-client test then
+caught player Humanoids double-scaling directly welded Accessories. The final implementation uses identical welded
+cosmetic Models, fitted by the same helper; NPCs finalize after cleanup, and size changes refit through events. Original
+Head/UpperTorso parts, joints and hitboxes remain. Swaps strip the cosmetic models and disconnect their callbacks.
+
+Verification:
+
+- Live crowd check passed: **201 rigs / 201 sculpted heads / 201 sculpted suits** in one-player Play.
+- Guest → Security → Guest application and strip/restore assertions passed in an actual engine fixture.
+- Final recipe rebuild returned **0 problems**, 102 rooms, 786 nodes; four settees were placed. Fresh-clone source
+  guards and native CSG bake completed in Studio. The map remains below the 15,000-part target.
+- Roblox `StudioTestService:ExecuteMultiplayerTestAsync(2, ...)` launched a server and two actual simulated clients.
+  Server comparison matched both player outfits against the same NPC fixture: component classes, sizes, colors,
+  materials, noncollision/nonquery and masslessness. **ServerPassed** was returned.
+- **Both client logs independently reported PASS** for parchment HUD, Low/Medium/High shadow/bloom/ambient settings,
+  pooled spark count/fade and replicated crowd sculptures. Server success alone was not used as client proof.
+- StyLua, Selene, Rojo build and the existing 29-assertion melee regression passed.
+
+To repeat the automated two-client review, in **Edit mode** after source sync run:
+
+```lua
+local module = game.ServerScriptService.Server.Tools.Gala.ReviewHarness:Clone()
+module.Parent = game.ServerStorage
+local ok, result = pcall(function() return require(module).run() end)
+module:Destroy()
+assert(ok, tostring(result))
+print(result)
+```
+
+Require `ServerPassed`, **two** `GALA_REVIEW_CLIENT_PASS` entries and no `GALA_REVIEW_*_FAIL` entries. The test temporarily
+uses a common Guest outfit on both players and a separate NPC fixture, then ends and removes its probe scripts. Do not
+save the place mid-test. For appearance/game-feel review, use the earlier Play/Clients 2 steps; check hair/hat fit,
+facial planes, tuxedo fit, animation, firing/reloading, wall tuck and respawn at normal gameplay distance.
+
+The local place is `D:\Dead-Drop\CoverStory.rbxl`; the pre-sculpture backup is
+`D:\Dead-Drop\CoverStory.before-sculptures-20261025.rbxl`. Rebuild is reproducible from source; source-only Rojo builds
+use the existing native rig until the Edit-mode bake has created `ReplicatedStorage.GalaArtAssets`.
+
+**External blocker:** no texture files were successfully uploaded. After explicit chat approval for all 12 PNGs,
+the browser file-transfer gate again returned permission declined for `create.roblox.com`. No workaround or further
+upload attempt was made. The earlier Studio API also reported that CreateAssetAsync was not available. Native material
+fallback remains active; the exact roughness/metalness finish needs that upload gate resolved and the six variants
+installed. No image IDs were fabricated and the game was not published.
+
+**Remaining review:** viewport capture/coordinate control still fail, so no in-game screenshot, full visual acceptance,
+actual mouse-driven fire/reload run or whole-game GPU/FPS acceptance is claimed. The automated two-client and quality
+checks above are complete. **SPEC-QUESTION:** no new gameplay question; initial art proportions remain visual tuning.
+**Ready for:** owner art review and authorized texture integration; continuing unblocked Codex client tickets is approved.

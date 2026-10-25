@@ -159,6 +159,13 @@ local function refresh(announce: boolean)
 	end
 end
 
+-- Ticket gala-sculptures: shared entry point for the existing shortcut and settings UI.
+function GraphicsController.setMode(nextMode: Mode)
+	assert(table.find(CYCLE, nextMode), `Unknown graphics mode {nextMode}`)
+	mode = nextMode
+	refresh(true)
+end
+
 function GraphicsController.Init()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "GraphicsNotice"
@@ -210,8 +217,7 @@ function GraphicsController.Start()
 			return
 		end
 		local position = table.find(CYCLE, mode) or 1
-		mode = CYCLE[position % #CYCLE + 1]
-		refresh(true)
+		GraphicsController.setMode(CYCLE[position % #CYCLE + 1])
 	end)
 end
 

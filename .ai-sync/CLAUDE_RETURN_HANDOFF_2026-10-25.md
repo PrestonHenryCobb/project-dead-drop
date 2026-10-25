@@ -243,3 +243,24 @@ not available yet". No uploaded IDs were returned and no six-variant install is 
 UI is still required. Computer-use screenshots time out and coordinate controls fail, although keyboard command-bar
 operations work. No visual acceptance, two-client run or low-quality visual test is claimed. Do not mark the full
 sculpted art pass complete based on this validation.
+
+### Original sculptures completed; two-client probes passed
+
+Read the latest section in docs/GALA_ART_REVIEW.md and assets/gala/sculptures/README.md. Original head/face, tailored
+jacket/collar, lapels/bow tie, fluted columns, chandeliers and settees now have recipe/Blender/FBX sources and baked CSG
+in the saved local place. Bake is EDIT-only and the cache is ReplicatedStorage.GalaArtAssets. No uploaded mesh IDs are
+needed; no per-NPC/runtime CSG. Keep player and NPC cosmetics as the SAME welded Models (not Accessories: Humanoids
+would double-scale players). NPCs fit after Humanoid/description cleanup. Original joints, native head/torso query
+parts and combat hitboxes remain; cosmetic parts are massless/nonqueryable/noncolliding. Size-change connections are
+Janitor-owned and stripped with the outfit. No new remotes or public identity metadata.
+
+One-player live parity asserted 201/201/201 rigs/heads/suits. Real StudioTestService two-client/server review returned
+ServerPassed; BOTH client logs independently passed HUD, Low/Medium/High settings, spark pool/fade and crowd. Earlier
+failures were corrected (NPC cleanup, then player Accessory double-scaling). The repeatable ReviewHarness is explicit
+Studio-only and removes its temporary scripts. Scene rebuild is 0 problems; four settees use existing free-space and
+NPC reservations. Native decorative pillars retain their collision proxy and chandeliers reuse existing lights.
+
+Texture maps remain unuploaded. Owner expressly approved all 12 PNG uploads in chat, but the separate browser upload
+authority gate again returned declined. Do not route around the rejection. Resolve that gate or let the owner upload
+normally, then install real Image IDs. Source material pack/installer are ready; no fake/PBR-complete claim is valid.
+Viewport screenshots, full mouse-driven combat acceptance and whole-game GPU performance remain owner review items.

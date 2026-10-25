@@ -144,6 +144,8 @@ Owner requested this area split while Claude was unavailable. Full source eviden
 |---|---|---|---|---|
 | gala-art-direction | Owner-authorized Direction 1 Gala art, parchment HUD, material import pack, weapons and shared disguise parity; preserve tier colors with cyan accents. | CODEX | Art refs + 2026-10-25 owner direction; docs/GALA_ART_REVIEW.md | READY_FOR_REVIEW (source pass; uploads/meshes pending) |
 
+| gala-sculptures | Finish owner-approved original sculpted Gala geometry, shared disguises and asset integration; commit completed work. | CODEX | Original geometry baked; two-client probes passed; docs/GALA_ART_REVIEW.md | READY_FOR_REVIEW |
+
 ## Waiting on the owner
 
 All 35 prompt-review topics are answered or explicitly preserved. Owner priority: reported bugs first, then combat/

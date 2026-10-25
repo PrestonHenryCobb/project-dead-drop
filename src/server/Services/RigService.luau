@@ -22,6 +22,7 @@ local TextChatService = game:GetService("TextChatService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local OutfitApplier = require(Shared:WaitForChild("Util"):WaitForChild("OutfitApplier"))
+local SculptedOutfit = require(Shared:WaitForChild("Util"):WaitForChild("SculptedOutfit"))
 local Types = require(Shared:WaitForChild("Types"))
 local DisguiseService = require(script.Parent.DisguiseService)
 
@@ -180,7 +181,7 @@ function RigService.createNpcRig(outfit: OutfitDef, cframe: CFrame): (Model, num
 	rig.Parent = stagingArea()
 	rig:PivotTo(cframe)
 	-- The Humanoid applies the outfit's scale and accessories, then is swapped for a cheap AnimationController.
-	OutfitApplier.apply(rig, outfit)
+	OutfitApplier.apply(rig, outfit, true)
 	makeAnonymous(rig)
 	joinCollisionGroup(rig)
 
@@ -190,6 +191,9 @@ function RigService.createNpcRig(outfit: OutfitDef, cframe: CFrame): (Model, num
 	weldAccessories(rig)
 	humanoid:Destroy()
 	trimNpcRig(rig)
+	-- Ticket gala-sculptures: finalize the same cosmetic parts after the NPC's Humanoid/description cleanup.
+	-- Otherwise Roblox's accessory finalization can remove directly welded pieces during that cleanup.
+	SculptedOutfit.apply(rig, outfit)
 
 	local controller = Instance.new("AnimationController")
 	Instance.new("Animator").Parent = controller

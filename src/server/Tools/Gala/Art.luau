@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = script.Parent:FindFirstChild("SharedOverride") or ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local ArtSurface = require(Shared.Util.ArtSurface)
+local Sculptures = require(script.Parent.Sculptures)
 local Art = {}
 local PROP_ROLES = {
 	Pillar = "Ivory",
@@ -45,6 +46,29 @@ local function glassPattern(pane: BasePart)
 end
 
 function Art.apply(root: Model)
+	-- Keep existing collision/navigation solids; add only cached decorative meshes around them.
+	local details = Instance.new("Folder")
+	details.Name = "SculptedScenery"
+	details.Parent = root
+	for _, item in root:GetDescendants() do
+		if item:IsA("Part") and item.Name == "Pillar" then
+			local frame = item.CFrame
+			local size = item.Size
+			if item.Shape == Enum.PartType.Cylinder then
+				frame *= CFrame.Angles(0, 0, -math.pi / 2)
+				size = Vector3.new(size.Y, size.X, size.Z)
+			end
+			Sculptures.place("Column", frame, size / Sculptures.referenceSize("Column"), details)
+			item.Transparency = 1
+		elseif item:IsA("BasePart") and item.Name == "CeilingLight" then
+			local frame = item.CFrame * CFrame.new(0, -GameConfig.Art.Sculptures.ChandelierDrop, 0)
+			Sculptures.place("Chandelier", frame, Vector3.one * GameConfig.Art.Sculptures.ChandelierScale, details)
+			item.CFrame = frame
+			item.Transparency = 1
+		elseif item:IsA("BasePart") and item.Name == "ChandelierRim" then
+			item.Transparency = 1
+		end
+	end
 	for _, item in root:GetDescendants() do
 		-- The city keeps its separate distant skyline palette and window textures.
 		if item:IsA("BasePart") and not item:FindFirstAncestor("Cityscape") and item.Transparency < 1 then

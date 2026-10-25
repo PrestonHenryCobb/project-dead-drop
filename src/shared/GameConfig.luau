@@ -49,6 +49,16 @@ local GameConfig = {
 			PatternTransparency = 0.35,
 			PatternLightInfluence = 0.65,
 		},
+		-- Ticket gala-sculptures: baked once in Studio; no runtime CSG or altered hitboxes.
+		Sculptures = {
+			AssetFolder = "GalaArtAssets",
+			HeadRatio = Vector3.new(0.8, 1.1, 1),
+			FaceInk = Color3.fromHex("262125"),
+			ChandelierScale = 0.85,
+			ChandelierDrop = 1.5,
+			SeatingInset = 9,
+			SeatingLift = 1.65,
+		},
 		MaterialTileStuds = 16,
 		ClearanceCyan = Color3.fromHex("2CE8F5"),
 		ClearanceStripPixels = 5,

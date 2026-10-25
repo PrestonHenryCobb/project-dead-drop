@@ -22,6 +22,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local City = require(script.Parent.City)
 local Layout = require(script.Parent.Layout)
 local Art = require(script.Parent.Art)
+local Sculptures = require(script.Parent.Sculptures)
 -- Studio caches required modules, so a rebuild after a config change can put a fresh copy of Shared next to this
 -- script, named SharedOverride (see the build-map skill).
 local Shared = script.Parent:FindFirstChild("SharedOverride") or ReplicatedStorage:WaitForChild("Shared")
@@ -332,6 +333,7 @@ local function subtractIntervals(a: number, b: number, covered: { { number } }):
 end
 
 function Build.run()
+	Sculptures.bake()
 	local started = os.clock()
 	local rng = Random.new(7)
 	local levels = Layout.levels :: { [string]: number }
@@ -3402,6 +3404,17 @@ function Build.run()
 		end
 		local p =
 			part(propsFolder, name, Vector3.new(sx, sy, sz), CFrame.new(cx, levels[room.level] + sy / 2, cz), color)
+		if name == "SetteeFootprint" then
+			p.Transparency = 1
+			p.CanCollide, p.CanQuery, p.CanTouch = false, false, false
+			Sculptures.place(
+				"Settee",
+				CFrame.new(cx, levels[room.level] + GameConfig.Art.Sculptures.SeatingLift, cz),
+				Vector3.one,
+				propsFolder,
+				color
+			)
+		end
 		if round then
 			-- A cylinder's axis is X, so it is sized with its height along X and turned upright.
 			p.Shape = Enum.PartType.Cylinder
@@ -3454,6 +3467,23 @@ function Build.run()
 		end,
 		tables = function(room)
 			local b = bounds(room)
+			if room.kind == "indoor" and (styleOf(room) == "deco" or styleOf(room) == "casino") then
+				local seatSize = Sculptures.referenceSize("Settee")
+				local color = if styleOf(room) == "casino"
+					then GameConfig.Art.Materials.Velvet.Color
+					else GameConfig.Art.Emerald
+				addProp(
+					room,
+					"SetteeFootprint",
+					(b.x1 + b.x2) / 2,
+					b.z2 - GameConfig.Art.Sculptures.SeatingInset,
+					seatSize.X,
+					seatSize.Y,
+					seatSize.Z,
+					color,
+					false
+				)
+			end
 			local x = b.x1 + 18
 			while x < b.x2 - 12 do
 				local z = b.z1 + 18

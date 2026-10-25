@@ -11,6 +11,7 @@
 local Types = require(script.Parent.Parent.Types)
 local GameConfig = require(script.Parent.Parent.GameConfig)
 local ArtSurface = require(script.Parent.ArtSurface)
+local SculptedOutfit = require(script.Parent.SculptedOutfit)
 
 type OutfitDef = Types.OutfitDef
 
@@ -156,6 +157,14 @@ local function buildHair(style: Types.HairStyle, color: Color3): Accessory?
 end
 
 function OutfitApplier.strip(model: Model)
+	SculptedOutfit.strip(model)
+	-- Restore native visual parts before fitting the next shared sculpture models.
+	for _, name in { "Head", "UpperTorso" } do
+		local body = model:FindFirstChild(name)
+		if body and body:IsA("BasePart") then
+			body.Transparency = 0
+		end
+	end
 	for _, child in model:GetDescendants() do
 		for _, className in AVATAR_CLASSES do
 			if child:IsA(className) then
@@ -176,7 +185,7 @@ function OutfitApplier.strip(model: Model)
 	end
 end
 
-function OutfitApplier.apply(model: Model, outfit: OutfitDef)
+function OutfitApplier.apply(model: Model, outfit: OutfitDef, deferSculpture: boolean?)
 	OutfitApplier.strip(model)
 
 	local skin, shoes = outfit.BodyColors.Skin, outfit.BodyColors.Shoes
@@ -234,7 +243,12 @@ function OutfitApplier.apply(model: Model, outfit: OutfitDef)
 		humanoid:AddAccessory(hair)
 	end
 	for _, def in outfit.Accessories do
-		humanoid:AddAccessory(buildAccessory(def.Kind, def.Color))
+		if not (SculptedOutfit.available() and (def.Kind == "Lapels" or def.Kind == "BowTie")) then
+			humanoid:AddAccessory(buildAccessory(def.Kind, def.Color))
+		end
+	end
+	if not deferSculpture then
+		SculptedOutfit.apply(model, outfit)
 	end
 end
 
