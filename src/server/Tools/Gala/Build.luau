@@ -214,6 +214,7 @@ local NODE_MARGIN = 8 -- studs a node keeps from a room's walls
 local NODE_SPACING = { [0] = 30, [1] = 32, [2] = 36, [3] = 36 }
 local LIGHT_SPACING = 55 -- studs between ceiling lights in a room
 local LIGHT_CAP = 110 -- the most lights in the map (each is a dynamic light on a phone)
+local CEILING_PROBE_STUDS = 1.5 -- a ceiling light needs map geometry this close above it, or it is not hung
 local DOOR_CLEAR = 7 -- studs props keep clear in front of a doorway
 local CRATES_PER_ROOM = 14 -- crates tried in a storage room; more choke the routes NPCs need
 local PLACE_STEP = 3 -- studs between the spots tried along a wall for a placed object
@@ -3851,6 +3852,15 @@ function Build.run()
 
 	-- Interior lights: warm amber in the public rooms, cooler as the tier rises, a handful per room (dusk-like inside).
 
+	-- A lamp hangs only where there is ceiling right above it: over the atrium void, a stair opening or a double-height
+	-- room the room's nominal ceiling is open, and a lamp there would float in mid-air.
+	local ceilingParams = RaycastParams.new()
+	ceilingParams.FilterType = Enum.RaycastFilterType.Include
+	ceilingParams.FilterDescendantsInstances = { geometry }
+	local function hasCeilingAbove(point: Vector3): boolean
+		return workspace:Raycast(point, Vector3.new(0, CEILING_PROBE_STUDS, 0), ceilingParams) ~= nil
+	end
+
 	local lightCount = 0
 	for _, room in rooms do
 		if room.kind == "indoor" then
@@ -3860,12 +3870,13 @@ function Build.run()
 				while x < p.x2 do
 					local z = p.z1 + LIGHT_SPACING / 2
 					while z < p.z2 do
-						if lightCount < LIGHT_CAP then
+						local lampY = levels[room.level] + roomHeight(room) - 0.4
+						if lightCount < LIGHT_CAP and hasCeilingAbove(Vector3.new(x, lampY, z)) then
 							local lamp = part(
 								propsFolder,
 								"CeilingLight",
 								Vector3.new(3, 0.3, 3),
-								CFrame.new(x, levels[room.level] + roomHeight(room) - 0.4, z),
+								CFrame.new(x, lampY, z),
 								GameConfig.Art.Lighting.Key
 							)
 							lamp.Material = Enum.Material.Neon
