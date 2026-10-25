@@ -1,5 +1,44 @@
 # Codex client handoff — 2026-10-24
 
+## Owner test correction — ticket 8.15 (supersedes the earlier full-body notes below)
+
+Root causes: the old controller deliberately exposed the actual avatar and posed its real arms, so torso/legs and
+movement-facing rotation were visible locally. The gun started tucking at 3.5 studs, but blocked firing only at
+0.65 studs (usually inside the character's wall clearance), and the melee/aim handlers had no wall gate.
+
+Changed files:
+- FirstPersonBodyController: hides the actual avatar in its owner's view; clones only arm/hand meshes into a
+  camera-relative cosmetic rig, strips all joints/scripts/constraints, copies outfit colors and scales with the gun's
+  camera-depth compression. No real avatar joints or root rotations are modified. Camera-space poses step at 8 Hz.
+- StepAnimationController: only the real neck is excluded again; the cosmetic rig needs no real arm joint exclusions.
+- ViewModel/WeaponPlacement: blend wall tuck to the disguised across-body pose. A single attackBlocked rule uses both
+  sampled wall proximity and visible tuck recovery, replacing the unreachable full-tuck-only firing condition.
+  Wall blend is applied after ordinary pose settling so a second filter cannot leave visual tuck behind the gate.
+- WeaponController: runs that gate before fire feedback/requests, before aiming and before melee/takedown. Entering
+  obstruction cancels queued fire/bursts and releases aim/takedown; backing away requires a new attack press.
+  getHandTargets now also returns drawScale for the cosmetic rig. Reload and respawn paths are unchanged.
+- CombatHudController/DisguiseController: crossed-out reticle and OBSTRUCTED caption replace weapon crosshair/dot
+  using the exact same attackBlocked state.
+- GameConfig: FirstPersonArms and blocked-graphic tuning added; obsolete high-ready TuckPosition/TuckRotation removed.
+- CheckClientCombat: covers reachable-distance gates, visible recovery, temporary-wall sampling, HUD/dot agreement,
+  cosmetic rig isolation and hidden actual-avatar parts. Fixtures are removed on success or failure.
+
+Validation: StyLua, Selene and Rojo build pass. The Studio assertions and actual visuals require owner verification.
+
+Retest after STOP, Rojo sync, PLAY (running tests keep old modules):
+1. Look down, walk in each direction and rotate the view. See only cosmetic arms/gun, no torso/legs/hats or real body
+   swiveling through the gun. Swap outfits and verify arm colors update. A second client still sees normal facing.
+2. Walk toward a wall and test oblique approaches. The gun crosses the body; the orange prohibited reticle and
+   OBSTRUCTED label replace the crosshair/dot. LMB, RMB and V must not start attacks, consume ammo, kick or play shots.
+3. Begin a held automatic burst/aim before entering obstruction. It must stop. Back away, wait for the graphic to
+   clear, then press fire afresh; normal combat returns. Reload remains available while obstructed.
+4. Recheck reload and respawn (reported passing by owner). Run tools/CheckClientCombat.luau in the Client Command Bar
+   from a fresh, alive, own-character camera view. New structural/collision/HUD assertions have not run in Studio here.
+
+No new SPEC-QUESTIONs: the owner's latest direction is recorded in SPEC_CHANGES and overrides the old full-body plan.
+
+---
+
 The owner authorized continued client work across steps and incremental commits. Studio visual review is still
 required; lint/build success does not establish visual correctness. Do not mark these tickets DONE on that basis.
 

@@ -22,6 +22,7 @@ local Aim = require(Shared:WaitForChild("Util"):WaitForChild("Aim"))
 local HudKit = require(Shared:WaitForChild("Util"):WaitForChild("HudKit"))
 local PoseAnimation = require(Shared:WaitForChild("Util"):WaitForChild("PoseAnimation"))
 local RemoteController = require(script.Parent.RemoteController)
+local WeaponController = require(script.Parent.WeaponController)
 
 local DisguiseController = {}
 
@@ -35,6 +36,7 @@ local scanStartedAt: number? = nil
 local scanSeconds = 0
 
 local ringSegments: { Frame } = {}
+local centerDot: Frame? = nil
 local badge: TextLabel? = nil
 local toast: TextLabel? = nil
 local toastToken = 0
@@ -51,6 +53,7 @@ local function buildHud()
 	dot.BackgroundColor3 = ui.TextColor
 	dot.BorderSizePixel = 0
 	dot.Parent = gui
+	centerDot = dot
 
 	-- A thin ring made of small ticks, lit from the top as the scan progresses.
 	for index = 1, ui.ScanRingSegments do
@@ -219,6 +222,9 @@ function DisguiseController.Start()
 	end)
 
 	RunService.RenderStepped:Connect(function()
+		if centerDot then
+			centerDot.Visible = not WeaponController.getStatus().attackBlocked
+		end
 		if scanHeld then
 			-- Tell the server what we are aiming at whenever it changes; it does the rest.
 			local target = Aim.characterName(GameConfig.Cover.ScanRange)

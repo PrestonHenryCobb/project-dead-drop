@@ -34,6 +34,12 @@ function WeaponPlacement.tuckFraction(distance: number): number
 	return math.clamp((config.WallReachStuds - distance) / (config.WallReachStuds - config.FullTuckStuds), 0, 1)
 end
 
+-- Ticket 8.15: a reachable wall-driven tuck blocks attacks immediately; keep blocking until its visible recovery
+-- also clears. The old FullTuckStuds-only gate was usually inside the character's collision clearance.
+function WeaponPlacement.attackBlocked(distance: number, visibleTuck: number): boolean
+	return math.max(WeaponPlacement.tuckFraction(distance), visibleTuck) > config.AttackBlockTuckFraction
+end
+
 -- Shift the entire rotated gun away from the camera until every bound corner fits the current view frustum.
 function WeaponPlacement.fit(relative: CFrame, corners: { Vector3 }, fov: number, viewport: Vector2): CFrame
 	local slopeY = math.tan(math.rad(fov / 2)) * (1 - config.ScreenMarginFraction)

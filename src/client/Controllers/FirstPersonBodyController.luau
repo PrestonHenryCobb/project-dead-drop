@@ -1,6 +1,6 @@
 --!strict
--- Step 8B.2: show the real body below the camera, hide head-mounted items, and pose the real arms locally.
--- Motor6D.Transform and LocalTransparencyModifier do not create replicated identity markers or animations.
+-- Ticket 8.15: cosmetic FPS arms use the avatar's meshes/colors in a local camera rig. The real avatar is hidden
+-- only from its owner. Its locomotion-facing rotation and animations remain untouched for everyone else.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -11,82 +11,85 @@ local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local WeaponController = require(script.Parent.WeaponController)
 
 type Arm = {
-	shoulder: Motor6D,
-	elbow: Motor6D,
-	wrist: Motor6D,
 	side: number,
-	heldShoulder: CFrame,
-	heldElbow: CFrame,
-	heldWrist: CFrame,
-	posed: boolean,
+	upper: BasePart,
+	lower: BasePart,
+	hand: BasePart,
+	sourceUpper: BasePart,
+	sourceLower: BasePart,
+	sourceHand: BasePart,
+	heldTarget: CFrame?,
 }
 
 local FirstPersonBodyController = {}
+local config = GameConfig.Combat.FirstPersonArms
 local localPlayer = Players.LocalPlayer
 local janitor = Janitor.new()
 local characterJanitor = Janitor.new()
+local rigJanitor = Janitor.new()
 local character: Model? = nil
-local parts: { [BasePart]: boolean } = {} -- true means hidden; body accessories stay visible
+local rig: Model? = nil
+local parts: { BasePart } = {}
 local arms: { Arm } = {}
 local dirty = false
 local lastTick = -1
-local epsilon = GameConfig.Combat.Feedback.ShotVisualMinStuds
 
 local function clear()
 	characterJanitor:Cleanup()
-	for part in parts do
+	rigJanitor:Cleanup()
+	for _, part in parts do
 		part.LocalTransparencyModifier = 0
-	end
-	for _, arm in arms do
-		arm.shoulder.Transform = CFrame.identity
-		arm.elbow.Transform = CFrame.identity
-		arm.wrist.Transform = CFrame.identity
 	end
 	table.clear(parts)
 	table.clear(arms)
-	character = nil
+	character, rig = nil, nil
 	lastTick = -1
 end
 
-local function refresh(model: Model)
-	table.clear(parts)
-	table.clear(arms)
-	local head = model:FindFirstChild("Head")
-	local joints: { [string]: Motor6D } = {}
-	for _, descendant in model:GetDescendants() do
-		if descendant:IsA("Motor6D") and descendant.Part1 then
-			joints[descendant.Part1.Name] = descendant
-		elseif descendant:IsA("BasePart") then
-			local hidden = descendant == head or descendant.Name == "HumanoidRootPart"
-			local accessory = descendant:FindFirstAncestorOfClass("Accessory")
-			if accessory then
-				local handle = accessory:FindFirstChild("Handle")
-				if handle then
-					for _, item in handle:GetChildren() do
-						if
-							(item:IsA("Attachment") and head and head:FindFirstChild(item.Name))
-							or (item:IsA("Weld") and (item.Part0 == head or item.Part1 == head))
-						then
-							hidden = true
-						end
-					end
-				end
-			end
-			parts[descendant] = hidden
+local function cloneLimb(source: BasePart, parent: Model): BasePart
+	local limb = source:Clone() :: BasePart
+	-- Strip joints, constraints, scripts and attachments before parenting: cosmetic meshes never drive the avatar.
+	for _, item in limb:GetDescendants() do
+		if not (item:IsA("DataModelMesh") or item:IsA("SurfaceAppearance") or item:IsA("Decal")) then
+			item:Destroy()
 		end
 	end
+	limb.Anchored = true
+	limb.CanCollide, limb.CanQuery, limb.CanTouch, limb.CastShadow = false, false, false, false
+	limb.Transparency = 1
+	limb.LocalTransparencyModifier = 0
+	limb.Parent = parent
+	return limb
+end
+
+local function refresh(model: Model, camera: Camera)
+	rigJanitor:Cleanup()
+	table.clear(parts)
+	table.clear(arms)
+	for _, item in model:GetDescendants() do
+		if item:IsA("BasePart") then
+			table.insert(parts, item)
+		end
+	end
+	local cosmetic = Instance.new("Model")
+	cosmetic.Name = "FirstPersonArms"
+	cosmetic.Parent = camera
+	rig = cosmetic
+	rigJanitor:Add(cosmetic)
 	for _, side in { "Right", "Left" } do
-		local shoulder, elbow, wrist = joints[side .. "UpperArm"], joints[side .. "LowerArm"], joints[side .. "Hand"]
-		if shoulder and elbow and wrist then
+		local upper = model:FindFirstChild(side .. "UpperArm")
+		local lower = model:FindFirstChild(side .. "LowerArm")
+		local hand = model:FindFirstChild(side .. "Hand")
+		if upper and upper:IsA("BasePart") and lower and lower:IsA("BasePart") and hand and hand:IsA("BasePart") then
 			table.insert(arms, {
-				shoulder = shoulder,
-				elbow = elbow,
-				wrist = wrist,
 				side = if side == "Right" then 1 else -1,
-				heldShoulder = CFrame.identity,
-				heldElbow = CFrame.identity,
-				heldWrist = CFrame.identity,
-				posed = false,
+				upper = cloneLimb(upper, cosmetic),
+				lower = cloneLimb(lower, cosmetic),
+				hand = cloneLimb(hand, cosmetic),
+				sourceUpper = upper,
+				sourceLower = lower,
+				sourceHand = hand,
+				heldTarget = nil,
 			})
 		end
 	end
@@ -106,96 +109,101 @@ local function onCharacter(model: Model)
 	end))
 end
 
-local function limbFrame(start: Vector3, finish: Vector3, bend: Vector3, pivot: Vector3): CFrame
-	-- R15 limb local +Y points toward the proximal joint, and -Y toward the distal joint.
-	return CFrame.lookAt(start, finish, bend) * CFrame.Angles(math.pi / 2, 0, 0) * CFrame.new(-pivot)
+local function appearance(part: BasePart, source: BasePart)
+	part.Color = source.Color
+	part.Material = source.Material
 end
 
-local function solve(arm: Arm, hand: CFrame, camera: Camera)
-	local shoulder, elbow, wrist = arm.shoulder, arm.elbow, arm.wrist
-	local torso = shoulder.Part0
-	if not torso then
+local function segment(
+	part: BasePart,
+	source: BasePart,
+	start: Vector3,
+	finish: Vector3,
+	pole: Vector3,
+	drawScale: number
+)
+	local size = source.Size * config.Scale * drawScale
+	part.Size = Vector3.new(size.X, (finish - start).Magnitude, size.Z)
+	part.CFrame = CFrame.lookAt((start + finish) / 2, finish, pole) * CFrame.Angles(math.pi / 2, 0, 0)
+	appearance(part, source)
+	part.Transparency = 0
+end
+
+local function drawArm(arm: Arm, target: CFrame, camera: Camera, drawScale: number)
+	local offset = config.ShoulderOffset * drawScale
+	local start = camera.CFrame:PointToWorldSpace(Vector3.new(offset.X * arm.side, offset.Y, offset.Z))
+	arm.hand.Size = arm.sourceHand.Size * config.Scale * drawScale
+	local wrist = target:PointToWorldSpace(Vector3.new(0, arm.hand.Size.Y / 2, 0))
+	local delta = wrist - start
+	local distance = delta.Magnitude
+	if distance <= config.MinimumSegmentStuds * 2 then
 		return
 	end
-	local start = (torso.CFrame * shoulder.C0).Position
-	local target = (hand * wrist.C1).Position
-	local upperLength = (elbow.C0.Position - shoulder.C1.Position).Magnitude
-	local lowerLength = (wrist.C0.Position - elbow.C1.Position).Magnitude
-	if upperLength <= epsilon or lowerLength <= epsilon then
-		return
-	end
-	local delta = target - start
-	if delta.Magnitude <= epsilon then
-		return
-	end
-	local direction = delta.Unit
-	local distance =
-		math.clamp(delta.Magnitude, math.abs(upperLength - lowerLength) + epsilon, upperLength + lowerLength - epsilon)
+	local direction = delta / distance
+	local upperLength = arm.sourceUpper.Size.Y * config.Scale.Y * drawScale
+	local lowerLength = arm.sourceLower.Size.Y * config.Scale.Y * drawScale
+	-- A cosmetic rig may stretch offscreen at the shoulder; hands remain attached to the rendered weapon.
+	local reach = math.max(1, distance * (1 + config.ReachSlackFraction) / (upperLength + lowerLength))
+	upperLength *= reach
+	lowerLength *= reach
+	local along = math.clamp(
+		(upperLength * upperLength - lowerLength * lowerLength + distance * distance) / (2 * distance),
+		config.MinimumSegmentStuds,
+		distance - config.MinimumSegmentStuds
+	)
 	local pole = camera.CFrame.RightVector * arm.side - camera.CFrame.UpVector
 	local bend = pole - direction * pole:Dot(direction)
-	if bend.Magnitude <= epsilon then
+	if bend.Magnitude <= config.MinimumSegmentStuds then
 		bend = camera.CFrame.LookVector:Cross(direction)
 	end
-	if bend.Magnitude <= epsilon then
+	if bend.Magnitude <= config.MinimumSegmentStuds then
 		return
 	end
 	bend = bend.Unit
-	local along = (upperLength * upperLength - lowerLength * lowerLength + distance * distance) / (2 * distance)
-	local height = math.sqrt(math.max(0, upperLength * upperLength - along * along))
-	local middle = start + direction * along + bend * height
-	local finish = start + direction * distance
-	local upper = limbFrame(start, middle, bend, shoulder.C1.Position)
-	local lower = limbFrame(middle, finish, bend, elbow.C1.Position)
-	local reachableHand = CFrame.new(finish) * hand.Rotation * CFrame.new(-wrist.C1.Position)
-	arm.heldShoulder = shoulder.C0:Inverse() * torso.CFrame:Inverse() * upper * shoulder.C1
-	arm.heldElbow = elbow.C0:Inverse() * upper:Inverse() * lower * elbow.C1
-	arm.heldWrist = wrist.C0:Inverse() * lower:Inverse() * reachableHand * wrist.C1
-	arm.posed = true
+	local middle = start + direction * along + bend * math.sqrt(math.max(0, upperLength * upperLength - along * along))
+	segment(arm.upper, arm.sourceUpper, start, middle, bend, drawScale)
+	segment(arm.lower, arm.sourceLower, middle, wrist, bend, drawScale)
+	arm.hand.CFrame = target
+	appearance(arm.hand, arm.sourceHand)
+	arm.hand.Transparency = 0
 end
 
-local function pose()
-	local camera = workspace.CurrentCamera
-	local model = character
-	if not (camera and model) then
+local function render()
+	local model, camera = character, workspace.CurrentCamera
+	if not (model and camera) then
 		return
 	end
-	if dirty then
-		refresh(model)
+	if dirty or not rig or rig.Parent ~= camera then
+		refresh(model, camera)
 	end
-	local right, left = WeaponController.getHandTargets()
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	local ownerView = camera.CameraSubject == humanoid or camera.CameraSubject == nil
+	for _, part in parts do
+		part.LocalTransparencyModifier = if ownerView then 1 else 0
+	end
+	local right, left, drawScale = WeaponController.getHandTargets()
 	local tick = math.floor(workspace:GetServerTimeNow() * GameConfig.Animation.StepHz)
 	for _, arm in arms do
+		arm.upper.Transparency, arm.lower.Transparency, arm.hand.Transparency = 1, 1, 1
 		local target = if arm.side > 0 then right else left
-		if target then
-			if tick ~= lastTick or not arm.posed then
-				solve(arm, target, camera)
+		if target and ownerView then
+			-- Hold animation in camera space: looking and walking never inherit the body's facing rotation.
+			if tick ~= lastTick or not arm.heldTarget then
+				local relative = camera.CFrame:ToObjectSpace(target)
+				arm.heldTarget = CFrame.new(relative.Position / drawScale) * relative.Rotation
 			end
-			if arm.posed then
-				arm.shoulder.Transform = arm.heldShoulder
-				arm.elbow.Transform = arm.heldElbow
-				arm.wrist.Transform = arm.heldWrist
-			end
-		elseif arm.posed then
-			arm.shoulder.Transform = CFrame.identity
-			arm.elbow.Transform = CFrame.identity
-			arm.wrist.Transform = CFrame.identity
-			arm.posed = false
+			local relative = arm.heldTarget :: CFrame
+			drawArm(
+				arm,
+				camera.CFrame * (CFrame.new(relative.Position * drawScale) * relative.Rotation),
+				camera,
+				drawScale
+			)
+		else
+			arm.heldTarget = nil
 		end
 	end
 	lastTick = tick
-end
-
-local function visibility()
-	local model = character
-	if not model then
-		return
-	end
-	if dirty then
-		refresh(model)
-	end
-	for part, hidden in parts do
-		part.LocalTransparencyModifier = if hidden then 1 else 0
-	end
 end
 
 function FirstPersonBodyController.Init() end
@@ -206,12 +214,12 @@ function FirstPersonBodyController.Start()
 	if localPlayer.Character then
 		onCharacter(localPlayer.Character)
 	end
-	janitor:Add(RunService.PreSimulation:Connect(pose))
-	RunService:BindToRenderStep("FirstPersonBody", Enum.RenderPriority.Camera.Value + 3, visibility)
+	RunService:BindToRenderStep("FirstPersonBody", Enum.RenderPriority.Camera.Value + 3, render)
 	janitor:Add(function()
 		RunService:UnbindFromRenderStep("FirstPersonBody")
 		clear()
 		characterJanitor:Destroy()
+		rigJanitor:Destroy()
 	end)
 	janitor:Add(script.Destroying:Connect(function()
 		janitor:Destroy()

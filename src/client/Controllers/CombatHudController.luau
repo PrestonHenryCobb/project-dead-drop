@@ -54,6 +54,7 @@ local plates: { Frame } = {}
 local ammoText: TextLabel? = nil
 local takedownBack: Frame? = nil
 local takedownFill: Frame? = nil
+local obstruction: Frame? = nil
 
 local function bar(parent: Instance, name: string, color: Color3): Frame
 	local frame = Instance.new("Frame")
@@ -67,6 +68,37 @@ end
 local function build()
 	local gui = HudKit.screen("CombatHud")
 	screen = gui
+	-- Ticket 8.15: the normal reticle is replaced, not overlaid, when the same attack gate reports obstruction.
+	local blocked = Instance.new("Frame")
+	blocked.Name = "ObstructionReticle"
+	blocked.AnchorPoint = Vector2.new(0.5, 0.5)
+	blocked.Position = UDim2.fromScale(0.5, 0.5)
+	blocked.Size = UDim2.fromOffset(combat.Hud.BlockedReticlePixels, combat.Hud.BlockedReticlePixels)
+	blocked.BackgroundTransparency = 1
+	blocked.Visible = false
+	blocked.Parent = gui
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0.5, 0)
+	corner.Parent = blocked
+	local outline = Instance.new("UIStroke")
+	outline.Color = ui.WarningColor
+	outline.Thickness = CROSSHAIR_THICKNESS
+	outline.Parent = blocked
+	local slash = bar(blocked, "Slash", ui.WarningColor)
+	slash.AnchorPoint = Vector2.new(0.5, 0.5)
+	slash.Position = UDim2.fromScale(0.5, 0.5)
+	slash.Size = UDim2.new(1, 0, 0, CROSSHAIR_THICKNESS)
+	slash.Rotation = -45
+	local caption = HudKit.text(
+		blocked,
+		"Caption",
+		UDim2.new(0.5, 0, 1, combat.Hud.BlockedLabelGapPixels),
+		Vector2.new(0.5, 0),
+		UDim2.fromOffset(combat.Hud.BlockedLabelWidthPixels, ui.TextSize)
+	)
+	caption.Text = "OBSTRUCTED"
+	caption.TextColor3 = ui.WarningColor
+	obstruction = blocked
 
 	for _, side in { "Left", "Right", "Up", "Down" } do
 		local line = bar(gui, `Crosshair{side}`, feedback.CrosshairColor)
@@ -126,11 +158,14 @@ end
 
 local function updateCrosshair(viewportHeight: number)
 	local status = WeaponController.getStatus()
+	if obstruction then
+		obstruction.Visible = status.attackBlocked
+	end
 	local reach = degreesToPixels(status.spreadDegrees, status.viewportFov, viewportHeight)
 		+ feedback.CrosshairGapPixels
 	local length = feedback.CrosshairLengthPixels
 	for side, line in crosshair do
-		line.Visible = status.weaponUp
+		line.Visible = status.weaponUp and not status.attackBlocked
 		local horizontal = side == "Left" or side == "Right"
 		local direction = if side == "Left" or side == "Up" then -1 else 1
 		line.Size = if horizontal

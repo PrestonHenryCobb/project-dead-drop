@@ -434,6 +434,13 @@ local GameConfig = {
 		InputPriority = 3000,
 		-- Ticket 8B.8: recognise the visible True Form look, never a player/agent attribute or roster.
 		ThirdPersonWeapon = { ScanSeconds = 0.25, CullStuds = 140 },
+		-- Ticket 8.15: cosmetic first-person arms are independent of the real avatar's movement-facing body.
+		FirstPersonArms = {
+			Scale = Vector3.new(0.6, 0.8, 0.6),
+			ShoulderOffset = Vector3.new(0.55, -0.9, 0.35),
+			ReachSlackFraction = 0.03, -- keep cosmetic elbows slightly bent while keeping hands on the gun
+			MinimumSegmentStuds = 0.01,
+		},
 		-- Ticket 8B.3: camera-space framing and wall tuck. These affect presentation; hits remain server-authoritative.
 		Presentation = {
 			ScreenMarginFraction = 0.12,
@@ -441,8 +448,8 @@ local GameConfig = {
 			WallReachStuds = 3.5,
 			WallRayRadiusStuds = 0.25,
 			FullTuckStuds = 0.65,
-			TuckPosition = Vector3.new(0, -0.2, 0.7),
-			TuckRotation = Vector3.new(65, 0, -12),
+			-- Ticket 8.15: wall tuck blends to ViewModel.Poses.Tucked, across the body, rather than high-ready.
+			AttackBlockTuckFraction = 0.02, -- both collision-driven and visibly recovering tuck block every attack
 			TuckBlendSpeed = 20,
 			WallDepthFraction = 0.8, -- compress the local camera model into available depth while preserving its projection
 		},
@@ -534,6 +541,10 @@ local GameConfig = {
 		-- Ticket 8.3: keep combat vitals above the disguise badge (16 px bottom margin + 44 px height).
 		Hud = {
 			VitalsBottomPixels = 76, -- plate bottom is 68 px above the screen edge, leaving an 8 px gap
+			-- Ticket 8.15: crossed-out reticle replaces the crosshair and disguise dot while obstructed.
+			BlockedReticlePixels = 26,
+			BlockedLabelGapPixels = 8,
+			BlockedLabelWidthPixels = 180,
 		},
 		-- The first-person view model (client only): where the gun sits in each pose, in studs from the camera (+x right,
 		-- -y down, -z forward) with a rotation in degrees (pitch, yaw, roll), and how fast it moves between poses.

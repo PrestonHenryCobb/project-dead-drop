@@ -96,6 +96,7 @@ ShotFxController honors per-weapon HearStuds. Existing 8.5-server handles both e
 setting Combat.DefaultWeapon in Studio only before Play. No new selection UI or default weapon change. -->
 | Id | Ticket | Owner | Needs | Status |
 |---|---|---|---|---|
+| 8.15 | Owner test fixes: hide actual avatar locally; camera-relative cosmetic arm meshes; across-body wall tuck; shared attack gate blocks fire/aim/melee/takedown before feedback or requests and clears queued attacks. Crossed-out OBSTRUCTED reticle replaces weapon crosshair and disguise dot. Removed second tuck filter to keep rendering/gating aligned. Reload/respawn paths preserved. StyLua/Selene/Rojo pass; Studio regression checks and visual retest pending. | CODEX | Owner playtest report | READY_FOR_REVIEW |
 | 19-client-preview | Two HUD design directions in docs/mockups/combat-hud-review.html: Field notes and Control strip. Preview only; no unbuilt gameplay UI added to src. See .ai-sync/CODEX_CLIENT_HANDOFF.md for commits, API integration, exact Studio checks and remaining server-effect handoffs. | CODEX | Owner design review; gameplay contracts for later features | READY_FOR_REVIEW |
 
 ## Waiting on the owner

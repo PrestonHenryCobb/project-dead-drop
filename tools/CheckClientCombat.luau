@@ -13,6 +13,7 @@ local Placement = require(combat:WaitForChild("WeaponPlacement"))
 local Visuals = require(combat:WaitForChild("ShotVisuals"))
 
 local models: { any } = {}
+local fixtures: { Instance } = {}
 local checks = 0
 local function check(value: boolean, message: string)
 	assert(value, message)
@@ -64,6 +65,18 @@ local ok, failure = pcall(function()
 	end
 	check(Placement.tuckFraction(GameConfig.Combat.Presentation.WallReachStuds) == 0, "Resting gun should not tuck")
 	check(Placement.tuckFraction(GameConfig.Combat.Presentation.FullTuckStuds) == 1, "Full tuck threshold incorrect")
+	check(
+		Placement.attackBlocked(1.5, 0),
+		"A reachable wall distance must block attacks, not only the old 0.65 stud threshold"
+	)
+	check(
+		Placement.attackBlocked(GameConfig.Combat.Presentation.WallReachStuds, 0.5),
+		"Visible tuck recovery must still block"
+	)
+	check(
+		not Placement.attackBlocked(GameConfig.Combat.Presentation.WallReachStuds, 0),
+		"A clear, recovered gun must allow attacks"
+	)
 
 	local camera = workspace.CurrentCamera
 	assert(camera, "No camera")
@@ -93,10 +106,70 @@ local ok, failure = pcall(function()
 		#folder:GetChildren() == GameConfig.Combat.Feedback.TracerPoolSize + GameConfig.Combat.Feedback.FlashPoolSize,
 		"Pool grew"
 	)
+
+	-- Exercise the real collision sampler and the live HUD with a temporary client-only wall.
+	local wall = Instance.new("Part")
+	wall.Name = "ClientCombatTestWall"
+	wall.Anchored = true
+	wall.CanQuery, wall.CanCollide, wall.CanTouch = true, true, false
+	wall.Size = Vector3.new(10, 10, 0.3)
+	wall.CFrame = camera.CFrame * CFrame.new(0, 0, -1.5)
+	wall.Parent = workspace
+	table.insert(fixtures, wall)
+	local RunService = game:GetService("RunService")
+	RunService.RenderStepped:Wait()
+	RunService.RenderStepped:Wait()
+	check(Placement.attackBlocked(Placement.wallDistance(camera), 0), "Wall sampler did not block a nearby wall")
+	local poses = GameConfig.Combat.ViewModel.Poses
+	local function poseRotation(pose: any): CFrame
+		local rotation = pose.Rotation
+		return CFrame.Angles(math.rad(rotation.X), math.rad(rotation.Y), math.rad(rotation.Z))
+	end
+	for _, model in models do
+		model:update(camera, 1, { pose = "Ready", speedFraction = 0 })
+		check(model:isFireBlocked(camera), "Model bypassed the reachable-distance attack gate")
+		local expected = poseRotation(poses.Ready):Lerp(poseRotation(poses.Tucked), model.tuck)
+		local actual = camera.CFrame:ToObjectSpace(model.drawFrame).Rotation
+		local _, difference = expected:ToObjectSpace(actual):ToAxisAngle()
+		check(math.abs(difference) < 1e-4, "Visible wall tuck was filtered separately from the blocking fraction")
+	end
+	local WeaponController = require(client.Controllers.WeaponController)
+	check(WeaponController.getStatus().attackBlocked, "Live attack gate disagrees with wall sampler")
+	local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+	local hud = playerGui:FindFirstChild("CombatHud")
+	assert(hud, "Combat HUD must be running")
+	check((hud:FindFirstChild("ObstructionReticle") :: Frame).Visible, "Blocked graphic not visible")
+	for _, side in { "Left", "Right", "Up", "Down" } do
+		check(
+			not (hud:FindFirstChild("Crosshair" .. side) :: Frame).Visible,
+			"Crosshair still visible while obstructed"
+		)
+	end
+	local disguiseHud = playerGui:FindFirstChild("DisguiseHud")
+	assert(disguiseHud, "Disguise HUD must be running")
+	check(not (disguiseHud:FindFirstChild("Dot") :: Frame).Visible, "Disguise dot still visible while obstructed")
+	local cosmetic = camera:FindFirstChild("FirstPersonArms")
+	assert(cosmetic, "Cosmetic first-person arms must be running")
+	for _, item in cosmetic:GetDescendants() do
+		check(not item:IsA("Motor6D") and not item:IsA("Humanoid"), "Cosmetic arms contain live avatar joints")
+		if item:IsA("BasePart") then
+			check(item.Anchored and not item.CanCollide and not item.CanQuery, "Cosmetic arm can affect gameplay")
+		end
+	end
+	local avatar = Players.LocalPlayer.Character
+	assert(avatar, "Local avatar must exist")
+	for _, item in avatar:GetDescendants() do
+		if item:IsA("BasePart") then
+			check(item.LocalTransparencyModifier == 1, "Real avatar still visible in the owner's FPS view")
+		end
+	end
 end)
 
 for _, model in models do
 	model:destroy()
+end
+for _, fixture in fixtures do
+	fixture:Destroy()
 end
 assert(ok, tostring(failure))
 print(`Client combat checks passed: {checks}. Body IK, wall rays, input and multiplayer still need a playtest.`)

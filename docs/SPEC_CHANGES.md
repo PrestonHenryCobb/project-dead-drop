@@ -74,3 +74,15 @@ The owner delegated the replacement silent pistol's numbers to Codex. It replace
 post-melee recovery. Quiet: no tracer/flash, 12-stud hearing range around a sound origin displaced 8–15 studs.
 It has no Guise ambush multiplier. The lower damage and shorter effective range pay for its misdirection advantage.
 Tune these initial values through playtests.
+
+## Owner FPS presentation correction (2026-10-24, ticket 8.15)
+
+This replaces the earlier full-body first-person decision. Hide the actual avatar from its own first-person camera;
+use slimmer cosmetic arm meshes in a camera-relative rig. The owner's view never inherits the real avatar's
+movement-facing rotation. Other clients still see the normal avatar, facing and animation.
+
+Wall obstruction blends the weapon across the body using its disguised tuck pose, rather than lifting the barrel.
+The wall-driven tuck blocks shooting, aiming and melee/takedown attacks before requests, ammo, recoil or audio.
+Keep the block while the visible tuck recovers. A crossed-out reticle with OBSTRUCTED replaces both normal weapon
+crosshair and disguise dot. Clear the queued trigger/burst so backing away does not fire unexpectedly. Movement,
+normal interactions and reload remain available; respawn behavior stays as implemented.

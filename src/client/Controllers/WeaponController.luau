@@ -27,6 +27,7 @@ local ShotVisuals = require(Combat:WaitForChild("ShotVisuals"))
 local SoundPlayer = require(Combat:WaitForChild("SoundPlayer"))
 local ViewModel = require(Combat:WaitForChild("ViewModel"))
 local WeaponCadence = require(Combat:WaitForChild("WeaponCadence"))
+local WeaponPlacement = require(Combat:WaitForChild("WeaponPlacement"))
 local RemoteController = require(script.Parent.RemoteController)
 local HeldItemController = require(script.Parent.HeldItemController)
 
@@ -39,6 +40,7 @@ export type Status = {
 	weaponUp: boolean, -- aiming, exposed or just fired: the weapon is in hand
 	aiming: boolean,
 	viewportFov: number, -- the field of view the spread is drawn at
+	attackBlocked: boolean, -- same wall-tuck state used by every attack path and the obstruction graphic
 }
 
 local WeaponController = {}
@@ -102,6 +104,17 @@ local function isReloading(now: number): boolean
 	return reloadEndsAt > now
 end
 
+local function attackBlocked(camera: Camera?): boolean
+	if not (held and combatEnabled and camera) then
+		return false
+	end
+	if viewModel then
+		return viewModel:isFireBlocked(camera)
+	end
+	-- Input may arrive before the first render creates the model; collision must still block that first attack.
+	return WeaponPlacement.attackBlocked(WeaponPlacement.wallDistance(camera), 0)
+end
+
 local function weaponUp(now: number): boolean
 	return aiming or exposed or now - lastFireAt < RAISE_AFTER_FIRE_SECONDS
 end
@@ -148,7 +161,7 @@ local function fireOnce(camera: Camera, root: BasePart, now: number)
 	if takedownActive or now < lastMeleeAt + (def.PostMeleeFireDelay or 0) then
 		return -- Ticket 8.9: match the server's recovery gate before predicting any ammo, sound or recoil
 	end
-	if viewModel and viewModel:isFireBlocked(camera) then
+	if attackBlocked(camera) then
 		burstRemaining = 0
 		return -- a fully tucked gun cannot fire; keep ammo, recoil and requests untouched
 	end
@@ -236,6 +249,19 @@ local function step(dt: number)
 		aimBlend = 0
 		return
 	end
+	if attackBlocked(camera) then
+		-- Never queue a burst/held shot through an obstruction. Require fresh input after the tuck clears.
+		firing = false
+		burstRemaining = 0
+		if aiming then
+			aiming = false
+			RemoteController.fire("RequestDraw", false)
+		end
+		if takedownActive then
+			takedownActive = false
+			RemoteController.fire("RequestMelee", "Release")
+		end
+	end
 
 	aimBlend += ((if aiming then 1 else 0) - aimBlend) * math.min(AIM_BLEND_RATE * dt, 1)
 	if aimBlend < 0.001 then
@@ -308,11 +334,12 @@ local function step(dt: number)
 	})
 end
 
-function WeaponController.getHandTargets(): (CFrame?, CFrame?)
+function WeaponController.getHandTargets(): (CFrame?, CFrame?, number)
 	if combatEnabled and held and viewModel then
-		return viewModel:getHandTargets()
+		local right, left = viewModel:getHandTargets()
+		return right, left, viewModel.drawScale
 	end
-	return nil, nil
+	return nil, nil, 1
 end
 
 function WeaponController.getStatus(): Status
@@ -328,12 +355,18 @@ function WeaponController.getStatus(): Status
 		weaponUp = root ~= nil and held and weaponUp(now),
 		aiming = aiming,
 		viewportFov = if camera then camera.FieldOfView else baseFov,
+		attackBlocked = root ~= nil and attackBlocked(camera),
 	}
 end
 
 local function onFire(_: string, state: Enum.UserInputState): Enum.ContextActionResult
 	if state == Enum.UserInputState.Begin then
 		if not combatEnabled then
+			return Enum.ContextActionResult.Sink
+		end
+		if attackBlocked(workspace.CurrentCamera) then
+			firing = false
+			burstRemaining = 0
 			return Enum.ContextActionResult.Sink
 		end
 		firing = true
@@ -355,7 +388,7 @@ end
 
 local function onAim(_: string, state: Enum.UserInputState): Enum.ContextActionResult
 	local on = state == Enum.UserInputState.Begin
-	if on and not character() then
+	if on and (not character() or attackBlocked(workspace.CurrentCamera)) then
 		return Enum.ContextActionResult.Sink
 	end
 	if aiming ~= on then
@@ -375,6 +408,9 @@ end
 local function onMelee(_: string, state: Enum.UserInputState): Enum.ContextActionResult
 	local camera = workspace.CurrentCamera
 	if held and state == Enum.UserInputState.Begin and camera then
+		if attackBlocked(camera) then
+			return Enum.ContextActionResult.Sink
+		end
 		local _, humanoid = character()
 		local now = os.clock()
 		if not humanoid or takedownActive or now - lastMeleeAt < combat.Melee.CooldownSeconds then
@@ -384,7 +420,7 @@ local function onMelee(_: string, state: Enum.UserInputState): Enum.ContextActio
 		burstRemaining = 0
 		RemoteController.fire("RequestMelee", "Press", camera.CFrame.LookVector)
 		SoundPlayer.play(combat.Feedback.MeleeSound, combat.Feedback.ShotVolume)
-	elseif state == Enum.UserInputState.End then
+	elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
 		RemoteController.fire("RequestMelee", "Release")
 	end
 	return Enum.ContextActionResult.Sink

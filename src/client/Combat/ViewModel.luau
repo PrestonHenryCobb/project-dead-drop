@@ -5,12 +5,12 @@
 -- disguised; Ready: up in the right third of the screen once exposed; Aim: centred on the line of sight), with a little
 -- lag behind the view turning, a walking bob, a jolt for each shot and a dip while reloading.
 --
--- Step 8B.2: there are no duplicate sleeve/hand blocks. FirstPersonBodyController poses the real arms to the grips.
+-- Ticket 8.15: FirstPersonBodyController poses cosmetic camera-relative arm meshes to the grips; the real body is hidden.
 --
 --   ViewModel.new(def) -> ViewModel
 --   vm:update(camera, dt, input)   place it for this frame
 --   vm:kick()                      a shot's jolt
---   vm:getHandTargets()            world frames for the real character's hands
+--   vm:getHandTargets()            world frames for cosmetic first-person hands
 --   vm:setVisible(visible)
 --   vm:destroy()
 
@@ -383,8 +383,8 @@ function ViewModel.getMuzzlePosition(self: ViewModel, useLeft: boolean?): Vector
 	return self.muzzle.WorldPosition
 end
 
-function ViewModel.isFireBlocked(_self: ViewModel, camera: Camera): boolean
-	return WeaponPlacement.wallDistance(camera) <= presentation.FullTuckStuds
+function ViewModel.isFireBlocked(self: ViewModel, camera: Camera): boolean
+	return WeaponPlacement.attackBlocked(WeaponPlacement.wallDistance(camera), self.tuck)
 end
 
 -- Third-person display reuses the same geometry, but is parented in a separate client-only folder.
@@ -462,13 +462,10 @@ function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: In
 	local distance = WeaponPlacement.wallDistance(camera)
 	local blend = 1 - math.exp(-presentation.TuckBlendSpeed * dt)
 	self.tuck += (WeaponPlacement.tuckFraction(distance) - self.tuck) * blend
-	local rotation = presentation.TuckRotation * self.tuck
-	local tuck = CFrame.new(presentation.TuckPosition * self.tuck)
-		* CFrame.Angles(math.rad(rotation.X), math.rad(rotation.Y), math.rad(rotation.Z))
 	self.singleAkimbo = self.leftMuzzle ~= nil and input.pose == "Aim"
 	local center = if self.singleAkimbo then CFrame.new(-self.aimShiftX, 0, 0) else CFrame.identity
 	local relativeTarget = WeaponPlacement.fit(
-		center * poseCFrame(input.pose) * offset * tuck,
+		center * poseCFrame(input.pose) * offset,
 		self.corners,
 		camera.FieldOfView,
 		camera.ViewportSize
@@ -484,13 +481,21 @@ function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: In
 	end
 
 	-- Fit again after interpolation so a sudden FOV/aspect change cannot leave a corner outside the view.
-	local relative = WeaponPlacement.fit(
+	local baseRelative = WeaponPlacement.fit(
 		cameraCFrame:ToObjectSpace(self.current),
 		self.corners,
 		camera.FieldOfView,
 		camera.ViewportSize
 	)
-	self.current = cameraCFrame * relative
+	self.current = cameraCFrame * baseRelative
+	-- Apply wall tuck after ordinary pose settling. Filtering it twice would leave the gun visibly tucked after
+	-- the gate's fraction cleared. The same fraction now directly drives across-body rendering and blocking.
+	local relative = WeaponPlacement.fit(
+		baseRelative:Lerp(poseCFrame("Tucked") * offset, self.tuck),
+		self.corners,
+		camera.FieldOfView,
+		camera.ViewportSize
+	)
 	-- Compress camera-space depth and geometry together: projection stays the same while the gun avoids the wall.
 	local scale = math.min(
 		1,
