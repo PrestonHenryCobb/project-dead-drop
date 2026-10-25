@@ -169,6 +169,11 @@ export type ScopeGlintInfo = { Position: Vector3, Seconds: number }
 
 -- Combat messages. All are sent only to the player they concern, except ShotInfo (to players within earshot).
 export type HitConfirm = { Kind: "Npc" | "Agent", Head: boolean } -- the shooter's hitmarker (spec 8.4)
+-- Step 9: a hold-interaction began (Active) or ended. Kind is what it does, for the HUD ("Revive", "Execute").
+export type InteractStateInfo = { Kind: string, Seconds: number, Active: boolean }
+-- Step 9: sent to a player who goes down; BleedOutAt is on the server clock.
+export type DownedInfo = { BleedOutAt: number }
+
 -- Step 9: a team's roster, sent only to its own members (CLAUDE.md rule 3).
 export type TeamRosterInfo = { TeamId: number, Members: { Player } }
 

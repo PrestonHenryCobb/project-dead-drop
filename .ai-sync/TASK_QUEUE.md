@@ -72,7 +72,11 @@ In this order; each depends on the one before. Decisions: `IDEAS_2026-10-24.md` 
 ## Step 9: downed, revive, elimination, spectate
 | Id | Ticket | Owner | Status |
 |---|---|---|---|
-| 9.x | Split into tickets when the owner starts Step 9 (spectator rules are in `SPEC_CHANGES.md`). | | BLOCKED |
+| 9a | TeamService: mode (Debug.TestMode until the lobby), teams filled in join order, TeamRoster sent only to each team; Solos start with 2 plates. | CLAUDE_CODE | READY_FOR_REVIEW |
+| 9b | Downed (spec 14.1, 14.3): InteractService (hold-to-interact framework, kind "Body"), DownedService (down at 0 HP and Exposed; body lies and crawls like a downed NPC, server-moved; shots pass through downed bodies; 30 s bleed-out; hold E: revive a teammate 4 s / execute any other downed body, player or NPC, 2 s; team wipe; Solos eliminated at once; eliminated bodies lie intact then fade), DownedController (crawl input, crawl animation, body targeting, death sound muted). Also fixed: a spawn teleport was counted as a fall (Combat.TeleportStuds). Tested solo: fall down, team wipe, elimination, intact body; executing a downed NPC. **Needs 2 players:** crawling, bleed-out, revive, executing a player. | CLAUDE_CODE | READY_FOR_REVIEW |
+| 9b-hud | HUD for 9b: a bleed-out countdown from the Downed remote (BleedOutAt, server clock); a hold progress bar from InteractState (Kind, Seconds, Active), like the takedown bar; an Eliminated screen until spectating exists. | CODEX | TODO |
+| 9c | Spectating (SPEC_CHANGES 14.4): living teammates first; once the whole team is out, any living player plus a bounded drone (through walls, inside the building volumes and terraces); a spectator chat the living never hear; a "now spectating" hook. Not started. | CLAUDE_CODE | TODO |
+| 9d | Agent Tag drop and Rescue (spec 14.2): needs supply caches (Step 18) and a cost, since Funds were removed (SPEC-QUESTION). Not started. | CLAUDE_CODE | BLOCKED |
 
 ## Future client review
 <!-- 8.5a/8.5f client update: GuisePistol and FeintPistol definitions and shaped models are ready for review.

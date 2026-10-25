@@ -322,7 +322,7 @@ end
 local function describeBodies(): { Vector3 }
 	local list: { Vector3 } = {}
 	for _, body in Death.bodies do
-		table.insert(list, body.npc.ground)
+		table.insert(list, body.ground())
 	end
 	return list
 end
@@ -353,6 +353,28 @@ function NPCService.hitNpc(npc: Npc, amount: number, from: Vector3): boolean
 	end
 	Death.down(crowd :: NpcTypes.Crowd, npc, from, os.clock())
 	return true
+end
+
+-- Finishes off a downed NPC (spec 14.1 execute): it bleeds out at once. Returns false if it was not downed.
+function NPCService.executeNpc(npc: Npc): boolean
+	if npc.state ~= "Downed" then
+		return false
+	end
+	Death.execute(npc, os.clock())
+	return true
+end
+
+-- The NPC whose rig this is, if any.
+function NPCService.npcOf(model: Model): Npc?
+	if not crowd then
+		return nil
+	end
+	for _, npc in (crowd :: NpcTypes.Crowd).npcs do
+		if npc.model == model then
+			return npc
+		end
+	end
+	return nil
 end
 
 -- A shot was fired at `position` and can be heard `audibleStuds` away: NPCs panic or investigate (spec 5.4).

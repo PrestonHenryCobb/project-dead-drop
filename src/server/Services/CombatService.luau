@@ -65,9 +65,17 @@ type State = {
 	lastReactAt: number,
 	takedown: Takedown?,
 	fallPeakY: number, -- the highest the root has been since the player last stood on the map
+	lastY: number, -- the root height at the last check, to tell a teleport from a fall
 	airborne: boolean,
 	dead: boolean,
 	violations: number,
+	target: Target?, -- this player in History; untracked while downed so shots pass through (as for a downed NPC)
+}
+
+-- How DownedService takes over at 0 HP (spec 14). Without them a player at 0 HP simply dies.
+export type DownedHooks = {
+	onZeroHealth: (Player, Vector3) -> (), -- the player reached 0 HP; `from` is where the damage came from
+	isDowned: (Player) -> boolean,
 }
 
 local CombatService = {}
@@ -76,6 +84,7 @@ local config = GameConfig.Combat
 local states: { [Player]: State } = {}
 local sampleAccumulator = 0
 local takedownAccumulator = 0
+local downedHooks: DownedHooks? = nil
 local glintAccumulator = 0
 local rng = Random.new()
 local sweep = 0
@@ -114,6 +123,10 @@ local function sendMelee(player: Player, active: boolean)
 	RemoteService.fireClient("MeleeState", player, info)
 end
 
+local function isDowned(player: Player): boolean
+	return downedHooks ~= nil and downedHooks.isDowned(player)
+end
+
 -- Counts a request that no honest client sends (spec 26: log it, never act on it alone).
 local function suspect(player: Player, state: State, what: string)
 	state.violations += 1
@@ -127,8 +140,8 @@ end
 local function damagePlayer(victim: Player, amount: number, from: Vector3, attacker: Player?)
 	local state = states[victim]
 	local humanoid = aliveParts(victim)
-	if not state or not humanoid or state.dead then
-		return
+	if not state or not humanoid or state.dead or isDowned(victim) then
+		return -- a downed body takes no more damage: it is executed or bleeds out (spec 14.1)
 	end
 	local absorbed = math.min(state.armor, amount)
 	state.armor -= absorbed
@@ -141,9 +154,14 @@ local function damagePlayer(victim: Player, amount: number, from: Vector3, attac
 		CoverService.startLockout(victim)
 	end
 	if state.hp <= 0 then
-		state.dead = true
 		state.takedown = nil
-		humanoid.Health = 0
+		local hooks = downedHooks
+		if hooks then
+			hooks.onZeroHealth(victim, from)
+		else
+			state.dead = true
+			humanoid.Health = 0
+		end
 	end
 end
 
@@ -273,7 +291,7 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 	end
 	local state = states[player]
 	local humanoid, root = aliveParts(player)
-	if not (state and humanoid and root) or state.dead then
+	if not (state and humanoid and root) or state.dead or isDowned(player) then
 		return
 	end
 	local def = state.weapon
@@ -392,7 +410,7 @@ end
 local function onReload(player: Player)
 	local state = states[player]
 	local humanoid = aliveParts(player)
-	if not (state and humanoid) or state.dead then
+	if not (state and humanoid) or state.dead or isDowned(player) then
 		return
 	end
 	local def = state.weapon
@@ -428,7 +446,7 @@ local function cancelReload(player: Player)
 end
 
 local function onDraw(player: Player, drawn: unknown)
-	if type(drawn) ~= "boolean" or not states[player] then
+	if type(drawn) ~= "boolean" or not states[player] or (drawn and isDowned(player)) then
 		return
 	end
 	states[player].aiming = drawn
@@ -522,7 +540,7 @@ end
 local function onMelee(player: Player, kind: unknown, lookArg: unknown)
 	local state = states[player]
 	local humanoid, root = aliveParts(player)
-	if not (state and humanoid and root) or state.dead or type(kind) ~= "string" then
+	if not (state and humanoid and root) or state.dead or isDowned(player) or type(kind) ~= "string" then
 		return
 	end
 	if kind == "Release" then
@@ -594,8 +612,11 @@ local function trackFall(player: Player, state: State)
 		return
 	end
 	local y = root.Position.Y
+	local jumped = math.abs(y - state.lastY) > config.TeleportStuds
+	state.lastY = y
 	-- A zipline anchors the rider; a vent is crawled. Neither is a fall, and the height count starts again after.
-	if root.Anchored or VentService.isInside(player) then
+	-- A teleport (spawning, being moved by the server) is not a fall, and the count starts again after it.
+	if root.Anchored or VentService.isInside(player) or jumped then
 		state.fallPeakY = y
 		state.airborne = false
 		return
@@ -638,9 +659,11 @@ local function onCharacterAdded(player: Player, character: Model)
 		lastReactAt = -math.huge,
 		takedown = nil,
 		fallPeakY = root.Position.Y,
+		lastY = root.Position.Y,
 		airborne = false,
 		dead = false,
 		violations = 0,
+		target = nil,
 	}
 	states[player] = state
 
@@ -654,6 +677,7 @@ local function onCharacterAdded(player: Player, character: Model)
 		{ player = player }
 	)
 	if target then
+		state.target = target
 		History.track(target)
 	end
 
@@ -665,6 +689,52 @@ local function onCharacterAdded(player: Player, character: Model)
 
 	sendHealth(player, state)
 	sendAmmo(player, state, 0)
+end
+
+function CombatService.setDownedHooks(hooks: DownedHooks)
+	downedHooks = hooks
+end
+
+-- Whether shots and melee can find this player (false while downed, like a downed NPC).
+function CombatService.setTargetable(player: Player, targetable: boolean)
+	local state = states[player]
+	local target = state and state.target
+	if not target then
+		return
+	end
+	if targetable then
+		History.track(target)
+	else
+		History.untrack(target.id)
+	end
+end
+
+-- Puts a player back on their feet with this health and armour (spec 14.1 revive).
+function CombatService.restore(player: Player, hp: number, armor: number)
+	local state = states[player]
+	if not state then
+		return
+	end
+	state.hp, state.armor = hp, armor
+	state.dead = false
+	state.takedown = nil
+	sendHealth(player, state)
+end
+
+-- Ends what a player was doing with their weapon (going down: no aim, no reload, no takedown).
+function CombatService.disarm(player: Player)
+	local state = states[player]
+	if not state then
+		return
+	end
+	state.aiming = false
+	state.takedown = nil
+	if state.reloadEndsAt ~= 0 then
+		state.reloadId += 1
+		state.reloadEndsAt = 0
+		sendAmmo(player, state, 0)
+	end
+	CoverService.setWeaponDrawn(player, false)
 end
 
 function CombatService.Init()

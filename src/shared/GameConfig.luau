@@ -458,6 +458,8 @@ local GameConfig = {
 		-- Ticket 8.1: a player is on the ground when the map is within this many studs below their feet (falls are
 		-- measured by height on the server, from the highest point since they were last on the ground).
 		GroundProbeSlackStuds = 1.5,
+		-- Step 9: a height change bigger than this between two checks (one frame) is a teleport, not a fall.
+		TeleportStuds = 30,
 		SelfExplosionMult = 0.5,
 		-- 13.3: server validation of FireRequest.
 		LagCompSeconds = 0.25,
@@ -559,6 +561,12 @@ local GameConfig = {
 		},
 	},
 
+	-- Spec 24: Interact is held. InteractService times every hold on the server and re-checks it this often.
+	Interact = {
+		CheckHz = 10,
+		MaxTargetLength = 64, -- longest target name a RequestInteract may carry
+	},
+
 	-- Spec 14: downed, revive, rescue.
 	Downed = {
 		BleedOutSeconds = 30,
@@ -567,6 +575,12 @@ local GameConfig = {
 		ReviveArmor = 0,
 		ExecuteSeconds = 2,
 		AgentTagSeconds = 90,
+		-- Step 9: implementation values. SPEC-QUESTION: the spec gives no reach for revive or execute; 6 studs matches
+		-- the Blend wheel's seat range and is close enough to need committing to it.
+		InteractStuds = 6,
+		InteractSlackStuds = 1.5, -- allowance for lag while the hold runs
+		CrawlRequestHz = 10, -- how often a downed client sends the way it is crawling
+		BodyAimDegrees = 35, -- a body this far off the crosshair can still be picked to revive or execute
 		Rescue = {
 			Cost = 150,
 			TagPickupSeconds = 1,
@@ -744,6 +758,8 @@ local GameConfig = {
 		MoveBack = { Enum.KeyCode.S, Enum.KeyCode.Down },
 		MoveLeft = { Enum.KeyCode.A, Enum.KeyCode.Left },
 		MoveRight = { Enum.KeyCode.D, Enum.KeyCode.Right },
+		Interact = Enum.KeyCode.E, -- spec 24: hold
+		InteractPad = Enum.KeyCode.ButtonX, -- bound only while there is something to interact with (spec 24 note)
 		Jump = Enum.KeyCode.Space,
 		JumpPad = Enum.KeyCode.ButtonA,
 		StickDeadzone = 0.2,
@@ -852,6 +868,7 @@ local GameConfig = {
 		RateLimits = {
 			-- Fastest weapon fires 900 rpm (15/s); 30/s leaves room for jitter. The server also checks fire rate itself.
 			FireRequest = { PerSecond = 30, Burst = 30 },
+			RequestCrawl = { PerSecond = 15, Burst = 15 }, -- sent at Downed.CrawlRequestHz
 		},
 	},
 }

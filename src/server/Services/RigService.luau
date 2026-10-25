@@ -104,6 +104,8 @@ local function buildTemplate(): Model
 	-- Step 8B.5: the jump reaches the same height as before under the lower gravity, so it only lasts longer.
 	local humanoid = rig:FindFirstChildOfClass("Humanoid") :: Humanoid
 	humanoid.UseJumpPower = false
+	-- Step 9: an eliminated body stays in one piece and lies like a bled-out NPC (DownedService), not a ragdoll.
+	humanoid.BreakJointsOnDeath = false
 	humanoid.JumpHeight = GameConfig.Movement.JumpHeight
 	rig.Name = STARTER_CHARACTER
 	return rig

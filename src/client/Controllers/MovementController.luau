@@ -53,18 +53,28 @@ local function wanted(): Vector2
 	return if keys.Magnitude > 1 then keys.Unit else keys
 end
 
-local function step(dt: number)
-	local body, camera = humanoid, workspace.CurrentCamera
-	if not (body and camera and body.Health > 0) then
-		moving = Vector3.zero
-		return
+-- The way the player is asking to go, flat in the world and relative to the camera, length 0 to 1. Downed players
+-- crawl this way (DownedController).
+function MovementController.wantedDirection(): Vector3
+	local camera = workspace.CurrentCamera
+	if not camera then
+		return Vector3.zero
 	end
 	local input = wanted()
 	local look = camera.CFrame.LookVector
 	local forward = Vector3.new(look.X, 0, look.Z)
 	forward = if forward.Magnitude > 1e-3 then forward.Unit else Vector3.zAxis
 	local right = Vector3.new(-forward.Z, 0, forward.X)
-	local target = right * input.X + forward * input.Y
+	return right * input.X + forward * input.Y
+end
+
+local function step(dt: number)
+	local body = humanoid
+	if not (body and body.Health > 0) then
+		moving = Vector3.zero
+		return
+	end
+	local target = MovementController.wantedDirection()
 
 	-- Speed up over AccelSeconds, slow down over DecelSeconds; a turn blends through the change.
 	local seconds = if target.Magnitude > moving.Magnitude then movement.AccelSeconds else movement.DecelSeconds

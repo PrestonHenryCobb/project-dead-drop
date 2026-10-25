@@ -30,9 +30,6 @@ Times are local, `YYYY-MM-DD HH:MM`.
 
 | File | Locked by | Since | Ticket |
 |---|---|---|---|
-| `src/shared/GameConfig.luau` (Downed, Debug, Network, Controls), `Remotes.luau`, `Types.luau` | CLAUDE_CODE | 2026-10-24 22:00 | Step 9 |
-| `src/server/Services/CombatService.luau`, `DisguiseService.luau`, `NPCService.luau`, `RigService.luau`, `src/server/NPC/Death.luau` | CLAUDE_CODE | 2026-10-24 22:00 | Step 9 |
-| new: `TeamService`, `DownedService`, `SpectateService` (server); `DownedController`, `SpectateController` (client) | CLAUDE_CODE | 2026-10-24 22:00 | Step 9 |
 
 ## Shared-file rules (`Remotes`, `Types`, `Enums`, `GameConfig`)
 - Lock the file for the few minutes of the edit, not for the whole ticket.

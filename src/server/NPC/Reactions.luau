@@ -213,10 +213,10 @@ function Reactions.watchBodies(crowd: Crowd, now: number)
 				if
 					not npc.reactedTo[body.model]
 					and body.npc ~= npc
-					and distance(npc, body.npc.ground) <= config.Panic.BodyRadius
+					and distance(npc, body.ground()) <= config.Panic.BodyRadius
 				then
 					npc.reactedTo[body.model] = true
-					beginGasp(npc, body.npc.ground, now)
+					beginGasp(npc, body.ground(), now)
 					break
 				end
 			end

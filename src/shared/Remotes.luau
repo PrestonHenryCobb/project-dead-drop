@@ -39,6 +39,7 @@ local Remotes = {
 		"MeleeState", -- to the owner only: a takedown started or ended (spec 13.4)
 		"SwapMarker", -- to a rival who comes within range: where someone changed disguise, until when (brief Q6)
 		"ScopeGlint", -- to a rival agent who can see a scoped DMR: where the glint is (STEP8 unique effects)
+		"InteractState", -- to the holder only: a hold-interaction (revive, execute, later intel and doors) began or ended
 		"TeamRoster", -- to each member of a team only: who is on it (rule 3; spec 3.3 teammate markers build on it)
 	},
 
@@ -62,6 +63,7 @@ local Remotes = {
 		"RequestCrouch", -- crouch on or off (spec 6.8)
 		"RequestSense", -- the character in the crosshair within Agent Sense range, or nil (spec 8.3)
 		"RequestDraw", -- aim (draw) the weapon on or off (spec 13.2)
+		"RequestCrawl", -- while downed: the way to crawl, a flat direction or zero (spec 14.1)
 	},
 
 	FolderName = "Remotes",

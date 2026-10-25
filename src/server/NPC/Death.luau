@@ -7,7 +7,7 @@
 -- of the same role appears ReplacementSeconds later at a node far from the body.
 --
 -- Bodies, downed or bled out, are what other NPCs react to (spec 5.4), so this keeps a list of them for the
--- reaction module.
+-- reaction module. Downed and eliminated players are added too (DownedService), so NPCs react to any body alike.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -23,7 +23,8 @@ type Hooks = NpcTypes.Hooks
 
 export type Body = {
 	model: Model,
-	npc: Npc,
+	npc: Npc?, -- nil for a player's body
+	ground: () -> Vector3, -- where it lies
 }
 
 local Death = {}
@@ -72,7 +73,13 @@ function Death.down(crowd: Crowd, npc: Npc, awayFrom: Vector3?, now: number)
 	npc.pathIndex = 1
 	npc.speed = config.Death.CrawlSpeed
 	AnimationSync.set(npc, "")
-	table.insert(Death.bodies, { model = npc.model, npc = npc })
+	table.insert(Death.bodies, {
+		model = npc.model,
+		npc = npc,
+		ground = function()
+			return npc.ground
+		end,
+	})
 end
 
 local function fadeAndRemove(body: Body, hooks: Hooks)
@@ -87,9 +94,30 @@ local function fadeAndRemove(body: Body, hooks: Hooks)
 		if index then
 			table.remove(Death.bodies, index)
 		end
-		hooks.remove(body.npc)
+		hooks.remove(body.npc :: Npc)
 		body.model:Destroy()
 	end)
+end
+
+-- A downed or eliminated player's body (DownedService), so NPCs react to it as to any other.
+function Death.addPlayerBody(model: Model, ground: () -> Vector3)
+	table.insert(Death.bodies, { model = model, npc = nil, ground = ground })
+end
+
+function Death.removePlayerBody(model: Model)
+	for index, body in Death.bodies do
+		if body.model == model and body.npc == nil then
+			table.remove(Death.bodies, index)
+			return
+		end
+	end
+end
+
+-- An executed NPC (spec 14.1: an enemy holds Interact on a downed body) bleeds out at once.
+function Death.execute(npc: Npc, now: number)
+	if npc.state == "Downed" then
+		npc.stateUntil = now
+	end
 end
 
 -- Moves a downed NPC on: crawling while it has path left, then bleeding out.

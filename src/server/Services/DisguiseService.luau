@@ -78,6 +78,7 @@ local states: { [Player]: State } = {}
 local npcLookup: ((string) -> NpcInfo?)? = nil
 local coverHooks: CoverHooks? = nil
 local swapListeners: { (Player) -> () } = {}
+local actionBlocker: ((Player) -> boolean)? = nil
 local validateAccumulator = 0
 
 -- Rays in the character group skip characters and only meet the map.
@@ -96,6 +97,17 @@ end
 -- Called when a player starts changing disguise (spec 27 #22: Combat cancels a reload).
 function DisguiseService.onSwapStarted(listener: (Player) -> ())
 	table.insert(swapListeners, listener)
+end
+
+-- Something that stops all disguise actions for a player (DownedService: a downed agent cannot scan, change or
+-- re-cover).
+function DisguiseService.setActionBlocker(blocker: (Player) -> boolean)
+	actionBlocker = blocker
+end
+
+local function blocked(player: Player): boolean
+	local blocker = actionBlocker
+	return blocker ~= nil and blocker(player)
 end
 
 -- Is a disguise change under way?
@@ -326,7 +338,7 @@ end
 local function onRequestDisguise(player: Player)
 	local state = states[player]
 	local humanoid, root = aliveRoot(player)
-	if not (state and humanoid and root) then
+	if not (state and humanoid and root) or blocked(player) then
 		return
 	end
 	cancelScan(player, state)
@@ -387,7 +399,7 @@ end
 
 local function onRequestScan(player: Player, targetId: unknown)
 	local state = states[player]
-	if not state then
+	if not state or blocked(player) then
 		return
 	end
 	if typeof(targetId) ~= "string" then
@@ -400,7 +412,7 @@ end
 local function onRequestSprint(player: Player, on: unknown)
 	local state = states[player]
 	local humanoid = aliveRoot(player)
-	if not state or not humanoid or typeof(on) ~= "boolean" then
+	if not state or not humanoid or typeof(on) ~= "boolean" or blocked(player) then
 		return
 	end
 	state.sprinting = on
@@ -410,7 +422,7 @@ end
 local function onRequestCrouch(player: Player, on: unknown)
 	local state = states[player]
 	local humanoid = aliveRoot(player)
-	if not state or not humanoid or typeof(on) ~= "boolean" then
+	if not state or not humanoid or typeof(on) ~= "boolean" or blocked(player) then
 		return
 	end
 	state.crouching = on
