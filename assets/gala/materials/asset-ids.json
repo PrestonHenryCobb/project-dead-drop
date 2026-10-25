@@ -1,0 +1,33 @@
+{
+  "owner": "squareprep007",
+  "uploadedOn": "2026-10-25",
+  "source": "Owner uploaded PNGs; Image and Decal IDs verified in Roblox Creator Hub development items.",
+  "images": {
+    "flat-normal.png": "140129741768422",
+    "metalness-0.png": "98244287935634",
+    "metalness-204.png": "119308465636214",
+    "metalness-235.png": "123793328813029",
+    "neutral-albedo.png": "124864115250702",
+    "roughness-107.png": "75205409603128",
+    "roughness-184.png": "82169046589228",
+    "roughness-199.png": "89335186353011",
+    "roughness-209.png": "134062253561531",
+    "roughness-230.png": "112027768122213",
+    "roughness-56.png": "104344164591784",
+    "walnut-albedo.png": "138881370879660"
+  },
+  "decals": {
+    "flat-normal.png": "84336663538736",
+    "metalness-0.png": "106817913914820",
+    "metalness-204.png": "119524390117441",
+    "metalness-235.png": "136554793606857",
+    "neutral-albedo.png": "137119470415498",
+    "roughness-107.png": "93362557962896",
+    "roughness-184.png": "103339174320085",
+    "roughness-199.png": "134368147911725",
+    "roughness-209.png": "88429145595606",
+    "roughness-230.png": "130079900166856",
+    "roughness-56.png": "131581171610984",
+    "walnut-albedo.png": "127501481696815"
+  }
+}

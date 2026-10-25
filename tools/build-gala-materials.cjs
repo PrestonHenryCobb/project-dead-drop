@@ -63,8 +63,18 @@ for (const [role, target] of Object.entries(targets)) {
   manifest[role] = { ...target, ...maps };
 }
 fs.writeFileSync(path.join(out, 'manifest.json'), JSON.stringify({ size, encoding: '8-bit RGB; grayscale PBR data; flat OpenGL normal; no baked shadows', materials: manifest }, null, 2) + '\n');
-// Produces a real binding script without inventing upload IDs. Owner supplies filename -> uploaded ContentId.
-let binding = '--!strict\n-- Run in the Studio EDIT command bar after filling ids from Asset Manager.\nlocal ids: { [string]: string } = {}\nlocal maps = {\n';
+// Preserve verified Image IDs across regeneration. Decal wrapper IDs are provenance only, never texture maps.
+const idsFile = path.join(out, 'asset-ids.json');
+const ids = fs.existsSync(idsFile) ? JSON.parse(fs.readFileSync(idsFile, 'utf8')).images : {};
+const files = [...new Set(Object.values(manifest).flatMap(m => [m.ColorMap, m.NormalMap, m.RoughnessMap, m.MetalnessMap]))].sort();
+let binding = '--!strict\n-- Run in the Studio EDIT command bar. Verified Image IDs come from asset-ids.json.\nlocal ids: { [string]: string } = {\n';
+for (const file of files) {
+  if (ids[file] !== undefined) {
+    if (!/^\d+$/.test(ids[file])) throw new Error(`Invalid verified Image ID for ${file}`);
+    binding += `\t["${file}"] = "rbxassetid://${ids[file]}",\n`;
+  }
+}
+binding += '}\nlocal maps = {\n';
 for (const [role, maps] of Object.entries(manifest)) {
   binding += `\t${role} = {\n`;
   for (const field of ['ColorMap','NormalMap','RoughnessMap','MetalnessMap']) binding += `\t\t${field} = assert(ids["${maps[field]}"], "Supply uploaded ID for ${maps[field]}"),\n`;

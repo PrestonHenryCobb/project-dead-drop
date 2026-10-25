@@ -291,3 +291,25 @@ startup, then restores them and destroys fixtures even on failure. This tests pr
 StyLua/Selene/Rojo and the existing 29 melee runtime assertions passed. Manual traversal input, 720p layout and
 down/revive/respawn visual acceptance are owner review; exact steps are in CLIENT_REVIEW_2026-10-25.md.
 SPEC-QUESTIONs: none new. Ready for remaining Step 19 HUD review (main gameplay sequence: Step 9c spectating).
+## Codex: owner-uploaded Gala PBR binding (gala-material-install)
+
+Owner manually completed the twelve PNG uploads; do not retry the declined browser transfer. Verified both the
+Decal and Image listings under squareprep007. `assets/gala/materials/asset-ids.json` records both; ONLY its Image
+IDs feed `install.luau`. The generator now preserves those bindings, and repeated regeneration preserves all hashes.
+
+Installed GalaIvory/Walnut/Brass/Steel/Velvet/Suit in the local Edit place, then rebuilt the scene: 0 problems.
+2,433 scenery parts bind variants (902 brass, 524 walnut, 689 ivory, 318 velvet); character/weapon construction uses
+Suit/Steel too. No source physics/gameplay, remotes, public identity markers or asset privacy changes. Backup:
+`D:\Dead-Drop\CoverStory.before-materials-20261025.rbxl`. No Roblox game publishing or git push.
+
+Final 17:04 UTC Edit audit matched all 24 map properties and loaded 11/12 Image assets. ONLY steel roughness
+82169046589228 remains Failure/"Asset is not approved for the requester". Do not replace its ID with the Decal ID,
+invent a successful moderation result, or claim full PBR visual acceptance. Other logs initially reported processed
+material packs still generating (406); PreloadAsync cannot certify those packed MaterialVariant textures' rendering.
+The binding remains installed so it can resolve when Roblox permits delivery; visual/steel acceptance is pending.
+
+ReviewHarness now checks player/NPC MaterialVariant parity plus six-variant client replication when installed in
+Edit. Initial test tried to read Plugin-protected map properties from clients; corrected to audit those in Edit.
+Final 17:02 UTC run: server PASS, TWO client PASS lines, then ServerPassed. StyLua/Selene/Rojo and deterministic
+generator checks pass. See docs/GALA_ART_REVIEW.md for exact one-player and Test > Clients 2 > Start review steps,
+source-only reinstall steps, gaps, SPEC-QUESTIONs (none new), and next: owner Gala review / Step 9c spectating.

@@ -1,8 +1,8 @@
 # Gala art direction: source pass, 2026-10-25
 
-**Latest:** original sculpted geometry is now authored, baked into the local place and integrated with both players
-and NPCs. Two-client parity/quality probes passed. Exact PBR texture installation remains blocked by the browser's
-file-upload approval gate, including a retry after explicit chat approval. See the final sculpture section below.
+**Latest:** the owner manually uploaded all twelve maps. Verified Image IDs now populate the reproducible installer;
+all six Gala MaterialVariants are installed and the local scene rebuilt with zero problems. See the material-install
+section at the end for actual loading and multiplayer results. Earlier upload-blocker notes below are historical.
 
 Owner direction: Sculpted, Cinematic Stylization in an original Art Deco Gala, with clean low-poly geometry. The three
 Gemini reference images supply mood, material hierarchy and silhouette targets, not layouts or assets to copy.
@@ -54,12 +54,12 @@ The attachment's earlier three-way style comparison and full-scene outlines are 
 3. Select **Lighting** in Explorer. Confirm **LightingStyle = Realistic** and **PrioritizeLightingQuality = true**.
    If the generator warns that those properties cannot be assigned, set them in Properties. Older Studio uses
    **Technology = Future**. Current Roblox documents Realistic as its advanced lighting mode; Technology is deprecated.
-4. For exact material roughness/metalness, use **Asset Manager > Images > Bulk Import** (or Material Manager's texture
+4. The owner has completed the twelve-image upload on 2026-10-25. For replacement assets, use **Asset Manager > Images > Bulk Import** (or Material Manager's texture
    import controls) for the **12 PNGs** in `assets/gala/materials`. Import under the account/group that owns the
    experience and ensure the experience may use them. Wait for successful uploads/moderation. Do not import the JSON
    or Luau files as images.
-5. Open `assets/gala/materials/install.luau` locally. Fill its `ids` table with each uploaded filename and content ID:
-   `ids["neutral-albedo.png"] = "rbxassetid://..."` using the **real ID**, and likewise for every PNG. Paste the complete
+5. Open `assets/gala/materials/install.luau` locally. Its `ids` table is filled from the verified **Image IDs** in
+   `asset-ids.json`; Decal wrapper IDs are recorded separately and must not be used as material maps. Paste the complete
    script into the Studio **Edit-mode** command bar. Missing IDs fail before material installation starts. Expect
    `GalaIvory`, `GalaWalnut`, `GalaBrass`, `GalaSteel`, `GalaVelvet`, `GalaSuit` under **MaterialService**.
 6. Re-run step 2 so scenery binds the installed variants. Save the place. Source sync alone does not upload image
@@ -207,13 +207,55 @@ The local place is `D:\Dead-Drop\CoverStory.rbxl`; the pre-sculpture backup is
 `D:\Dead-Drop\CoverStory.before-sculptures-20261025.rbxl`. Rebuild is reproducible from source; source-only Rojo builds
 use the existing native rig until the Edit-mode bake has created `ReplicatedStorage.GalaArtAssets`.
 
-**External blocker:** no texture files were successfully uploaded. After explicit chat approval for all 12 PNGs,
-the browser file-transfer gate again returned permission declined for `create.roblox.com`. No workaround or further
-upload attempt was made. The earlier Studio API also reported that CreateAssetAsync was not available. Native material
-fallback remains active; the exact roughness/metalness finish needs that upload gate resolved and the six variants
-installed. No image IDs were fabricated and the game was not published.
+**Historical upload blocker:** browser file transfer remained declined, and Studio's CreateAssetAsync was unavailable.
+The owner subsequently uploaded the twelve maps manually; the material-install section below supersedes this blocker.
+No upload-gate workaround was used, no IDs were fabricated, and the game was not published.
 
 **Remaining review:** viewport capture/coordinate control still fail, so no in-game screenshot, full visual acceptance,
 actual mouse-driven fire/reload run or whole-game GPU/FPS acceptance is claimed. The automated two-client and quality
 checks above are complete. **SPEC-QUESTION:** no new gameplay question; initial art proportions remain visual tuning.
 **Ready for:** owner art review and authorized texture integration; continuing unblocked Codex client tickets is approved.
+
+## Owner-uploaded material installation (2026-10-25)
+
+The owner completed the upload manually after the browser transfer gate stayed blocked. All twelve matching PNG
+names were verified under squareprep007's Creator Hub Decals AND Images listings. No permission settings or asset
+privacy were changed by Codex. The inspected neutral-albedo Image is already Open Use.
+
+What I built:
+- `assets/gala/materials/asset-ids.json`: verified filename-to-Image-ID bindings and separate Decal-ID provenance.
+- `tools/build-gala-materials.cjs`: preserves those verified Image IDs when regenerating the material pack.
+- `assets/gala/materials/install.luau`: now contains the real twelve Image ContentIds; creates the six variants using the existing Edit-only installer.
+- `src/server/Tools/Gala/ReviewHarness.luau`: compares player/NPC MaterialVariant names and requires the installed six variants to replicate when present in Edit. Texture properties are Plugin-protected, so their IDs are audited in Edit rather than read by ordinary client scripts.
+
+Studio installation completed, then the fresh-clone scene rebuild returned **0 problems**. Existing scene bindings:
+GalaBrass 902, GalaWalnut 524, GalaIvory 689 and GalaVelvet 318 parts. Steel and Suit are additionally consumed when
+weapons/characters are constructed. The place backup is `D:\Dead-Drop\CoverStory.before-materials-20261025.rbxl`.
+
+Loading check: the first bare-string preload reported twelve failures. The subsequent instance-based Decal probe
+loaded **11/12** images; `roughness-184.png` (Image 82169046589228, steel roughness) still reported Failure at 16:58 UTC.
+Engine logs distinguish unapproved assets (403) from material-pack representations still being generated (406).
+Neither means a new browser-upload permission is needed. PreloadAsync cannot establish that MaterialVariant's
+processed PBR texture pack has rendered correctly; visual inspection remains necessary. Later check results are
+recorded in the final handoff. The final Edit audit at 17:04 UTC matched all 24 material map properties against the
+verified bindings and again loaded **11/12** images; only the same steel roughness Image remained unavailable.
+
+How to test in Studio:
+1. Open the saved local place and start **Play** with one player. Walk between a chandelier-lit room and a dim room.
+   Brass should have tighter highlights than ivory walls; walnut should stay satin with broad subtle bands; velvet
+   and suits should remain matte. Weapon steel should retain its broad dark silhouette rather than appear glossy.
+2. Press **F7** through quality modes. Low quality should remain readable; higher quality should reveal the material
+   response. Check Output for new asset approval/processing errors before judging a missing texture as a palette bug.
+3. Use **Test > Clients 2 > Start**. Compare the same outfit on a player and NPC, including the tailored torso and
+   facial pieces. Material shading must not identify a disguised player. Fire/reload and respawn to inspect new guns/rigs.
+4. For a clean source-only place, run the populated `install.luau` in **Edit**, rebuild with the command above, then
+   save. To replace an image, update its verified Image ID in `asset-ids.json` and regenerate; do not substitute its Decal wrapper ID.
+
+Validation: material generator regeneration preserves all texture hashes and bindings; StyLua, Selene and Rojo
+build pass. The initial multiplayer probe exposed Plugin-only map-property reads in the test itself; those checks
+were moved to Edit and the multiplayer review rerun. See the handoff for final server and both-client outcomes.
+The final two-client run returned ServerPassed and BOTH clients independently logged PASS at 17:02 UTC, including
+the six replicated variants, shared disguise finishes, existing HUD/quality/sparks/crowd and traversal fixtures.
+Known gaps: pending asset approval/processed-pack availability and full visual/GPU acceptance. No game was published.
+SPEC-QUESTIONs: no new gameplay questions; material proportions/response remain art tuning. Ready for: owner Gala
+material review and the existing next gameplay step, Step 9c spectating.

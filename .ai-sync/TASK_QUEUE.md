@@ -143,8 +143,9 @@ Owner requested this area split while Claude was unavailable. Full source eviden
 
 | Id | Ticket | Owner | Needs | Status |
 |---|---|---|---|---|
-| gala-art-direction | Owner-authorized Direction 1 Gala art, parchment HUD, material import pack, weapons and shared disguise parity; preserve tier colors with cyan accents. | CODEX | Art refs + 2026-10-25 owner direction; docs/GALA_ART_REVIEW.md | READY_FOR_REVIEW (sculptures integrated; PBR upload gate pending) |
+| gala-art-direction | Owner-authorized Direction 1 Gala art, parchment HUD, material import pack, weapons and shared disguise parity; preserve tier colors with cyan accents. | CODEX | Art refs + 2026-10-25 owner direction; docs/GALA_ART_REVIEW.md | READY_FOR_REVIEW (sculptures and verified PBR bindings installed; loading/visual review below) |
 | gala-sculptures | Finish owner-approved original sculpted Gala geometry, shared disguises and asset integration; commit completed work. | CODEX | Original geometry baked; two-client probes passed; docs/GALA_ART_REVIEW.md | READY_FOR_REVIEW |
+| gala-material-install | Bind owner-uploaded Gala Image IDs, preserve them through generation, install six variants and verify loading/replication in Studio. | CODEX | Owner manual upload complete; docs/GALA_ART_REVIEW.md | READY_FOR_REVIEW (installed; one image awaiting Roblox delivery) |
 
 ## Waiting on the owner
 

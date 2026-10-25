@@ -47,6 +47,7 @@ local ok, problem = pcall(function()
                     assert(match and match.ClassName == part.ClassName, "Different mesh class")
                     assert((match.Size - part.Size).Magnitude < 0.01, `Different mesh fit {name}.{part.Name}: {match.Size} / {part.Size}`)
                     assert(match.Color == part.Color and match.Material == part.Material, "Different shading")
+                    assert(match.MaterialVariant == part.MaterialVariant, "Different PBR variant")
                     assert(not match.CanQuery and not match.CanCollide and match.Massless, "Cosmetic changes physics")
                 end
             end
@@ -78,6 +79,15 @@ local ok, problem = pcall(function()
     assert(accessibility.reducedMotion() == nativeMotion, "Native Reduce Motion preference mismatch")
     local graphics = require(client.Controllers.GraphicsController)
     local config = require(game.ReplicatedStorage.Shared.GameConfig)
+    -- Ticket gala-material-install: variant data must replicate with the same shared material contract.
+    local materials = game:GetService("MaterialService")
+    if args.RequireMaterials then
+        for role, definition in config.Art.Materials do
+            local variant = materials:FindFirstChild("Gala" .. role)
+            assert(variant and variant:IsA("MaterialVariant") and variant.BaseMaterial == definition.Base, "Missing PBR variant")
+            -- Map IDs are Plugin-protected: verify those in Edit, not from an ordinary client script.
+        end
+    end
     local lighting = game:GetService("Lighting")
     task.wait(4) -- GraphicsController gathers the city before its first refresh
     for _, mode in {"Low", "Medium", "High"} do
@@ -159,7 +169,10 @@ function ReviewHarness.run(): any
 	server.Parent = ServerScriptService
 	client.Parent = StarterPlayer.StarterPlayerScripts
 	local ok, result = pcall(function()
-		return game:GetService("StudioTestService"):ExecuteMultiplayerTestAsync(2, { Tag = "GalaArtReview" })
+		return game:GetService("StudioTestService"):ExecuteMultiplayerTestAsync(2, {
+			Tag = "GalaArtReview",
+			RequireMaterials = game:GetService("MaterialService"):FindFirstChild("GalaIvory") ~= nil,
+		})
 	end)
 	server:Destroy()
 	client:Destroy()
