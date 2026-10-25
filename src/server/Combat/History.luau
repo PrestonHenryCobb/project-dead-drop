@@ -27,6 +27,7 @@ export type Target = {
 	rootPart: BasePart,
 	headPart: BasePart,
 	rootHeight: number, -- how high the root's centre sits above the feet
+	humanoid: Humanoid?, -- a player's; their size changes with each disguise, so rootHeight is re-read every sample
 	bodyRadius: number,
 	headRadius: number,
 	delay: number, -- how far behind the server clients draw this target
@@ -69,6 +70,7 @@ function History.make(
 		rootPart = root,
 		headPart = head,
 		rootHeight = rootHeight,
+		humanoid = model:FindFirstChildOfClass("Humanoid"),
 		bodyRadius = config.Hitbox.BodyRadius,
 		headRadius = math.max(config.Hitbox.HeadMinRadius, head.Size.Y * config.Hitbox.HeadRadiusScale),
 		delay = delay,
@@ -93,6 +95,10 @@ function History.sample(now: number)
 		sample.t = now
 		sample.root = target.rootPart.Position
 		sample.head = target.headPart.Position
+		local humanoid = target.humanoid
+		if humanoid then
+			target.rootHeight = humanoid.HipHeight + target.rootPart.Size.Y / 2
+		end
 		target.next = target.next % RING_SIZE + 1
 		target.count = math.min(target.count + 1, RING_SIZE)
 	end

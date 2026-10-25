@@ -79,13 +79,22 @@ local function pick<T>(list: { T }, index: number, step: number): T
 	return list[(index * step) % #list + 1]
 end
 
--- Scale stays inside GameConfig.Rig for every outfit.
+-- Scale stays inside GameConfig.Rig for every outfit: height in its range, width and depth in theirs.
+local rig = GameConfig.Rig
 local function scaleFor(index: number): { Height: number, Width: number, Depth: number, Head: number }
-	local span = GameConfig.Rig.ScaleMax - GameConfig.Rig.ScaleMin
-	local function at(step: number, offset: number): number
-		return GameConfig.Rig.ScaleMin + span * (((index * step + offset) % 5) / 4)
+	local function at(min: number, max: number, step: number, offset: number): number
+		return min + (max - min) * (((index * step + offset) % 5) / 4)
 	end
-	return { Height = at(1, 0), Width = at(2, 1), Depth = at(3, 2), Head = 1 }
+	return {
+		Height = at(rig.HeightScaleMin, rig.HeightScaleMax, 1, 0),
+		Width = at(rig.WidthScaleMin, rig.WidthScaleMax, 2, 1),
+		Depth = at(rig.WidthScaleMin, rig.WidthScaleMax, 3, 2),
+		Head = 1,
+	}
+end
+
+local function inRange(value: number, min: number, max: number): boolean
+	return value >= min - 1e-6 and value <= max + 1e-6
 end
 
 local function outfit(
@@ -173,12 +182,12 @@ for role in Enums.Role do
 	for index = 0, OUTFITS_PER_ROLE - 1 do
 		local def = build(index)
 		assert(not byId[def.OutfitId], `Duplicate outfit id {def.OutfitId}`)
-		for _, scale in def.Scale do
-			assert(
-				scale >= GameConfig.Rig.ScaleMin - 1e-6 and scale <= GameConfig.Rig.ScaleMax + 1e-6,
-				"Outfit scale out of range"
-			)
-		end
+		assert(
+			inRange(def.Scale.Height, rig.HeightScaleMin, rig.HeightScaleMax)
+				and inRange(def.Scale.Width, rig.WidthScaleMin, rig.WidthScaleMax)
+				and inRange(def.Scale.Depth, rig.WidthScaleMin, rig.WidthScaleMax),
+			"Outfit scale out of range"
+		)
 		byId[def.OutfitId] = def
 		table.insert(list, def)
 	end
@@ -202,7 +211,12 @@ local trueForm: OutfitDef = {
 	Accessories = {},
 	Hair = { Style = "Crop", Color = HAIR_COLORS[1] },
 	Face = "Default",
-	Scale = { Height = 1, Width = 1, Depth = 1, Head = 1 },
+	Scale = {
+		Height = (rig.HeightScaleMin + rig.HeightScaleMax) / 2,
+		Width = (rig.WidthScaleMin + rig.WidthScaleMax) / 2,
+		Depth = (rig.WidthScaleMin + rig.WidthScaleMax) / 2,
+		Head = 1,
+	},
 }
 byId[trueForm.OutfitId] = trueForm
 

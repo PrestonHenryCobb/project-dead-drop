@@ -51,13 +51,13 @@ agent capture failed twice (FrameArrived timed out; window capture timed out). L
 In this order; each depends on the one before. Decisions: `IDEAS_2026-10-24.md` and `BUILD_ORDER.md` Step 8B.
 | Id | Ticket | Owner | Status |
 |---|---|---|---|
-| 8B.1 | Slimmer, taller bodies for everyone (height 105-115%, width and depth 80-90%); check hit boxes, doors, vents, camera height, NPC pathing height, clothes. | CLAUDE_CODE | BLOCKED |
-| 8B.2 | Full-body first person: torso, legs and feet visible, head and accessories hidden; real arms hold the gun. | CODEX | BLOCKED |
+| 8B.1 | Slimmer, taller bodies for everyone (height 105-115%, width and depth 80-90%); check hit boxes, doors, vents, camera height, NPC pathing height, clothes. **Done:** per-axis ranges in GameConfig.Rig, OutfitDefs, True Form at the middle; bodies measure 5.6 to 6.1 studs; a player walks a horizontal vent with 0.4 to 0.9 studs of headroom; player hit-box height now follows their current size. NPC graph AgentHeight left at 5 (NPCs are server-moved). | CLAUDE_CODE | READY_FOR_REVIEW |
+| 8B.2 | Full-body first person: torso, legs and feet visible, head and accessories hidden; real arms hold the gun. | CODEX | IN_PROGRESS (CODEX) |
 | 8B.3 | Gun always in frame (poses from real FOV and aspect) and the wall tuck (rays, blocks firing when fully tucked). Implemented against current view model: cached bounds, real-frustum fitting, five wall probes, high-ready tuck, camera-space depth compression, firing gate. StyLua/Selene/Rojo pass; Studio/FOV/wall review pending and recheck after 8B.2 arm rebuild. | CODEX | READY_FOR_REVIEW |
 | 8B.4 | Held-item switch: one input layer decides whether fire and aim mean weapon or gadget. Implemented HeldItemController; switching/focus loss cancel inputs, stowed weapon hides while reload/FOV recovery continue. No gadget slots or fake items. Owner authorized independent client work across steps. StyLua/Selene/Rojo pass; Studio review pending. | CODEX | READY_FOR_REVIEW |
 | 8B.5 | Movement feel: gravity about 150, longer jump, ground easing for players **and** NPCs. | CLAUDE_CODE | BLOCKED |
 | 8B.6 | Frame stepping: animation 8 a second for everything, other characters' positions 12 a second on the server clock; server rewinds shots to snapped positions. | CLAUDE_CODE | BLOCKED |
-| 8B.7 | Hit-box radius about 1.0 stud. | CLAUDE_CODE | BLOCKED |
+| 8B.7 | Hit-box radius about 1.0 stud. **Done** (GameConfig.Combat.Hitbox.BodyRadius = 1.0). | CLAUDE_CODE | READY_FOR_REVIEW |
 | 8B.8 | Others see a gun on a character wearing a True Form look (client-side only, no new server message). | CODEX | BLOCKED |
 
 ## Step 9: downed, revive, elimination, spectate

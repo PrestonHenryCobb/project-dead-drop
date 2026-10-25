@@ -30,7 +30,10 @@ Times are local, `YYYY-MM-DD HH:MM`.
 
 | File | Locked by | Since | Ticket |
 |---|---|---|---|
-| (none) | | | |
+| `src/client/Combat/ViewModel.luau` | CODEX | 2026-10-24 20:27 | 8B.2 |
+| `src/client/Controllers/WeaponController.luau` | CODEX | 2026-10-24 20:27 | 8B.2 |
+| `src/client/Controllers/FirstPersonBodyController.luau` (new) | CODEX | 2026-10-24 20:27 | 8B.2 |
+| `src/client/Controllers/StepAnimationController.luau` | CODEX | 2026-10-24 20:27 | 8B.2 |
 
 ## Shared-file rules (`Remotes`, `Types`, `Enums`, `GameConfig`)
 - Lock the file for the few minutes of the edit, not for the whole ticket.
@@ -38,6 +41,15 @@ Times are local, `YYYY-MM-DD HH:MM`.
   the ticket. Renaming or removing an existing entry needs a ticket for it and Claude Code's review.
 - Every new client-to-server remote gets a rate limit in the same change.
 - After the edit, run `stylua src` and `selene src` and release the lock.
+
+## Committing (both agents commit as they go)
+- Commit only your own work: stage your files by name, and in a shared file stage only your own hunks
+  (`git add -p`, or a patch of just your hunks). Never `git add -A` or `git commit -a`: the other agent's
+  uncommitted edits are in the same folder.
+- If a file has the other agent's uncommitted hunks and you need to commit yours, leave theirs unstaged.
+- Run `stylua` only on the files you changed, not on all of `src`, so you never reformat the other agent's
+  work in progress.
+- Commit the lock-table change that releases your locks together with the work.
 
 ## Audit: keep, wrap or rebuild (2026-10-24)
 The project brief of 2026-10-24 asked for this triage. Every script and asset in the repo is Cover Story's own work from
