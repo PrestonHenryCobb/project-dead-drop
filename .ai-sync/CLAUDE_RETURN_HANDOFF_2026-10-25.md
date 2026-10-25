@@ -64,8 +64,12 @@ one-sided inside/outside predicate in that function. Reproduce with the same cor
 Check door blocker center/size, actual exterior approach distance, elevation, overlapping blockers and zone sampling.
 Keycard/lockpick/hack prompts in the new attachment do not mean those systems are complete.
 
-Preserve clearance. "Outside openable" must not become client-forced opening or free unauthorized entry. Clarify whether
-free exit after losing clearance is intended; that's separate from two-sided authorized access.
+Preserve exterior clearance. "Outside openable" must not become client-forced opening or free unauthorized entry.
+Apply the confirmed free-exit rule below separately from two-sided authorized access.
+
+**Owner now confirmed:** ordinary clearance doors must allow free exit from inside after losing clearance; outside
+entry stays authorized and vault/objective locks are exempt. Determine the interior side from authored room/door
+geometry on the server, never a client claim. Test turning around at the threshold and approaches from both sides.
 
 Acceptance: each door type tested from both sides, correct and incorrect tier, Exposed, NPC use, moving leaf collision,
 and simultaneous entrants. Neither side traps authorized users; unauthorized players don't gain a bypass.
@@ -76,8 +80,9 @@ DownedController currently loads normal walk/idle tracks from character.Animate,
 not load a bespoke crawl track. NPCController also selects ordinary idle/walk. This explains why the current design
 has no actual authored crawl cycle; runtime loading of those particular tracks still needs verification.
 
-Coordinate a shared player/NPC prone pose and crawl cycle, plus a brief collapse and final eliminated settle. Owner is
-being asked prone vs knee crawl, ragdoll vs stable body and camera comfort. Use approved assets or original procedural
+Coordinate shared player/NPC directional transitions: a rear downing falls forward into prone forearm crawl; a front
+downing falls backward as if stunned into supine backward crawl. Final elimination is a brief stable collapse, not
+ragdoll. Side-hit/fall classification is being clarified. Use approved assets or original procedural
 poses; no copied reference animations. Server owns transitions, movement, hit eligibility and interaction timing.
 Animation must never announce player identity, team or agent while disguised. Restore joints/tracks cleanly on revive,
 respawn and removal. Visible world rigs now animate smoothly; do not restore pose stepping.
@@ -109,8 +114,19 @@ and append shared contracts properly. Current event is RequestMelee, not the att
 
 Codex readiness hint is generic geometry for both NPC/player rigs, with the current range and cone, no names/outlines.
 It is advisory because client pose/latency can differ. A server range change must update the same shared data/hint.
-Owner is being asked first-person vs cinematic camera and 90 damage vs execution. Keep current damage/outcome until
-answered; the 6.5-stud / 90-degree reach/angle change is approved.
+**Round 1 answer:** keep first person and 90 damage. Add short cosmetic takedown animations as shop/Dossier rewards
+after a server-confirmed result, with no effect on combat stats/timing. Whether playback requires down/elimination
+or any successful hold is a pending follow-up. MeleeState.Active=false currently means either cancel or completion;
+that alone is insufficient proof of success and must not trigger a cosmetic execution.
+
+Charged melee is approved but its timing/damage/input semantics need definition. The owner reports takedown hold
+starts a melee. WeaponController.onMelee currently sends Press and plays MeleeSound immediately before the server
+distinguishes strike/takedown; outside the server's present narrow window, CombatService immediately applies melee.
+Keep takedown acquisition conditional on valid range/cone/LOS/state, and avoid a preliminary strike on a valid hold.
+Coordinate charge start/release/cancel with Codex; never let a client-reported charge decide damage or duration.
+Follow-up asks tap-on-release/hold-charge outside valid takedown vs immediate-press strike. Do not invent charge
+stats or change ordinary melee range while increasing takedown reach. Server must validate elapsed charge and
+cancel on incapacitation, wall tuck, removal/focus cancellation as applicable. No cosmetic may confirm a kill early.
 
 Acceptance: NPC and player rear approach at range/angle boundaries, front/side rejected, nearest target selection,
 wall rejection, interruption on damage/movement, and two clients seeing the same start/cancel/finish. Hint remains

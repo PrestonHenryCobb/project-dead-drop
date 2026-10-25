@@ -58,6 +58,7 @@ export type ViewModel = typeof(setmetatable(
 		aimShiftX: number,
 		parts: { DrawPart },
 		corners: { Vector3 },
+		frameCorners: { Vector3 }, -- Ticket 8.21: grips and real part vertices; shoulder stock may crop offscreen
 		tuck: number,
 		drawScale: number,
 	},
@@ -306,6 +307,7 @@ function ViewModel.new(def: WeaponDef): ViewModel
 	model.Name = "ViewModel"
 	local rightGrip, leftGrip = build(model)
 	local parts: { DrawPart } = {}
+	local frameCorners = { rightGrip.Position, leftGrip.Position }
 	local low = Vector3.new(math.huge, math.huge, math.huge)
 	local high = -low
 	for _, child in model:GetChildren() do
@@ -323,6 +325,11 @@ function ViewModel.new(def: WeaponDef): ViewModel
 							local point = offset:PointToWorldSpace(child.Size * Vector3.new(x, y, z) / 2)
 							low = low:Min(point)
 							high = high:Max(point)
+							-- Fit actual visible geometry rather than fictitious corners combining the stock's rear
+							-- depth with the magazine's bottom. The shoulder stock/butt may extend offscreen.
+							if child.Name ~= "Stock" and child.Name ~= "Butt" then
+								table.insert(frameCorners, point)
+							end
 						end
 					end
 				end
@@ -369,6 +376,7 @@ function ViewModel.new(def: WeaponDef): ViewModel
 		aimShiftX = (receiver:GetAttribute("Offset") :: CFrame).Position.X,
 		parts = parts,
 		corners = corners,
+		frameCorners = frameCorners,
 		tuck = 0,
 		drawScale = presentation.ViewDepthScale,
 	}, ViewModel)
@@ -464,7 +472,7 @@ function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: In
 	local center = if self.singleAkimbo then CFrame.new(-self.aimShiftX, 0, 0) else CFrame.identity
 	local relativeTarget = WeaponPlacement.fit(
 		center * poseCFrame(input.pose) * offset,
-		self.corners,
+		self.frameCorners,
 		camera.FieldOfView,
 		camera.ViewportSize
 	)
@@ -477,14 +485,14 @@ function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: In
 		self.current = self.current:Lerp(relativeTarget, settle)
 	end
 
-	-- Fit again after interpolation so a sudden FOV/aspect change cannot leave a corner outside the view.
-	local baseRelative = WeaponPlacement.fit(self.current, self.corners, camera.FieldOfView, camera.ViewportSize)
+	-- Fit again after interpolation so FOV/aspect changes keep the hands and active gun geometry in view.
+	local baseRelative = WeaponPlacement.fit(self.current, self.frameCorners, camera.FieldOfView, camera.ViewportSize)
 	self.current = baseRelative
 	-- Apply wall tuck after ordinary pose settling. Filtering it twice would leave the gun visibly tucked after
 	-- the gate's fraction cleared. The same fraction now directly drives across-body rendering and blocking.
 	local relative = WeaponPlacement.fit(
 		baseRelative:Lerp(poseCFrame("Tucked") * offset, self.tuck),
-		self.corners,
+		self.frameCorners,
 		camera.FieldOfView,
 		camera.ViewportSize
 	)

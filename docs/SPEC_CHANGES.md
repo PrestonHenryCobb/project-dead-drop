@@ -121,3 +121,21 @@ Remove pose holds and position quantization for NPCs and players alike. Player m
 replication/animation; NPC movement retains continuous interpolation of server snapshots. The own gun/arms stay smooth.
 Server shot rewind uses continuous shot time minus the existing per-target render delay, with existing safety clamps.
 The obsolete stepping controllers, PositionStep helper and Animation stepping config are removed, not left disabled.
+
+## Owner interview round 1 (2026-10-25)
+
+- First-person gun framing may crop the shoulder stock offscreen, keeping hands/grips, sights and muzzle readable.
+  Full-gun-in-frame is superseded. Full geometry still participates in wall-depth protection.
+- Takedowns keep **90 damage** and stay **first person**. The approved acquisition change remains 6.5 studs total /
+  90-degree rear cone, with ordinary melee unchanged and no teleport/lunge. Server integration remains Claude's work.
+- Short cosmetic takedown animations become a shop category and non-expiring Dossier (battle-pass) reward category.
+  They play only after server confirmation of the result; whether that means a down/elimination or any successful
+  90-damage hold is being clarified. Cosmetics never alter damage, acquisition, hold time or other gameplay rules.
+- Charged melee is approved as a mechanic. Takedown attempts start only inside the valid range/cone (and existing
+  sight/state checks). The owner reports that initiating the hold currently initiates melee. Clarify tap/hold/release
+  semantics before implementing the client and server together; charge duration/damage/recovery remain unspecified.
+- Downed from behind: fall forward into prone forearm crawl. Downed from the front: fall backward as if stunned,
+  then crawl backward on the back. Use the same behavior for players and NPCs. Side-hit/fall classification is being
+  clarified; server owns the transition. Elimination uses a short, stable collapse rather than ragdoll.
+- Ordinary clearance doors permit free exit from inside after losing clearance. Outside entry still requires the
+  established authorization. Vault/objective locks retain their own rules; the server must determine the interior side.

@@ -13,8 +13,23 @@ Review begun October 24, 2026; continued October 25. Recommendations below are n
 4. The final corrected takedown answer is **6.5 studs / 90 degrees**, superseding the earlier 3.5-stud answer.
    This is approved for Claude's server implementation; it is not already live.
 
-These resolve the broad conflicts/timing/HUD direction and reach/angle questions below. Keep the remaining questions
-about gun composition, animations, takedown outcome/control and new map mechanics open. Do not ask these four again.
+These resolve the broad conflicts/timing/HUD direction and reach/angle questions below. Round 1 answers below resolve
+gun composition, damage, camera, directional poses and ordinary-door exit. Do not repeat the answered choices.
+
+### Round 1 answers received
+
+- Q3: shoulder stock may extend offscreen; keep hands, sights and muzzle readable.
+- Q8: keep 90-damage takedowns, not a guaranteed down.
+- Q9: first-person action. Add short cosmetic takedown animations to the shop and Dossier rewards, played after
+  confirmed execution/result. Charged melee is requested; only valid range/cone can initiate a takedown attempt.
+- Q10: rear downing -> forward fall/prone forearm crawl; front downing -> backward stunned fall/supine backward
+  crawl. Elimination -> short stable collapse. Player/NPC parity applies.
+- Q11: ordinary clearance doors allow free exit from inside after clearance is lost; exterior entry stays authorized.
+
+Three selectable follow-ups are pending: V press/release behavior for normal/charged strikes versus valid takedowns;
+whether cosmetic playback requires a down/elimination or any successful hold; and front/back classification by final
+hit direction with side/fall fallbacks. Charge balance remains to be designed after input semantics. Do not repeat
+the answered stock/damage/camera/crawl/collapse/exit choices.
 
 Interview order for the next round: Q3 gun composition, Q8 takedown result, Q9 takedown presentation/control,
 Q10 crawl/death style, Q11 door exit rules. Then Q12 NPC tier exceptions, HUD details Q5–6, and the world/economy/kit

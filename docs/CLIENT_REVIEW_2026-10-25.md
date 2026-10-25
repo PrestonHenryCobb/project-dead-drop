@@ -173,3 +173,24 @@ moving opponents; verify hitmarkers track visible targets. Network jitter or act
 those are distinct from the removed stylized stepping. Existing NPC animation distance culling remains intentional.
 
 Ready for owner smooth-motion acceptance and the design interview; Step 9c spectating remains the next planned step.
+
+## Shoulder-stock crop (ticket 8.21) and interview answers
+
+Owner approved cropping the shoulder stock to bring first-person gun framing closer. ViewModel now caches separate
+framing points: both grip centers and actual visible-part vertices, excluding Stock/Butt. Framing no longer fits an
+artificial bounding-box corner combining the stock's rear depth with the magazine's low edge. Full eight-corner
+geometry bounds remain for wall-depth protection; third-person size/placement is unchanged. No per-frame tables.
+
+CheckClientCombat now checks the visible geometry/grip framing contract for all eight guns over FOV/aspect variants.
+StyLua/Selene/Rojo pass; those Studio geometry assertions and visual acceptance remain owner-run, not claimed executed.
+
+Test: Stop, Rojo sync, fresh Play. Compare tucked/ready/aim and reload, including fast camera turns and wall approach.
+The shoulder stock may crop; hands, active gun body, sights and muzzle should remain readable. Check for near-camera
+clipping and report any stretched hand/arm contact or framing that is still too far out. Repeat on a pistol and carbine
+with the existing temporary Studio weapon-selection workflow when convenient.
+
+Recorded separately in SPEC_CHANGES/META_DRAFT/Claude handoff: 90 damage, first-person takedowns, conditional
+confirmed-result cosmetics in shop/Dossier rewards, directional downed/crawl poses, stable elimination collapse,
+charged melee request and ordinary-door free exit. These are not represented as completed server/animation mechanics.
+Three selectable follow-ups cover ambiguous input/result/direction semantics. Ready for further owner answers and
+Studio framing acceptance; Step 9c spectating remains the next planned step.

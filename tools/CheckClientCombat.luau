@@ -41,15 +41,16 @@ local ok, failure = pcall(function()
 		table.insert(models, model)
 		check(model.muzzle.Parent ~= nil, `Missing muzzle for {id}`)
 		check(#model.corners == 8, `Expected eight bound corners for {id}`)
+		check(#model.frameCorners > 2, `Missing visible gun/grip framing points for {id}`)
 		for _, fov in { 60, 75, 100 } do
 			for _, aspect in { 4 / 3, 16 / 9, 21 / 9, 9 / 16 } do
 				for _, pose in GameConfig.Combat.ViewModel.Poses do
 					local r = pose.Rotation
 					local desired = CFrame.new(pose.Position)
 						* CFrame.Angles(math.rad(r.X), math.rad(r.Y), math.rad(r.Z))
-					local fitted = Placement.fit(desired, model.corners, fov, Vector2.new(1080 * aspect, 1080))
+					local fitted = Placement.fit(desired, model.frameCorners, fov, Vector2.new(1080 * aspect, 1080))
 					local slopeY = math.tan(math.rad(fov / 2)) * margin
-					for _, corner in model.corners do
+					for _, corner in model.frameCorners do
 						local point = fitted:PointToWorldSpace(corner)
 						local depth = -point.Z
 						check(depth >= GameConfig.Combat.Presentation.NearDepthStuds - epsilon, "Near-plane clipping")
