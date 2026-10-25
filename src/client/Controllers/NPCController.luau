@@ -1,8 +1,9 @@
 --!strict
--- Draws the crowd smoothly (spec 25.4). The server moves each NPC's anchored root at GameConfig.NPC.ServerTickHz;
--- this controller renders every NPC slightly in the past (InterpolationDelay), blending between the two server
--- updates around that moment, and plays the same walk and idle animations a player's Animate script uses, at the
--- same speed scaling, so a walking NPC and a walking player look the same.
+-- Draws the crowd (spec 25.4). The server moves each NPC's anchored root at GameConfig.NPC.ServerTickHz; this
+-- controller renders every NPC slightly in the past (InterpolationDelay), blending between the two server updates
+-- around that moment, and plays the same walk and idle animations a player's Animate script uses, at the same speed
+-- scaling, so a walking NPC and a walking player look the same. The moment drawn moves in steps on the server clock
+-- (step 8B.6, PositionStep), exactly as other players are drawn, and the server rewinds shots to the same moment.
 --
 -- It also plays the animation the server says each NPC is doing (NPCAnimation: a node activity, cowering, gasping) and
 -- gives every idle NPC a quick random glance to one side now and then (spec 8.1).
@@ -17,9 +18,10 @@ local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Enums = require(Shared:WaitForChild("Enums"))
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local PoseAnimation = require(Shared:WaitForChild("Util"):WaitForChild("PoseAnimation"))
+local PositionStep = require(Shared:WaitForChild("Util"):WaitForChild("PositionStep"))
 local RemoteController = require(script.Parent.RemoteController)
 
-type Sample = { time: number, cframe: CFrame }
+type Sample = { time: number, cframe: CFrame } -- time: server clock, when the update arrived
 
 type Entry = {
 	root: BasePart,
@@ -118,8 +120,8 @@ local function track(model: Model)
 		idle = idle,
 		poses = {},
 		pose = "",
-		nextGlance = os.clock() + glanceDelay(),
-		samples = { { time = os.clock(), cframe = root.CFrame } },
+		nextGlance = workspace:GetServerTimeNow() + glanceDelay(),
+		samples = { { time = workspace:GetServerTimeNow(), cframe = root.CFrame } },
 		written = nil,
 		speed = 0,
 		walking = false,
@@ -174,7 +176,7 @@ local function update(entry: Entry, now: number)
 		end
 	end
 
-	local renderTime = now - config.InterpolationDelay
+	local renderTime = PositionStep.snap(now) - config.InterpolationDelay
 	if not moved and not entry.walking and entry.written and renderTime >= samples[#samples].time then
 		-- Standing still and already drawn at the server's latest position: nothing to do this frame.
 		return
@@ -256,6 +258,8 @@ function NPCController.Start()
 
 	RunService.RenderStepped:Connect(function()
 		local started = os.clock()
+		-- Samples and the drawn moment are on the server clock, so every client steps on the same beat (step 8B.6).
+		local serverNow = workspace:GetServerTimeNow()
 		local camera = workspace.CurrentCamera
 		local cameraPosition = if camera then camera.CFrame.Position else nil
 		local cullSquared = config.AnimationCullStuds * config.AnimationCullStuds
@@ -286,7 +290,7 @@ function NPCController.Start()
 						resumed:Play(0)
 					end
 				end
-				update(entry, started)
+				update(entry, serverNow)
 			end
 		end
 

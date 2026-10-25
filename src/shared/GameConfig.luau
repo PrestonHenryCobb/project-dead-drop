@@ -237,6 +237,9 @@ local GameConfig = {
 	-- The low-frame-rate look every character shares (StepAnimationController): poses change this many times a second.
 	Animation = {
 		StepHz = 8,
+		-- Step 8B.6: other characters' positions are drawn in steps too, at this rate on the shared server clock, and the
+		-- server rewinds shots to the same stepped moment. Your own movement is never stepped.
+		PositionStepHz = 12,
 		StepCullStuds = 120, -- characters further from the camera than this animate normally
 		MinJoints = 12, -- a rig with fewer animated joints than this has not finished arriving
 	},

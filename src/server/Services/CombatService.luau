@@ -29,6 +29,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"))
+local PositionStep = require(Shared:WaitForChild("Util"):WaitForChild("PositionStep"))
 local Death = require(script.Parent.Parent.NPC.Death)
 local Hitbox = require(script.Parent.Parent.Combat.Hitbox)
 local History = require(script.Parent.Parent.Combat.History)
@@ -298,7 +299,9 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 	local cull = config.Hitbox.CullStuds
 	for _, target in History.targets do
 		if target.player ~= player then
-			local when = math.clamp(timestamp - target.delay, serverNow - config.LagCompSeconds, serverNow)
+			-- Clients draw other characters at stepped moments on the server clock (step 8B.6); rewind to the same one.
+			local when =
+				math.clamp(PositionStep.snap(timestamp) - target.delay, serverNow - config.LagCompSeconds, serverNow)
 			local root3, head3 = History.poseAt(target, when)
 			if root3 and head3 then
 				local toRoot = root3 - origin
