@@ -147,7 +147,25 @@ export type WeaponDef = {
 	-- Ticket 8.9: seconds after a melee strike before this weapon may fire (brief Q14), set per weapon by strength.
 	-- nil: no delay. The server enforces it; the client should wait the same time so no shot is predicted in vain.
 	PostMeleeFireDelay: number?,
+	-- Ticket 8.5: the server's part of each weapon's unique effect (STEP8_QUESTIONS "Unique effects"). All optional; the
+	-- client must follow the same firing rules so it never predicts a shot the server refuses.
+	Pellets: number?, -- rays per trigger pull (shotguns); FireRequest then sends a list of exactly this many directions
+	Burst: WeaponBurst?, -- fires Count shots at RPM, then waits DelaySeconds before the next burst
+	SpinUp: WeaponSpinUp?, -- held fire climbs from StartRPM to RPM over Seconds; a pause starts it again
+	AimedRPM: number?, -- the rate while aiming, if different (Suture's pistols: one gun, half the rate)
+	Pierce: WeaponPierce?, -- the shot passes through Count people; each one after the first takes DamageMult more
+	AmbushMult: number?, -- a shot fired while disguised (Covered or Suspicious) deals this many times the damage
+	ScopeGlint: boolean?, -- while aiming, rival agents she can see within Combat.ScopeGlint.RangeStuds see a glint
+	HearStuds: number?, -- how far the shot is heard, instead of the Quiet or default radius
+	SoundOffset: NumberRange?, -- listeners hear the shot this many studs from the shooter, in a random direction
 }
+
+export type WeaponBurst = { Count: number, DelaySeconds: number }
+export type WeaponSpinUp = { StartRPM: number, Seconds: number }
+export type WeaponPierce = { Count: number, DamageMult: number }
+
+-- Ticket 8.5: a scoped DMR's glint, sent to each rival agent who can see the scope (drawn by the client).
+export type ScopeGlintInfo = { Position: Vector3, Seconds: number }
 
 -- Combat messages. All are sent only to the player they concern, except ShotInfo (to players within earshot).
 export type HitConfirm = { Kind: "Npc" | "Agent", Head: boolean } -- the shooter's hitmarker (spec 8.4)

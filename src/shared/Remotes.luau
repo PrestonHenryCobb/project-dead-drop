@@ -38,6 +38,7 @@ local Remotes = {
 		"ShotHeard", -- to players within earshot of a shot: where it came from and where it landed (spec 23)
 		"MeleeState", -- to the owner only: a takedown started or ended (spec 13.4)
 		"SwapMarker", -- to a rival who comes within range: where someone changed disguise, until when (brief Q6)
+		"ScopeGlint", -- to a rival agent who can see a scoped DMR: where the glint is (STEP8 unique effects)
 	},
 
 	-- Client -> server (requests only; the server validates every one)

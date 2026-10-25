@@ -479,6 +479,14 @@ local GameConfig = {
 		FireDirectionTolerance = 0.02, -- a FireRequest direction must be a unit vector within this
 		PlayerRenderDelay = 0.1, -- how far behind the server a client sees other players; the rewind adds it (NPCs: NPC.InterpolationDelay)
 		GunfireReactSeconds = 0.5, -- NPCs react to a shooter's gunfire at most this often
+		-- Ticket 8.5: the server's part of the weapons' unique effects (fields in WeaponDefs, see Types.WeaponDef).
+		-- Held fire on a spin-up weapon keeps spinning while shots come no more than this many times its slowest gap.
+		SpinUpGapMult = 1.5,
+		-- Reticle's DMR (STEP8 unique effects): while she aims, rival agents she can see within RangeStuds get a glint at
+		-- her scope, refreshed CheckHz times a second; each lasts Seconds unless refreshed.
+		-- SPEC-QUESTION: "enemies she is scoping" would need her aim direction from the client; the server instead shows
+		-- the glint to every rival with a clear line to her, which needs nothing the client could misreport.
+		ScopeGlint = { RangeStuds = 200, CheckHz = 4, Seconds = 0.4 },
 		MovingSpeedStuds = 2, -- a body faster than this counts as moving for spread
 		-- Hit boxes the server tests rewound shots against: a vertical cylinder from the feet to the head, and the head.
 		-- Step 8B.7: the body radius narrows with the slimmer bodies (from 1.25), still slightly generous.

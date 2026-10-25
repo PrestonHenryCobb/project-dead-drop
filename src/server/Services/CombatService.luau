@@ -4,7 +4,7 @@
 --
 --   * Health and armour: 100 HP and plates of 25 (spec 13.1). Damage hits armour first. No passive healing.
 --   * Firing (FireRequest): the shot is validated (alive, weapon, fire rate, ammo, origin near the shooter's head), then
---     tested against every person's rewound pose (History, Hitbox), up to LagCompSeconds back, after a ray against the map.
+--     tested against every person's rewound pose (Ballistics), up to LagCompSeconds back, after a ray against the map.
 --     The nearest person hit takes the weapon's damage with headshot and falloff (a disguised agent's head counts as
 --     body). The shooter gets a HitConfirm (grey for
 --     an NPC, red for an agent, spec 8.4); a wounded agent gets a DamageTaken marker; everyone within earshot gets a
@@ -29,9 +29,9 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"))
-local PositionStep = require(Shared:WaitForChild("Util"):WaitForChild("PositionStep"))
+local Ballistics = require(script.Parent.Parent.Combat.Ballistics)
 local Death = require(script.Parent.Parent.NPC.Death)
-local Hitbox = require(script.Parent.Parent.Combat.Hitbox)
+local FireRate = require(script.Parent.Parent.Combat.FireRate)
 local History = require(script.Parent.Parent.Combat.History)
 local CoverService = require(script.Parent.CoverService)
 local DisguiseService = require(script.Parent.DisguiseService)
@@ -57,6 +57,8 @@ type State = {
 	reloadEndsAt: number,
 	reloadId: number,
 	nextFireAt: number,
+	streak: FireRate.Streak, -- bursts and spin-up (ticket 8.5)
+	aiming: boolean, -- the weapon is drawn (RequestDraw); some weapons fire slower aimed, the DMR glints
 	lastMeleeAt: number,
 	lastDamagedAt: number,
 	lastReactAt: number,
@@ -73,6 +75,8 @@ local config = GameConfig.Combat
 local states: { [Player]: State } = {}
 local sampleAccumulator = 0
 local takedownAccumulator = 0
+local glintAccumulator = 0
+local rng = Random.new()
 local sweep = 0
 
 -- Rays in the character group skip characters and meet only the map (and what blocks shots: glass, shut doors).
@@ -215,14 +219,52 @@ local function finishReload(player: Player, state: State)
 	sendAmmo(player, state, 0)
 end
 
+-- The rays a FireRequest carries: one direction, or for a weapon with Pellets, a list of exactly that many. Each must
+-- be a unit vector. Anything else is refused.
+local function directionsOf(def: WeaponDef, direction: unknown): { Vector3 }?
+	local function unit(value: unknown): Vector3?
+		if typeof(value) ~= "Vector3" or value ~= value then
+			return nil
+		end
+		return if math.abs(value.Magnitude - 1) <= config.FireDirectionTolerance then value else nil
+	end
+	local pellets = def.Pellets
+	if not pellets then
+		local single = unit(direction)
+		return if single then { single } else nil
+	end
+	if type(direction) ~= "table" or #(direction :: { any }) ~= pellets then
+		return nil
+	end
+	local list: { Vector3 } = {}
+	for index = 1, pellets do
+		local ray = unit((direction :: { any })[index])
+		if not ray then
+			return nil
+		end
+		list[index] = ray
+	end
+	return list
+end
+
+-- Where listeners hear a shot: at the shooter, or for a weapon with SoundOffset, some studs away in a random direction
+-- (Feint's silent pistol: the sound seems to come from elsewhere).
+local function soundOriginOf(def: WeaponDef, origin: Vector3): Vector3
+	local offset = def.SoundOffset
+	if not offset then
+		return origin
+	end
+	local angle = rng:NextNumber(0, 2 * math.pi)
+	local distance = rng:NextNumber(offset.Min, offset.Max)
+	return origin + Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance)
+end
+
 local function onFire(player: Player, origin: unknown, direction: unknown, timestamp: unknown, weaponId: unknown)
 	if
 		typeof(origin) ~= "Vector3"
-		or typeof(direction) ~= "Vector3"
 		or type(timestamp) ~= "number"
 		or type(weaponId) ~= "string"
 		or origin ~= origin
-		or direction ~= direction
 		or timestamp ~= timestamp
 		or math.abs(timestamp) == math.huge
 	then
@@ -234,7 +276,11 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 		return
 	end
 	local def = state.weapon
-	if weaponId ~= def.Id or math.abs(direction.Magnitude - 1) > config.FireDirectionTolerance then
+	if weaponId ~= def.Id then
+		return
+	end
+	local directions = directionsOf(def, direction)
+	if not directions then
 		return
 	end
 	local now = os.clock()
@@ -276,87 +322,69 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 		return
 	end
 
-	state.nextFireAt = math.max(state.nextFireAt, now - config.FireRateToleranceSeconds) + 60 / def.RPM
+	state.nextFireAt = math.max(state.nextFireAt, now - config.FireRateToleranceSeconds)
+		+ FireRate.gapAfterShot(def, state.streak, now, state.aiming)
 	state.mag -= 1
 	state.takedown = nil
+
+	-- Guise's pistol: a shot fired while still disguised is an ambush shot (STEP8 unique effects).
+	local ambush = if def.AmbushMult and not CoverService.isExposed(player) then def.AmbushMult else 1
 
 	-- Firing breaks Cover and starts the lockout (spec 7.2 #1, 7.6); NPCs hear it (spec 5.4).
 	CoverService.expose(player, "Fired")
 	CoverService.startLockout(player)
-	local hearStuds = if def.Quiet
-		then GameConfig.Audio.SuppressedWeaponRadius
-		else GameConfig.Audio.DefaultWeaponRadius
+	local hearStuds = def.HearStuds
+		or (if def.Quiet then GameConfig.Audio.SuppressedWeaponRadius else GameConfig.Audio.DefaultWeaponRadius)
+	local soundOrigin = soundOriginOf(def, origin)
 	if now - state.lastReactAt >= config.GunfireReactSeconds then
 		state.lastReactAt = now
-		NPCService.gunshot(origin, hearStuds)
+		NPCService.gunshot(soundOrigin, hearStuds)
 	end
 
-	-- The map first (it stops the shot), then every person's rewound pose that the ray reaches.
-	local wall = workspace:Raycast(origin, direction * config.MaxShotStuds, mapParams)
-	local bestDistance = if wall then wall.Distance else config.MaxShotStuds
-	local bestTarget: Target? = nil
-	local bestHead = false
-	local cull = config.Hitbox.CullStuds
-	for _, target in History.targets do
-		if target.player ~= player then
-			-- Clients draw other characters at stepped moments on the server clock (step 8B.6); rewind to the same one.
-			local when =
-				math.clamp(PositionStep.snap(timestamp) - target.delay, serverNow - config.LagCompSeconds, serverNow)
-			local root3, head3 = History.poseAt(target, when)
-			if root3 and head3 then
-				local toRoot = root3 - origin
-				local along = toRoot:Dot(direction)
-				if along > -cull and along < bestDistance + cull and (toRoot - direction * along).Magnitude <= cull then
-					local pose: Hitbox.Pose = {
-						root = root3,
-						head = head3,
-						feetY = root3.Y - target.rootHeight,
-						bodyRadius = target.bodyRadius,
-						headRadius = target.headRadius,
-					}
-					local distance, isHead = Hitbox.test(origin, direction, bestDistance, pose)
-					if distance then
-						bestDistance, bestTarget, bestHead = distance, target, isHead
-					end
+	local pierce = def.Pierce
+	local maxHits = 1 + (if pierce then pierce.Count else 0)
+	local struckAnyone = false
+	for _, ray in directions do
+		local hits, endPoint, hitWall = Ballistics.trace(player, origin, ray, timestamp, maxHits)
+		for index, hit in hits do
+			-- A disguised agent (Covered or Suspicious) always takes body damage, even on the head; headshots count once
+			-- they are Exposed (SPEC_CHANGES 2026-10-24, brief Q2). The hitmarker shows a body hit to match.
+			local target = hit.target
+			local head = hit.head
+				and not (target.kind == "Agent" and not CoverService.isExposed(target.player :: Player))
+			local pierced = if pierce then pierce.DamageMult ^ (index - 1) else 1
+			local amount = def.Damage
+				* (if head then def.HeadshotMult else 1)
+				* falloffMult(def, hit.distance)
+				* ambush
+				* pierced
+			applyDamage(player, target, amount, head, origin)
+			struckAnyone = true
+		end
+		if GameConfig.Debug.PrintShots then
+			local first = hits[1]
+			print(
+				`[Shot] from {origin} dir {ray} t-lag {string.format("%.3f", serverNow - timestamp)}: `
+					.. (
+						if first
+							then `{#hits} hit(s), first {first.target.id}{if first.head then " HEAD" else ""}`
+							else `nothing ({if hitWall then "wall" else "open"})`
+					)
+			)
+		end
+
+		local info: Types.ShotInfo = { Origin = soundOrigin, Hit = endPoint, WeaponId = def.Id, Struck = #hits > 0 }
+		for _, other in Players:GetPlayers() do
+			if other ~= player then
+				local _, otherRoot = aliveParts(other)
+				if otherRoot and (otherRoot.Position - soundOrigin).Magnitude <= hearStuds then
+					RemoteService.fireClient("ShotHeard", other, info)
 				end
 			end
 		end
 	end
-
-	local hit = origin + direction * bestDistance
-	if GameConfig.Debug.PrintShots then
-		print(
-			`[Shot] from {origin} dir {direction} t-lag {string.format("%.3f", serverNow - timestamp)}: `
-				.. (
-					if bestTarget
-						then `hit {bestTarget.id}{if bestHead then " HEAD" else ""} at {string.format(
-							"%.1f",
-							bestDistance
-						)}`
-						else `nothing, ray ends {string.format("%.1f", bestDistance)} ({if wall
-							then "wall"
-							else "open"})`
-				)
-		)
-	end
-	if bestTarget then
-		-- A disguised agent (Covered or Suspicious) always takes body damage, even on the head; headshots count once
-		-- they are Exposed (SPEC_CHANGES 2026-10-24, brief Q2). The hitmarker shows a body hit to match.
-		local head = bestHead
-			and not (bestTarget.kind == "Agent" and not CoverService.isExposed(bestTarget.player :: Player))
-		local amount = def.Damage * (if head then def.HeadshotMult else 1) * falloffMult(def, bestDistance)
-		applyDamage(player, bestTarget, amount, head, origin)
+	if struckAnyone then
 		CoverService.startLockout(player) -- dealing damage refreshes it (spec 7.6)
-	end
-
-	local info: Types.ShotInfo = { Origin = origin, Hit = hit, WeaponId = def.Id, Struck = bestTarget ~= nil }
-	for _, other in Players:GetPlayers() do
-		if other ~= player then
-			local _, otherRoot = aliveParts(other)
-			if otherRoot and (otherRoot.Position - origin).Magnitude <= hearStuds then
-				RemoteService.fireClient("ShotHeard", other, info)
-			end
-		end
 	end
 end
 
@@ -402,7 +430,36 @@ local function onDraw(player: Player, drawn: unknown)
 	if type(drawn) ~= "boolean" or not states[player] then
 		return
 	end
+	states[player].aiming = drawn
 	CoverService.setWeaponDrawn(player, drawn)
+end
+
+-- Reticle's DMR (STEP8 unique effects): while she aims, every rival agent with a clear line to her scope within
+-- ScopeGlint.RangeStuds is sent a glint at her head, refreshed CheckHz times a second.
+local function sendGlints()
+	local glint = config.ScopeGlint
+	for player, state in states do
+		if state.aiming and state.weapon.ScopeGlint and not state.dead then
+			local character = player.Character
+			local head = character and character:FindFirstChild("Head")
+			if head and head:IsA("BasePart") then
+				for _, other in Players:GetPlayers() do
+					local _, otherRoot = aliveParts(other)
+					local otherHead = other.Character and other.Character:FindFirstChild("Head")
+					if other ~= player and otherRoot and otherHead and otherHead:IsA("BasePart") then
+						local toOther = otherHead.Position - head.Position
+						if
+							toOther.Magnitude <= glint.RangeStuds
+							and workspace:Raycast(head.Position, toOther, mapParams) == nil
+						then
+							local info: Types.ScopeGlintInfo = { Position = head.Position, Seconds = glint.Seconds }
+							RemoteService.fireClient("ScopeGlint", other, info)
+						end
+					end
+				end
+			end
+		end
+	end
 end
 
 -- Melee and takedowns --------------------------------------------------------------------------------------------
@@ -573,6 +630,8 @@ local function onCharacterAdded(player: Player, character: Model)
 		reloadEndsAt = 0,
 		reloadId = 0,
 		nextFireAt = 0,
+		streak = FireRate.newStreak(),
+		aiming = false,
 		lastMeleeAt = -math.huge,
 		lastDamagedAt = -math.huge,
 		lastReactAt = -math.huge,
@@ -645,6 +704,11 @@ function CombatService.Start()
 		end
 		for player, state in states do
 			trackFall(player, state)
+		end
+		glintAccumulator += dt
+		if glintAccumulator >= 1 / config.ScopeGlint.CheckHz then
+			glintAccumulator = 0
+			sendGlints()
 		end
 		takedownAccumulator += dt
 		if takedownAccumulator >= config.Takedown.CheckSeconds then
