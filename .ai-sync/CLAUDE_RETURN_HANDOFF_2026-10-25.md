@@ -51,8 +51,10 @@ cached route. Don't add a duplicate destination-only check and claim the report 
 
 DoorService's PathfindingModifier.PassThrough allows routes through closed doors; verify the route's zone tier really
 matches the door and that NPC role clearance is passed correctly. Higher-tier NPCs visiting lower-tier rooms is allowed
-by current design. Guests entering Staff/Security/Executive is not. Ask the owner to identify emergency exceptions if
-desired, without making normal routes inconsistent.
+by current design. Guests entering Staff/Security/Executive is not allowed.
+
+**Owner confirmed:** no panic/fleeing exception. Role clearance remains a hard cap; higher tiers may visit lower tiers.
+Validate fleeRoute/routeNear and separation against it; no further owner decision is needed on panic exceptions.
 
 Acceptance: role-by-role route audit with source/destination/edge maximum tier; stress stairs, shared boundaries,
 panic/flee, crowd pushes and replacement spawn. Do not expose debug role/player identity attributes on rigs.
@@ -83,8 +85,8 @@ has no actual authored crawl cycle; runtime loading of those particular tracks s
 Coordinate shared player/NPC directional transitions: a rear downing falls forward into prone forearm crawl; a front
 downing falls backward as if stunned into supine backward crawl. Final elimination is a brief stable collapse, not
 ragdoll. Owner confirmed final damaging-hit direction relative to victim facing. **Latest clarification:** include
-distinct left/right-side shot knockdown animations, not nearest-front/back reuse. Side-fall crawl settling is awaiting
-an answer (roll prone, roll supine, or side crawl); front/rear crawl choices stay approved. Falls without an attacker
+distinct left/right-side shot knockdown animations, not nearest-front/back reuse. Owner confirmed side fall then roll
+onto the stomach into prone crawl; front/rear crawl choices stay approved. Falls without an attacker
 use standard forward collapse. Keep classification server-side and use the same directional set for NPCs/players.
 These baseline downing animations are separate from shop/Dossier finisher cosmetics. Use approved assets or original procedural
 poses; no copied reference animations. Server owns transitions, movement, hit eligibility and interaction timing.
@@ -124,15 +126,17 @@ does not trigger the cosmetic finisher. The later clarification requires directi
 shots, and has not reversed the finisher trigger. MeleeState.Active=false means cancel or completion;
 that alone is insufficient proof of success and must not trigger a cosmetic execution.
 
-Charged melee is approved; input semantics are now confirmed, but charge timing/damage/recovery need definition.
+Charged melee input and initial default balance are now confirmed: normal tap 35 damage; full charge 50 damage after
+0.75 s, capped there, with no added range or stun. Keep existing cooldown/recovery rules unless playtesting changes
+them; do not block implementation on the previously unanswered balance question.
 The owner reports takedown hold
 starts a melee. WeaponController.onMelee currently sends Press and plays MeleeSound immediately before the server
 distinguishes strike/takedown; outside the server's present narrow window, CombatService immediately applies melee.
 Keep takedown acquisition conditional on valid range/cone/LOS/state, and avoid a preliminary strike on a valid hold.
 Coordinate charge start/release/cancel with Codex; never let a client-reported charge decide damage or duration.
 Owner confirmed: V press inside the valid takedown window starts the hold directly with no preliminary melee;
-outside that window, tap strikes on release and holding charges a strike for release. Do not invent charge
-stats or change ordinary melee range while increasing takedown reach. Server must validate elapsed charge and
+outside that window, tap strikes on release and holding charges a strike for release. Use the approved default charge
+values above; do not change ordinary melee range while increasing takedown reach. Server must validate elapsed charge and
 cancel on incapacitation, wall tuck, removal/focus cancellation as applicable. No cosmetic may confirm a kill early.
 
 Acceptance: NPC and player rear approach at range/angle boundaries, front/side rejected, nearest target selection,

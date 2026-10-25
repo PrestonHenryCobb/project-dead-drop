@@ -30,13 +30,14 @@ Selectable follow-ups answered: V press in the valid takedown window starts the 
 outside it, tap/charge strikes on release. Cosmetic finishers require server-confirmed down/elimination. Directional
 downing uses final hit direction relative to victim facing, with forward fall fallback for falls without an attacker.
 Latest clarification: include equivalent left/right-side shot knockdowns as well as front/rear, superseding the
-previous nearest-front/back-half side fallback. This does not authorize finishers on a surviving target. Side-fall
-crawl settling, default charge balance and NPC panic clearance are the next selectable questions. Do not repeat
-the answered choices.
+previous nearest-front/back-half side fallback. This does not authorize finishers on a surviving target.
+Follow-up answers: side falls roll onto the stomach into prone crawl; default melee taps 35 and fully charges to
+50 damage after 0.75 s (capped, no added range/stun); NPC clearance caps stay enforced during panic/fleeing, while
+higher tiers can visit lower areas. Existing cooldown/recovery rules stay in place. Do not repeat answered choices.
 
 Completed round: Q3 gun composition, Q8 takedown result, Q9 takedown presentation/control, Q10 crawl/death style,
-Q11 door exit rules, plus input/result/direction follow-ups and side-shot animation clarification. Next: side-fall crawl
-settling, charge balance, Q12 NPC tier exceptions, HUD details Q5–6, and the world/economy/kit
+Q11 door exit rules, input/result/direction follow-ups, side-shot/roll clarification, charge starting balance and Q12
+NPC tier exceptions. Next: HUD details Q5–6 and Q33 motion/accessibility, then the world/economy/kit
 questions Q13–35. Ask manageable groups; keep these original IDs in the decision record even if reply numbering starts
 at 1 in each group. Startup/NPC animations were restored per owner; remaining visual acceptance is separate from answers.
 

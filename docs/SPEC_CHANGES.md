@@ -135,12 +135,16 @@ The obsolete stepping controllers, PositionStep helper and Animation stepping co
 - Charged melee is approved as a mechanic. Takedown attempts start only inside the valid range/cone (and existing
   sight/state checks). Owner confirmed: V press inside the valid takedown window starts the hold directly with no
   preliminary melee. Outside that window, tap strikes on release; holding charges a melee strike for release.
-  Implement client/server together; charge duration/damage/recovery remain unspecified.
+  Implement client/server together. Owner approved initial default balance: tap 35 damage, full charge 50 damage
+  after 0.75 s, capped there, with no added range or stun. This is playtest tuning, not a guaranteed takedown;
+  existing cooldown/recovery rules have not been replaced.
 - Downed from behind: fall forward into prone forearm crawl. Downed from the front: fall backward as if stunned,
   then crawl backward on the back. Use the same behavior for players and NPCs. Owner confirmed classification from
   the final damaging hit direction relative to victim facing. **Latest clarification supersedes side-hit fallback:**
   left/right-side shots also need corresponding directional knockdown animations, rather than reusing a front/back
-  fall. How side falls settle into crawl is a pending selectable answer. Falls without an attack use standard forward
+  fall. Owner confirmed a side fall then roll onto the stomach into prone crawling. Falls without an attack use standard forward
   collapse. The server owns the transition. Elimination uses a short stable collapse, not ragdoll.
 - Ordinary clearance doors permit free exit from inside after losing clearance. Outside entry still requires the
   established authorization. Vault/objective locks retain their own rules; the server must determine the interior side.
+- NPC role clearance remains a hard path cap during panic/fleeing as well as normal movement. Higher-clearance
+  roles may visit lower-tier areas; panic does not authorize low-tier NPC entry into higher-tier rooms.
