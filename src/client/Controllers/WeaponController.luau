@@ -62,6 +62,8 @@ local reloadEndsAt = 0
 local reloadStartedAt = 0
 local predictedReloadPending = false -- waiting for the server to confirm a reload completed locally
 local nextFireAt = 0
+local lastMeleeAt = -math.huge
+local takedownActive = false
 local firing = false
 local held = true
 local aiming = false
@@ -130,6 +132,9 @@ end
 local function fireOnce(camera: Camera, root: BasePart, now: number)
 	if not held or isReloading(now) then
 		return
+	end
+	if takedownActive or now < lastMeleeAt + (def.PostMeleeFireDelay or 0) then
+		return -- Ticket 8.9: match the server's recovery gate before predicting any ammo, sound or recoil
 	end
 	if viewModel and viewModel:isFireBlocked(camera) then
 		return -- a fully tucked gun cannot fire; keep ammo, recoil and requests untouched
@@ -319,6 +324,12 @@ end
 local function onMelee(_: string, state: Enum.UserInputState): Enum.ContextActionResult
 	local camera = workspace.CurrentCamera
 	if held and state == Enum.UserInputState.Begin and camera then
+		local _, humanoid = character()
+		local now = os.clock()
+		if not humanoid or takedownActive or now - lastMeleeAt < combat.Melee.CooldownSeconds then
+			return Enum.ContextActionResult.Sink
+		end
+		lastMeleeAt = now
 		RemoteController.fire("RequestMelee", "Press", camera.CFrame.LookVector)
 		SoundPlayer.play(combat.Feedback.MeleeSound, combat.Feedback.ShotVolume)
 	elseif state == Enum.UserInputState.End then
@@ -335,6 +346,8 @@ local function resetForSpawn()
 	spreadExtra, recoilPitch, recoilYaw = 0, 0, 0
 	appliedPitch, appliedYaw = 0, 0
 	nextFireAt = 0
+	lastMeleeAt = -math.huge
+	takedownActive = false
 end
 
 function WeaponController.Init() end
@@ -367,6 +380,9 @@ function WeaponController.Start()
 	end)
 	RemoteController.connect("CoverStateChanged", function(info: Types.CoverInfo)
 		exposed = info.State == "Exposed"
+	end)
+	RemoteController.connect("MeleeState", function(info: Types.MeleeState)
+		takedownActive = info.Active
 	end)
 
 	HeldItemController.registerWeapon({

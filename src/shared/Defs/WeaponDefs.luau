@@ -29,9 +29,40 @@ local defs: { WeaponDef } = {
 		ReloadSeconds = 1.9,
 		Falloff = { StartStuds = 30, EndStuds = 70, MinMult = 0.6 },
 		Quiet = true,
+		PostMeleeFireDelay = 0.2, -- Ticket 8.9: initial SMG recovery, tuned per weapon rather than a global lockout
 		Spread = { Hip = 3.2, Aim = 0.7, PerShot = 0.25, MaxExtra = 3, RecoverPerSecond = 8, MoveMult = 1.5 },
 		Recoil = { PitchPerShot = 0.5, YawPerShot = 0.15, RecoverRate = 2.5, ViewKick = 0.06 },
 		AimZoom = 0.88,
+		Sounds = {
+			Fire = "rbxassetid://124763531446154",
+			Reload = "rbxassetid://5652257395",
+			Empty = "rbxassetid://114980515844355",
+		},
+	},
+	-- Ticket 8.5d: folding carbine is a complete standard semi-auto path with no new server effect.
+	{
+		Id = "ReticleCarbine",
+		Name = "Folding Carbine",
+		Agent = "Reticle",
+		Automatic = false,
+		Damage = 22,
+		HeadshotMult = GameConfig.Combat.HeadshotMult,
+		RPM = 400,
+		MagSize = 20,
+		ReserveAmmo = 40,
+		ReloadSeconds = 2.0,
+		Falloff = nil, -- Reticle's weapons retain full damage at range (STEP8 answers)
+		Quiet = false,
+		PostMeleeFireDelay = 0.35,
+		Spread = { Hip = 2.8, Aim = 0.3, PerShot = 0.4, MaxExtra = 2, RecoverPerSecond = 7, MoveMult = 1.4 },
+		Recoil = { PitchPerShot = 0.85, YawPerShot = 0.1, RecoverRate = 3, ViewKick = 0.07 },
+		AimZoom = 0.88,
+		TracerColor = Color3.fromRGB(255, 230, 175),
+		TracerWidth = 0.06,
+		TracerLength = 9,
+		TracerSpeed = 1800,
+		FlashSize = Vector3.new(0.3, 0.3, 0.75),
+		-- Existing verified library sounds; art/audio tuning can replace these without changing the firing path.
 		Sounds = {
 			Fire = "rbxassetid://124763531446154",
 			Reload = "rbxassetid://5652257395",

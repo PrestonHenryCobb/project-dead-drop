@@ -132,8 +132,42 @@ local function buildSuppressedSmg(model: Model): (CFrame, CFrame)
 	return CFrame.new(0.02, -0.55, 0.6), CFrame.new(-0.03, -0.24, -0.95)
 end
 
+local function buildFoldingCarbine(model: Model): (CFrame, CFrame)
+	local body, accent = config.GunColor, config.AccentColor
+	addPart(model, "Receiver", Vector3.new(0.28, 0.4, 1.35), CFrame.identity, body)
+	addPart(model, "Handguard", Vector3.new(0.24, 0.28, 1.1), CFrame.new(0, 0, -1.0), accent)
+	addPart(model, "Rail", Vector3.new(0.16, 0.08, 1.55), CFrame.new(0, 0.24, -0.25), accent)
+	addPart(
+		model,
+		"Grip",
+		Vector3.new(0.24, 0.6, 0.28),
+		CFrame.new(0, -0.46, 0.4) * CFrame.Angles(math.rad(-12), 0, 0),
+		body
+	)
+	addPart(model, "Magazine", Vector3.new(0.2, 0.65, 0.3), CFrame.new(0, -0.48, -0.15), accent)
+	addPart(model, "FoldHinge", Vector3.new(0.36, 0.26, 0.15), CFrame.new(0, 0, 0.78), accent)
+	addPart(model, "Stock", Vector3.new(0.16, 0.24, 0.85), CFrame.new(0, 0, 1.2), body)
+	addPart(model, "Butt", Vector3.new(0.24, 0.55, 0.12), CFrame.new(0, -0.08, 1.65), accent)
+	addPart(model, "FrontSight", Vector3.new(0.07, 0.16, 0.1), CFrame.new(0, 0.25, -1.45), body)
+	addPart(model, "RearSight", Vector3.new(0.12, 0.16, 0.12), CFrame.new(0, 0.3, 0.4), body)
+	local barrel = addPart(
+		model,
+		"Barrel",
+		Vector3.new(0.7, 0.14, 0.14),
+		CFrame.new(0, 0.02, -1.85) * CFrame.Angles(0, math.pi / 2, 0),
+		body
+	)
+	barrel.Shape = Enum.PartType.Cylinder
+	local muzzle = Instance.new("Attachment")
+	muzzle.Name = "Muzzle"
+	muzzle.Position = Vector3.new(barrel.Size.X / 2, 0, 0)
+	muzzle.Parent = barrel
+	return CFrame.new(0.02, -0.46, 0.4), CFrame.new(-0.03, -0.18, -1.0)
+end
+
 local builders: { [string]: (Model) -> (CFrame, CFrame) } = {
 	GuiseSMG = buildSuppressedSmg,
+	ReticleCarbine = buildFoldingCarbine,
 }
 
 function ViewModel.new(def: WeaponDef): ViewModel

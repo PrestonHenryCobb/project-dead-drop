@@ -26,6 +26,7 @@ and commit-confirmation rules for this development run.
 | 8.11 | Bullet tracers and muzzle flash for every weapon that is not `Quiet` (the suppressed SMG has neither, STEP8_QUESTIONS). Client only, from the existing data: your own shots from WeaponController's prediction, other players' from `ShotHeard` (Origin, Hit). Per-weapon look in `WeaponDefs`, shared numbers in `GameConfig.Combat.Feedback`. No server or remote changes. Runs alongside 8.5. | CODEX | | READY_FOR_REVIEW |
 | 8.7 | Step 8 end report (CLAUDE.md format). | CLAUDE_CODE | 8.1 to 8.6 | TODO |
 | 8.12 | Fix client facing and pose stepping to support the classic Motor6D rig now built by RigService, retaining compatibility with AnimationConstraint rigs. StyLua/Selene pass; Studio review pending. | CODEX | | READY_FOR_REVIEW |
+| 8.5d-client | Reticle folding carbine: complete data, shaped model, semi-auto prediction, no falloff, per-weapon shot look, 0.35 s post-melee recovery. Guise SMG starts at 0.2 s recovery. Remaining Reticle DMR glint and pistol pierce need server integration; no fake selection UI. Test carbine by selecting ReticleCarbine as Combat.DefaultWeapon in a temporary Studio copy before play. Handling/recovery values are initial playtest tuning. | CODEX | Studio review | READY_FOR_REVIEW |
 
 ## Step 8B: feel pass (after Step 8)
 <!-- Ticket 8.11 (CODEX, 2026-10-24): ShotVisuals preallocates 64 tracers and 24 flashes under a client-only
@@ -69,6 +70,9 @@ In this order; each depends on the one before. Decisions: `IDEAS_2026-10-24.md` 
 <!-- Codex integration note: 06357ec includes Claude's concurrent GameConfig edits for 8B.1/8B.7
 (Height/Width scale ranges and Hitbox.BodyRadius=1.0), as well as Codex's Combat.Presentation section.
 The associated OutfitDefs/History changes were left for Claude to commit. Do not reapply those config changes. -->
+<!-- c1663e9 also includes Claude's concurrent Movement and Controls config hunks for 8B.5. Associated movement
+implementations remain Claude's work; do not reapply the config. Codex client post-melee gating now consumes
+WeaponDef.PostMeleeFireDelay and blocks while a server-confirmed takedown is active. -->
 - The brief's answers (`docs/IDEAS_2026-10-24_BRIEF.md`) are decided; each lands in the step its table names. Only 8.8 is
   ticketed now. Step 16 needs 12 new Talents and 12 new Instincts designed with the owner first.
 - The Deceive Inc. tutorial videos for Step 13C (`IDEAS_2026-10-24.md` Q10).
