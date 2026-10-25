@@ -306,8 +306,15 @@ local GameConfig = {
 		IdleTurnDelay = 1.5,
 		IdleTurnRate = 60, -- degrees per second
 		IdleTurnDeadband = 25, -- degrees between body and camera before it turns at all
+		-- The puff when a disguise is stripped on exposure (spec 7.2). A disguise change has no puff (brief Q6).
 		DisguisePuffParticles = 20,
 		DisguisePuffSeconds = 1.5,
+		-- Brief Q6 (SPEC_CHANGES 6.4): where someone changes disguise, rival agents see a marker for longer the higher
+		-- the tier put on. The server tells a rival only once they come within SwapMarkerRange, so nobody learns of
+		-- swaps across the map. SPEC-QUESTION: the range was left to tune in play; 60 matches the exposed ping.
+		SwapMarkerSeconds = { [0] = 5, [1] = 10, [2] = 15, [3] = 20 }, -- by tier: Guest, Staff, Security, Executive
+		SwapMarkerRange = 60,
+		SwapMarkerCheckHz = 4,
 		SeatRange = 6, -- Sit on the Blend wheel works within this many studs of a Seat-tagged part
 		-- Agent Sense (8.3).
 		AgentSenseRange = 6,
@@ -675,6 +682,10 @@ local GameConfig = {
 		TextColor = Color3.fromRGB(240, 240, 245),
 		DimTextColor = Color3.fromRGB(150, 150, 160),
 		ToastSeconds = 2.5,
+		-- Brief Q6: the disguise-swap marker rivals see (placeholder look until the art pass, Step 19).
+		SwapMarkerColor = Color3.fromRGB(235, 70, 120),
+		SwapMarkerSizeStuds = 1.6,
+		SwapMarkerHeightStuds = 3, -- above the floor where the swap happened, about chest height
 		CrosshairPixels = 4, -- the centre dot
 		ScanRingSegments = 32,
 		ScanRingRadius = 30, -- pixels

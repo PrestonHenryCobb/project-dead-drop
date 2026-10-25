@@ -6,7 +6,8 @@
 --     the whole time and cancels the scan if either fails. Scanning is silent: the target gets no sign of it.
 --     Scanning an Exposed agent takes ExposedScanSeconds and copies the disguise they last wore.
 --   * Disguise: puts on the slot's outfit, or the insertion outfit if the slot is empty or already worn. Takes
---     DisguiseSeconds, and is refused where the new disguise's tier is below the zone the player is standing in.
+--     DisguiseSeconds, and is refused where the new disguise's tier is below the zone the player is standing in. No
+--     puff: rivals nearby see a swap marker instead (SwapMarkerService, brief Q6), and no reload runs during it.
 --   * Exposed: CoverService calls expose(). The disguise is stripped (puff, then True Form) and the player moves at
 --     the exposed speed. Pressing Disguise again re-covers, if CoverService allows it, in a NEW random outfit of the
 --     same tier as the last disguise (STEP7_QUESTIONS E2). The stored slot is kept.
@@ -30,6 +31,7 @@ local OutfitDefs = require(Shared:WaitForChild("Defs"):WaitForChild("OutfitDefs"
 local Types = require(Shared:WaitForChild("Types"))
 local OutfitApplier = require(Shared:WaitForChild("Util"):WaitForChild("OutfitApplier"))
 local RemoteService = require(script.Parent.RemoteService)
+local SwapMarkerService = require(script.Parent.SwapMarkerService)
 local ZoneService = require(script.Parent.ZoneService)
 
 type OutfitDef = Types.OutfitDef
@@ -256,7 +258,7 @@ local function checkScans()
 	end
 end
 
--- A short puff where the swap happened, visible to anyone close enough to see it (spec 6.4).
+-- A short puff where a disguise is stripped on exposure, visible to anyone close enough to see it (spec 7.2).
 local function puff(root: BasePart)
 	local anchor = Instance.new("Part")
 	anchor.Name = "Puff"
@@ -370,7 +372,9 @@ local function onRequestDisguise(player: Player)
 		if state.exposed and not (coverHooks and coverHooks.canRecover(player)) then
 			return
 		end
-		puff(stillRoot)
+		-- No puff on a disguise change; rivals nearby see a swap marker instead (brief Q6).
+		local feet = stillRoot.Position - Vector3.new(0, stillHumanoid.HipHeight + stillRoot.Size.Y / 2, 0)
+		SwapMarkerService.place(player, feet, target.Tier)
 		local wasExposed = state.exposed
 		state.exposed = false
 		state.lastDisguise = target

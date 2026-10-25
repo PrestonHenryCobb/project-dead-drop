@@ -37,6 +37,7 @@ local Remotes = {
 		"HealthUpdate", -- to the owner only: health and armour (spec 13.1)
 		"ShotHeard", -- to players within earshot of a shot: where it came from and where it landed (spec 23)
 		"MeleeState", -- to the owner only: a takedown started or ended (spec 13.4)
+		"SwapMarker", -- to a rival who comes within range: where someone changed disguise, until when (brief Q6)
 	},
 
 	-- Client -> server (requests only; the server validates every one)

@@ -151,6 +151,9 @@ export type WeaponDef = {
 
 -- Combat messages. All are sent only to the player they concern, except ShotInfo (to players within earshot).
 export type HitConfirm = { Kind: "Npc" | "Agent", Head: boolean } -- the shooter's hitmarker (spec 8.4)
+-- Brief Q6: a disguise-swap marker. ExpiresAt is on the server clock (workspace:GetServerTimeNow()).
+export type SwapMarkerInfo = { Position: Vector3, ExpiresAt: number }
+
 export type AmmoInfo = { Mag: number, Reserve: number, ReloadSeconds: number } -- ReloadSeconds > 0 as a reload starts
 export type HealthInfo = { HP: number, Armor: number }
 export type DamageInfo = { Position: Vector3, Amount: number } -- where the shot came from, for the direction marker
