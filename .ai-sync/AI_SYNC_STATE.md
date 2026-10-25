@@ -30,7 +30,14 @@ Times are local, `YYYY-MM-DD HH:MM`.
 
 | File | Locked by | Since | Ticket |
 |---|---|---|---|
-| `src/server/NPC/*`, `DownedService`, `DownedController`, `src/shared/Defs/PoseDefs.luau`, `Enums`/`Types`/`GameConfig` (Downed, NpcAnimation) | CLAUDE_CODE | 2026-10-25 | R4, R5 |
+| `src/shared/Defs/WeaponDefs.luau` | CODEX | 2026-10-25 | 8.5d-dmr |
+| `src/client/Combat/ViewModel.luau` | CODEX | 2026-10-25 | 8.5d-dmr |
+| `src/client/Combat/WeaponAim.luau` | CODEX | 2026-10-25 | 8.5d-dmr |
+| `src/client/Controllers/WeaponController.luau` | CODEX | 2026-10-25 | 8.5d-dmr |
+| `tools/CheckClientCombat.luau` | CODEX | 2026-10-25 | 8.5d-dmr |
+| `tools/CheckReticleDMR.luau` | CODEX | 2026-10-25 | 8.5d-dmr |
+| `tools/check-weapon-aim.cjs` | CODEX | 2026-10-25 | 8.5d-dmr |
+| `docs/CLIENT_REVIEW_2026-10-25.md` | CODEX | 2026-10-25 | 8.5d-dmr |
 
 ## Shared-file rules (`Remotes`, `Types`, `Enums`, `GameConfig`)
 - Lock the file for the few minutes of the edit, not for the whole ticket.
