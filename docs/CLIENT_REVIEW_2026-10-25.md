@@ -112,7 +112,7 @@ downed/revive checks and performance profiling have NOT been executed by Codex. 
 ## Gaps and SPEC-QUESTIONs
 
 - Gun contact and HUD appearance require Studio acceptance. The owner confirmed smooth own gun/arms on October 25;
-  world models should be slightly smoother too. Initial shared tuning is 12 Hz poses / 18 Hz positions.
+  latest owner answer removes world animation/movement stepping entirely (8.20), superseding 12/18 Hz tuning.
 - Full-gun-in-frame versus a closer shoulder-stock crop remains a composition choice. Initial depth scale is tuning.
 - Takedown hint is advisory against client-rendered geometry, not a server guarantee. Reach and rear cone remain
   5.5 studs / 60 degrees total until Claude integrates the owner's approved 6.5 / 90. Ordinary melee stays unchanged.
@@ -144,9 +144,32 @@ Additional tests:
    and short gold top rule. Health, armor, tier and warning colors must retain their usual meanings.
 2. **Test > Clients 2 > Start**: strafe/circle and watch NPCs alongside the other client. World models should feel
    less choppy; your own gun/arms stay smooth. Fire at moving NPCs and rivals in a separate multi-team test, checking
-   that hit feedback follows the visible target. Initial 12/18 Hz tuning still needs owner feel/performance review.
+   that hit feedback follows the visible target. Full smooth motion now replaces the interim 12/18 Hz tuning.
 3. Optional **Client** Command Bar theme check:
    `local s=game.ReplicatedStorage.Shared; local t=require(s.Util.HudTheme); assert(t.get().AccentColor==require(s.GameConfig).UI.HudThemes.Gala.AccentColor); assert(t.get("UnknownPreview").PanelColor==require(s.GameConfig).UI.GraphicHud.PanelColor); print("HUD theme checks passed")`
    This checks the real resolver without mutating the live theme or config. It does not repaint the GUI.
 
 StyLua/Selene/Rojo checks are required for this follow-up as well. Studio tests above remain owner-run.
+
+## Smooth combat movement (ticket 8.20)
+
+Owner requested removing choppiness before resuming design questions. Changes:
+
+- Deleted StepAnimationController: Animator poses are no longer sampled/held; players and NPCs animate smoothly.
+- Deleted PositionStepController: other players retain Roblox's smooth replicated motion, with no local root freezes.
+- NPCController now interpolates at continuous server time minus its existing delay.
+- Ballistics uses continuous shot time minus the existing target delay; history bounds/future clamps stay intact.
+  This small server edit was necessary to avoid rewinding against the removed stepped presentation clock.
+- Removed the unused PositionStep helper and GameConfig.Animation stepping section. No disabled stubs remain.
+
+Verification: StyLua/Selene/Rojo pass. Official Luau CLI ran the actual Ballistics trace body and Combat config with
+engine/history fixtures: eight assertions verify NPC/player continuous timestamps and lower/future clamps, plus shooter
+exclusion and unchanged empty trace. This is timing logic verification, not Roblox physics, animation or latency testing.
+
+Studio: Stop, sync Rojo (accept the deleted stepping scripts), fresh Play. Watch nearby NPC walk/idle/turn animations
+and your gun/arms. Use Test > Clients 2 > Start to strafe/circle and observe the other client alongside NPCs: no deliberate
+pose/position freezes should remain. For rival-player hit registration, use four clients in Duos/two teams and shoot
+moving opponents; verify hitmarkers track visible targets. Network jitter or actual path/ground defects may still occur;
+those are distinct from the removed stylized stepping. Existing NPC animation distance culling remains intentional.
+
+Ready for owner smooth-motion acceptance and the design interview; Step 9c spectating remains the next planned step.

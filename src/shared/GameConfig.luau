@@ -234,17 +234,6 @@ local GameConfig = {
 		AnimationCullStuds = 160, -- NPCs further than this from the camera are not animated (client performance)
 	},
 
-	-- The low-frame-rate look every character shares (StepAnimationController): poses change this many times a second.
-	Animation = {
-		-- Ticket 8.18: owner requests slightly smoother world rigs; own cosmetic gun/arms remain render-rate.
-		StepHz = 12,
-		-- Step 8B.6: other characters' positions are drawn in steps too, at this rate on the shared server clock, and the
-		-- server rewinds shots to the same stepped moment. Your own movement is never stepped.
-		PositionStepHz = 18,
-		StepCullStuds = 120, -- characters further from the camera than this animate normally
-		MinJoints = 12, -- a rig with fewer animated joints than this has not finished arriving
-	},
-
 	-- Spec 6, 7, 8: disguise, cover, suspicion.
 	Cover = {
 		ScanRange = 8,

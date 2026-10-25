@@ -31,8 +31,8 @@ Confirmed code facts, not a confirmed runtime reproduction:
   no hit is found. Intermediate PathfindingService waypoint positions are copied directly into cached routes.
 - `src/server/NPC/Movement.luau`: follow linearly interpolates in 3D between cached points. separate adds a lateral offset;
   place uses ground + offset + rootHeight without testing support under the displaced footprint.
-- `src/client/Controllers/NPCController.luau` interpolates between replicated root samples with the shared 12 Hz render
-  schedule. A client interpolation defect and a server support defect need different fixes.
+- `src/client/Controllers/NPCController.luau` now continuously interpolates between replicated root samples. The owner
+  removed deliberate stepping in 8.20. A client interpolation defect and a server support defect need different fixes.
 
 Reproduce at stairs, ramps, balcony edges and clustered doorways. Compare server root/ground/path points and client
 rendered roots at the same location. Check whether navmesh vertical clearance, thin floor seams, separation over an
@@ -80,7 +80,7 @@ Coordinate a shared player/NPC prone pose and crawl cycle, plus a brief collapse
 being asked prone vs knee crawl, ragdoll vs stable body and camera comfort. Use approved assets or original procedural
 poses; no copied reference animations. Server owns transitions, movement, hit eligibility and interaction timing.
 Animation must never announce player identity, team or agent while disguised. Restore joints/tracks cleanly on revive,
-respawn and removal. Respect shared animation stepping for visible world rigs.
+respawn and removal. Visible world rigs now animate smoothly; do not restore pose stepping.
 
 Codex adds 9b-hud using Downed.BleedOutAt, InteractState and Eliminated only. A countdown is not the missing animation.
 Test Duos: 2 players on the same team, one remains alive to avoid team wipe; separately test enemy execution and NPC
@@ -120,9 +120,14 @@ absent behind walls, while wall-tucked/downed/eliminated, and during an active h
 
 ### Approved client refinements, October 25
 
-Smooth own gun/arms are confirmed. World rig cadence is initially 12 Hz poses / 18 Hz positions, both NPCs and players.
-PositionStep and Ballistics already share Animation.PositionStepHz, so rewind follows the same 18 Hz schedule.
-Do not add a separate interpolator/latency to one client path without updating the shared timing contract.
+Smooth own gun/arms are confirmed. **Latest owner answer (8.20): remove movement/animation stepping entirely.**
+Codex removed StepAnimationController, PositionStepController, Util/PositionStep and the obsolete Animation config.
+NPCController uses continuous server time minus NPC.InterpolationDelay; players use native replication/animation.
+Necessary server edit: Ballistics now passes continuous timestamp minus target.delay to History.poseAt, with the same
+lag-compensation/future clamps. No other ballistic behavior, target delay, remote, hitbox or weapon rule changed.
+Eight timing assertions plus shooter exclusion/empty-trace checks passed against the actual Ballistics body/config
+in Luau with engine/history fixtures. Live moving-target hit registration still needs the owner's Studio test.
+Do not restore the earlier 12/18 Hz interim tuning or old stepping imports.
 
 Gala HUD now resolves UI.HudThemeId through Util/HudTheme; only palette/corner/accent overrides are permitted.
 Later map loading should provide its authorized map/skin ID at startup; no runtime map metadata contract is invented.

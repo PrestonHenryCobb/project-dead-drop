@@ -113,3 +113,11 @@ not silently replaced any earlier answer.
 - Takedowns: the owner's final corrected answer is **6.5 studs total and a 90-degree rear cone**. This supersedes
   the earlier 3.5-stud reply. Keep ordinary melee unchanged, no lunge/teleport, sight checks and the 1.2 s hold.
   Claude owns the server change; do not advertise a live 6.5-stud hint before that server integration lands.
+
+## Owner removes deliberate movement choppiness (2026-10-25, ticket 8.20)
+
+Smooth world movement and animation replace the earlier stepped style, including the interim 12/18 Hz tuning.
+Remove pose holds and position quantization for NPCs and players alike. Player movement uses normal Roblox
+replication/animation; NPC movement retains continuous interpolation of server snapshots. The own gun/arms stay smooth.
+Server shot rewind uses continuous shot time minus the existing per-target render delay, with existing safety clamps.
+The obsolete stepping controllers, PositionStep helper and Animation stepping config are removed, not left disabled.

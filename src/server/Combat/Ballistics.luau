@@ -1,6 +1,6 @@
 --!strict
 -- Where one ray of a shot goes (spec 13.3). The map stops it; before that, every person whose rewound pose the ray
--- crosses is a hit. Poses are rewound to the stepped moment the shooter's screen showed (History, PositionStep).
+-- crosses is a hit. Poses are rewound to the continuous moment the shooter's screen showed (History).
 --
 --   Ballistics.trace(shooter, origin, direction, timestamp, maxHits) -> (hits, endPoint, hitWall)
 --     hits: up to maxHits people the ray passes through, nearest first (more than one only for a piercing weapon).
@@ -9,7 +9,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
-local PositionStep = require(Shared:WaitForChild("Util"):WaitForChild("PositionStep"))
 local History = require(script.Parent.History)
 local Hitbox = require(script.Parent.Hitbox)
 
@@ -38,9 +37,8 @@ function Ballistics.trace(
 	local hits: { Hit } = {}
 	for _, target in History.targets do
 		if target.player ~= shooter then
-			-- Clients draw other characters at stepped moments on the server clock (step 8B.6); rewind to the same one.
-			local when =
-				math.clamp(PositionStep.snap(timestamp) - target.delay, serverNow - config.LagCompSeconds, serverNow)
+			-- Ticket 8.20: smooth rendering has no artificial step; retain target delay and the rewind safety bounds.
+			local when = math.clamp(timestamp - target.delay, serverNow - config.LagCompSeconds, serverNow)
 			local root, head = History.poseAt(target, when)
 			if root and head then
 				local toRoot = root - origin

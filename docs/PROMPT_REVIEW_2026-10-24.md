@@ -6,8 +6,8 @@ Review begun October 24, 2026; continued October 25. Recommendations below are n
 ## Owner answers received October 25
 
 1. Preserve existing repo decisions while reviewing conflicting attachment changes individually.
-2. Own gun and arms smooth together, with slight smoothing of world character models too. Initial world cadence
-   tuning is 12 Hz poses / 18 Hz positions; the own view model remains full render-rate. Studio feel review pending.
+2. Own gun and arms smooth together. **Latest answer:** remove world-model choppiness entirely for combat;
+   continuous movement/animation replaces both the original stepping and the interim 12/18 Hz tuning.
 3. Compact icons/meters, translucent dark panels, shadows and numeric health/ammo are approved. Selected mockup:
    **Field notes**. Add a map-specific visual skin framework; current skin should match The Gala.
 4. The final corrected takedown answer is **6.5 studs / 90 degrees**, superseding the earlier 3.5-stud answer.
@@ -15,6 +15,11 @@ Review begun October 24, 2026; continued October 25. Recommendations below are n
 
 These resolve the broad conflicts/timing/HUD direction and reach/angle questions below. Keep the remaining questions
 about gun composition, animations, takedown outcome/control and new map mechanics open. Do not ask these four again.
+
+Interview order for the next round: Q3 gun composition, Q8 takedown result, Q9 takedown presentation/control,
+Q10 crawl/death style, Q11 door exit rules. Then Q12 NPC tier exceptions, HUD details Q5–6, and the world/economy/kit
+questions Q13–35. Ask manageable groups; keep these original IDs in the decision record even if reply numbering starts
+at 1 in each group. Startup/NPC animations were restored per owner; remaining visual acceptance is separate from answers.
 
 ## How this document is being used
 
