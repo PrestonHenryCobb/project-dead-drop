@@ -842,6 +842,8 @@ local GameConfig = {
 		PrintEvents = true, -- cover, guards and doors print a line when they act (exposures, investigations, door holds)
 		AutoRespawn = true, -- RigService respawns a dead player (replaced by the match flow in Step 10)
 		AutoRespawnSeconds = 3,
+		-- The mode a Studio test plays in until the lobby picks one (Step 10): a key of Modes. Teams fill in join order.
+		TestMode = "Duos",
 	},
 
 	-- Spec 25.6: client -> server remotes are rate-limited. Overrides are by remote name.

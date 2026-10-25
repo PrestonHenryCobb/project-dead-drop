@@ -37,6 +37,7 @@ local CoverService = require(script.Parent.CoverService)
 local DisguiseService = require(script.Parent.DisguiseService)
 local NPCService = require(script.Parent.NPCService)
 local RemoteService = require(script.Parent.RemoteService)
+local TeamService = require(script.Parent.TeamService)
 local VentService = require(script.Parent.VentService)
 
 type WeaponDef = Types.WeaponDef
@@ -624,7 +625,7 @@ local function onCharacterAdded(player: Player, character: Model)
 	local state: State = {
 		weapon = def,
 		hp = config.MaxHP,
-		armor = config.StartPlates * config.PlateHP,
+		armor = (if TeamService.isSolos() then config.SoloStartPlates else config.StartPlates) * config.PlateHP,
 		mag = def.MagSize,
 		reserve = def.ReserveAmmo,
 		reloadEndsAt = 0,

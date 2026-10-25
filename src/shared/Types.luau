@@ -169,6 +169,9 @@ export type ScopeGlintInfo = { Position: Vector3, Seconds: number }
 
 -- Combat messages. All are sent only to the player they concern, except ShotInfo (to players within earshot).
 export type HitConfirm = { Kind: "Npc" | "Agent", Head: boolean } -- the shooter's hitmarker (spec 8.4)
+-- Step 9: a team's roster, sent only to its own members (CLAUDE.md rule 3).
+export type TeamRosterInfo = { TeamId: number, Members: { Player } }
+
 -- Brief Q6: a disguise-swap marker. ExpiresAt is on the server clock (workspace:GetServerTimeNow()).
 export type SwapMarkerInfo = { Position: Vector3, ExpiresAt: number }
 

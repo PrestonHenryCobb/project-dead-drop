@@ -39,6 +39,7 @@ local Remotes = {
 		"MeleeState", -- to the owner only: a takedown started or ended (spec 13.4)
 		"SwapMarker", -- to a rival who comes within range: where someone changed disguise, until when (brief Q6)
 		"ScopeGlint", -- to a rival agent who can see a scoped DMR: where the glint is (STEP8 unique effects)
+		"TeamRoster", -- to each member of a team only: who is on it (rule 3; spec 3.3 teammate markers build on it)
 	},
 
 	-- Client -> server (requests only; the server validates every one)
