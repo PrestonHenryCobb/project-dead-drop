@@ -80,7 +80,45 @@ The attachment's earlier three-way style comparison and full-scene outlines are 
   frozen GameConfig and HudTheme with engine value fixtures (default/cache/fallback, palette/font/layout and targets).
 - All 24 map references decoded: 1024×1024 RGB data and exact quantized grayscale roughness/metalness checked.
 - Existing melee regression: 29 assertions still pass against actual server action/helper bodies.
-- **No live Studio rebuild, screenshots, NPC navigation run, GPU profile or visual acceptance claimed.**
+- Initial source-pass checks did not include Studio. The subsequent live validation below supersedes that limitation
+  for the rebuild and one-player runtime checks only.
+
+## Live Studio validation, 2026-10-25
+
+Owner authorized direct computer operation. Open place: `D:\Dead-Drop\CoverStory.rbxl`.
+
+- Saved the pre-rebuild scene and copied it to `D:\Dead-Drop\CoverStory.before-gala-art-20261025-0416.rbxl`.
+- The first rebuild exposed an existing generator error at the synthetic stair/gondola gaps: they have no layout
+  door/second room, but the doorway renderer dereferenced `roomB.tier`. `Build.luau` now skips doorway decoration for
+  these full-height openings after rendering their adjacent wall segments. Real doors still use the existing logic.
+- Retried with fresh cloned modules and an explicit source-sync guard: **0 problems**, **102 rooms**, **143 zone
+  volumes**, **54 clearance doors**, **6 keycard doors**, **786 NPC nodes**. Generator reported 9,766 parts; a complete
+  descendant audit counted **9,797 BaseParts**, including descendants outside that counter.
+- Audit found **184 noncolliding/nonqueryable/non-touchable walnut panels**, **96 lamp rims**, **120 cyan threshold
+  SurfaceGuis** and **192 glass-chevron SurfaceGuis**. These counts are not a GPU/UI performance acceptance.
+- Saved rebuilt place. F5 one-player test started all **25 client controllers** and the **200-NPC** crowd.
+- Checks ran in the actual local client: HUD backdrop `f4efe6`, transparency approximately `.08`, health text `1a1918`,
+  font `GothamMedium`; camera `LockFirstPerson`; owner Head and UpperTorso local transparency both `1`.
+- Actual `ShotFx` impact calls built **64 spark parts**. Another 24 impact calls retained exactly 64 parts, and all
+  64 had transparency `1` after `.3` seconds. No new geometry per impact; test effects disappeared when Play stopped.
+- Actual lighting readback: `Realistic`, prioritization true, ambient `181c24`, outdoor `1d283a`, bloom approximately
+  `.35`, threshold `1.8`. Studio logged its advanced/Future shadow renderer being enabled.
+- The existing NPC script profiler reported around 1.94 ms average client work/frame and 9.76 ms average server
+  tick in one sample. These are script measurements, **not** whole-game frame times or a validated FPS claim.
+- F7 while command-bar focus was active did not reach the gameplay input handler; Low/Medium/High visual tests remain
+  pending with the viewport focused. The test was stopped with Shift+F5; Studio was returned to Edit mode.
+
+Computer controls could read/set the command bar and run keyboard shortcuts. Screen capture repeatedly timed out,
+and coordinate-based controls reported `coordinate input geometry is unavailable`. Commands were verified through
+Studio's local CreatorOutput log. **No viewport screenshot, two-client test, full navigation report, GPU profile or
+visual art acceptance is claimed.** Existing engine warnings included wrap-deformer mesh-fetch failures and an
+asset-type mismatch for texture ID `203785492`; that ID is not in the repository source and was not replaced blindly.
+
+Attempted the supported AssetService upload workflow for the original neutral image. This Studio build returned
+`CreateAssetAsync and CreateAssetVersionAsync are not available yet`; the image was cleaned up and no successful
+uploaded asset ID was returned. The place is local (`PlaceId = 0`, `GameId = 0`). The 12-map pack remains ready for
+normal Studio image import, and the six PBR variants have **not** been installed. The rebuilt scene uses native
+fallback finishes. The game was not published to create an experience ID.
 
 ## Remaining art and integration work
 

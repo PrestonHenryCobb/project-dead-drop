@@ -228,3 +228,18 @@ Current native R15 faces/torso are retained; angled block lapels are not a compl
 import/rig pass after owner Studio source review; do not independently change disguise proportions or revive stepped
 motion. Existing NPC ground/tier, ordinary doors and animation tickets remain separate. Use fresh-clone map/material
 commands in the review doc so cached GameConfig cannot silently supply old art values.
+
+### Live Studio follow-up (2026-10-25)
+
+Codex operated D:\Dead-Drop\CoverStory.rbxl with owner permission, saved a pre-art backup at
+D:\Dead-Drop\CoverStory.before-gala-art-20261025-0416.rbxl, and rebuilt/saved Gala. Fixed an existing Build.luau crash:
+synthetic stair/gondola gaps have no door/roomB and must skip doorway lintel/clearance decoration. Fresh-clone rebuild:
+0 problems, 102 rooms, 786 nodes, 9,797 actual scene BaseParts. One-player test: all 25 client controllers and 200 NPCs
+started; actual parchment/ink/font, first-person body hiding, Realistic lighting and 64-part spark reuse/fade verified.
+See docs/GALA_ART_REVIEW.md live section for exact evidence and limitations. Stopped Play; left Edit mode saved.
+
+PBR uploads are still pending: Studio's CreateAssetAsync returned "CreateAssetAsync and CreateAssetVersionAsync are
+not available yet". No uploaded IDs were returned and no six-variant install is claimed. Normal Studio image-import
+UI is still required. Computer-use screenshots time out and coordinate controls fail, although keyboard command-bar
+operations work. No visual acceptance, two-client run or low-quality visual test is claimed. Do not mark the full
+sculpted art pass complete based on this validation.

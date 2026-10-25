@@ -2741,6 +2741,11 @@ function Build.run()
 				continue
 			end
 			local gapDoor = gap.door
+			-- Ticket gala-art-studio-validation: stair/gondola arrival cuts have no door or second room.
+			-- Leave their full opening clear; only real layout doors need a lintel and clearance decoration.
+			if not gapDoor then
+				continue
+			end
 			local openingH = if gapDoor and (gapDoor.gate or gapDoor.keycard) then DOOR_H else GAP_H
 			if height <= openingH then
 				continue -- a gap in a railing has nothing over it
