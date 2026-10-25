@@ -217,7 +217,12 @@ between the two ranges down to the percentage shown; Reticle's weapons have none
 
 ## Left to decide while building
 
-### Feint silent pistol — delegated balance decision, 2026-10-24
+
+- **SPEC-QUESTION candidates:** the takedown speed-up (garrote), the "no falloff" rule for Reticle, and "3 magazines in
+  total" (taken as the loaded magazine plus 2 spare) are all changes to spec 13; they go in SPEC_CHANGES.md at the end
+  of the step.
+
+## Feint silent pistol — delegated balance decision, 2026-10-24
 
 The owner asked Codex to choose stats based on the kits. These replace the obsolete heavy-revolver rows above:
 
@@ -229,6 +234,3 @@ Quiet, no tracer or flash, heard within 12 studs of a displaced sound origin 8�
 damage bonus. Seven close body hits against 125 HP take 1.125 s from first to last shot at maximum cadence. Guise's
 pistol retains 22 damage, longer effective range and its 1.5x ambush shot; Feint trades those for misdirection and
 lower detectability. These are starting balance values for playtests, not measured match outcomes.
-- **SPEC-QUESTION candidates:** the takedown speed-up (garrote), the "no falloff" rule for Reticle, and "3 magazines in
-  total" (taken as the loaded magazine plus 2 spare) are all changes to spec 13; they go in SPEC_CHANGES.md at the end
-  of the step.

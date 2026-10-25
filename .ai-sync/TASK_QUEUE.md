@@ -79,6 +79,10 @@ In this order; each depends on the one before. Decisions: `IDEAS_2026-10-24.md` 
 | 9d | Agent Tag drop and Rescue (spec 14.2): needs supply caches (Step 18) and a cost, since Funds were removed (SPEC-QUESTION). Not started. | CLAUDE_CODE | BLOCKED |
 
 ## Future client review
+<!-- Step 9 weapon integration (Codex): WeaponController stops fire/burst/aim/reload prediction and real-arm grip
+poses on owner-only Downed/Eliminated messages, restoring eligibility on Revived/spawn. Health > 0 alone is no
+longer sufficient. Two-player down/revive testing required. Claude: Guise AmbushMult currently applies while
+Suspicious as well as Covered, whereas STEP8_QUESTIONS specifies Covered only; please review that server check. -->
 <!-- Additional completed firing paths (Codex): ParapetHeavySMG (500->750 spin-up, 20–45 falloff),
 ReticlePistol (40 damage, 2x head, one-person pierce at 60%), SutureShotgun (six 10-damage pellets),
 SutureDualPistols (1100 hip / 550 aimed, real two-hand grips, alternating muzzles; aim hides the left gun).

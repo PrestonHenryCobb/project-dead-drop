@@ -15,6 +15,9 @@ required; lint/build success does not establish visual correctness. Do not mark 
 | c1663e9 | Client-only held-gun models on any rig matching the visible True Form palette. |
 | 298c70c | ReticleCarbine definition/model and client PostMeleeFireDelay enforcement. |
 | 48afb2a | Weapon connection/binding cleanup, death/respawn/camera recovery; Studio combat assertion script. |
+| fe16524 | Delegated Feint balance; FeintPistol and GuisePistol data/models, hearing overrides. |
+| 80346d9 | Client cadence, complete bursts, spin-up/restart, aimed RPM, one-request pellet groups, pooled scope glints. |
+| 34a93a7 | Heavy SMG, marksman pistol, medic shotgun and dual machine pistols with shaped models and real-hand grips. |
 
 06357ec also picked up Claude's concurrent Rig/Hitbox config hunks; c1663e9 picked up the Movement/Controls config
 hunks. Those changes were preserved and are already committed. Associated server/controller implementations belong
@@ -34,17 +37,39 @@ to Claude. Going forward stage only owned hunks in shared files, not entire shar
   approved visible-data association; do not infer a hidden agent/team identity.
 - ReticleCarbine is a complete standard semi-auto path: 22 body, 400 RPM, 20/40 ammo, 2 s reload, no falloff. Default
   remains GuiseSMG. Handling values are initial playtest tuning. SMG recovery is 0.2 s; carbine recovery is 0.35 s.
-- Remaining 8.5 weapons need server-owned unique effects and selection integration. Existing design specifies
-  ambush pistol damage, garrote/hammer melee behavior, shotgun pellets/stagger, heavy-SMG spin-up, burst tracking,
-  taser disable, DMR glint, piercing pistol, akimbo rate, flare lighting, smoke rounds and recoverable knives.
-  Do not expose a weapon whose required effect is missing. Feint pistol stats need the owner's answer; the old
-  revolver's numbers are superseded and were not reused.
+- Remaining 8.5 weapons need their missing mechanics and selection integration. The remaining nonstandard effects
+  include garrote/hammer melee behavior, pump-shotgun stagger and per-shell reload, burst tracking, taser disable,
+  flare lighting, smoke rounds and recoverable knives. Do not expose a weapon whose required effect is missing.
+  The old Feint revolver numbers are superseded and were not reused.
 
 Update: the owner delegated Feint's pistol balance. FeintPistol is now defined and modeled: 20 damage, 320 RPM,
 12/24 ammo, 1.5 s reload, falloff 35–85 to 65%, post-melee recovery 0.25 s, Quiet, HearStuds=12,
 SoundOffset=NumberRange.new(8,15). GuisePistol is also defined/modeled with the decided 22/300/12+24/1.4 s and
 AmbushMult=1.5. ShotFxController honors HearStuds overrides. Neither needs a new server rule; existing 8.5-server
 fields supply their effects. Both remain subject to the normal loadout/default-weapon test procedure below.
+
+Eight complete registered firing paths now exist: GuiseSMG, GuisePistol, FeintPistol, ReticleCarbine,
+ParapetHeavySMG, ReticlePistol, SutureShotgun and SutureDualPistols. No selection screen is added; Combat.DefaultWeapon
+stays GuiseSMG. Dual pistols alternate muzzles while hip-firing; aiming hides the left gun, releases the left-hand
+IK pose and uses AimedRPM. Third-person models place each pistol at its own hand, but there is no remote aim-state
+display contract; actual varied live loadouts still need selection integration. Existing library sounds are reused.
+
+WeaponCadence duplicates the pure server FireRate formulas because ServerScriptService modules are inaccessible to
+clients. Keep them synchronized and use tools/CheckWeaponCadence.luau in Studio's SERVER Command Bar: it compares
+the real modules over 1,800 state/gap assertions and checks burst pause, spin-up/restart and aimed rate independently.
+This script is authored/linted, not engine-executed by Codex. Pellet directions use a reusable list; one request, one
+ammo decrement, one sound/recoil/flash per trigger. Remote pellet ShotHeard events are coalesced by origin, weapon
+and cadence window for audio/flash. Each pellet retains its own tracer/impact.
+
+ScopeGlintController preallocates one billboard flare per maximum participant in a client-only folder. It consumes
+the existing ScopeGlint event, expires by the provided Seconds and is normally occluded by walls. Test renderer alone
+by firing the existing event from Studio's SERVER Command Bar to one local player with a visible Position and
+Seconds=1. Actual DMR integration still needs the approved 300-stud maximum range enforced on the server and an exact
+3x optical zoom contract; neither was silently approximated by a plain rifle definition.
+
+Step 9 integration: WeaponController now consumes owner-only Downed/Revived/Eliminated messages. Downing cancels
+fire/bursts/aim/reload prediction, hides the gun/crosshair and releases the real-arm grip poses. Revive and respawn
+restore eligibility. It neither adds character state markers nor changes DownedController/server ownership.
 
 ## Studio review
 
@@ -56,7 +81,7 @@ fields supply their effects. Both remain subject to the normal loadout/default-w
    backing away. Camera-space depth compression preserves the projected gun size, but extreme camera embedding
    and near-plane clipping still require visual review.
 3. Paste tools/CheckClientCombat.luau into the CLIENT Command Bar in a fresh playtest. It tests the actual modules
-   across three FOVs, four aspect ratios, every pose, both models, muzzle existence and Quiet/non-Quiet pool behavior.
+   across three FOVs, four aspect ratios, every pose, all eight models, muzzle existence and Quiet/non-Quiet pool behavior.
    The checks are authored and linted, not executed by Codex (no Studio connector; window capture unavailable).
 4. Test > Clients 2 > Start: fire to expose a character, check its gun appears only on the other client's
    CombatHeldWeapons folder, then re-cover and verify it disappears immediately. Disguised NPCs/agents show none.
@@ -66,6 +91,13 @@ fields supply their effects. Both remain subject to the normal loadout/default-w
    2 s reload, tracer/flash and post-melee recovery. Stop, undo the Studio-only edit and reconnect Rojo.
 6. Hold fire through SMG reloads to recheck the owner's passing 8.10 result after later changes. Test input focus
    loss and respawn while aiming/reloading. Camera replacement should recreate a visible gun under the new camera.
+7. Repeat the temporary Studio DefaultWeapon selection for the other registered IDs. Heavy SMG should ramp from
+   500 to 750 RPM over one second and restart after releasing long enough. Medic shotgun spends one round per six
+   pellets with one sound/flash. Dual pistols alternate, then aim switches to the right gun at half rate. Marksman
+   pistol should hit a second lined-up person at 60% damage (server decides every hit).
+8. Test > Clients 2 > Start: down the armed player while firing/aiming. The downed client must stop weapon prediction,
+   sounds, crosshair and grip posing. Revive, then press fire afresh and verify normal combat. Elimination must keep
+   combat disabled until the next character spawn. Watch Output for errors in both clients and the server.
 
 ## UI review and open questions
 
@@ -75,6 +107,9 @@ fields supply their effects. Both remain subject to the normal loadout/default-w
 - SPEC-QUESTION in ShotFxController: should tracers be visible beyond shot earshot? Current behavior accepts the
   existing event range, as the owner requested.
 - Per-weapon recovery/handling numbers and the real-arm grips need playtest tuning.
+- Guise ambush review for Claude: STEP8_QUESTIONS says Covered only, but the current server AmbushMult path uses
+  not CoverService.isExposed(), which also grants the multiplier while Suspicious. Confirm/narrow that check before
+  marking Guise's agent ticket DONE. Feint has no AmbushMult and is unaffected.
 - Additional Talents and Instincts are still undesigned. Tutorial source videos are still absent. Neither was invented.
 
 Validation: StyLua check on owned source files, Selene src plus the assertion script, Rojo build, git diff --check.

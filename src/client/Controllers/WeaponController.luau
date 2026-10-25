@@ -73,6 +73,7 @@ local lastMeleeAt = -math.huge
 local takedownActive = false
 local firing = false
 local held = true
+local combatEnabled = true -- owner-only Downed/Revived/Eliminated messages, never a character attribute
 local aiming = false
 local aimBlend = 0
 local spreadExtra = 0
@@ -85,6 +86,9 @@ local baseFov = 70
 local appliedFov = 0
 
 local function character(): (Model?, Humanoid?, BasePart?)
+	if not combatEnabled then
+		return nil, nil, nil
+	end
 	local model = localPlayer.Character
 	local humanoid = model and model:FindFirstChildOfClass("Humanoid")
 	local root = model and model:FindFirstChild("HumanoidRootPart")
@@ -305,7 +309,7 @@ local function step(dt: number)
 end
 
 function WeaponController.getHandTargets(): (CFrame?, CFrame?)
-	if held and viewModel then
+	if combatEnabled and held and viewModel then
 		return viewModel:getHandTargets()
 	end
 	return nil, nil
@@ -329,6 +333,9 @@ end
 
 local function onFire(_: string, state: Enum.UserInputState): Enum.ContextActionResult
 	if state == Enum.UserInputState.Begin then
+		if not combatEnabled then
+			return Enum.ContextActionResult.Sink
+		end
 		firing = true
 		local camera = workspace.CurrentCamera
 		local _, _, root = character()
@@ -384,6 +391,7 @@ local function onMelee(_: string, state: Enum.UserInputState): Enum.ContextActio
 end
 
 local function resetForSpawn()
+	combatEnabled = true
 	characterJanitor:Cleanup()
 	if viewModel then
 		viewModel:destroy()
@@ -400,6 +408,24 @@ local function resetForSpawn()
 	burstRemaining = 0
 	lastMeleeAt = -math.huge
 	takedownActive = false
+end
+
+local function setCombatEnabled(value: boolean)
+	combatEnabled = value
+	if not value then
+		firing = false
+		burstRemaining = 0
+		takedownActive = false
+		reloadEndsAt = 0
+		predictedReloadPending = false
+		if aiming then
+			aiming = false
+			RemoteController.fire("RequestDraw", false)
+		end
+		if viewModel then
+			viewModel:setVisible(false)
+		end
+	end
 end
 
 local function onCharacter(model: Model)
@@ -452,6 +478,16 @@ function WeaponController.Start()
 	end))
 	janitor:Add(RemoteController.connect("MeleeState", function(info: Types.MeleeState)
 		takedownActive = info.Active
+	end))
+	-- Step 9 keeps the Humanoid alive while downed. Health > 0 alone is therefore not permission to predict combat.
+	janitor:Add(RemoteController.connect("Downed", function()
+		setCombatEnabled(false)
+	end))
+	janitor:Add(RemoteController.connect("Eliminated", function()
+		setCombatEnabled(false)
+	end))
+	janitor:Add(RemoteController.connect("Revived", function()
+		setCombatEnabled(true)
 	end))
 
 	local item: HeldItemController.Item = {
