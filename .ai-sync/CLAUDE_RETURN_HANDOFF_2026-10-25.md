@@ -165,6 +165,11 @@ prompts/warnings appear only when relevant. Use clearer numbers/body text with p
 by events, with a real player-facing reduced-motion preference. Preserve critical information/timers under that
 preference; do not change actual recoil/gameplay. Codex's typography and preference work is queued, not already built.
 
+Floor/marker answers are confirmed: use the generated map's actual named floor bands (no invented GH floor), and
+up/down arrows for different floors, not an arbitrary 10-stud difference within one room. Map work should provide
+consistent authored floor definitions for Codex's HUD. Preserve current marker visibility/ranges/lifetimes; do not
+expose extra enemy positions or keep a floor badge after its underlying marker expires. Vertical HUD work is queued.
+
 Secret prop exits and elevators need original map design and server contracts before interactive UI. Step 18 owns
 Intel/economy interactions and Agent Tag rescue pricing still needs the owner. Step 21 owns persistence, shop, Stocks
 and Dossiers. Keep forthcoming menus as reviewable mockups until actual data exists. The live HUD refresh does not

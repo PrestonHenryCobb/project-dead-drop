@@ -158,3 +158,11 @@ The obsolete stepping controllers, PositionStep helper and Animation stepping co
 - HUD motion is event-driven (damage, reload, suspicion and objective changes), with a player-facing reduced-motion
   option. Prefer functional feedback over continuous decorative scanning/pulsing. Reduced motion must preserve
   critical information and timers; it does not change weapon recoil or other gameplay rules.
+
+## Owner floor/marker answers (2026-10-25)
+
+- HUD floor labels follow the generated map's actual named floor bands. The inconsistent B/G/GH/M/T/R list in the
+  attachment does not authorize an additional GH floor or a replacement floor dictionary.
+- Vertical arrows indicate different floor bands, not a fixed 10-stud height difference inside the same room/floor.
+- Floor/direction details preserve existing objective, teammate and enemy-marker visibility permissions, ranges and
+  lifetimes. They do not reveal additional enemies through walls or keep metadata visible after its marker expires.

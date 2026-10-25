@@ -39,10 +39,14 @@ HUD detail answers: Q5 essentials (health/armor, ammo, disguise, Cover, alarm) s
 contextual. Q6 clearer numbers/body text with pixel headings. Q33 event-driven HUD motion plus reduced-motion option.
 These are recorded design decisions; the typography/preference implementation is queued separately.
 
+World-navigation answers: Q14 use actual generated-map named floor bands, with no new GH floor inferred from the
+attachment. Q15 show elevation arrows for different floor bands rather than a raw 10-stud difference. Q16 preserve
+existing marker visibility permissions/ranges/lifetimes; floor information adds no extra enemy detection.
+
 Completed round: Q3 gun composition, Q8 takedown result, Q9 takedown presentation/control, Q10 crawl/death style,
 Q11 door exit rules, input/result/direction follow-ups, side-shot/roll clarification, charge starting balance and Q12
-NPC tier exceptions, Q5–6 HUD details and Q33 HUD motion. Next: Q14 floor labels, Q15 vertical indicators and Q16
-marker visibility, then the remaining world/economy/kit questions. Broad preservation answers already retain original
+NPC tier exceptions, Q5–6 HUD details, Q33 HUD motion and Q14–16 floor/marker rules. Next: Q17 secret exits, Q18 their
+discovery/activation conditions and Q19 elevators, then remaining world/economy/kit questions. Broad preservation answers retain original
 map design, economy/mode/kit decisions; do not ask those again as if undecided. Ask manageable groups; retain original IDs even if reply numbering starts
 at 1 in each group. Startup/NPC animations were restored per owner; remaining visual acceptance is separate from answers.
 
