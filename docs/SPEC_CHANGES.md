@@ -129,13 +129,16 @@ The obsolete stepping controllers, PositionStep helper and Animation stepping co
 - Takedowns keep **90 damage** and stay **first person**. The approved acquisition change remains 6.5 studs total /
   90-degree rear cone, with ordinary melee unchanged and no teleport/lunge. Server integration remains Claude's work.
 - Short cosmetic takedown animations become a shop category and non-expiring Dossier (battle-pass) reward category.
-  They play only after server confirmation of the result; whether that means a down/elimination or any successful
-  90-damage hold is being clarified. Cosmetics never alter damage, acquisition, hold time or other gameplay rules.
+  Owner confirmed playback only after the server confirms a down/elimination, not every successful 90-damage hold.
+  Cosmetics never alter damage, acquisition, hold time or other gameplay rules. The later "equivalent animation for
+  either side" qualifier is being clarified (front/rear sets, attacker/victim pairs, or both); it has not reversed the trigger.
 - Charged melee is approved as a mechanic. Takedown attempts start only inside the valid range/cone (and existing
-  sight/state checks). The owner reports that initiating the hold currently initiates melee. Clarify tap/hold/release
-  semantics before implementing the client and server together; charge duration/damage/recovery remain unspecified.
+  sight/state checks). Owner confirmed: V press inside the valid takedown window starts the hold directly with no
+  preliminary melee. Outside that window, tap strikes on release; holding charges a melee strike for release.
+  Implement client/server together; charge duration/damage/recovery remain unspecified.
 - Downed from behind: fall forward into prone forearm crawl. Downed from the front: fall backward as if stunned,
-  then crawl backward on the back. Use the same behavior for players and NPCs. Side-hit/fall classification is being
-  clarified; server owns the transition. Elimination uses a short, stable collapse rather than ragdoll.
+  then crawl backward on the back. Use the same behavior for players and NPCs. Owner confirmed classification from
+  the final damaging hit direction relative to victim facing; side hits use the nearer front/back half and falls use
+  a standard forward collapse. The server owns the transition. Elimination uses a short stable collapse, not ragdoll.
 - Ordinary clearance doors permit free exit from inside after losing clearance. Outside entry still requires the
   established authorization. Vault/objective locks retain their own rules; the server must determine the interior side.

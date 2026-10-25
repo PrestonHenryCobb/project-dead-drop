@@ -26,13 +26,16 @@ gun composition, damage, camera, directional poses and ordinary-door exit. Do no
   crawl. Elimination -> short stable collapse. Player/NPC parity applies.
 - Q11: ordinary clearance doors allow free exit from inside after clearance is lost; exterior entry stays authorized.
 
-Three selectable follow-ups are pending: V press/release behavior for normal/charged strikes versus valid takedowns;
-whether cosmetic playback requires a down/elimination or any successful hold; and front/back classification by final
-hit direction with side/fall fallbacks. Charge balance remains to be designed after input semantics. Do not repeat
-the answered stock/damage/camera/crawl/collapse/exit choices.
+Selectable follow-ups answered: V press in the valid takedown window starts the hold without a preliminary melee;
+outside it, tap/charge strikes on release. Cosmetic finishers require server-confirmed down/elimination. Directional
+downing uses final hit direction relative to victim facing, nearest front/back half for side hits, forward fall fallback.
+Charge balance remains unspecified. The later "equivalent animation for either side" qualifier has one pending
+selectable clarification: front/rear downings, paired attacker/victim takedowns, or both. Do not reinterpret this as
+permission to play a finisher on a surviving target. Do not repeat the answered choices.
 
-Interview order for the next round: Q3 gun composition, Q8 takedown result, Q9 takedown presentation/control,
-Q10 crawl/death style, Q11 door exit rules. Then Q12 NPC tier exceptions, HUD details Q5–6, and the world/economy/kit
+Completed round: Q3 gun composition, Q8 takedown result, Q9 takedown presentation/control, Q10 crawl/death style,
+Q11 door exit rules, plus input/result/direction follow-ups. Next: equivalent-animation qualifier, charge balance,
+Q12 NPC tier exceptions, HUD details Q5–6, and the world/economy/kit
 questions Q13–35. Ask manageable groups; keep these original IDs in the decision record even if reply numbering starts
 at 1 in each group. Startup/NPC animations were restored per owner; remaining visual acceptance is separate from answers.
 

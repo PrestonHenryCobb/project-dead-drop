@@ -82,7 +82,8 @@ has no actual authored crawl cycle; runtime loading of those particular tracks s
 
 Coordinate shared player/NPC directional transitions: a rear downing falls forward into prone forearm crawl; a front
 downing falls backward as if stunned into supine backward crawl. Final elimination is a brief stable collapse, not
-ragdoll. Side-hit/fall classification is being clarified. Use approved assets or original procedural
+ragdoll. Owner confirmed final damaging-hit direction relative to victim facing; side hits choose the nearer half,
+and falls use standard forward collapse. Keep classification server-side. Use approved assets or original procedural
 poses; no copied reference animations. Server owns transitions, movement, hit eligibility and interaction timing.
 Animation must never announce player identity, team or agent while disguised. Restore joints/tracks cleanly on revive,
 respawn and removal. Visible world rigs now animate smoothly; do not restore pose stepping.
@@ -115,16 +116,19 @@ and append shared contracts properly. Current event is RequestMelee, not the att
 Codex readiness hint is generic geometry for both NPC/player rigs, with the current range and cone, no names/outlines.
 It is advisory because client pose/latency can differ. A server range change must update the same shared data/hint.
 **Round 1 answer:** keep first person and 90 damage. Add short cosmetic takedown animations as shop/Dossier rewards
-after a server-confirmed result, with no effect on combat stats/timing. Whether playback requires down/elimination
-or any successful hold is a pending follow-up. MeleeState.Active=false currently means either cancel or completion;
+after a server-confirmed down/elimination, with no effect on combat stats/timing. A nonlethal 90-damage completion
+does not trigger the cosmetic finisher. The later "equivalent animation for either side" qualifier is being clarified
+as front/rear sets, attacker/victim pairs or both, and has not reversed the trigger. MeleeState.Active=false means cancel or completion;
 that alone is insufficient proof of success and must not trigger a cosmetic execution.
 
-Charged melee is approved but its timing/damage/input semantics need definition. The owner reports takedown hold
+Charged melee is approved; input semantics are now confirmed, but charge timing/damage/recovery need definition.
+The owner reports takedown hold
 starts a melee. WeaponController.onMelee currently sends Press and plays MeleeSound immediately before the server
 distinguishes strike/takedown; outside the server's present narrow window, CombatService immediately applies melee.
 Keep takedown acquisition conditional on valid range/cone/LOS/state, and avoid a preliminary strike on a valid hold.
 Coordinate charge start/release/cancel with Codex; never let a client-reported charge decide damage or duration.
-Follow-up asks tap-on-release/hold-charge outside valid takedown vs immediate-press strike. Do not invent charge
+Owner confirmed: V press inside the valid takedown window starts the hold directly with no preliminary melee;
+outside that window, tap strikes on release and holding charges a strike for release. Do not invent charge
 stats or change ordinary melee range while increasing takedown reach. Server must validate elapsed charge and
 cancel on incapacitation, wall tuck, removal/focus cancellation as applicable. No cosmetic may confirm a kill early.
 
