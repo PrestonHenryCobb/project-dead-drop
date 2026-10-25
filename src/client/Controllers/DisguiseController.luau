@@ -20,6 +20,7 @@ local OutfitDefs = require(Shared:WaitForChild("Defs"):WaitForChild("OutfitDefs"
 local Types = require(Shared:WaitForChild("Types"))
 local Aim = require(Shared:WaitForChild("Util"):WaitForChild("Aim"))
 local HudKit = require(Shared:WaitForChild("Util"):WaitForChild("HudKit"))
+local HudTheme = require(Shared:WaitForChild("Util"):WaitForChild("HudTheme"))
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local PoseAnimation = require(Shared:WaitForChild("Util"):WaitForChild("PoseAnimation"))
 local RemoteController = require(script.Parent.RemoteController)
@@ -29,7 +30,7 @@ local DisguiseController = {}
 local janitor = Janitor.new()
 
 local ui = GameConfig.UI
-local graphics = ui.GraphicHud
+local graphics = HudTheme.get()
 local controls = GameConfig.Controls
 local localPlayer = Players.LocalPlayer
 

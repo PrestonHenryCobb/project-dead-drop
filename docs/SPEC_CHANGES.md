@@ -99,3 +99,17 @@ Codex's initial correction uses camera-relative smoothing and hands sampled from
 the final choice between smooth first-person motion and a shared stepped gun/hand clock is still in owner review.
 The attached design brief's conflicts are audited in PROMPT_REVIEW_2026-10-24.md; its new gameplay proposals have
 not silently replaced any earlier answer.
+
+## Owner review answers (2026-10-25)
+
+- Own gun and cosmetic arms move smoothly together. World character models should also be slightly smoother;
+  initial tuning is poses at 12 Hz (from 8) and world positions at 18 Hz (from 12), shared by NPCs and players.
+  The same PositionStep config drives server rewind; do not add independent client-only positional lag.
+- Preserve the existing recorded economy, modes, weapons and gadget decisions while reviewing the attachment.
+  Intel-only, Stocks/Mint, Duos/Solos, Feint's pistol and the original 12 gadgets remain in effect.
+- Compact graphical HUD with translucent panels/shadows is approved. The selected direction is Field notes.
+  Gala gets its own visual skin over a shared HUD; future maps get matching skins with the same base layout,
+  behavior and semantic warning colors. Theme selection is startup config until map-session metadata exists.
+- Takedowns: the owner's final corrected answer is **6.5 studs total and a 90-degree rear cone**. This supersedes
+  the earlier 3.5-stud reply. Keep ordinary melee unchanged, no lunge/teleport, sight checks and the 1.2 s hold.
+  Claude owns the server change; do not advertise a live 6.5-stud hint before that server integration lands.

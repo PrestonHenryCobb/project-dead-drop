@@ -3,6 +3,19 @@
 Reviewed input: `C:\Users\Prest\Downloads\codex_deceive_inc_prompt.md`.
 Review begun October 24, 2026; continued October 25. Recommendations below are not owner answers.
 
+## Owner answers received October 25
+
+1. Preserve existing repo decisions while reviewing conflicting attachment changes individually.
+2. Own gun and arms smooth together, with slight smoothing of world character models too. Initial world cadence
+   tuning is 12 Hz poses / 18 Hz positions; the own view model remains full render-rate. Studio feel review pending.
+3. Compact icons/meters, translucent dark panels, shadows and numeric health/ammo are approved. Selected mockup:
+   **Field notes**. Add a map-specific visual skin framework; current skin should match The Gala.
+4. The final corrected takedown answer is **6.5 studs / 90 degrees**, superseding the earlier 3.5-stud answer.
+   This is approved for Claude's server implementation; it is not already live.
+
+These resolve the broad conflicts/timing/HUD direction and reach/angle questions below. Keep the remaining questions
+about gun composition, animations, takedown outcome/control and new map mechanics open. Do not ask these four again.
+
 ## How this document is being used
 
 Your chat requests authorize gun/hand fixes, a graphical HUD refresh, bug triage, and a written handoff for Claude.

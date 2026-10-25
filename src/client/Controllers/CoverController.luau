@@ -13,6 +13,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local HudKit = require(Shared:WaitForChild("Util"):WaitForChild("HudKit"))
+local HudTheme = require(Shared:WaitForChild("Util"):WaitForChild("HudTheme"))
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local RemoteController = require(script.Parent.RemoteController)
 
@@ -22,7 +23,7 @@ local CoverController = {}
 local janitor = Janitor.new()
 
 local ui = GameConfig.UI
-local graphics = ui.GraphicHud
+local graphics = HudTheme.get()
 local cover = GameConfig.Cover
 local localPlayer = Players.LocalPlayer
 

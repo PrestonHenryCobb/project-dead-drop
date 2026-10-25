@@ -91,11 +91,11 @@ downed/revive checks and performance profiling have NOT been executed by Codex. 
 
 ## Gaps and SPEC-QUESTIONs
 
-- Gun contact and HUD appearance require Studio acceptance. The source fix removes independent hand stepping;
-  whether own gun/arms should instead share an 8 Hz visual clock is an explicit owner design question.
+- Gun contact and HUD appearance require Studio acceptance. The owner confirmed smooth own gun/arms on October 25;
+  world models should be slightly smoother too. Initial shared tuning is 12 Hz poses / 18 Hz positions.
 - Full-gun-in-frame versus a closer shoulder-stock crop remains a composition choice. Initial depth scale is tuning.
 - Takedown hint is advisory against client-rendered geometry, not a server guarantee. Reach and rear cone remain
-  5.5 studs / 60 degrees total. Proposed 6.5 / 90 is not implemented; ordinary melee should not be buffed accidentally.
+  5.5 studs / 60 degrees total until Claude integrates the owner's approved 6.5 / 90. Ordinary melee stays unchanged.
 - NPC airwalking/tier incidents, exterior door reproduction, crawl/death and two-body takedown animation remain
   assigned to Claude in the return handoff. Codex has not declared those gameplay bugs resolved.
 - HUD includes only live existing contracts. Timer/objective/Intel progression, Assets, gadgets, menus, elevators,
@@ -105,3 +105,28 @@ downed/revive checks and performance profiling have NOT been executed by Codex. 
 
 **Ready for:** owner Studio acceptance and design answers, then Step 9c (spectating) / remaining Step 8 integration
 under the existing ownership split. All new gameplay proposals in the attached brief remain pending explicit answers.
+
+## Map HUD skins and cadence follow-up (October 25)
+
+Added `src/shared/Util/HudTheme.luau`, consumed by HudKit and all five graphical HUD controllers. It overlays only
+allowed visual fields onto the common GraphicHud config, validates override names/types, freezes and caches results,
+and falls back to neutral base styling for an unregistered ID. No per-frame theme lookup or extra connections.
+
+`GameConfig.UI.HudThemeId = "Gala"` selects charcoal panels, brass borders, a restrained gold accent rule and tighter
+corners matching the selected Field notes direction. Future maps add an entry to `UI.HudThemes` and select that ID
+with their startup config. Optional `HudTheme.get(id)` supports a future map bootstrap. Runtime map switching is not
+claimed: no map-session metadata event exists yet. Tier/cover/health colors and HUD layout/timing cannot be overridden
+by a skin, so familiar gameplay information stays consistent between maps.
+
+Additional tests:
+
+1. Restart **Play** after Rojo sync. Compare bright/dark rooms: every panel should share the Gala charcoal/brass look
+   and short gold top rule. Health, armor, tier and warning colors must retain their usual meanings.
+2. **Test > Clients 2 > Start**: strafe/circle and watch NPCs alongside the other client. World models should feel
+   less choppy; your own gun/arms stay smooth. Fire at moving NPCs and rivals in a separate multi-team test, checking
+   that hit feedback follows the visible target. Initial 12/18 Hz tuning still needs owner feel/performance review.
+3. Optional **Client** Command Bar theme check:
+   `local s=game.ReplicatedStorage.Shared; local t=require(s.Util.HudTheme); assert(t.get().AccentColor==require(s.GameConfig).UI.HudThemes.Gala.AccentColor); assert(t.get("UnknownPreview").PanelColor==require(s.GameConfig).UI.GraphicHud.PanelColor); print("HUD theme checks passed")`
+   This checks the real resolver without mutating the live theme or config. It does not repaint the GUI.
+
+StyLua/Selene/Rojo checks are required for this follow-up as well. Studio tests above remain owner-run.

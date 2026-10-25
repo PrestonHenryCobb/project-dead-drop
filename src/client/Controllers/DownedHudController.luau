@@ -7,13 +7,14 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local HudKit = require(Shared:WaitForChild("Util"):WaitForChild("HudKit"))
+local HudTheme = require(Shared:WaitForChild("Util"):WaitForChild("HudTheme"))
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local RemoteController = require(script.Parent.RemoteController)
 local DownedController = require(script.Parent.DownedController)
 
 local DownedHudController = {}
 local ui = GameConfig.UI
-local graphics = ui.GraphicHud
+local graphics = HudTheme.get()
 local janitor = Janitor.new()
 local bleedOutAt: number? = nil
 local eliminated = false

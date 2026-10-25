@@ -88,12 +88,17 @@ collapse/crawl behavior. Solos eliminate directly, so cannot demonstrate a downe
 
 ## P2: takedown needs a broader allowance and two-body action
 
+**Owner answer, October 25:** final corrected choice is **6.5 studs / 90-degree rear cone**, superseding the initial
+3.5-stud reply. Implement this as separate takedown acquisition reach; ordinary melee stays unchanged. No lunge,
+sight checks and 1.2 s hold remain. Codex has deliberately left the live hint on existing shared server values until
+your implementation lands. Update those shared values/hint together; the numbers are no longer an unanswered question.
+
 Current CombatService facts: nearest target within flat (Melee.Range 4 + ReachSlackStuds 1.5) = 5.5 studs; 90-degree front
 swing cone, HeightStuds 3, root-to-root map line of sight. Rear eligibility is Takedown.ConeDegrees 60 total. Hold 1.2 s,
 damage 90, target displacement break 4 studs, attacker damage cancels. Hold distance check is 3D, initiation flat.
 
-Owner says it feels too narrow. Proposed testing baseline: a SEPARATE takedown reach of 6.5 studs and rear cone 90 total,
-ordinary melee unchanged. This is a recommendation awaiting an explicit design answer, not an approved new stat.
+Owner says it feels too narrow. Approved testing baseline: a SEPARATE takedown reach of 6.5 studs and rear cone 90 total,
+ordinary melee unchanged. The final corrected answer above authorizes these values.
 Avoid accidentally increasing normal melee by changing ReachSlackStuds for both. Review initiation/ongoing reach,
 turning, line of sight, death/downed/removal and cancellation together. No automatic teleport/lunge without agreement.
 
@@ -104,13 +109,24 @@ and append shared contracts properly. Current event is RequestMelee, not the att
 
 Codex readiness hint is generic geometry for both NPC/player rigs, with the current range and cone, no names/outlines.
 It is advisory because client pose/latency can differ. A server range change must update the same shared data/hint.
-Owner is being asked first-person vs cinematic camera and 90 damage vs execution. Keep current gameplay until answered.
+Owner is being asked first-person vs cinematic camera and 90 damage vs execution. Keep current damage/outcome until
+answered; the 6.5-stud / 90-degree reach/angle change is approved.
 
 Acceptance: NPC and player rear approach at range/angle boundaries, front/side rejected, nearest target selection,
 wall rejection, interruption on damage/movement, and two clients seeing the same start/cancel/finish. Hint remains
 absent behind walls, while wall-tucked/downed/eliminated, and during an active hold. No target identity info in the UI.
 
 ## Later dependencies from the attachment
+
+### Approved client refinements, October 25
+
+Smooth own gun/arms are confirmed. World rig cadence is initially 12 Hz poses / 18 Hz positions, both NPCs and players.
+PositionStep and Ballistics already share Animation.PositionStepHz, so rewind follows the same 18 Hz schedule.
+Do not add a separate interpolator/latency to one client path without updating the shared timing contract.
+
+Gala HUD now resolves UI.HudThemeId through Util/HudTheme; only palette/corner/accent overrides are permitted.
+Later map loading should provide its authorized map/skin ID at startup; no runtime map metadata contract is invented.
+Core layout, action timing and tier/cover/health meanings stay common. Field notes is the selected design direction.
 
 Secret prop exits and elevators need original map design and server contracts before interactive UI. Step 18 owns
 Intel/economy interactions and Agent Tag rescue pricing still needs the owner. Step 21 owns persistence, shop, Stocks

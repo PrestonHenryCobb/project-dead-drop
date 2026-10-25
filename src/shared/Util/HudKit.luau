@@ -8,9 +8,10 @@
 local Players = game:GetService("Players")
 
 local GameConfig = require(script.Parent.Parent.GameConfig)
+local HudTheme = require(script.Parent.HudTheme)
 
 local ui = GameConfig.UI
-local graphics = ui.GraphicHud
+local graphics = HudTheme.get()
 
 export type EdgeGlow = {
 	setSide: (side: string, transparency: number) -> (), -- "Top", "Bottom", "Left" or "Right"
@@ -89,6 +90,13 @@ function HudKit.panel(parent: Instance, name: string, position: UDim2, anchor: V
 	border.Transparency = graphics.BorderTransparency
 	border.Thickness = graphics.StrokePixels
 	border.Parent = back
+	local accent = Instance.new("Frame")
+	accent.Name = "MapAccent"
+	accent.BorderSizePixel = 0
+	accent.BackgroundColor3 = graphics.AccentColor
+	accent.Position = UDim2.fromOffset(graphics.PaddingPixels, 0)
+	accent.Size = UDim2.new(graphics.AccentWidthFraction, 0, 0, graphics.AccentThicknessPixels)
+	accent.Parent = back
 	return back
 end
 

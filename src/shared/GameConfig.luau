@@ -236,10 +236,11 @@ local GameConfig = {
 
 	-- The low-frame-rate look every character shares (StepAnimationController): poses change this many times a second.
 	Animation = {
-		StepHz = 8,
+		-- Ticket 8.18: owner requests slightly smoother world rigs; own cosmetic gun/arms remain render-rate.
+		StepHz = 12,
 		-- Step 8B.6: other characters' positions are drawn in steps too, at this rate on the shared server clock, and the
 		-- server rewinds shots to the same stepped moment. Your own movement is never stepped.
-		PositionStepHz = 12,
+		PositionStepHz = 18,
 		StepCullStuds = 120, -- characters further from the camera than this animate normally
 		MinJoints = 12, -- a rig with fewer animated joints than this has not finished arriving
 	},
@@ -705,8 +706,21 @@ local GameConfig = {
 
 	-- Spec 21: HUD and UI.
 	UI = {
+		-- Ticket map HUD themes: one layout/behavior, palette-only skins. Select this alongside a map's config.
+		HudThemeId = "Gala",
+		HudThemes = {
+			Gala = {
+				PanelColor = Color3.fromRGB(24, 29, 34),
+				BorderColor = Color3.fromRGB(128, 111, 77),
+				AccentColor = Color3.fromRGB(227, 188, 101),
+				CornerPixels = 3,
+			},
+		},
 		-- Ticket HUD refresh: code-drawn graphics need no uploaded images; numbers remain authoritative.
 		GraphicHud = {
+			AccentColor = Color3.fromRGB(108, 154, 165),
+			AccentWidthFraction = 0.24,
+			AccentThicknessPixels = 2,
 			PanelColor = Color3.fromRGB(14, 22, 32),
 			PanelTransparency = 0.18,
 			BorderColor = Color3.fromRGB(88, 116, 133),
