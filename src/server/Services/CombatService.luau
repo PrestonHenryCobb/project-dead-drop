@@ -11,15 +11,14 @@
 --     ShotHeard. Firing breaks Cover and starts the combat lockout (spec 7.2, 7.6); NPCs react to the noise (spec 5.4).
 --   * Reloading and aiming: ReloadRequest runs a timer here; RequestDraw tells CoverService the weapon is up (spec 7.3).
 --     A disguise swap cancels a reload, and no reload starts during one (spec 27 #22).
---   * Melee and takedowns (RequestMelee, spec 13.4): V strikes; from behind it begins a held takedown instead, which the
---     server times, and breaks if the target moves off, the attacker is hurt or either leaves reach.
+--   * Melee and takedowns (ticket 8.22): V press starts a valid rear hold or prepares a charge; release strikes only
+--     for a charge. Cancel never strikes. The server times every action and validates geometry, state and cooldown.
 --   * Falls: a fall of more than FallSafeStuds hurts (spec 13.1), measured by height: from the highest point since the
 --     player last stood on the map to where they land. The server probes the ground itself, because its copy of a
 --     player's Humanoid state is not reliable (it reports Landed while the character is still falling). Riding a
 --     zipline (root anchored) and crawling in a vent never count as a fall.
 --
--- At 0 HP a player's character dies; the downed state replaces that in Step 9. Until teams exist (Step 10), every other
--- player is an enemy, so friendly fire is not checked yet.
+-- DownedService handles 0 HP through hooks. Spec 13.6: the common damage path rejects teammates.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -28,6 +27,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
+local MeleeRules = require(Shared:WaitForChild("Util"):WaitForChild("MeleeRules"))
 local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"))
 local Ballistics = require(script.Parent.Parent.Combat.Ballistics)
 local Death = require(script.Parent.Parent.NPC.Death)
@@ -45,6 +45,7 @@ type Target = History.Target
 
 type Takedown = {
 	target: Target,
+	look: Vector3, -- camera heading validated at press; body locomotion-facing is not the first-person aim
 	startedAt: number,
 	startPosition: Vector3, -- where the target stood when it began
 }
@@ -64,6 +65,7 @@ type State = {
 	lastDamagedAt: number,
 	lastReactAt: number,
 	takedown: Takedown?,
+	chargeStartedAt: number?, -- Ticket 8.22: server clock only; clients never submit charge duration/damage
 	fallPeakY: number, -- the highest the root has been since the player last stood on the map
 	lastY: number, -- the root height at the last check, to tell a teleport from a fall
 	airborne: boolean,
@@ -118,9 +120,26 @@ local function sendAmmo(player: Player, state: State, reloadSeconds: number)
 	RemoteService.fireClient("AmmoUpdate", player, info)
 end
 
-local function sendMelee(player: Player, active: boolean)
-	local info: Types.MeleeState = { Kind = "Takedown", Seconds = config.Takedown.HoldSeconds, Active = active }
+local function sendMelee(player: Player, active: boolean, kind: Types.MeleeKind?, startedAt: number?)
+	local action = kind or "Takedown"
+	local info: Types.MeleeState = {
+		Kind = action,
+		Seconds = if action == "Charge" then config.Melee.FullChargeSeconds else config.Takedown.HoldSeconds,
+		Active = active,
+		StartedAt = startedAt,
+	}
 	RemoteService.fireClient("MeleeState", player, info)
+end
+
+local function cancelMelee(player: Player, state: State)
+	if state.takedown then
+		state.takedown = nil
+		sendMelee(player, false)
+	end
+	if state.chargeStartedAt then
+		state.chargeStartedAt = nil
+		sendMelee(player, false, "Charge")
+	end
 end
 
 local function isDowned(player: Player): boolean
@@ -154,7 +173,7 @@ local function damagePlayer(victim: Player, amount: number, from: Vector3, attac
 		CoverService.startLockout(victim)
 	end
 	if state.hp <= 0 then
-		state.takedown = nil
+		cancelMelee(victim, state)
 		local hooks = downedHooks
 		if hooks then
 			hooks.onZeroHealth(victim, from)
@@ -167,6 +186,10 @@ end
 
 -- A hit lands on `target`: the person is hurt, and the shooter sees a hitmarker that says what they hit (spec 8.4).
 local function applyDamage(shooter: Player, target: Target, amount: number, head: boolean, from: Vector3)
+	-- Ticket 8.22: spec 13.6 also applies to melee/takedowns and all other damage routed here.
+	if target.player and TeamService.areTeammates(shooter, target.player) then
+		return
+	end
 	local confirm: Types.HitConfirm
 	if target.kind == "Npc" then
 		if NPCService.hitNpc(target.npc :: any, amount, from) then
@@ -298,6 +321,10 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 	if weaponId ~= def.Id then
 		return
 	end
+	if state.takedown or state.chargeStartedAt then
+		sendAmmo(player, state, 0)
+		return
+	end
 	local directions = directionsOf(def, direction)
 	if not directions then
 		return
@@ -344,8 +371,6 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 	state.nextFireAt = math.max(state.nextFireAt, now - config.FireRateToleranceSeconds)
 		+ FireRate.gapAfterShot(def, state.streak, now, state.aiming)
 	state.mag -= 1
-	state.takedown = nil
-
 	-- Guise's pistol: a shot fired while still disguised is an ambush shot (STEP8 unique effects).
 	local ambush = if def.AmbushMult and not CoverService.isExposed(player) then def.AmbushMult else 1
 
@@ -425,6 +450,7 @@ local function onReload(player: Player)
 	end
 	state.reloadId += 1
 	local id = state.reloadId
+	cancelMelee(player, state)
 	state.reloadEndsAt = now + def.ReloadSeconds
 	sendAmmo(player, state, def.ReloadSeconds)
 	task.delay(def.ReloadSeconds, function()
@@ -437,7 +463,11 @@ end
 -- A disguise swap cancels a reload in progress (spec 27 #22); the rounds stay out and the client is told.
 local function cancelReload(player: Player)
 	local state = states[player]
-	if not state or state.reloadEndsAt == 0 then
+	if not state then
+		return
+	end
+	cancelMelee(player, state)
+	if state.reloadEndsAt == 0 then
 		return
 	end
 	state.reloadId += 1
@@ -495,22 +525,26 @@ local function facingOf(target: Target): Vector3
 end
 
 -- The nearest person within melee reach and inside the swing's arc, with nothing of the map between.
-local function findMeleeTarget(player: Player, root: BasePart, look: Vector3): Target?
+local function findMeleeTarget(player: Player, root: BasePart, look: Vector3, takedownOnly: boolean): Target?
 	local melee = config.Melee
 	local reach = melee.Range + melee.ReachSlackStuds
-	local minDot = math.cos(math.rad(melee.SwingConeDegrees / 2))
 	local best: Target? = nil
 	local bestDistance = math.huge
 	for _, target in History.targets do
-		if target.player ~= player then
+		if
+			target.player ~= player
+			and not (target.player and TeamService.areTeammates(player, target.player))
+			and not (target.player and isDowned(target.player))
+			and not (target.npc and (target.npc.state == "Downed" or target.npc.state == "Eliminated"))
+		then
 			local offset = target.rootPart.Position - root.Position
 			local flat = Vector3.new(offset.X, 0, offset.Z)
 			local distance = flat.Magnitude
 			if
-				distance <= reach
-				and distance < bestDistance
-				and math.abs(offset.Y) <= melee.HeightStuds
-				and (distance < 1e-3 or flat.Unit:Dot(look) >= minDot)
+				distance < bestDistance
+				and (if takedownOnly
+					then MeleeRules.canTakedown(root.Position, look, target.rootPart.Position, facingOf(target))
+					else MeleeRules.inReach(root.Position, look, target.rootPart.Position, reach))
 				and workspace:Raycast(root.Position, offset, mapParams) == nil
 			then
 				best, bestDistance = target, distance
@@ -520,84 +554,119 @@ local function findMeleeTarget(player: Player, root: BasePart, look: Vector3): T
 	return best
 end
 
--- Is `attacker` inside the cone behind the target (spec 13.4: the target's back within 60 degrees)?
-local function isBehind(target: Target, attackerPosition: Vector3): boolean
-	local offset = attackerPosition - target.rootPart.Position
-	local flat = Vector3.new(offset.X, 0, offset.Z)
-	if flat.Magnitude < 1e-3 then
-		return true
-	end
-	return (-facingOf(target)):Dot(flat.Unit) >= math.cos(math.rad(config.Takedown.ConeDegrees / 2))
-end
-
-local function endTakedown(player: Player, state: State)
-	if state.takedown then
-		state.takedown = nil
-		sendMelee(player, false)
-	end
-end
-
 local function onMelee(player: Player, kind: unknown, lookArg: unknown)
 	local state = states[player]
+	if not state or type(kind) ~= "string" then
+		return
+	end
+	if kind == "Cancel" then
+		cancelMelee(player, state)
+		return
+	end
 	local humanoid, root = aliveParts(player)
-	if not (state and humanoid and root) or state.dead or isDowned(player) or type(kind) ~= "string" then
+	if not (humanoid and root) or state.dead or isDowned(player) then
+		cancelMelee(player, state)
 		return
 	end
-	if kind == "Release" then
-		endTakedown(player, state)
+	if kind == "Release" and state.takedown then
+		cancelMelee(player, state)
 		return
 	end
-	if kind ~= "Press" or typeof(lookArg) ~= "Vector3" or lookArg ~= lookArg then
+	if
+		(kind ~= "Press" and kind ~= "Release")
+		or typeof(lookArg) ~= "Vector3"
+		or lookArg ~= lookArg
+		or lookArg.Magnitude == math.huge
+	then
 		return
 	end
 	local flatLook = Vector3.new(lookArg.X, 0, lookArg.Z)
-	if flatLook.Magnitude < 1e-3 or state.takedown then
+	if flatLook.Magnitude < config.Melee.DirectionEpsilonStuds then
+		cancelMelee(player, state)
 		return
 	end
 	local look = flatLook.Unit
 	local now = os.clock()
-	local target = findMeleeTarget(player, root, look)
-
-	-- From behind, V begins a takedown that has to be held (spec 13.4).
-	if target and isBehind(target, root.Position) then
+	if state.reloadEndsAt ~= 0 or DisguiseService.isChanging(player) then
+		cancelMelee(player, state)
+		sendMelee(player, false, "Charge")
+		return
+	end
+	if kind == "Release" then
+		local began = state.chargeStartedAt
+		if not began then
+			return
+		end
+		state.chargeStartedAt = nil
+		if now - state.lastMeleeAt < config.Melee.CooldownSeconds then
+			sendMelee(player, false, "Charge")
+			return
+		end
+		state.lastMeleeAt = now
+		CoverService.expose(player, "Melee")
+		CoverService.startLockout(player)
+		local target = findMeleeTarget(player, root, look, false)
+		if target then
+			applyDamage(player, target, MeleeRules.damage(now - began), false, root.Position)
+		end
+		sendMelee(player, false, "Strike")
+		return
+	end
+	if state.takedown or state.chargeStartedAt then
+		return -- repeated presses never reset or accelerate a charge/hold
+	end
+	if now - state.lastMeleeAt < config.Melee.CooldownSeconds then
+		sendMelee(player, false, "Charge")
+		return
+	end
+	local target = findMeleeTarget(player, root, look, true)
+	if target then
 		CoverService.expose(player, "Takedown")
 		CoverService.startLockout(player)
-		state.takedown = { target = target, startedAt = now, startPosition = target.rootPart.Position }
-		sendMelee(player, true)
+		state.takedown = { target = target, look = look, startedAt = now, startPosition = target.rootPart.Position }
+		sendMelee(player, true, "Takedown", workspace:GetServerTimeNow())
 		return
 	end
-
-	if now - state.lastMeleeAt < config.Melee.CooldownSeconds then
-		return
-	end
-	state.lastMeleeAt = now
-	CoverService.expose(player, "Melee")
-	CoverService.startLockout(player)
-	if target then
-		applyDamage(player, target, config.Melee.Damage, false, root.Position)
-	end
+	state.chargeStartedAt = now
+	sendMelee(player, true, "Charge", workspace:GetServerTimeNow())
 end
 
 -- Holds, completes or breaks every takedown in progress (spec 13.4). The server runs the timer.
 local function checkTakedowns(now: number)
 	for player, state in states do
+		if state.chargeStartedAt then
+			local humanoid = aliveParts(player)
+			if
+				not humanoid
+				or state.dead
+				or isDowned(player)
+				or DisguiseService.isChanging(player)
+				or state.reloadEndsAt ~= 0
+			then
+				cancelMelee(player, state)
+			end
+		end
 		local takedown = state.takedown
 		if takedown then
 			local humanoid, root = aliveParts(player)
 			local target = takedown.target
-			local reach = config.Melee.Range + config.Melee.ReachSlackStuds
 			if
 				not (humanoid and root)
+				or state.dead
+				or isDowned(player)
+				or DisguiseService.isChanging(player)
 				or History.targets[target.id] ~= target
-				or (target.rootPart.Position - root.Position).Magnitude > reach
+				or not MeleeRules.canTakedown(root.Position, takedown.look, target.rootPart.Position, facingOf(target))
+				or workspace:Raycast(root.Position, target.rootPart.Position - root.Position, mapParams) ~= nil
 				or (target.rootPart.Position - takedown.startPosition).Magnitude > config.Takedown.BreakDistance
 				or state.lastDamagedAt > takedown.startedAt
 			then
-				endTakedown(player, state)
+				cancelMelee(player, state)
 			elseif now - takedown.startedAt >= config.Takedown.HoldSeconds then
 				state.takedown = nil
-				sendMelee(player, false)
+				state.lastMeleeAt = now
 				applyDamage(player, target, config.Takedown.Damage, false, (root :: BasePart).Position)
+				sendMelee(player, false, "Strike")
 			end
 		end
 	end
@@ -658,6 +727,7 @@ local function onCharacterAdded(player: Player, character: Model)
 		lastDamagedAt = -math.huge,
 		lastReactAt = -math.huge,
 		takedown = nil,
+		chargeStartedAt = nil,
 		fallPeakY = root.Position.Y,
 		lastY = root.Position.Y,
 		airborne = false,
@@ -683,7 +753,7 @@ local function onCharacterAdded(player: Player, character: Model)
 
 	humanoid.Died:Connect(function()
 		state.dead = true
-		state.takedown = nil
+		cancelMelee(player, state)
 		History.untrack(id)
 	end)
 
@@ -717,7 +787,7 @@ function CombatService.restore(player: Player, hp: number, armor: number)
 	end
 	state.hp, state.armor = hp, armor
 	state.dead = false
-	state.takedown = nil
+	cancelMelee(player, state)
 	sendHealth(player, state)
 end
 
@@ -728,7 +798,7 @@ function CombatService.disarm(player: Player)
 		return
 	end
 	state.aiming = false
-	state.takedown = nil
+	cancelMelee(player, state)
 	if state.reloadEndsAt ~= 0 then
 		state.reloadId += 1
 		state.reloadEndsAt = 0

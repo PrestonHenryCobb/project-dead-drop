@@ -15,6 +15,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
@@ -75,6 +76,7 @@ local predictedReloadPending = false -- waiting for the server to confirm a relo
 local nextFireAt = 0
 local lastMeleeAt = -math.huge
 local takedownActive = false
+local meleePending = false -- press through server action completion/cancel; fire prediction must wait
 local firing = false
 local held = true
 local combatEnabled = true -- owner-only Downed/Revived/Eliminated messages, never a character attribute
@@ -121,6 +123,13 @@ local function weaponUp(now: number): boolean
 	return aiming or exposed or now - lastFireAt < RAISE_AFTER_FIRE_SECONDS
 end
 
+local function cancelLocalMelee()
+	if meleePending or takedownActive then
+		RemoteController.fire("RequestMelee", "Cancel")
+	end
+	meleePending, takedownActive = false, false
+end
+
 local function currentSpread(root: BasePart?): number
 	local spread = def.Spread
 	local degrees = spread.Hip + (spread.Aim - spread.Hip) * aimBlend
@@ -160,7 +169,7 @@ local function fireOnce(camera: Camera, root: BasePart, now: number)
 	if not held or isReloading(now) then
 		return
 	end
-	if takedownActive or now < lastMeleeAt + (def.PostMeleeFireDelay or 0) then
+	if meleePending or takedownActive or now < lastMeleeAt + (def.PostMeleeFireDelay or 0) then
 		return -- Ticket 8.9: match the server's recovery gate before predicting any ammo, sound or recoil
 	end
 	if attackBlocked(camera) then
@@ -233,6 +242,7 @@ local function step(dt: number)
 	local camera = workspace.CurrentCamera
 	local model, humanoid, root = character()
 	if not camera then
+		cancelLocalMelee()
 		return
 	end
 	local now = os.clock()
@@ -243,6 +253,7 @@ local function step(dt: number)
 	end
 
 	if not (model and humanoid and root) then
+		cancelLocalMelee()
 		if viewModel then
 			viewModel:setVisible(false)
 		end
@@ -259,10 +270,7 @@ local function step(dt: number)
 			aiming = false
 			RemoteController.fire("RequestDraw", false)
 		end
-		if takedownActive then
-			takedownActive = false
-			RemoteController.fire("RequestMelee", "Release")
-		end
+		cancelLocalMelee()
 	end
 
 	aimBlend += ((if aiming then 1 else 0) - aimBlend) * math.min(AIM_BLEND_RATE * dt, 1)
@@ -367,7 +375,7 @@ end
 
 local function onFire(_: string, state: Enum.UserInputState): Enum.ContextActionResult
 	if state == Enum.UserInputState.Begin then
-		if not combatEnabled then
+		if not combatEnabled or meleePending or takedownActive then
 			return Enum.ContextActionResult.Sink
 		end
 		if attackBlocked(workspace.CurrentCamera) then
@@ -394,7 +402,7 @@ end
 
 local function onAim(_: string, state: Enum.UserInputState): Enum.ContextActionResult
 	local on = state == Enum.UserInputState.Begin
-	if on and (not character() or attackBlocked(workspace.CurrentCamera)) then
+	if on and (meleePending or not character() or attackBlocked(workspace.CurrentCamera)) then
 		return Enum.ContextActionResult.Sink
 	end
 	if aiming ~= on then
@@ -406,6 +414,7 @@ end
 
 local function onReload(_: string, state: Enum.UserInputState): Enum.ContextActionResult
 	if held and state == Enum.UserInputState.Begin and character() then
+		cancelLocalMelee()
 		startReload(os.clock())
 	end
 	return Enum.ContextActionResult.Sink
@@ -414,20 +423,36 @@ end
 local function onMelee(_: string, state: Enum.UserInputState): Enum.ContextActionResult
 	local camera = workspace.CurrentCamera
 	if held and state == Enum.UserInputState.Begin and camera then
-		if attackBlocked(camera) then
+		if UserInputService:GetFocusedTextBox() or attackBlocked(camera) then
 			return Enum.ContextActionResult.Sink
 		end
 		local _, humanoid = character()
 		local now = os.clock()
-		if not humanoid or takedownActive or now - lastMeleeAt < combat.Melee.CooldownSeconds then
+		if
+			not humanoid
+			or meleePending
+			or takedownActive
+			or isReloading(now)
+			or now - lastMeleeAt < combat.Melee.CooldownSeconds
+		then
 			return Enum.ContextActionResult.Sink
 		end
-		lastMeleeAt = now
+		meleePending = true
+		firing = false
 		burstRemaining = 0
+		if aiming then
+			aiming = false
+			RemoteController.fire("RequestDraw", false)
+		end
 		RemoteController.fire("RequestMelee", "Press", camera.CFrame.LookVector)
-		SoundPlayer.play(combat.Feedback.MeleeSound, combat.Feedback.ShotVolume)
-	elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
-		RemoteController.fire("RequestMelee", "Release")
+	elseif state == Enum.UserInputState.Cancel then
+		cancelLocalMelee()
+	elseif state == Enum.UserInputState.End and meleePending then
+		if camera and character() and held and not attackBlocked(camera) then
+			RemoteController.fire("RequestMelee", "Release", camera.CFrame.LookVector)
+		else
+			cancelLocalMelee()
+		end
 	end
 	return Enum.ContextActionResult.Sink
 end
@@ -450,11 +475,13 @@ local function resetForSpawn()
 	burstRemaining = 0
 	lastMeleeAt = -math.huge
 	takedownActive = false
+	meleePending = false
 end
 
 local function setCombatEnabled(value: boolean)
 	combatEnabled = value
 	if not value then
+		cancelLocalMelee()
 		firing = false
 		burstRemaining = 0
 		takedownActive = false
@@ -477,6 +504,7 @@ local function onCharacter(model: Model)
 		return
 	end
 	characterJanitor:Add(humanoid.Died:Connect(function()
+		cancelLocalMelee()
 		firing, aiming = false, false
 		takedownActive = false
 		reloadEndsAt = 0
@@ -518,8 +546,20 @@ function WeaponController.Start()
 	janitor:Add(RemoteController.connect("CoverStateChanged", function(info: Types.CoverInfo)
 		exposed = info.State == "Exposed"
 	end))
+	janitor:Add(RemoteController.connect("DisguiseUpdate", function()
+		cancelLocalMelee()
+	end))
 	janitor:Add(RemoteController.connect("MeleeState", function(info: Types.MeleeState)
-		takedownActive = info.Active
+		if not combatEnabled or not held then
+			cancelLocalMelee()
+			return
+		end
+		takedownActive = info.Active and info.Kind == "Takedown"
+		meleePending = info.Active
+		if info.Kind == "Strike" then
+			lastMeleeAt = os.clock()
+			SoundPlayer.play(combat.Feedback.MeleeSound, combat.Feedback.ShotVolume)
+		end
 	end))
 	-- Step 9 keeps the Humanoid alive while downed. Health > 0 alone is therefore not permission to predict combat.
 	janitor:Add(RemoteController.connect("Downed", function()
@@ -540,10 +580,15 @@ function WeaponController.Start()
 			onAim("WeaponAim", state)
 		end,
 		setHeld = function(value)
+			if not value then
+				cancelLocalMelee()
+			end
 			held = value
 		end,
 	}
 	HeldItemController.registerWeapon(item)
+	janitor:Add(UserInputService.WindowFocusReleased:Connect(cancelLocalMelee))
+	janitor:Add(UserInputService.TextBoxFocused:Connect(cancelLocalMelee))
 	janitor:Add(function()
 		HeldItemController.unregisterWeapon(item)
 	end)

@@ -206,3 +206,19 @@ The obsolete stepping controllers, PositionStep helper and Animation stepping co
   Assets explains perks found in matches; it does not sell permanent combat power.
 - Limb hits retain existing body-damage rules. The firing range displays actual server-confirmed results, with no
   invented limb multiplier or imported example damage numbers. Existing lobby/Step 22 range planning is preserved.
+
+## Final interview answers (2026-10-25)
+
+- Allow light optional cosmetic camera shake for damage/takedowns, without forced roll or blur. Actual weapon
+  recoil stays unchanged. This is a comfort preference, not a recoil advantage.
+- PC/console HUD minimum target is **1280x720**, with readable scaling at higher resolutions.
+- Work priority: fix reported bugs first, then complete combat/loadouts. Menu/progression work does not displace
+  those correctness priorities. All 35 review topics are now answered or retained under the preservation instruction.
+
+## Ticket 8.22 implementation notes
+
+The co-owned melee/takedown input fix now implements separate 6.5-stud/90-degree rear acquisition, server-timed
+tap/charge release, cancellation and owner action acknowledgements using existing RequestMelee/MeleeState events.
+No new remote names or character identity markers. Shared damage rejects teammates per existing spec 13.6.
+Partial charge damage was unspecified: initial implementation keeps 35 until 0.75 s, then 50 capped; this is marked
+SPEC-QUESTION in MeleeRules for playtest tuning. Directional body animations and cosmetic finishers remain queued.

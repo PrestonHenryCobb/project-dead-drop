@@ -1,5 +1,69 @@
 # Client fixes and graphical HUD acceptance report
 
+## Latest: interview complete and melee input fix (ticket 8.22)
+
+All 35 design topics are answered or preserved by owner instruction. Latest comfort target: optional light cosmetic
+shake, no forced roll/blur, actual recoil unchanged; minimum HUD 1280x720. Bugs take priority over combat/loadouts,
+then menus. These comfort/settings requirements are recorded, not presented as already implemented preferences.
+
+### What was built
+
+| File | Change |
+|---|---|
+| `src/shared/Util/MeleeRules.luau` | Common advisory/server range, height, swing/rear cone and default charged damage rules |
+| `src/shared/GameConfig.luau` | Takedown 6.5 studs / 90 degrees; ordinary reach unchanged; charge 50 after 0.75 s |
+| `src/shared/Types.luau` | Additive Takedown/Charge/Strike owner acknowledgement kinds and optional server StartedAt |
+| `src/server/Services/CombatService.luau` | Server press/release/cancel state; no preliminary strike; state/LOS/cone/cooldown checks, charge timing and friendly-fire rejection |
+| `src/client/Controllers/WeaponController.luau` | No audio/hit prediction on V press; release/cancel routing, acknowledged strike sound/recovery, lifecycle cancellation and no queued fire through a hold |
+| `src/client/Controllers/CombatHudController.luau` | Existing bar shows blue charge or red takedown progress from server time |
+| `src/client/Controllers/TakedownHintController.luau` | Same shared acquisition geometry; private TeamRoster filters known teammates |
+| `tools/check-melee.cjs`, `tools/tests/melee/` | Repeatable official-Luau runner: actual service/rule bodies and config, engine/service fixtures |
+
+No new RemoteEvent names or character identity markers. Existing RequestMelee remains rate-limited by RemoteService.
+The necessary server edits are part of co-owned R5/R6; Claude's return handoff identifies them to avoid duplicate work.
+
+### Verification
+
+StyLua source check, Selene source/fixture lint, Rojo build and diff checks pass. Run
+`node tools/check-melee.cjs <path-to-official-luau-cli>`: 29 assertions cover tap/partial/full charge, range/cone/height
+boundaries, no press damage, release/completion/cancel, wall/turn/damage/disguise/downed cancellation, cooldown,
+repeat input, teammate protection and server-clock acknowledgements. This executes actual server decision code
+with fixture vectors/services; it does not run Roblox physics, rendering, asset loading or network delivery.
+
+### Studio acceptance (not executed by Codex)
+
+1. Stop, sync Rojo (Shared/Server/Client), fresh **Play**. Wait for the crowd. Use a fresh, idle NPC for each damage test.
+2. From the NPC's front, inside ordinary reach, **tap V**: no sound/hit on press; release deals 35. A full-health NPC
+   starts at 50, so it survives one tap. Tap before the 0.8-second cooldown ends: no second hit.
+3. With a fresh NPC in front, **hold V at least 0.75 s**, then release. The blue charge bar fills and caps; release
+   deals 50, enough to down a full-health NPC. Keeping V held must not auto-strike or add damage beyond 50.
+4. From behind a stationary NPC, within 6.5 studs and its 90-degree rear cone, press V: red takedown progress, no
+   preliminary melee sound/damage. Hold 1.2 s for 90 damage. Release early: cancel without a melee hit. Use an idle
+   NPC because existing target-displacement cancellation is still 4 studs.
+5. Try outside reach/from the side/through a wall: no takedown. V may prepare an ordinary charge; a release can only
+   hit a valid target inside ordinary 5.5-stud reach/front arc/height and clear map sight. No lunge/teleport.
+6. During a charge, try R, G, switching items when supported, Alt-Tab, text focus or walking into wall tuck. Those
+   cancellations must not release a strike. Do not queue shots by holding fire during the action. Recheck after respawn.
+7. **Test > Clients 2 > Start** in Duos: teammates must not damage each other with shots or melee. **Clients 4**
+   gives two teams: verify rival damage, interruption when the attacker is hurt, red hold cancellation on target
+   movement/turning/LOS loss, post-melee weapon recovery and each client's HUD/audio. NPC/player geometry stays generic.
+
+### Known gaps / SPEC-QUESTIONs / next
+
+- Partial-charge behavior was not specified: use base 35 until fully charged at 0.75 s, then capped 50. This tuning
+  choice is marked SPEC-QUESTION in MeleeRules; it can be revisited after the first gameplay test.
+- Strike acknowledges an attack, not a down/elimination. No cosmetic finisher is wired to it. Directional falls/crawl,
+  stable collapse, takedown body choreography, shop/Dossier cosmetics, NPC ground/tier fixes and free-exit doors remain
+  queued. No authored melee/charge hand animation is claimed by this input fix.
+- Hold uses the camera heading supplied at press and current victim facing/positions. Camera-only turning is not
+  streamed to the server; geometry/LOS, displacement and damage still cancel. Server has no client-only wall-tuck
+  fraction; the honest client sends Cancel and actual server attacks still require valid map sight.
+- Hint is advisory. A private roster arriving late may briefly leave a teammate hint; server teammate validation is
+  authoritative. Audio waits for strike acknowledgement, so latency feel needs Studio review.
+
+**Ready for:** owner melee regression playtest, then remaining reported-bug work before combat/loadouts. Step 9c
+spectating remains the next named build step once the higher-priority acceptance issues are resolved.
+
 ## Startup regression correction — test this before the rest
 
 Owner screenshot showed the default third-person camera/player list and no custom HUD. Source reproduction found
@@ -115,7 +179,7 @@ downed/revive checks and performance profiling have NOT been executed by Codex. 
   latest owner answer removes world animation/movement stepping entirely (8.20), superseding 12/18 Hz tuning.
 - Full-gun-in-frame versus a closer shoulder-stock crop remains a composition choice. Initial depth scale is tuning.
 - Takedown hint is advisory against client-rendered geometry, not a server guarantee. Reach and rear cone remain
-  5.5 studs / 60 degrees total until Claude integrates the owner's approved 6.5 / 90. Ordinary melee stays unchanged.
+  now the approved 6.5 studs / 90 degrees through shared MeleeRules (8.22). Ordinary melee stays unchanged.
 - NPC airwalking/tier incidents, exterior door reproduction, crawl/death and two-body takedown animation remain
   assigned to Claude in the return handoff. Codex has not declared those gameplay bugs resolved.
 - HUD includes only live existing contracts. Timer/objective/Intel progression, Assets, gadgets, menus, elevators,

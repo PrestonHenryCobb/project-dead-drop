@@ -184,7 +184,9 @@ export type AmmoInfo = { Mag: number, Reserve: number, ReloadSeconds: number } -
 export type HealthInfo = { HP: number, Armor: number }
 export type DamageInfo = { Position: Vector3, Amount: number } -- where the shot came from, for the direction marker
 export type ShotInfo = { Origin: Vector3, Hit: Vector3, WeaponId: string, Struck: boolean } -- Struck: a person was hit
-export type MeleeState = { Kind: "Takedown", Seconds: number, Active: boolean } -- a takedown began or ended
+-- Ticket 8.22: owner-only action acknowledgements. Strike confirms an attack, not a down/elimination.
+export type MeleeKind = "Takedown" | "Charge" | "Strike"
+export type MeleeState = { Kind: MeleeKind, Seconds: number, Active: boolean, StartedAt: number? }
 
 -- Token-bucket limits for one client -> server remote (GameConfig.Network).
 export type RateLimit = {

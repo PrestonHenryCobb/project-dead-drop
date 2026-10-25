@@ -9,6 +9,8 @@ local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local HudKit = require(Shared:WaitForChild("Util"):WaitForChild("HudKit"))
 local HudTheme = require(Shared:WaitForChild("Util"):WaitForChild("HudTheme"))
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
+local MeleeRules = require(Shared:WaitForChild("Util"):WaitForChild("MeleeRules"))
+local Types = require(Shared:WaitForChild("Types"))
 local RemoteController = require(script.Parent.RemoteController)
 local WeaponController = require(script.Parent.WeaponController)
 local TakedownHintController = {}
@@ -16,6 +18,7 @@ local config = GameConfig.Combat
 local graphics = HudTheme.get()
 local janitor = Janitor.new()
 local candidates: { [Model]: boolean } = {}
+local teammates: { Player } = {} -- only the private TeamRoster, never other players' identity/team attributes
 local enabled, active, interacting = true, false, false
 local params = RaycastParams.new()
 params.CollisionGroup = GameConfig.Rig.CollisionGroup
@@ -47,16 +50,17 @@ local function available(): boolean
 		return false
 	end
 	local look = camera.CFrame.LookVector
-	local flatLook = Vector3.new(look.X, 0, look.Z)
-	if flatLook.Magnitude < graphics.DirectionEpsilonStuds then
-		return false
-	end
-	flatLook = flatLook.Unit
 	local nearest: BasePart? = nil
 	local best = math.huge
-	local reach = config.Melee.Range + config.Melee.ReachSlackStuds
 	for model in candidates do
-		if model ~= character then
+		local friendly = false
+		for _, member in teammates do
+			if member.Character == model then
+				friendly = true
+				break
+			end
+		end
+		if model ~= character and not friendly then
 			local other = model:FindFirstChild("HumanoidRootPart")
 			local otherHumanoid = model:FindFirstChildOfClass("Humanoid")
 			local controller = model:FindFirstChildOfClass("AnimationController")
@@ -70,12 +74,8 @@ local function available(): boolean
 				local flat = Vector3.new(offset.X, 0, offset.Z)
 				local distance = flat.Magnitude
 				if
-					distance <= reach
-					and distance < best
-					and math.abs(offset.Y) <= config.Melee.HeightStuds
-					and (distance < graphics.DirectionEpsilonStuds or flat.Unit:Dot(flatLook) >= math.cos(
-						math.rad(config.Melee.SwingConeDegrees / 2)
-					))
+					distance < best
+					and MeleeRules.canTakedown(root.Position, look, other.Position, other.CFrame.LookVector)
 					and workspace:Raycast(root.Position, offset, params) == nil
 				then
 					nearest, best = other, distance
@@ -83,18 +83,7 @@ local function available(): boolean
 			end
 		end
 	end
-	if not nearest then
-		return false
-	end
-	local behind = root.Position - nearest.Position
-	local flat = Vector3.new(behind.X, 0, behind.Z)
-	local facing = nearest.CFrame.LookVector
-	local forward = Vector3.new(facing.X, 0, facing.Z)
-	if forward.Magnitude < graphics.DirectionEpsilonStuds then
-		return false
-	end
-	return flat.Magnitude < graphics.DirectionEpsilonStuds
-		or (-forward.Unit):Dot(flat.Unit) >= math.cos(math.rad(config.Takedown.ConeDegrees / 2))
+	return nearest ~= nil
 end
 
 function TakedownHintController.Init() end
@@ -118,6 +107,9 @@ function TakedownHintController.Start()
 		UDim2.new(1, -graphics.PaddingPixels * 2, 0, graphics.IconPixels)
 	)
 	local input = game:GetService("UserInputService")
+	janitor:Add(RemoteController.connect("TeamRoster", function(info: Types.TeamRosterInfo)
+		teammates = info.Members
+	end))
 	root.Visible = false
 	for _, instance in workspace:GetChildren() do
 		add(instance)

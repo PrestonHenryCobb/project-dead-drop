@@ -64,7 +64,8 @@ Completed round: Q3 gun composition, Q8 takedown result, Q9 takedown presentatio
 Q11 door exit rules, input/result/direction follow-ups, side-shot/roll clarification, charge starting balance and Q12
 NPC tier exceptions, Q5–6 HUD details, Q33 HUD motion and Q14–19 navigation/traversal plus passage/Cover follow-ups.
 Q20 and Q22–24 interaction/economy/feedback plus Q27–30 mastery/selection/menu and Q32 limb rules are answered.
-Final pending group: Q34 camera comfort, Q33 minimum resolution and Q35 next-work priority. Broad preservation answers retain original
+Final answers: Q34 light optional shake with no forced roll/blur, actual recoil unchanged; Q33 minimum 1280x720 with
+readable larger-display scaling; Q35 reported bugs first, then combat/loadouts. Interview complete. Broad preservation answers retain original
 map design, economy/mode/kit decisions; do not ask those again as if undecided. Ask manageable groups; retain original IDs even if reply numbering starts
 at 1 in each group. Startup/NPC animations were restored per owner; remaining visual acceptance is separate from answers.
 
@@ -107,9 +108,9 @@ means retained by the owner's instruction to keep current decisions, rather than
 | 30 | Answered | Six agreed tabs; Assets reference, Mint via Stocks |
 | 31 | Preserved | Approved control scheme, including Q ability / E interact, not the attachment's conflicting E |
 | 32 | Answered | Limbs use body damage; real server results; existing lobby range plan retained |
-| 33 | Partial | Event-driven HUD and reduced motion approved; minimum resolution pending |
-| 34 | Pending | Cosmetic camera comfort |
-| 35 | Pending | Work priority after interview |
+| 33 | Answered | Event-driven HUD, reduced motion, minimum 1280x720 and readable scaling |
+| 34 | Answered | Light optional shake; no forced roll/blur; actual recoil unchanged |
+| 35 | Answered | Reported bugs first, then combat/loadouts |
 
 ## How this document is being used
 

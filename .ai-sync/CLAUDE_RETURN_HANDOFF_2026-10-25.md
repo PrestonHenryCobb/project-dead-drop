@@ -11,6 +11,8 @@ stage only your work. No push was requested for this round. Codex has not change
 - SPEC_CHANGES wins over the attachment until explicit new answers are recorded. Funds/Bonds/Squads/revolver and the
   imported ten-gadget roster conflict with answered decisions. Do not resurrect them from leftover GameConfig entries.
 - Latest Codex queue rows and commit log contain the completed client work. Studio visual acceptance remains pending.
+- Interview is complete: optional light camera shake/no forced roll or blur, HUD 1280x720 minimum, bugs before
+  combat/loadouts. Ticket 8.22 now implements the co-owned R5/R6 range/input path below; do not duplicate it.
 
 ## Area split
 
@@ -101,10 +103,10 @@ collapse/crawl behavior. Solos eliminate directly, so cannot demonstrate a downe
 
 **Owner answer, October 25:** final corrected choice is **6.5 studs / 90-degree rear cone**, superseding the initial
 3.5-stud reply. Implement this as separate takedown acquisition reach; ordinary melee stays unchanged. No lunge,
-sight checks and 1.2 s hold remain. Codex has deliberately left the live hint on existing shared server values until
-your implementation lands. Update those shared values/hint together; the numbers are no longer an unanswered question.
+sight checks and 1.2 s hold remain. Codex's coordinated 8.22 now implements this range/cone and updates the hint through
+shared MeleeRules; the old 5.5/60 takedown window is no longer live after sync. Body animation work remains yours.
 
-Current CombatService facts: nearest target within flat (Melee.Range 4 + ReachSlackStuds 1.5) = 5.5 studs; 90-degree front
+Before 8.22: nearest target within flat (Melee.Range 4 + ReachSlackStuds 1.5) = 5.5 studs; 90-degree front
 swing cone, HeightStuds 3, root-to-root map line of sight. Rear eligibility is Takedown.ConeDegrees 60 total. Hold 1.2 s,
 damage 90, target displacement break 4 studs, attacker damage cancels. Hold distance check is 3D, initiation flat.
 
@@ -129,7 +131,7 @@ that alone is insufficient proof of success and must not trigger a cosmetic exec
 Charged melee input and initial default balance are now confirmed: normal tap 35 damage; full charge 50 damage after
 0.75 s, capped there, with no added range or stun. Keep existing cooldown/recovery rules unless playtesting changes
 them; do not block implementation on the previously unanswered balance question.
-The owner reports takedown hold
+Pre-8.22 cause reported by the owner: takedown hold
 starts a melee. WeaponController.onMelee currently sends Press and plays MeleeSound immediately before the server
 distinguishes strike/takedown; outside the server's present narrow window, CombatService immediately applies melee.
 Keep takedown acquisition conditional on valid range/cone/LOS/state, and avoid a preliminary strike on a valid hold.
@@ -138,6 +140,20 @@ Owner confirmed: V press inside the valid takedown window starts the hold direct
 outside that window, tap strikes on release and holding charges a strike for release. Use the approved default charge
 values above; do not change ordinary melee range while increasing takedown reach. Server must validate elapsed charge and
 cancel on incapacitation, wall tuck, removal/focus cancellation as applicable. No cosmetic may confirm a kill early.
+
+**Implemented by Codex in co-owned ticket 8.22 (supersedes the old path described above):** shared MeleeRules now
+drives the advisory hint and server 6.5-stud/90-degree rear acquisition; ordinary melee stays at 5.5 total. Press
+selects a valid takedown without striking, otherwise starts a server-timed charge. Release strikes 35 or fully charged
+50 after 0.75 s; Cancel never strikes. Owner-only MeleeState now distinguishes Takedown/Charge/Strike, with optional
+StartedAt server time. Clients cancel on wall tuck, focus/text input, item switch, reload, disguise, incapacitation
+and missing camera/character. Strike acknowledgement drives melee sound/recovery; no preliminary sound on press.
+Server guards cooldown/LOS/range/cone, cancels invalid holds and rejects teammate damage under spec 13.6. No new
+remote names. Strike is not a down/elimination confirmation and must not trigger cosmetic finishers.
+
+Reproduce the automated regression checks with `node tools/check-melee.cjs <path-to-official-luau-cli>`: 29 assertions
+exercise actual source bodies/config with engine/service fixtures. They do not execute Roblox physics or animation.
+Studio acceptance remains in CLIENT_REVIEW_2026-10-25. Partial holds retain 35 until full charge (SPEC-QUESTION).
+Do not overwrite these coordinated server changes when returning to body animation/cosmetic work.
 
 Acceptance: NPC and player rear approach at range/angle boundaries, front/side rejected, nearest target selection,
 wall rejection, interruption on damage/movement, and two clients seeing the same start/cancel/finish. Hint remains

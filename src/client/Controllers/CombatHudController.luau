@@ -322,7 +322,8 @@ local function update(dt: number)
 		local started = takedownStartedAt
 		takedownBack.Visible = started ~= nil
 		if started then
-			takedownFill.Size = UDim2.fromScale(math.clamp((now - started) / takedownSeconds, 0, 1), 1)
+			takedownFill.Size =
+				UDim2.fromScale(math.clamp((workspace:GetServerTimeNow() - started) / takedownSeconds, 0, 1), 1)
 		end
 	end
 end
@@ -375,8 +376,14 @@ function CombatHudController.Start()
 		hp, armor = info.HP, info.Armor
 	end))
 	janitor:Add(RemoteController.connect("MeleeState", function(info: Types.MeleeState)
-		takedownStartedAt = if info.Active then os.clock() else nil
+		-- Ticket 8.22: shared bar shows server-timed charge or takedown; Strike is an acknowledgement, not a finisher.
+		takedownStartedAt = if info.Active then (info.StartedAt or workspace:GetServerTimeNow()) else nil
 		takedownSeconds = info.Seconds
+		if takedownFill then
+			takedownFill.BackgroundColor3 = if info.Kind == "Charge"
+				then feedback.ArmorColor
+				else feedback.AgentHitColor
+		end
 	end))
 	janitor:Add(localPlayer.CharacterAdded:Connect(function()
 		hp, armor = combat.MaxHP, combat.StartPlates * combat.PlateHP

@@ -466,6 +466,10 @@ local GameConfig = {
 		FireRateToleranceSeconds = 0.04,
 		FireOriginToleranceStuds = 4,
 		Melee = {
+			-- Ticket 8.22: default charge is server-timed; partial holds retain tap damage until fully charged.
+			FullChargeDamage = 50,
+			FullChargeSeconds = 0.75,
+			DirectionEpsilonStuds = 0.001,
 			Damage = 35,
 			CooldownSeconds = 0.8,
 			Range = 4,
@@ -473,7 +477,15 @@ local GameConfig = {
 			ReachSlackStuds = 1.5,
 			HeightStuds = 3,
 		},
-		Takedown = { ConeDegrees = 60, HoldSeconds = 1.2, Damage = 90, BreakDistance = 4, CheckSeconds = 0.1 },
+		Takedown = {
+			-- Ticket 8.22: independent of ordinary melee reach/slack, per final owner answer.
+			RangeStuds = 6.5,
+			ConeDegrees = 90,
+			HoldSeconds = 1.2,
+			Damage = 90,
+			BreakDistance = 4,
+			CheckSeconds = 0.1,
+		},
 		-- Weapons (STEP8_QUESTIONS). The weapon every player carries until agent select exists (Step 10).
 		DefaultWeapon = "GuiseSMG",
 		MaxShotStuds = 400, -- the longest ray the server casts for a shot
