@@ -55,6 +55,18 @@ function HeldItemController.equipWeapon()
 	end
 end
 
+function HeldItemController.unregisterWeapon(item: Item)
+	if weapon ~= item then
+		return
+	end
+	if active == item then
+		cancelInputs()
+		item.setHeld(false)
+		active = nil
+	end
+	weapon = nil
+end
+
 local function onFire(_: string, state: Enum.UserInputState): Enum.ContextActionResult
 	if state == Enum.UserInputState.Begin and UserInputService:GetFocusedTextBox() then
 		return Enum.ContextActionResult.Pass

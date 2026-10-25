@@ -19,6 +19,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
+local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"))
 local Combat = script.Parent.Parent:WaitForChild("Combat")
 local ShotFx = require(Combat:WaitForChild("ShotFx"))
@@ -40,6 +41,8 @@ export type Status = {
 }
 
 local WeaponController = {}
+local janitor = Janitor.new()
+local characterJanitor = Janitor.new()
 
 local localPlayer = Players.LocalPlayer
 local combat = GameConfig.Combat
@@ -200,6 +203,9 @@ local function step(dt: number)
 		if viewModel then
 			viewModel:setVisible(false)
 		end
+		camera.FieldOfView = baseFov
+		appliedFov = baseFov
+		aimBlend = 0
 		return
 	end
 
@@ -248,6 +254,10 @@ local function step(dt: number)
 		return
 	end
 
+	if viewModel and viewModel.model.Parent ~= camera then
+		viewModel:destroy()
+		viewModel = nil
+	end
 	if not viewModel then
 		viewModel = ViewModel.new(def)
 	end
@@ -283,7 +293,7 @@ function WeaponController.getStatus(): Status
 		reserve = reserve,
 		reloading = isReloading(now),
 		spreadDegrees = currentSpread(root),
-		weaponUp = held and weaponUp(now),
+		weaponUp = root ~= nil and held and weaponUp(now),
 		aiming = aiming,
 		viewportFov = if camera then camera.FieldOfView else baseFov,
 	}
@@ -307,6 +317,9 @@ end
 
 local function onAim(_: string, state: Enum.UserInputState): Enum.ContextActionResult
 	local on = state == Enum.UserInputState.Begin
+	if on and not character() then
+		return Enum.ContextActionResult.Sink
+	end
 	if aiming ~= on then
 		aiming = on
 		RemoteController.fire("RequestDraw", on)
@@ -315,7 +328,7 @@ local function onAim(_: string, state: Enum.UserInputState): Enum.ContextActionR
 end
 
 local function onReload(_: string, state: Enum.UserInputState): Enum.ContextActionResult
-	if held and state == Enum.UserInputState.Begin then
+	if held and state == Enum.UserInputState.Begin and character() then
 		startReload(os.clock())
 	end
 	return Enum.ContextActionResult.Sink
@@ -339,6 +352,11 @@ local function onMelee(_: string, state: Enum.UserInputState): Enum.ContextActio
 end
 
 local function resetForSpawn()
+	characterJanitor:Cleanup()
+	if viewModel then
+		viewModel:destroy()
+		viewModel = nil
+	end
 	mag, reserve = def.MagSize, def.ReserveAmmo
 	reloadEndsAt = 0
 	predictedReloadPending = false
@@ -348,6 +366,23 @@ local function resetForSpawn()
 	nextFireAt = 0
 	lastMeleeAt = -math.huge
 	takedownActive = false
+end
+
+local function onCharacter(model: Model)
+	resetForSpawn()
+	local humanoid = model:WaitForChild("Humanoid") :: Humanoid
+	if localPlayer.Character ~= model then
+		return
+	end
+	characterJanitor:Add(humanoid.Died:Connect(function()
+		firing, aiming = false, false
+		takedownActive = false
+		reloadEndsAt = 0
+		if viewModel then
+			viewModel:destroy()
+			viewModel = nil
+		end
+	end))
 end
 
 function WeaponController.Init() end
@@ -363,7 +398,7 @@ function WeaponController.Start()
 	}
 	SoundPlayer.preload(sounds)
 
-	RemoteController.connect("AmmoUpdate", function(info: Types.AmmoInfo)
+	janitor:Add(RemoteController.connect("AmmoUpdate", function(info: Types.AmmoInfo)
 		-- Ticket 8.10: a delayed reload confirmation must not put predicted shots back in the magazine.
 		-- Only consume this exception once, for a reload we actually completed; other updates correct normally.
 		local confirmsPredictedReload = predictedReloadPending
@@ -377,15 +412,15 @@ function WeaponController.Start()
 			reloadEndsAt = 0
 			predictedReloadPending = false
 		end
-	end)
-	RemoteController.connect("CoverStateChanged", function(info: Types.CoverInfo)
+	end))
+	janitor:Add(RemoteController.connect("CoverStateChanged", function(info: Types.CoverInfo)
 		exposed = info.State == "Exposed"
-	end)
-	RemoteController.connect("MeleeState", function(info: Types.MeleeState)
+	end))
+	janitor:Add(RemoteController.connect("MeleeState", function(info: Types.MeleeState)
 		takedownActive = info.Active
-	end)
+	end))
 
-	HeldItemController.registerWeapon({
+	local item: HeldItemController.Item = {
 		fire = function(state)
 			onFire("WeaponFire", state)
 		end,
@@ -395,7 +430,11 @@ function WeaponController.Start()
 		setHeld = function(value)
 			held = value
 		end,
-	})
+	}
+	HeldItemController.registerWeapon(item)
+	janitor:Add(function()
+		HeldItemController.unregisterWeapon(item)
+	end)
 	ContextActionService:BindActionAtPriority(
 		"WeaponReload",
 		onReload,
@@ -413,9 +452,25 @@ function WeaponController.Start()
 		controls.MeleePad
 	)
 
-	localPlayer.CharacterAdded:Connect(resetForSpawn)
+	janitor:Add(localPlayer.CharacterAdded:Connect(onCharacter))
+	if localPlayer.Character then
+		task.spawn(onCharacter, localPlayer.Character)
+	end
 	-- After the default camera has run this frame, so the recoil sits on top of where the view points.
 	RunService:BindToRenderStep("WeaponStep", Enum.RenderPriority.Camera.Value + 2, step)
+	janitor:Add(function()
+		RunService:UnbindFromRenderStep("WeaponStep")
+		ContextActionService:UnbindAction("WeaponReload")
+		ContextActionService:UnbindAction("WeaponMelee")
+		characterJanitor:Destroy()
+		if viewModel then
+			viewModel:destroy()
+			viewModel = nil
+		end
+	end)
+	janitor:Add(script.Destroying:Connect(function()
+		janitor:Destroy()
+	end))
 end
 
 return WeaponController
