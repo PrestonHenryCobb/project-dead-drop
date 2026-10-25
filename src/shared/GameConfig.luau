@@ -412,6 +412,18 @@ local GameConfig = {
 	Combat = {
 		-- Ticket 8B.4: fire/aim, reload and melee share the same input precedence.
 		InputPriority = 3000,
+		-- Ticket 8B.3: camera-space framing and wall tuck. These affect presentation; hits remain server-authoritative.
+		Presentation = {
+			ScreenMarginFraction = 0.12,
+			NearDepthStuds = 0.15,
+			WallReachStuds = 3.5,
+			WallRayRadiusStuds = 0.25,
+			FullTuckStuds = 0.65,
+			TuckPosition = Vector3.new(0, -0.2, 0.7),
+			TuckRotation = Vector3.new(65, 0, -12),
+			TuckBlendSpeed = 20,
+			WallDepthFraction = 0.8, -- compress the local camera model into available depth while preserving its projection
+		},
 		MaxHP = 100,
 		PlateHP = 25,
 		MaxPlates = 3,
@@ -447,7 +459,8 @@ local GameConfig = {
 		GunfireReactSeconds = 0.5, -- NPCs react to a shooter's gunfire at most this often
 		MovingSpeedStuds = 2, -- a body faster than this counts as moving for spread
 		-- Hit boxes the server tests rewound shots against: a vertical cylinder from the feet to the head, and the head.
-		Hitbox = { BodyRadius = 1.25, HeadRadiusScale = 0.6, HeadMinRadius = 0.5, CullStuds = 4.5 },
+		-- Step 8B.7: the body radius narrows with the slimmer bodies (from 1.25), still slightly generous.
+		Hitbox = { BodyRadius = 1.0, HeadRadiusScale = 0.6, HeadMinRadius = 0.5, CullStuds = 4.5 },
 		ViolationLogEvery = 10, -- the server warns about a player's impossible requests this often (spec 26: log, never ban on it)
 		-- Client side: what a shot, a hit and a wound look and sound like. All of it is feedback only; the server decides.
 		Feedback = {
@@ -703,10 +716,13 @@ local GameConfig = {
 	},
 
 	-- Spec 8.2: players and NPCs share one rig, so their size ranges must match.
-	-- SPEC-QUESTION: the spec says "identical scale ranges" but gives no numbers. Every outfit scales 5% either way.
+	-- Step 8B.1 (SPEC_CHANGES 8.2): taller and slimmer for everyone, the same ranges for players and NPCs, so size still
+	-- tells nothing. True Form sits in the middle of each range.
 	Rig = {
-		ScaleMin = 0.95,
-		ScaleMax = 1.05,
+		HeightScaleMin = 1.05,
+		HeightScaleMax = 1.15,
+		WidthScaleMin = 0.8, -- width and depth share this range
+		WidthScaleMax = 0.9,
 		-- Spec 8.2: players and NPCs share one collision group. NPCs have an anchored root, so if characters
 		-- collided with each other a shove would move a player but not an NPC, which is a tell. Characters pass
 		-- through each other instead, and still collide with the map.

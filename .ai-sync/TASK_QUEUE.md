@@ -53,7 +53,7 @@ In this order; each depends on the one before. Decisions: `IDEAS_2026-10-24.md` 
 |---|---|---|---|
 | 8B.1 | Slimmer, taller bodies for everyone (height 105-115%, width and depth 80-90%); check hit boxes, doors, vents, camera height, NPC pathing height, clothes. | CLAUDE_CODE | BLOCKED |
 | 8B.2 | Full-body first person: torso, legs and feet visible, head and accessories hidden; real arms hold the gun. | CODEX | BLOCKED |
-| 8B.3 | Gun always in frame (poses from real FOV and aspect) and the wall tuck (rays, blocks firing when fully tucked). | CODEX | BLOCKED |
+| 8B.3 | Gun always in frame (poses from real FOV and aspect) and the wall tuck (rays, blocks firing when fully tucked). Implemented against current view model: cached bounds, real-frustum fitting, five wall probes, high-ready tuck, camera-space depth compression, firing gate. StyLua/Selene/Rojo pass; Studio/FOV/wall review pending and recheck after 8B.2 arm rebuild. | CODEX | READY_FOR_REVIEW |
 | 8B.4 | Held-item switch: one input layer decides whether fire and aim mean weapon or gadget. Implemented HeldItemController; switching/focus loss cancel inputs, stowed weapon hides while reload/FOV recovery continue. No gadget slots or fake items. Owner authorized independent client work across steps. StyLua/Selene/Rojo pass; Studio review pending. | CODEX | READY_FOR_REVIEW |
 | 8B.5 | Movement feel: gravity about 150, longer jump, ground easing for players **and** NPCs. | CLAUDE_CODE | BLOCKED |
 | 8B.6 | Frame stepping: animation 8 a second for everything, other characters' positions 12 a second on the server clock; server rewinds shots to snapped positions. | CLAUDE_CODE | BLOCKED |

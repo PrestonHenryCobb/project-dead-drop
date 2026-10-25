@@ -134,6 +134,9 @@ local function fireOnce(camera: Camera, root: BasePart, now: number)
 	if not held or isReloading(now) then
 		return
 	end
+	if viewModel and viewModel:isFireBlocked(camera) then
+		return -- a fully tucked gun cannot fire; keep ammo, recoil and requests untouched
+	end
 	if mag <= 0 then
 		if now - lastEmptyAt >= EMPTY_CLICK_GAP then
 			lastEmptyAt = now

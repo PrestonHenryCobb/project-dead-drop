@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
+local WeaponPlacement = require(script.Parent.WeaponPlacement)
 
 type WeaponDef = Types.WeaponDef
 
@@ -29,6 +30,9 @@ export type Input = {
 }
 
 local config = GameConfig.Combat.ViewModel
+local presentation = GameConfig.Combat.Presentation
+local SIGNS = { -1, 1 }
+type DrawPart = { part: BasePart, offset: CFrame, size: Vector3 }
 
 local ViewModel = {}
 ViewModel.__index = ViewModel
@@ -46,6 +50,11 @@ export type ViewModel = typeof(setmetatable(
 		lastCamera: CFrame?,
 		visible: boolean,
 		muzzle: Attachment,
+		muzzleOffset: Vector3,
+		parts: { DrawPart },
+		corners: { Vector3 },
+		tuck: number,
+		drawScale: number,
 	},
 	ViewModel
 ))
@@ -152,6 +161,43 @@ function ViewModel.new(def: WeaponDef): ViewModel
 	local model = Instance.new("Model")
 	model.Name = "ViewModel"
 	local sleeves, hands = build(model)
+	local parts: { DrawPart } = {}
+	local low = Vector3.new(math.huge, math.huge, math.huge)
+	local high = -low
+	for _, child in model:GetChildren() do
+		if child:IsA("BasePart") then
+			local offset = child:GetAttribute("Offset") :: CFrame
+			table.insert(parts, { part = child, offset = offset, size = child.Size })
+			-- Frame the gun itself; sleeves may extend behind the camera like real first-person arms.
+			if not string.find(child.Name, "Sleeve") then
+				for _, x in SIGNS do
+					for _, y in SIGNS do
+						for _, z in SIGNS do
+							local point = offset:PointToWorldSpace(child.Size * Vector3.new(x, y, z) / 2)
+							low = low:Min(point)
+							high = high:Max(point)
+						end
+					end
+				end
+			end
+		end
+	end
+	local corners: { Vector3 } = {}
+	for _, x in SIGNS do
+		for _, y in SIGNS do
+			for _, z in SIGNS do
+				table.insert(
+					corners,
+					Vector3.new(
+						if x < 0 then low.X else high.X,
+						if y < 0 then low.Y else high.Y,
+						if z < 0 then low.Z else high.Z
+					)
+				)
+			end
+		end
+	end
+	local muzzle = model:FindFirstChild("Muzzle", true) :: Attachment
 	model.PrimaryPart = model:FindFirstChild("Receiver") :: Part
 	model.Parent = workspace.CurrentCamera
 	return setmetatable({
@@ -165,12 +211,21 @@ function ViewModel.new(def: WeaponDef): ViewModel
 		bobPhase = 0,
 		lastCamera = nil,
 		visible = true,
-		muzzle = model:FindFirstChild("Muzzle", true) :: Attachment,
+		muzzle = muzzle,
+		muzzleOffset = muzzle.Position,
+		parts = parts,
+		corners = corners,
+		tuck = 0,
+		drawScale = 1,
 	}, ViewModel)
 end
 
 function ViewModel.getMuzzlePosition(self: ViewModel): Vector3
 	return self.muzzle.WorldPosition
+end
+
+function ViewModel.isFireBlocked(_self: ViewModel, camera: Camera): boolean
+	return WeaponPlacement.wallDistance(camera) <= presentation.FullTuckStuds
 end
 
 function ViewModel.setColors(self: ViewModel, sleeve: Color3, skin: Color3)
@@ -187,10 +242,8 @@ function ViewModel.setVisible(self: ViewModel, visible: boolean)
 		return
 	end
 	self.visible = visible
-	for _, part in self.model:GetChildren() do
-		if part:IsA("BasePart") then
-			part.Transparency = if visible then 0 else 1
-		end
+	for _, entry in self.parts do
+		entry.part.Transparency = if visible then 0 else 1
 	end
 end
 
@@ -237,7 +290,19 @@ function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: In
 			* CFrame.Angles(0, 0, math.rad(config.ReloadTilt) * dip)
 	end
 
-	local target = cameraCFrame * poseCFrame(input.pose) * offset
+	local distance = WeaponPlacement.wallDistance(camera)
+	local blend = 1 - math.exp(-presentation.TuckBlendSpeed * dt)
+	self.tuck += (WeaponPlacement.tuckFraction(distance) - self.tuck) * blend
+	local rotation = presentation.TuckRotation * self.tuck
+	local tuck = CFrame.new(presentation.TuckPosition * self.tuck)
+		* CFrame.Angles(math.rad(rotation.X), math.rad(rotation.Y), math.rad(rotation.Z))
+	local relativeTarget = WeaponPlacement.fit(
+		poseCFrame(input.pose) * offset * tuck,
+		self.corners,
+		camera.FieldOfView,
+		camera.ViewportSize
+	)
+	local target = cameraCFrame * relativeTarget
 	local settle = 1 - math.exp(-config.PoseSpeed * dt)
 	if self.current == CFrame.identity then
 		self.current = target
@@ -247,11 +312,27 @@ function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: In
 		self.current = cameraCFrame * relative
 	end
 
-	for _, part in self.model:GetChildren() do
-		if part:IsA("BasePart") then
-			part.CFrame = self.current * (part:GetAttribute("Offset") :: CFrame)
-		end
+	-- Fit again after interpolation so a sudden FOV/aspect change cannot leave a corner outside the view.
+	local relative = WeaponPlacement.fit(
+		cameraCFrame:ToObjectSpace(self.current),
+		self.corners,
+		camera.FieldOfView,
+		camera.ViewportSize
+	)
+	self.current = cameraCFrame * relative
+	-- Compress camera-space depth and geometry together: projection stays the same while the gun avoids the wall.
+	local scale = math.min(
+		1,
+		math.max(distance * presentation.WallDepthFraction, presentation.NearDepthStuds)
+			/ WeaponPlacement.depth(relative, self.corners)
+	)
+	self.drawScale = math.min(scale, self.drawScale + (1 - self.drawScale) * blend)
+	local drawFrame = cameraCFrame * (CFrame.new(relative.Position * self.drawScale) * relative.Rotation)
+	for _, entry in self.parts do
+		entry.part.Size = entry.size * self.drawScale
+		entry.part.CFrame = drawFrame * (CFrame.new(entry.offset.Position * self.drawScale) * entry.offset.Rotation)
 	end
+	self.muzzle.Position = self.muzzleOffset * self.drawScale
 end
 
 function ViewModel.destroy(self: ViewModel)
