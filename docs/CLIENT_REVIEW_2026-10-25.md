@@ -1,5 +1,25 @@
 # Client fixes and graphical HUD acceptance report
 
+## Startup regression correction — test this before the rest
+
+Owner screenshot showed the default third-person camera/player list and no custom HUD. Source reproduction found
+the new HudTheme resolver's parenthesized assignment joined to the preceding assert call: Luau evaluated
+`assert(...)(result)[key] = value`, calling assert's boolean return. Main requires all controllers before starting any,
+so a HudKit/HudTheme dependency error aborts the entire custom client startup. This was Codex's theme regression.
+
+Fix: use a named table alias for assignment, making the statement boundary unambiguous. Audit also fixed the same
+call-then-parenthesized-assignment pattern in the heavy-SMG and marksman-pistol muzzle builders. Their corresponding
+3D checks still require Studio.
+
+Verification: official Luau CLI reproduced the pre-fix `attempt to call a boolean value`. The fixed resolver passed
+nine runtime assertions using its actual source body and UI config with Color3/Enum fixture values. This verifies
+resolver execution, overrides, default/fallback, caching and immutability; it does not execute Roblox startup or UI.
+`tools/CheckHudTheme.luau` provides actual Roblox resolver and client controller-require checks in Studio.
+
+First acceptance step: **Stop**, sync Rojo, then fresh **Play**. Expect custom first-person camera, hidden default
+player list and graphical HUD. If any are absent, open **View > Output**, select Client, and report the first red error
+plus its stack. Do not continue the larger visual/combat checklist until custom startup works.
+
 ## What was built
 
 | File | Change |

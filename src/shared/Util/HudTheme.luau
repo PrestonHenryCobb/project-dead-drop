@@ -22,13 +22,14 @@ function HudTheme.get(id: string?): Theme
 		return existing
 	end
 	local result = table.clone(ui.GraphicHud)
+	local values = result :: any
 	local skins = ui.HudThemes :: { [string]: { [string]: any } }
 	local skin = skins[name]
 	if skin then
 		for key, value in skin do
 			assert((allowed :: { [string]: boolean })[key], `HUD skin {name} cannot override {key}`)
-			assert(typeof((result :: any)[key]) == typeof(value), `Invalid HUD skin value {name}.{key}`)(result :: any)[key] =
-				value
+			assert(typeof(values[key]) == typeof(value), `Invalid HUD skin value {name}.{key}`)
+			values[key] = value
 		end
 	end -- Unregistered maps use the neutral base, without inventing a map-specific skin.
 	table.freeze(result)

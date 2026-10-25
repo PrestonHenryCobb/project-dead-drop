@@ -205,10 +205,9 @@ local function buildHeavySmg(model: Model): (CFrame, CFrame)
 	local barrel = model:FindFirstChild("Suppressor") :: Part
 	barrel.Name = "HeavyBarrel"
 	barrel.Size = Vector3.new(0.7, 0.24, 0.24)
-	barrel:SetAttribute("Offset", CFrame.new(0, 0.04, -1.65) * CFrame.Angles(0, math.pi / 2, 0))(
-		barrel:FindFirstChild("Muzzle") :: Attachment
-	).Position =
-		Vector3.new(barrel.Size.X / 2, 0, 0)
+	barrel:SetAttribute("Offset", CFrame.new(0, 0.04, -1.65) * CFrame.Angles(0, math.pi / 2, 0))
+	local muzzle = barrel:FindFirstChild("Muzzle") :: Attachment
+	muzzle.Position = Vector3.new(barrel.Size.X / 2, 0, 0)
 	local magazine = model:FindFirstChild("Magazine") :: Part
 	magazine.Size = Vector3.new(0.3, 0.9, 0.4)
 	return right, left
@@ -218,10 +217,9 @@ local function buildMarksmanPistol(model: Model): (CFrame, CFrame)
 	local right, left = buildPistol(model, false)
 	local barrel = model:FindFirstChild("ShroudedBarrel") :: Part
 	barrel.Size = Vector3.new(0.9, 0.2, 0.2)
-	barrel:SetAttribute("Offset", CFrame.new(0, 0.15, -0.95) * CFrame.Angles(0, math.pi / 2, 0))(
-		barrel:FindFirstChild("Muzzle") :: Attachment
-	).Position =
-		Vector3.new(barrel.Size.X / 2, 0, 0)
+	barrel:SetAttribute("Offset", CFrame.new(0, 0.15, -0.95) * CFrame.Angles(0, math.pi / 2, 0))
+	local muzzle = barrel:FindFirstChild("Muzzle") :: Attachment
+	muzzle.Position = Vector3.new(barrel.Size.X / 2, 0, 0)
 	addPart(model, "OpticBase", Vector3.new(0.22, 0.09, 0.3), CFrame.new(0, 0.33, 0.05), config.AccentColor)
 	addPart(model, "Optic", Vector3.new(0.16, 0.16, 0.2), CFrame.new(0, 0.43, 0.05), config.GunColor)
 	return right, left
