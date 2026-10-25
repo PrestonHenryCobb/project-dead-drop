@@ -264,3 +264,14 @@ Texture maps remain unuploaded. Owner expressly approved all 12 PNG uploads in c
 authority gate again returned declined. Do not route around the rejection. Resolve that gate or let the owner upload
 normally, then install real Image IDs. Source material pack/installer are ready; no fake/PBR-complete claim is valid.
 Viewport screenshots, full mouse-driven combat acceptance and whole-game GPU performance remain owner review items.
+## Codex: native Reduce Motion HUD support (19-hud-motion)
+
+CombatHud/CoverController now follow `UiAccessibility.reducedMotion()`, a live read of Roblox's native preference.
+Reduced mode uses immediate meter updates, static feedback for the original durations, and EXPOSED text without
+fullscreen flash/glow. Recoil, gameplay numbers, cover state and action durations are unchanged. No new remotes.
+StyLua, Selene and Rojo build passed. Studio run at 15:30 UTC independently logged both client PASS results and the
+server parity PASS. The previous run ended before cold clients loaded; ReviewHarness now allows 45 seconds after
+the server check. Require both client results rather than treating ServerPassed as sufficient.
+Enabled-mode visual review remains owner-run. Exact one-/two-player steps are in CLIENT_REVIEW_2026-10-25.md.
+No new SPEC-QUESTIONs. Ready for Step 19 traversal warnings (main gameplay sequence: Step 9c spectating).
+

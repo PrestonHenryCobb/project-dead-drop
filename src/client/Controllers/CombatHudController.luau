@@ -14,6 +14,7 @@ local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local HudKit = require(Shared:WaitForChild("Util"):WaitForChild("HudKit"))
 local HudTheme = require(Shared:WaitForChild("Util"):WaitForChild("HudTheme"))
+local UiAccessibility = require(Shared.Util.UiAccessibility)
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local SoundPlayer = require(script.Parent.Parent:WaitForChild("Combat"):WaitForChild("SoundPlayer"))
 local RemoteController = require(script.Parent.RemoteController)
@@ -255,7 +256,9 @@ end
 
 local function updateHitmarker(now: number)
 	local age = now - hitAt
-	local fade = math.clamp(age / feedback.HitmarkerSeconds, 0, 1)
+	local fade = if UiAccessibility.reducedMotion()
+		then (if age < feedback.HitmarkerSeconds then 0 else 1)
+		else math.clamp(age / feedback.HitmarkerSeconds, 0, 1)
 	local pixels = feedback.HitmarkerPixels * hitScale
 	local offset = pixels * 0.5
 	local corners = { Vector2.new(-1, -1), Vector2.new(1, 1), Vector2.new(1, -1), Vector2.new(-1, 1) }
@@ -280,17 +283,20 @@ local function updateMarkers(camera: Camera, now: number)
 			local radius = feedback.DamageIndicatorPixels
 			marker.label.Position = UDim2.new(0.5, math.sin(angle) * radius, 0.5, -math.cos(angle) * radius)
 			marker.label.Rotation = math.deg(angle)
-			marker.label.TextTransparency = 1 - (marker.expires - now) / feedback.DamageIndicatorSeconds
+			marker.label.TextTransparency = if UiAccessibility.reducedMotion()
+				then 0
+				else 1 - (marker.expires - now) / feedback.DamageIndicatorSeconds
 		end
 	end
 end
 
 local function updateVitals(dt: number, now: number)
-	local settle = 1 - math.exp(-graphics.MeterSettleSpeed * dt)
+	local reduced = UiAccessibility.reducedMotion()
+	local settle = if reduced then 1 else 1 - math.exp(-graphics.MeterSettleSpeed * dt)
 	shownHP += (hp / combat.MaxHP - shownHP) * settle
 	shownArmor += (armor - shownArmor) * settle
 	if vitalsPanel then
-		local pulse = math.clamp(1 - (now - damageAt) / graphics.DamagePulseSeconds, 0, 1)
+		local pulse = if reduced then 0 else math.clamp(1 - (now - damageAt) / graphics.DamagePulseSeconds, 0, 1)
 		vitalsPanel.BackgroundColor3 = graphics.PanelColor:Lerp(feedback.LowHealthColor, pulse)
 		vitalsPanel.BackgroundTransparency = graphics.PanelTransparency
 			+ (graphics.DamagePulseTransparency - graphics.PanelTransparency) * pulse

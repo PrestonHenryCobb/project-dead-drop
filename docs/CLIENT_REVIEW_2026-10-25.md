@@ -258,3 +258,22 @@ confirmed-result cosmetics in shop/Dossier rewards, directional downed/crawl pos
 charged melee request and ordinary-door free exit. These are not represented as completed server/animation mechanics.
 Three selectable follow-ups cover ambiguous input/result/direction semantics. Ready for further owner answers and
 Studio framing acceptance; Step 9c spectating remains the next planned step.
+## Reduce Motion follow-up (ticket 19-hud-motion, 2026-10-25)
+
+What I built:
+- `src/shared/Util/UiAccessibility.luau`: reads Roblox's live Reduce Motion preference, with a compatibility fallback for older engines.
+- `CombatHudController.luau`: immediate health/armor meter updates and static hit/damage indicators when enabled; disables the decorative damage pulse.
+- `CoverController.luau`: removes the fullscreen exposure flash/glow when enabled while retaining EXPOSED text and the existing warning duration.
+- `ReviewHarness.luau`: checks the real native preference on both test clients and gives cold-start clients longer to load.
+
+How to test in Studio:
+1. Stop the current test, sync Rojo, then start **Play** with one player. In Roblox's in-game Settings, enable **Reduce Motion**.
+2. Take damage and break Cover by firing. Health/armor should update immediately, hit/damage indicators should stay readable, and EXPOSED text should appear without a fullscreen flash or glow.
+3. Turn Reduce Motion off during the same session and repeat. Normal meter easing, feedback fading and exposure effects should return. Weapon recoil, ammunition and action durations must remain identical in both modes.
+4. For the integration regression, run the fresh-clone `ReviewHarness.run()` workflow in `GALA_ART_REVIEW.md`, or **Test > Clients 2 > Start** for manual review. Require both client PASS lines as well as the server result.
+
+Validation: StyLua check, Selene (0 errors/warnings), and Rojo build passed. Live two-client outcome is recorded in the handoff after the run. Enabled-mode visual acceptance remains owner review; no native setting was changed on the owner's behalf.
+
+Known gaps: this covers HUD presentation only; no claim that all world effects support reduced motion. Texture uploads remain blocked separately.
+SPEC-QUESTIONs: none added. Ready for: Step 19 traversal warnings; the main build plan still lists Step 9c spectating as the next gameplay step.
+

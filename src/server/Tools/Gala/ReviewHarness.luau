@@ -54,7 +54,7 @@ local ok, problem = pcall(function()
     end
     fixture:Destroy()
     print("GALA_REVIEW_SERVER_PASS", "two players matched the same NPC outfit")
-    task.wait(12) -- let both client probes finish; logs independently determine their pass/fail status
+    task.wait(45) -- cold-start clients can take 40s to load; logs independently determine pass/fail
 end)
 if not ok then warn("GALA_REVIEW_SERVER_FAIL", problem) end
 service:EndTest(if ok then "ServerPassed" else tostring(problem))
@@ -72,6 +72,9 @@ local ok, problem = pcall(function()
     local card = hud:WaitForChild("Vitals"):WaitForChild("Backdrop") :: Frame
     assert(card.BackgroundColor3:ToHex() == "f4efe6", "Parchment missing")
     local client = player.PlayerScripts:WaitForChild("Client")
+    local accessibility = require(game.ReplicatedStorage.Shared.Util.UiAccessibility)
+    local nativeMotion = game:GetService("GuiService").ReducedMotionEnabled
+    assert(accessibility.reducedMotion() == nativeMotion, "Native Reduce Motion preference mismatch")
     local graphics = require(client.Controllers.GraphicsController)
     local config = require(game.ReplicatedStorage.Shared.GameConfig)
     local lighting = game:GetService("Lighting")

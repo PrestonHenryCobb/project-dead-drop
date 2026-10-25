@@ -14,6 +14,7 @@ local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local HudKit = require(Shared:WaitForChild("Util"):WaitForChild("HudKit"))
 local HudTheme = require(Shared:WaitForChild("Util"):WaitForChild("HudTheme"))
+local UiAccessibility = require(Shared.Util.UiAccessibility)
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local RemoteController = require(script.Parent.RemoteController)
 
@@ -252,6 +253,12 @@ local function updateEffects(now: number)
 		return
 	end
 	local age = now - exposedAt
+	if UiAccessibility.reducedMotion() then
+		flashFrame.BackgroundTransparency = 1
+		glow.setAll(1)
+		text.Visible = age < ui.ExposedTextSeconds
+		return
+	end
 	local flashAlpha = 1
 	if age < ui.ExposedFlashSeconds then
 		flashAlpha = ui.ExposedFlashTransparency + (1 - ui.ExposedFlashTransparency) * (age / ui.ExposedFlashSeconds)

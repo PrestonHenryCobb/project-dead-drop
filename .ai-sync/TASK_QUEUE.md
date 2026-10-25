@@ -107,6 +107,7 @@ setting Combat.DefaultWeapon in Studio only before Play. No new selection UI or 
 | 19-client-hud | Owner authorized importing functional HUD now: original drawn icons, shadowed dark panels, health/armor easing and damage pulse, reload progress, compact role/tier/stored-disguise badge, cover/short warnings and alarm pips. Default diagnostics hidden. Uses existing events only; no unbuilt menus/objective/economy state. Report: docs/CLIENT_REVIEW_2026-10-25.md. | CODEX | Owner visual acceptance | READY_FOR_REVIEW |
 | 19-map-skins | Shared HudTheme resolver over base layout/behavior, Gala charcoal/brass Field notes skin, startup skin ID and neutral fallback. Palette-only validated immutable overrides; all graphical controllers use the same resolved skin. No runtime map-switch contract invented. | CODEX | Studio owner review | READY_FOR_REVIEW |
 | 19-hud-readability | Persistent essentials, contextual prompts/warnings, clear numbers/body text with pixel headings, event-driven feedback and reduced motion. Minimum 1280x720 with readable larger-display scaling. Preserve critical state/timers and gameplay recoil across skins. | CODEX | Typography and motion-setting implementation/review | TODO |
+| 19-hud-motion | Follow Roblox Reduce Motion for decorative HUD easing/flashes, preserve authoritative feedback and weapon recoil. | CODEX | Existing HUD and native accessibility preference | READY_FOR_REVIEW |
 | 19-camera-comfort | Light optional cosmetic camera shake during damage/takedowns, no forced roll/blur. Actual weapon recoil unchanged; respect comfort settings. | CODEX | Settings/feedback implementation and review | TODO |
 | 19-menu-structure | Design agreed tabs Play/Agents/Assets/Dossiers/Black Market/Profile; Mint from Stocks balance. Assets is a match-perk reference, not permanent combat power. Dossiers use direct progress, no reward tokens. Mockups before functional integration against real contracts. | CODEX | Step 19 review; underlying gameplay/progression contracts | TODO |
 | 22-range-feedback | Lobby firing range uses actual server-confirmed damage, current body damage for limbs, no new limb multiplier/imported sample numbers. Keep existing plated-target/damage-screen plan. | CLAUDE_CODE server + CODEX UI | Lobby/range implementation in Step 22 | BLOCKED |
@@ -142,8 +143,7 @@ Owner requested this area split while Claude was unavailable. Full source eviden
 
 | Id | Ticket | Owner | Needs | Status |
 |---|---|---|---|---|
-| gala-art-direction | Owner-authorized Direction 1 Gala art, parchment HUD, material import pack, weapons and shared disguise parity; preserve tier colors with cyan accents. | CODEX | Art refs + 2026-10-25 owner direction; docs/GALA_ART_REVIEW.md | READY_FOR_REVIEW (source pass; uploads/meshes pending) |
-
+| gala-art-direction | Owner-authorized Direction 1 Gala art, parchment HUD, material import pack, weapons and shared disguise parity; preserve tier colors with cyan accents. | CODEX | Art refs + 2026-10-25 owner direction; docs/GALA_ART_REVIEW.md | READY_FOR_REVIEW (sculptures integrated; PBR upload gate pending) |
 | gala-sculptures | Finish owner-approved original sculpted Gala geometry, shared disguises and asset integration; commit completed work. | CODEX | Original geometry baked; two-client probes passed; docs/GALA_ART_REVIEW.md | READY_FOR_REVIEW |
 
 ## Waiting on the owner
