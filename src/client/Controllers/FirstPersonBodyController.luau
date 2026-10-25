@@ -18,7 +18,6 @@ type Arm = {
 	sourceUpper: BasePart,
 	sourceLower: BasePart,
 	sourceHand: BasePart,
-	heldTarget: CFrame?,
 }
 
 local FirstPersonBodyController = {}
@@ -32,7 +31,6 @@ local rig: Model? = nil
 local parts: { BasePart } = {}
 local arms: { Arm } = {}
 local dirty = false
-local lastTick = -1
 
 local function clear()
 	characterJanitor:Cleanup()
@@ -43,7 +41,6 @@ local function clear()
 	table.clear(parts)
 	table.clear(arms)
 	character, rig = nil, nil
-	lastTick = -1
 end
 
 local function cloneLimb(source: BasePart, parent: Model): BasePart
@@ -89,12 +86,10 @@ local function refresh(model: Model, camera: Camera)
 				sourceUpper = upper,
 				sourceLower = lower,
 				sourceHand = hand,
-				heldTarget = nil,
 			})
 		end
 	end
 	dirty = false
-	lastTick = -1
 end
 
 local function onCharacter(model: Model)
@@ -182,28 +177,15 @@ local function render()
 		part.LocalTransparencyModifier = if ownerView then 1 else 0
 	end
 	local right, left, drawScale = WeaponController.getHandTargets()
-	local tick = math.floor(workspace:GetServerTimeNow() * GameConfig.Animation.StepHz)
 	for _, arm in arms do
 		arm.upper.Transparency, arm.lower.Transparency, arm.hand.Transparency = 1, 1, 1
 		local target = if arm.side > 0 then right else left
 		if target and ownerView then
-			-- Hold animation in camera space: looking and walking never inherit the body's facing rotation.
-			if tick ~= lastTick or not arm.heldTarget then
-				local relative = camera.CFrame:ToObjectSpace(target)
-				arm.heldTarget = CFrame.new(relative.Position / drawScale) * relative.Rotation
-			end
-			local relative = arm.heldTarget :: CFrame
-			drawArm(
-				arm,
-				camera.CFrame * (CFrame.new(relative.Position * drawScale) * relative.Rotation),
-				camera,
-				drawScale
-			)
-		else
-			arm.heldTarget = nil
+			-- Ticket 8.16: sample the rendered gun's exact grip this frame. Independently stepping the hands
+			-- lets recoil, reload and pose settling pull the gun away between hand updates.
+			drawArm(arm, target, camera, drawScale)
 		end
 	end
-	lastTick = tick
 end
 
 function FirstPersonBodyController.Init() end

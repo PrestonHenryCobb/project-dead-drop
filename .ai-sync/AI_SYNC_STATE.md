@@ -30,7 +30,16 @@ Times are local, `YYYY-MM-DD HH:MM`.
 
 | File | Locked by | Since | Ticket |
 |---|---|---|---|
-| (none) | | | |
+| `src/shared/Util/HudKit.luau` | CODEX | 2026-10-24 | HUD refresh |
+| `src/client/Controllers/CombatHudController.luau` | CODEX | 2026-10-24 | HUD refresh |
+| `src/client/Controllers/WeaponController.luau` | CODEX | 2026-10-24 | HUD reload progress |
+| `src/client/Controllers/DisguiseController.luau` | CODEX | 2026-10-24 | Owner-authorized HUD refresh |
+| `src/client/Controllers/CoverController.luau` | CODEX | 2026-10-24 | Owner-authorized HUD refresh |
+| `src/client/Controllers/DownedHudController.luau` | CODEX | 2026-10-24 | 9b-hud |
+| `src/client/Controllers/TakedownHintController.luau` | CODEX | 2026-10-24 | Owner takedown proximity prompt |
+| `docs/PROMPT_REVIEW_2026-10-24.md` | CODEX | 2026-10-24 | Owner prompt review |
+| `.ai-sync/CLAUDE_RETURN_HANDOFF_2026-10-25.md` | CODEX | 2026-10-24 | Owner-requested return handoff |
+| `.ai-sync/TASK_QUEUE.md` | CODEX | 2026-10-24 | Own ticket rows |
 
 ## Shared-file rules (`Remotes`, `Types`, `Enums`, `GameConfig`)
 - Lock the file for the few minutes of the edit, not for the whole ticket.

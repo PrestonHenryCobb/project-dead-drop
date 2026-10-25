@@ -443,6 +443,8 @@ local GameConfig = {
 		},
 		-- Ticket 8B.3: camera-space framing and wall tuck. These affect presentation; hits remain server-authoritative.
 		Presentation = {
+			-- Ticket 8.16: bring geometry and grips closer together without changing their screen projection.
+			ViewDepthScale = 0.65,
 			ScreenMarginFraction = 0.12,
 			NearDepthStuds = 0.15,
 			WallReachStuds = 3.5,

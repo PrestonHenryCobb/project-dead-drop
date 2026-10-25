@@ -372,7 +372,7 @@ function ViewModel.new(def: WeaponDef): ViewModel
 		parts = parts,
 		corners = corners,
 		tuck = 0,
-		drawScale = 1,
+		drawScale = presentation.ViewDepthScale,
 	}, ViewModel)
 end
 
@@ -470,24 +470,18 @@ function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: In
 		camera.FieldOfView,
 		camera.ViewportSize
 	)
-	local target = cameraCFrame * relativeTarget
 	local settle = 1 - math.exp(-config.PoseSpeed * dt)
 	if self.current == CFrame.identity then
-		self.current = target
+		self.current = relativeTarget
 	else
-		-- Settle in the camera's own frame, so turning the view never drags the gun through the world.
-		local relative = cameraCFrame:ToObjectSpace(self.current):Lerp(cameraCFrame:ToObjectSpace(target), settle)
-		self.current = cameraCFrame * relative
+		-- Ticket 8.16: persist a camera-relative pose. Reinterpreting last frame's world pose in the new camera
+		-- frame still introduces world-space lag during a turn; sway already supplies the intended movement.
+		self.current = self.current:Lerp(relativeTarget, settle)
 	end
 
 	-- Fit again after interpolation so a sudden FOV/aspect change cannot leave a corner outside the view.
-	local baseRelative = WeaponPlacement.fit(
-		cameraCFrame:ToObjectSpace(self.current),
-		self.corners,
-		camera.FieldOfView,
-		camera.ViewportSize
-	)
-	self.current = cameraCFrame * baseRelative
+	local baseRelative = WeaponPlacement.fit(self.current, self.corners, camera.FieldOfView, camera.ViewportSize)
+	self.current = baseRelative
 	-- Apply wall tuck after ordinary pose settling. Filtering it twice would leave the gun visibly tucked after
 	-- the gate's fraction cleared. The same fraction now directly drives across-body rendering and blocking.
 	local relative = WeaponPlacement.fit(
@@ -498,11 +492,11 @@ function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: In
 	)
 	-- Compress camera-space depth and geometry together: projection stays the same while the gun avoids the wall.
 	local scale = math.min(
-		1,
+		presentation.ViewDepthScale,
 		math.max(distance * presentation.WallDepthFraction, presentation.NearDepthStuds)
 			/ WeaponPlacement.depth(relative, self.corners)
 	)
-	self.drawScale = math.min(scale, self.drawScale + (1 - self.drawScale) * blend)
+	self.drawScale = math.min(scale, self.drawScale + (presentation.ViewDepthScale - self.drawScale) * blend)
 	local drawFrame = cameraCFrame * (CFrame.new(relative.Position * self.drawScale) * relative.Rotation)
 	self.drawFrame = drawFrame
 	for _, entry in self.parts do
