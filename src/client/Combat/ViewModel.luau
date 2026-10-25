@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
+local ArtSurface = require(Shared.Util.ArtSurface)
 local WeaponPlacement = require(script.Parent.WeaponPlacement)
 
 type WeaponDef = Types.WeaponDef
@@ -85,6 +86,15 @@ local function addPart(
 	part.Size = size
 	part.Color = color
 	part.Material = material or Enum.Material.SmoothPlastic
+	-- Ticket gala-art-direction: large surfaces stay matte. Only small mechanical details get brass.
+	local detail = string.gsub(name, "^Left", "")
+	if detail == "FrontSight" or detail == "RearSight" or detail == "TriggerGuard" then
+		ArtSurface.apply(part, "Brass")
+	elseif detail == "Stock" or detail == "Butt" then
+		ArtSurface.apply(part, "Walnut")
+	else
+		ArtSurface.apply(part, "Steel")
+	end
 	part.Anchored = true
 	part.CanCollide = false
 	part.CanQuery = false
@@ -229,6 +239,8 @@ end
 local function buildMedicShotgun(model: Model): (CFrame, CFrame)
 	local body, accent = config.GunColor, config.AccentColor
 	addPart(model, "Receiver", Vector3.new(0.4, 0.48, 1.25), CFrame.identity, body)
+	addPart(model, "FrontSight", Vector3.new(0.07, 0.08, 0.1), CFrame.new(0, 0.26, -1.5), body)
+	addPart(model, "TriggerGuard", Vector3.new(0.16, 0.12, 0.26), CFrame.new(0, -0.3, 0.1), accent)
 	addPart(model, "ForeEnd", Vector3.new(0.34, 0.32, 0.9), CFrame.new(0, -0.08, -1.0), accent)
 	addPart(model, "Stock", Vector3.new(0.25, 0.35, 0.95), CFrame.new(0, -0.08, 1.05), body)
 	addPart(model, "Butt", Vector3.new(0.33, 0.58, 0.15), CFrame.new(0, -0.12, 1.55), accent)

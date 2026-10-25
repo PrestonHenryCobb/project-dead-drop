@@ -136,10 +136,10 @@ function HudKit.text(parent: Instance, name: string, position: UDim2, anchor: Ve
 	local text = Instance.new("TextLabel")
 	text.Name = name
 	text.BackgroundTransparency = 1
-	text.Font = ui.Font
+	text.Font = graphics.Font
 	text.TextSize = ui.TextSize
-	text.TextColor3 = ui.TextColor
-	text.TextStrokeTransparency = 0.5
+	text.TextColor3 = if parent.Name == "Backdrop" then graphics.TextColor else ui.TextColor
+	text.TextStrokeTransparency = if parent.Name == "Backdrop" then 1 else 0.5
 	text.AnchorPoint = anchor
 	text.Position = position
 	text.Size = size

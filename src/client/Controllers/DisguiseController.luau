@@ -57,7 +57,7 @@ local function buildHud()
 	dot.AnchorPoint = Vector2.new(0.5, 0.5)
 	dot.Position = UDim2.fromScale(0.5, 0.5)
 	dot.Size = UDim2.fromOffset(ui.CrosshairPixels, ui.CrosshairPixels)
-	dot.BackgroundColor3 = ui.TextColor
+	dot.BackgroundColor3 = graphics.TextColor
 	dot.BorderSizePixel = 0
 	dot.Parent = gui
 	centerDot = dot
@@ -90,7 +90,7 @@ local function buildHud()
 		"Badge",
 		UDim2.fromOffset(graphics.PaddingPixels, graphics.PaddingPixels),
 		graphics.IconPixels,
-		ui.TextColor
+		graphics.TextColor
 	)
 	local badgeText = HudKit.text(
 		badgePanel,
@@ -118,7 +118,7 @@ local function buildHud()
 		UDim2.new(1, -graphics.PaddingPixels * 3 - graphics.IconPixels, 0, graphics.CaptionSize)
 	)
 	storedBadge.TextSize = graphics.CaptionSize
-	storedBadge.TextColor3 = ui.DimTextColor
+	storedBadge.TextColor3 = graphics.DimTextColor
 	storedBadge.TextXAlignment = Enum.TextXAlignment.Left
 
 	local toastText =
@@ -162,7 +162,7 @@ local function showDisguise(update: Types.DisguiseUpdate)
 	text.Text = wornLine
 	local outfit = OutfitDefs.byId[update.Worn]
 	local tier = if outfit and not update.Exposed then outfit.Tier else 0
-	text.TextColor3 = if update.Exposed then ui.CoverColors.Exposed else GameConfig.Zones.TierColors[tier]
+	text.TextColor3 = if update.Exposed then ui.CoverColors.Exposed else graphics.TextColor
 	for index, pip in tierPips do
 		pip.BackgroundColor3 = if index <= tier then GameConfig.Zones.TierColors[tier] else ui.ScanRingDimColor
 	end

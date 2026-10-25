@@ -369,3 +369,12 @@ The attachment's counts are illustrative, not required totals. Balance pickups, 
 caches around travel time, room tiers and safe routes; then validate and document actual totals. Funds pickups remain
 removed. Keep layout data, GameConfig bounds and self-checks consistent with reviewed changes; do not disable a
 validation failure merely to accept a new count. This is a distribution policy, not a claim that placement was rebuilt.
+
+## 2026-10-25: owner-selected Art Deco finish pass
+
+The existing Gala footprint, levels, routes, collision solids, NPC population, door clearances and light cap remain the
+baseline. Owner selected sculpted cinematic stylization over clean low-poly geometry; reference images are mood only.
+Ivory architecture, broad walnut wainscot, brass rails, cool geometric glass, burgundy/emerald accents, warm keys and
+cool ambient replace the older lacquer-heavy Deco look. Keep tier colors and add cyan boundary/badge accents (owner
+answer). No additional layout interview is required for this approved finish pass. Source changes, image upload pack,
+unchanged privacy glass behavior, performance checks and remaining sculpted mesh work: docs/GALA_ART_REVIEW.md.

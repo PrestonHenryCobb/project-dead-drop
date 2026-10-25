@@ -222,3 +222,20 @@ tap/charge release, cancellation and owner action acknowledgements using existin
 No new remote names or character identity markers. Shared damage rejects teammates per existing spec 13.6.
 Partial charge damage was unspecified: initial implementation keeps 35 until 0.75 s, then 50 capped; this is marked
 SPEC-QUESTION in MeleeRules for playtest tuning. Directional body animations and cosmetic finishers remain queued.
+
+## 2026-10-25: Gala sculpted cinematic art direction (owner)
+
+Direction 1 wins over the attachment's earlier A/B/C comparison. Use original sculpted/painted Art Deco forms over a
+clean low-poly budget; no full-scene cel shader, inverted hulls or stepped movement. Ivory #EFE8DA, walnut #2A1B15,
+brass #C89D54, frosted glass #DCE6E8, burgundy #581825 and emerald #12382F. Broad color fields, no photographic noise.
+PBR targets: ivory roughness .78; walnut .42; brass roughness .22 / metalness .92. Use real uploaded maps, not invented
+scalar properties or fabricated asset IDs. Lighting ambient #181C24, outdoor #1D283A, top shift #FFE8C2, warm ~3200 K
+keys, bloom .35 / threshold 1.8; current Realistic lighting represents the requested advanced/Future intent. Low quality
+may use a brighter warm/cool ambient fallback for readability. Preserve disguise rig/material parity and gameplay physics.
+
+Owner clarification: KEEP the existing tier colors; cyan #2CE8F5 is an additional boundary/lapel accent, not a replacement
+for tier semantics. Gala HUD becomes parchment #F4EFE6 at .08 transparency, charcoal #1A1918, brass #B88E44 borders,
+clear sans typography. Other map skins keep the shared behavior/layout. Brief impacts/exposure flashes fade within
+.15-.22 seconds. Quiet weapon tracer/muzzle-flash suppression remains intact. Full design, actual source-pass scope,
+remaining original mesh work and Studio steps: docs/GALA_ART_REVIEW.md. Sculpted heads/tailoring/furniture meshes are
+not built by this source pass and must not be recorded as completed assets.

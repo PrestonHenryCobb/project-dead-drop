@@ -122,7 +122,7 @@ local function build()
 		"Eye",
 		UDim2.fromOffset(graphics.PaddingPixels, graphics.PaddingPixels),
 		graphics.IconPixels,
-		ui.TextColor
+		graphics.TextColor
 	)
 	local meterBack = Instance.new("Frame")
 	meterBack.Name = "Meter"
@@ -156,7 +156,7 @@ local function build()
 		Vector2.new(0.5, 0),
 		UDim2.fromOffset(graphics.ActionWidthPixels, graphics.PaddingPixels * 3)
 	)
-	warningText.TextColor3 = ui.WarningColor
+	warningText.TextColor3 = graphics.TextColor
 	warningText.TextSize = ui.TextSize
 	warningText.Visible = false
 	warning = warningText
@@ -173,6 +173,7 @@ local function build()
 	for _, text in { warningText, promptText } do
 		text.BackgroundColor3 = graphics.PanelColor
 		text.BackgroundTransparency = graphics.PanelTransparency
+		text.TextStrokeTransparency = 1
 		local corner = Instance.new("UICorner")
 		corner.CornerRadius = UDim.new(0, graphics.CornerPixels)
 		corner.Parent = text
@@ -199,7 +200,7 @@ local function refreshText(now: number)
 	fill.BackgroundColor3 = color
 	fill.Size = UDim2.fromScale(math.clamp(suspicion.Value / cover.SuspicionMax, 0, 1), 1)
 	label.Text = string.upper(coverState)
-	label.TextColor3 = color
+	label.TextColor3 = graphics.TextColor
 	if alarmLabel then
 		alarmLabel.Text = `ALARM {alarm}`
 	end
@@ -231,7 +232,7 @@ local function refreshText(now: number)
 	hint.Visible = alive and coverState == "Exposed"
 	if canRecover then
 		hint.Text = `[ {GameConfig.Controls.Disguise.Name} ] COVER`
-		hint.TextColor3 = ui.CoverColors.Covered
+		hint.TextColor3 = graphics.TextColor
 	else
 		if blocker == "Zone" then
 			hint.Text = "EXIT RESTRICTED AREA"
@@ -240,7 +241,7 @@ local function refreshText(now: number)
 		else
 			hint.Text = string.format("COVER IN %.0fs", math.max(waitSeconds, 0))
 		end
-		hint.TextColor3 = ui.DimTextColor
+		hint.TextColor3 = graphics.DimTextColor
 	end
 end
 

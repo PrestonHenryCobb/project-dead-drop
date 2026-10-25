@@ -21,6 +21,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local City = require(script.Parent.City)
 local Layout = require(script.Parent.Layout)
+local Art = require(script.Parent.Art)
 -- Studio caches required modules, so a rebuild after a config change can put a fresh copy of Shared next to this
 -- script, named SharedOverride (see the build-map skill).
 local Shared = script.Parent:FindFirstChild("SharedOverride") or ReplicatedStorage:WaitForChild("Shared")
@@ -100,20 +101,20 @@ local STYLES: { [string]: Style } = {
 	-- The Gala's public rooms and penthouse: warm black lacquer, cream marble, gold. The lacquer is a shade lighter than
 	-- true black so the rooms still read under the night lighting.
 	deco = {
-		wall = Color3.fromRGB(64, 52, 48),
+		wall = GameConfig.Art.Materials.Ivory.Color,
 		wallMaterial = Enum.Material.SmoothPlastic,
 		floor = Color3.fromRGB(226, 206, 176),
-		floorMaterial = Enum.Material.Marble,
-		trim = Color3.fromRGB(212, 172, 74),
+		floorMaterial = Enum.Material.Marble, -- Art pass replaces the finish while preserving its physical properties.
+		trim = GameConfig.Art.Materials.Brass.Color,
 		trimMaterial = Enum.Material.Metal,
 	},
 	-- The casino: red velvet, dark patterned carpet, gold.
 	casino = {
-		wall = Color3.fromRGB(112, 22, 34),
+		wall = GameConfig.Art.Materials.Velvet.Color,
 		wallMaterial = Enum.Material.Fabric,
-		floor = Color3.fromRGB(46, 22, 32),
+		floor = GameConfig.Art.Emerald,
 		floorMaterial = Enum.Material.Carpet,
-		trim = Color3.fromRGB(212, 172, 74),
+		trim = GameConfig.Art.Materials.Brass.Color,
 		trimMaterial = Enum.Material.Metal,
 	},
 	-- The hotel: white plaster, terracotta tile, a blue tile band.
@@ -156,7 +157,7 @@ local TRIM_DROP = 2 -- studs from the top of a wall face down to its trim strip
 local CARPET_INSET = 4 -- studs a tier carpet keeps from a room's walls
 local CARPET_MIN = 10 -- studs: rooms narrower than this get no carpet
 local CARPET_PIECE_MIN = 4 -- studs: smaller scraps left after cutting a carpet round stairs and doorways are dropped
-local GILT = Color3.fromRGB(212, 172, 74)
+local GILT = GameConfig.Art.Materials.Brass.Color
 local SLAB = 2
 local RAMP_W = 6 -- a stair's width; it climbs one stud in two
 -- A switchback climbs half the height in each of two legs, side by side with a gap, joined by a landing.
@@ -203,7 +204,7 @@ local DOOR_FRAME = Color3.fromRGB(46, 42, 44) -- door frames and the frames of g
 local SIGN_EXIT = Color3.fromRGB(235, 240, 245)
 local SIGN_EXTRACTION = Color3.fromRGB(80, 220, 235)
 local SIGN_PLAIN = Color3.fromRGB(215, 215, 215)
-local DOOR_WOOD = Color3.fromRGB(78, 56, 44) -- a Security door's solid leaves
+local DOOR_WOOD = GameConfig.Art.Materials.Walnut.Color -- a Security door's solid leaves
 local DOOR_STEEL = Color3.fromRGB(104, 108, 118) -- an Executive or vault-wing door's heavy leaves
 local EPS = 1e-4
 
@@ -931,7 +932,7 @@ function Build.run()
 	-- face are stripped, and it is no character: no Humanoid, no collision, nothing to scan).
 	local PORCELAIN = Color3.fromRGB(240, 238, 232)
 	local COBALT = Color3.fromRGB(32, 66, 150)
-	local GOLD = Color3.fromRGB(212, 172, 74)
+	local GOLD = GameConfig.Art.Materials.Brass.Color
 	local FOUNTAIN_WATER = Color3.fromRGB(110, 180, 225)
 	local function glaze(p: BasePart)
 		p.Material = Enum.Material.SmoothPlastic
@@ -1634,6 +1635,26 @@ function Build.run()
 		end
 		if withTrim then
 			for _, face in faces do
+				-- Broad walnut wainscot on ivory Deco walls; existing wall still owns collision.
+				local panelTop = math.min(y2, GameConfig.Art.PanelHeightStuds)
+				if face.color == GameConfig.Art.Materials.Ivory.Color and panelTop > y1 then
+					local panel = part(
+						trim,
+						"WalnutPanel",
+						alongSize(edge.axis, b - a, panelTop - y1, GameConfig.Art.PanelDepthStuds),
+						CFrame.new(
+							alongPoint(
+								edge.axis,
+								edge.line + face.side * (WALL_T / 2 + GameConfig.Art.PanelDepthStuds / 2),
+								(a + b) / 2,
+								base + (y1 + panelTop) / 2
+							)
+						),
+						GameConfig.Art.Materials.Walnut.Color
+					)
+					panel.Material = Enum.Material.Wood
+					panel.CanCollide, panel.CanTouch, panel.CanQuery = false, false, false
+				end
 				local trimTop = y2 - TRIM_DROP
 				if face.trim and trimTop - TRIM_H > y1 then
 					local strip = part(
@@ -2864,6 +2885,20 @@ function Build.run()
 						tierColor(room.tier)
 					)
 					decal.CanCollide = false
+					decal.CanQuery = false
+					decal.CanTouch = false
+					-- Cyan supplements the retained tier color; no new physical threshold geometry.
+					local cue = Instance.new("SurfaceGui")
+					cue.Name = "ClearanceAccent"
+					cue.Face = Enum.NormalId.Top
+					cue.AlwaysOnTop = false
+					cue.LightInfluence = 0
+					local line = Instance.new("Frame")
+					line.Size = UDim2.new(1, 0, 0, GameConfig.Art.ClearanceStripPixels)
+					line.BackgroundColor3 = GameConfig.Art.ClearanceCyan
+					line.BorderSizePixel = 0
+					line.Parent = cue
+					cue.Parent = decal
 				end
 			end
 			if not door.vault then
@@ -3780,12 +3815,7 @@ function Build.run()
 	check(intelInVaults > 0, `Intel in the vault rooms ({intelInVaults})`)
 
 	-- Interior lights: warm amber in the public rooms, cooler as the tier rises, a handful per room (dusk-like inside).
-	local LIGHT_COLORS: { [number]: Color3 } = {
-		[0] = Color3.fromRGB(255, 205, 150),
-		[1] = Color3.fromRGB(225, 232, 255),
-		[2] = Color3.fromRGB(205, 190, 255),
-		[3] = Color3.fromRGB(255, 220, 160),
-	}
+
 	local lightCount = 0
 	for _, room in rooms do
 		if room.kind == "indoor" then
@@ -3801,15 +3831,25 @@ function Build.run()
 								"CeilingLight",
 								Vector3.new(3, 0.3, 3),
 								CFrame.new(x, levels[room.level] + roomHeight(room) - 0.4, z),
-								LIGHT_COLORS[room.tier]
+								GameConfig.Art.Lighting.Key
 							)
 							lamp.Material = Enum.Material.Neon
 							lamp.CanCollide = false
 							lamp.CanQuery = false
+							-- Low-poly stepped brass surround, sharing the lamp's existing single light.
+							local rim = part(
+								propsFolder,
+								"ChandelierRim",
+								GameConfig.Art.LampRimSize,
+								lamp.CFrame * CFrame.new(0, GameConfig.Art.LampRimLift, 0),
+								GameConfig.Art.Materials.Brass.Color
+							)
+							rim.Material = Enum.Material.Metal
+							rim.CanCollide, rim.CanQuery, rim.CanTouch = false, false, false
 							local light = Instance.new("PointLight")
-							light.Color = LIGHT_COLORS[room.tier]
-							light.Range = 30
-							light.Brightness = 0.7
+							light.Color = GameConfig.Art.Lighting.Key
+							light.Range = GameConfig.Art.Lighting.LampRange
+							light.Brightness = GameConfig.Art.Lighting.LampBrightness
 							light.Shadows = false
 							light.Parent = lamp
 							lightCount += 1
@@ -4126,10 +4166,20 @@ function Build.run()
 
 	-- Night outside, with a warm dusk-like glow inside (STYLE_QUESTIONS: night with nice ambient light). The art pass refines it.
 	Lighting.ClockTime = 20.5
-	Lighting.Ambient = Color3.fromRGB(135, 105, 90)
-	Lighting.OutdoorAmbient = Color3.fromRGB(100, 104, 145)
-	Lighting.Brightness = 1.2
-	Lighting.ExposureCompensation = 0.35
+	Lighting.Ambient = GameConfig.Art.Lighting.Ambient
+	Lighting.OutdoorAmbient = GameConfig.Art.Lighting.OutdoorAmbient
+	Lighting.ColorShift_Top = GameConfig.Art.Lighting.Top
+	Lighting.Brightness = GameConfig.Art.Lighting.Brightness
+	Lighting.ExposureCompensation = GameConfig.Art.Lighting.Exposure
+	-- Current Roblox uses Realistic; older Studio builds expose the equivalent as Technology.Future.
+	local lightingOk, lightingError = pcall(function()
+		local properties = Lighting :: any
+		properties.LightingStyle = Enum.LightingStyle.Realistic
+		properties.PrioritizeLightingQuality = true
+	end)
+	if not lightingOk then
+		warn(`[Gala] Set LightingStyle to Realistic (or legacy Technology to Future) in Properties: {lightingError}`)
+	end
 	-- Bloom so neon and lit windows glow; thin air and haze, as the Gala is high above the city, whose glow lights the
 	-- horizon orange. Lighting.Technology cannot be set from a script: set it to Future in Studio (Lighting properties).
 	for _, name in { "GalaAtmosphere", "GalaBloom", "GalaGrade" } do
@@ -4155,15 +4205,18 @@ function Build.run()
 	atmosphere.Parent = Lighting
 	local bloom = Instance.new("BloomEffect")
 	bloom.Name = "GalaBloom"
-	bloom.Intensity = 0.6
+	bloom.Intensity = GameConfig.Art.Lighting.BloomIntensity
 	bloom.Size = 24
-	bloom.Threshold = 0.9
+	bloom.Threshold = GameConfig.Art.Lighting.BloomThreshold
 	bloom.Parent = Lighting
 	local grade = Instance.new("ColorCorrectionEffect")
 	grade.Name = "GalaGrade"
-	grade.Contrast = 0.08
-	grade.Saturation = 0.05
+	grade.Contrast = GameConfig.Art.Lighting.Contrast
+	grade.Saturation = GameConfig.Art.Lighting.Saturation
+	grade.TintColor = GameConfig.Art.Lighting.Tint
 	grade.Parent = Lighting
+
+	Art.apply(root)
 
 	-- Checks -----------------------------------------------------------------------------------------------------------------------------------
 	local function count(tagName: string): number

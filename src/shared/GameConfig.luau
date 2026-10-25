@@ -11,6 +11,79 @@
 local DeepFreeze = require(script.Parent.Util.DeepFreeze)
 
 local GameConfig = {
+	-- Ticket gala-art-direction: numerical art targets; exact PBR maps are installed in Studio.
+	Art = {
+		Materials = {
+			Ivory = {
+				Color = Color3.fromHex("EFE8DA"),
+				Base = Enum.Material.SmoothPlastic,
+				Roughness = 0.78,
+				Metalness = 0,
+			},
+			Walnut = {
+				Color = Color3.fromHex("2A1B15"),
+				Base = Enum.Material.SmoothPlastic,
+				Roughness = 0.42,
+				Metalness = 0,
+			},
+			Brass = { Color = Color3.fromHex("C89D54"), Base = Enum.Material.Metal, Roughness = 0.22, Metalness = 0.92 },
+			Steel = {
+				Color = Color3.fromHex("1E242B"),
+				Base = Enum.Material.SmoothPlastic,
+				Roughness = 0.72,
+				Metalness = 0.8,
+			},
+			Velvet = {
+				Color = Color3.fromHex("581825"),
+				Base = Enum.Material.SmoothPlastic,
+				Roughness = 0.9,
+				Metalness = 0,
+			},
+			Suit = { Color = Color3.new(1, 1, 1), Base = Enum.Material.SmoothPlastic, Roughness = 0.82, Metalness = 0 },
+		},
+		Emerald = Color3.fromHex("12382F"),
+		Glass = {
+			Color = Color3.fromHex("DCE6E8"),
+			Transparency = 0.35,
+			PatternStrokePixels = 3,
+			PatternTransparency = 0.35,
+			PatternLightInfluence = 0.65,
+		},
+		MaterialTileStuds = 16,
+		ClearanceCyan = Color3.fromHex("2CE8F5"),
+		ClearanceStripPixels = 5,
+		BadgeSize = Vector3.new(0.16, 0.32, 0.06),
+		BadgeOffset = CFrame.new(0.55, 0.3, -0.16),
+		LapelAngleDegrees = 18,
+		LapelWidth = 0.26,
+		PanelHeightStuds = 6,
+		PanelDepthStuds = 0.08,
+		LampRimSize = Vector3.new(3.5, 0.18, 3.5),
+		LampRimLift = 0.22,
+		ImpactPoolSize = 16,
+		ImpactSpokes = 4,
+		ImpactLength = 0.4,
+		ImpactWidth = 0.035,
+		ImpactSoundGap = 0.08,
+		Lighting = {
+			Ambient = Color3.fromHex("181C24"),
+			OutdoorAmbient = Color3.fromHex("1D283A"),
+			LowAmbient = Color3.fromHex("47434D"),
+			LowOutdoorAmbient = Color3.fromHex("3D4B62"),
+			Top = Color3.fromHex("FFE8C2"),
+			Key = Color3.fromRGB(255, 184, 123), -- approximate 3200 K RGB
+			Brightness = 2.2,
+			Exposure = 0.1,
+			BloomIntensity = 0.35,
+			BloomThreshold = 1.8,
+			Contrast = 0.12,
+			Saturation = 0.05,
+			Tint = Color3.fromHex("FFFBF2"),
+			LampBrightness = 1.2,
+			LampRange = 30,
+		},
+		-- SPEC-QUESTION: initial surface/lighting tuning for unspecified steel, velvet and suit roughness; review in Studio.
+	},
 	-- Spec 2: phase timeline. All times in seconds.
 	Match = {
 		LobbySeconds = 30,
@@ -525,12 +598,12 @@ local GameConfig = {
 			},
 			HitSoundVolume = 0.6,
 			HeadshotPitch = 1.3,
-			DamageIndicatorSeconds = 1.2,
+			DamageIndicatorSeconds = 0.22,
 			DamageIndicatorPixels = 90, -- distance of the marker from the centre of the screen
 			DamageIndicatorColor = Color3.fromRGB(235, 60, 60),
 			ImpactSound = "rbxassetid://85805517776968",
 			ImpactParticles = 6,
-			ImpactSeconds = 0.4,
+			ImpactSeconds = 0.2,
 			ShotVolume = 0.8,
 			ShotRollOff = 8, -- studs: the shot sound is full volume within this and fades to nothing at its hearing range
 			MeleeSound = "rbxassetid://113744400706298",
@@ -712,14 +785,23 @@ local GameConfig = {
 		HudThemeId = "Gala",
 		HudThemes = {
 			Gala = {
-				PanelColor = Color3.fromRGB(24, 29, 34),
-				BorderColor = Color3.fromRGB(128, 111, 77),
-				AccentColor = Color3.fromRGB(227, 188, 101),
+				PanelColor = Color3.fromHex("F4EFE6"),
+				PanelTransparency = 0.08,
+				TextColor = Color3.fromHex("1A1918"),
+				DimTextColor = Color3.fromRGB(84, 78, 67),
+				Font = Enum.Font.GothamMedium,
+				BorderColor = Color3.fromHex("B88E44"),
+				BorderTransparency = 0,
+				AccentColor = Color3.fromHex("B88E44"),
 				CornerPixels = 3,
 			},
 		},
 		-- Ticket HUD refresh: code-drawn graphics need no uploaded images; numbers remain authoritative.
 		GraphicHud = {
+			-- Ticket gala-art-direction: skins can set legible ink and typography independently of world markers.
+			TextColor = Color3.fromRGB(240, 240, 245),
+			DimTextColor = Color3.fromRGB(150, 150, 160),
+			Font = Enum.Font.GothamMedium,
 			AccentColor = Color3.fromRGB(108, 154, 165),
 			AccentWidthFraction = 0.24,
 			AccentThicknessPixels = 2,
@@ -787,9 +869,9 @@ local GameConfig = {
 		},
 		WarningColor = Color3.fromRGB(245, 150, 40), -- the restricted-area warning
 		GlowPixels = 90, -- how far in from the screen edge an edge glow reaches
-		ExposedFlashSeconds = 0.5,
+		ExposedFlashSeconds = 0.18,
 		ExposedTextSeconds = 2,
-		ExposedVignetteSeconds = 3,
+		ExposedVignetteSeconds = 0.22,
 		ExposedFlashTransparency = 0.5, -- the full-screen flash when you are exposed
 		PingFlashTransparency = 0.85, -- the fainter flash when an enemy within range is exposed
 		SenseGlowTransparency = 0.85, -- the very faint edge glow for an exposed enemy close by (STEP7 G2)

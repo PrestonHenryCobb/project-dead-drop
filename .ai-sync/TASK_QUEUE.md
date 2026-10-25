@@ -138,6 +138,12 @@ Owner requested this area split while Claude was unavailable. Full source eviden
 | R6-charged-melee | Implemented by Codex in co-owned 8.22: valid press begins hold without initial strike; outside it tap/charge attacks on release, server-timed 35/50 at 0.75 s. Cancellation, cooldown and team guards; shared geometry/HUD. Partial holds use 35 until full (SPEC-QUESTION). | CODEX + CLAUDE_CODE review | Studio acceptance / code review | READY_FOR_REVIEW |
 | 21-takedown-cosmetics | First-person shop/Dossier cosmetics play only after server-confirmed down/elimination, not nonlethal 90 damage. No stats/timing advantage. Front/rear/side knockdowns are separate baseline animations for NPCs and players. | CODEX + CLAUDE_CODE | Success contract; shop/progression; original animation assets | BLOCKED |
 
+## Gala art direction (owner-authorized, 2026-10-25)
+
+| Id | Ticket | Owner | Needs | Status |
+|---|---|---|---|---|
+| gala-art-direction | Owner-authorized Direction 1 Gala art, parchment HUD, material import pack, weapons and shared disguise parity; preserve tier colors with cyan accents. | CODEX | Art refs + 2026-10-25 owner direction; docs/GALA_ART_REVIEW.md | READY_FOR_REVIEW (source pass; uploads/meshes pending) |
+
 ## Waiting on the owner
 
 All 35 prompt-review topics are answered or explicitly preserved. Owner priority: reported bugs first, then combat/

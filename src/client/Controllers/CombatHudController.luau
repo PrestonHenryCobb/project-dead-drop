@@ -179,7 +179,7 @@ local function build()
 		"Bullet",
 		UDim2.fromOffset(graphics.PaddingPixels, graphics.PaddingPixels * 3),
 		graphics.IconPixels,
-		ui.TextColor
+		graphics.TextColor
 	)
 	weaponCaption = HudKit.text(
 		ammoPanel,
@@ -189,7 +189,7 @@ local function build()
 		UDim2.new(1, -graphics.PaddingPixels * 2, 0, graphics.CaptionSize)
 	)
 	weaponCaption.TextSize = graphics.CaptionSize
-	weaponCaption.TextColor3 = ui.DimTextColor
+	weaponCaption.TextColor3 = graphics.DimTextColor
 	weaponCaption.TextXAlignment = Enum.TextXAlignment.Right
 	local ammo = HudKit.text(
 		ammoPanel,
@@ -242,7 +242,7 @@ local function updateCrosshair(viewportHeight: number)
 	end
 	if ammoText then
 		ammoText.Text = `{status.mag} / {status.reserve}`
-		ammoText.TextColor3 = if status.mag == 0 then feedback.LowHealthColor else ui.TextColor
+		ammoText.TextColor3 = if status.mag == 0 then feedback.LowHealthColor else graphics.TextColor
 	end
 	if weaponCaption then
 		weaponCaption.Text = status.name
@@ -301,7 +301,7 @@ local function updateVitals(dt: number, now: number)
 		healthFill.Size = UDim2.fromScale(math.clamp(shownHP, 0, 1), 1)
 		local color = if fraction <= feedback.LowHealthFraction then feedback.LowHealthColor else feedback.HealthColor
 		healthFill.BackgroundColor3 = color
-		healthText.TextColor3 = if fraction <= feedback.LowHealthFraction then color else ui.TextColor
+		healthText.TextColor3 = if fraction <= feedback.LowHealthFraction then color else graphics.TextColor
 	end
 	for index, fill in plates do
 		fill.Size = UDim2.fromScale(math.clamp((shownArmor - (index - 1) * combat.PlateHP) / combat.PlateHP, 0, 1), 1)

@@ -9,6 +9,8 @@
 -- The model must be parented in the DataModel (Humanoid:AddAccessory needs it).
 
 local Types = require(script.Parent.Parent.Types)
+local GameConfig = require(script.Parent.Parent.GameConfig)
+local ArtSurface = require(script.Parent.ArtSurface)
 
 type OutfitDef = Types.OutfitDef
 
@@ -25,6 +27,7 @@ local function setColor(model: Model, partName: string, color: Color3)
 	local part = model:FindFirstChild(partName)
 	if part and part:IsA("BasePart") then
 		part.Color = color
+		ArtSurface.apply(part, "Suit", true)
 	end
 end
 
@@ -33,6 +36,7 @@ local function newPart(name: string, size: Vector3, color: Color3, shape: Enum.P
 	part.Name = name
 	part.Size = size
 	part.Color = color
+	ArtSurface.apply(part, "Suit", true)
 	part.CanCollide = false
 	part.CanQuery = false
 	part.CanTouch = false
@@ -89,10 +93,14 @@ local function buildAccessory(kind: Types.AccessoryKind, color: Color3): Accesso
 		local accessory = newAccessory(
 			"Lapels",
 			"BodyFrontAttachment",
-			newPart("Handle", Vector3.new(0.3, 1.5, 0.12), color),
-			CFrame.new(-0.55, 0.05, -0.08)
+			newPart("Handle", Vector3.new(GameConfig.Art.LapelWidth, 1.5, 0.12), color),
+			CFrame.new(-0.55, 0.05, -0.08) * CFrame.Angles(0, 0, math.rad(-GameConfig.Art.LapelAngleDegrees))
 		)
-		addExtra(accessory, newPart("LapelRight", Vector3.new(0.3, 1.5, 0.12), color), CFrame.new(1.1, 0, 0))
+		addExtra(
+			accessory,
+			newPart("LapelRight", Vector3.new(GameConfig.Art.LapelWidth, 1.5, 0.12), color),
+			CFrame.new(1.1, 0, 0) * CFrame.Angles(0, 0, math.rad(GameConfig.Art.LapelAngleDegrees * 2))
+		)
 		return accessory
 	elseif kind == "PocketSquare" then
 		return newAccessory(
@@ -211,6 +219,15 @@ function OutfitApplier.apply(model: Model, outfit: OutfitDef)
 			scale.Value = value
 		end
 	end
+
+	-- Identical clearance accent for both player disguises and NPC outfits; no identity metadata.
+	local badge = newAccessory(
+		"ClearanceAccent",
+		"BodyFrontAttachment",
+		newPart("Handle", GameConfig.Art.BadgeSize, GameConfig.Art.ClearanceCyan),
+		GameConfig.Art.BadgeOffset
+	)
+	humanoid:AddAccessory(badge)
 
 	local hair = buildHair(outfit.Hair.Style, outfit.Hair.Color)
 	if hair then

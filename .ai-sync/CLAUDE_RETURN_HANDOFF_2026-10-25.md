@@ -213,3 +213,18 @@ currency. Menu tabs are Play/Agents/Assets/Dossiers/Black Market/Profile; Stocks
 perks found in matches, not permanent combat power. Keep limb damage equal to body damage. The lobby firing range
 must show actual server-confirmed results, not imported sample numbers or an invented limb multiplier. Core roster,
 gadget pool, controls and shop rotation remain preserved by the earlier owner instruction.
+
+## Gala art direction source pass (owner requested, 2026-10-25)
+
+Read docs/GALA_ART_REVIEW.md before changing art/rigs. Direction 1 cinematic sculpted Art Deco wins; keep existing tier
+colors with CYAN accents (owner clarification). Parchment/ink HUD supersedes Gala dark glass. ArtSurface is shared by
+NPC/player outfit application; preserve identical structures, shading and physical properties. Source map finishes,
+lighting, gun materials and pooled sparks are implemented; no server mechanics/remotes changed. Material import pack
+has real generated PNGs but NO uploaded IDs. Native fallback is intentional and must not be called exact PBR.
+
+Remaining asset work: original sculpted facial planes, beveled collars, tapered torso meshes, low-poly fluted architecture,
+chandeliers and velvet seating, shared by NPCs and players, with unchanged joints/hitboxes and 200-NPC profiling.
+Current native R15 faces/torso are retained; angled block lapels are not a completed sculpted rig. Coordinate the mesh
+import/rig pass after owner Studio source review; do not independently change disguise proportions or revive stepped
+motion. Existing NPC ground/tier, ordinary doors and animation tickets remain separate. Use fresh-clone map/material
+commands in the review doc so cached GameConfig cannot silently supply old art values.

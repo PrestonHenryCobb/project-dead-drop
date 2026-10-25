@@ -1,0 +1,60 @@
+{
+  "size": 1024,
+  "encoding": "8-bit RGB; grayscale PBR data; flat OpenGL normal; no baked shadows",
+  "materials": {
+    "Ivory": {
+      "color": "#EFE8DA",
+      "roughness": 0.78,
+      "metalness": 0,
+      "ColorMap": "neutral-albedo.png",
+      "NormalMap": "flat-normal.png",
+      "RoughnessMap": "roughness-199.png",
+      "MetalnessMap": "metalness-0.png"
+    },
+    "Walnut": {
+      "color": "#2A1B15",
+      "roughness": 0.42,
+      "metalness": 0,
+      "ColorMap": "walnut-albedo.png",
+      "NormalMap": "flat-normal.png",
+      "RoughnessMap": "roughness-107.png",
+      "MetalnessMap": "metalness-0.png"
+    },
+    "Brass": {
+      "color": "#C89D54",
+      "roughness": 0.22,
+      "metalness": 0.92,
+      "ColorMap": "neutral-albedo.png",
+      "NormalMap": "flat-normal.png",
+      "RoughnessMap": "roughness-56.png",
+      "MetalnessMap": "metalness-235.png"
+    },
+    "Steel": {
+      "color": "#1E242B",
+      "roughness": 0.72,
+      "metalness": 0.8,
+      "ColorMap": "neutral-albedo.png",
+      "NormalMap": "flat-normal.png",
+      "RoughnessMap": "roughness-184.png",
+      "MetalnessMap": "metalness-204.png"
+    },
+    "Velvet": {
+      "color": "#581825",
+      "roughness": 0.9,
+      "metalness": 0,
+      "ColorMap": "neutral-albedo.png",
+      "NormalMap": "flat-normal.png",
+      "RoughnessMap": "roughness-230.png",
+      "MetalnessMap": "metalness-0.png"
+    },
+    "Suit": {
+      "color": "retain outfit palette",
+      "roughness": 0.82,
+      "metalness": 0,
+      "ColorMap": "neutral-albedo.png",
+      "NormalMap": "flat-normal.png",
+      "RoughnessMap": "roughness-209.png",
+      "MetalnessMap": "metalness-0.png"
+    }
+  }
+}

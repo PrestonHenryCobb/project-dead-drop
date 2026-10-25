@@ -116,6 +116,12 @@ local function apply(settings: LevelConfig)
 		end
 	end
 	Lighting.GlobalShadows = settings.Shadows
+	-- Ticket gala-art-direction: preserve warm/cool readability when dynamic lights/shadows are reduced.
+	local low = settings == levels.Low
+	Lighting.Ambient = if low then GameConfig.Art.Lighting.LowAmbient else GameConfig.Art.Lighting.Ambient
+	Lighting.OutdoorAmbient = if low
+		then GameConfig.Art.Lighting.LowOutdoorAmbient
+		else GameConfig.Art.Lighting.OutdoorAmbient
 	local bloom = Lighting:FindFirstChild("GalaBloom")
 	if bloom and bloom:IsA("BloomEffect") then
 		bloom.Enabled = settings.Bloom
