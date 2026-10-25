@@ -38,6 +38,9 @@ local sendElapsed = 0
 local target: Model? = nil
 local holding = false
 local bound = false
+local bodySight = RaycastParams.new()
+bodySight.CollisionGroup = GameConfig.Rig.CollisionGroup
+bodySight.RespectCanCollide = true
 
 local function loadTracks(character: Model)
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -140,7 +143,7 @@ local function findBody(): Model?
 				local offset = root.Position - myRoot.Position
 				if offset.Magnitude <= config.InteractStuds then
 					local dot = (root.Position - camera.CFrame.Position).Unit:Dot(look)
-					if dot >= bestDot then
+					if dot >= bestDot and workspace:Raycast(myRoot.Position, offset, bodySight) == nil then
 						best, bestDot = model, dot
 					end
 				end
@@ -195,6 +198,11 @@ local function silenceDeathSound(instance: Instance)
 end
 
 function DownedController.Init() end
+
+-- Ticket 9b-hud: a generic interaction opportunity; only the server tells whether the hold revives or executes.
+function DownedController.hasBodyTarget(): boolean
+	return not isDowned and target ~= nil
+end
 
 function DownedController.Start()
 	RemoteController.connect("Downed", function()

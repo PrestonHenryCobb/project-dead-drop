@@ -10,6 +10,7 @@ local Players = game:GetService("Players")
 local GameConfig = require(script.Parent.Parent.GameConfig)
 
 local ui = GameConfig.UI
+local graphics = ui.GraphicHud
 
 export type EdgeGlow = {
 	setSide: (side: string, transparency: number) -> (), -- "Top", "Bottom", "Left" or "Right"
@@ -17,6 +18,102 @@ export type EdgeGlow = {
 }
 
 local HudKit = {}
+
+-- Ticket HUD refresh: normalized vector strokes, built once. These are drawing coordinates, not gameplay tunables.
+local ICONS: { [string]: { { number } } } = {
+	Alarm = {
+		{ 0.5, 0.08, 0.92, 0.86 },
+		{ 0.92, 0.86, 0.08, 0.86 },
+		{ 0.08, 0.86, 0.5, 0.08 },
+		{ 0.5, 0.35, 0.5, 0.57 },
+		{ 0.5, 0.69, 0.5, 0.72 },
+	},
+	Health = { { 0.5, 0.12, 0.5, 0.88 }, { 0.12, 0.5, 0.88, 0.5 } },
+	Badge = {
+		{ 0.08, 0.18, 0.92, 0.18 },
+		{ 0.92, 0.18, 0.92, 0.82 },
+		{ 0.92, 0.82, 0.08, 0.82 },
+		{ 0.08, 0.82, 0.08, 0.18 },
+		{ 0.3, 0.37, 0.3, 0.45 },
+		{ 0.22, 0.64, 0.38, 0.64 },
+		{ 0.56, 0.4, 0.78, 0.4 },
+		{ 0.56, 0.6, 0.78, 0.6 },
+	},
+	Bullet = {
+		{ 0.3, 0.82, 0.7, 0.82 },
+		{ 0.3, 0.82, 0.3, 0.3 },
+		{ 0.7, 0.82, 0.7, 0.3 },
+		{ 0.3, 0.3, 0.5, 0.08 },
+		{ 0.5, 0.08, 0.7, 0.3 },
+		{ 0.3, 0.65, 0.7, 0.65 },
+	},
+	Eye = {
+		{ 0.05, 0.5, 0.3, 0.23 },
+		{ 0.3, 0.23, 0.7, 0.23 },
+		{ 0.7, 0.23, 0.95, 0.5 },
+		{ 0.95, 0.5, 0.7, 0.77 },
+		{ 0.7, 0.77, 0.3, 0.77 },
+		{ 0.3, 0.77, 0.05, 0.5 },
+		{ 0.5, 0.38, 0.5, 0.62 },
+	},
+}
+
+function HudKit.panel(parent: Instance, name: string, position: UDim2, anchor: Vector2, size: UDim2): Frame
+	local root = Instance.new("Frame")
+	root.Name = name
+	root.BackgroundTransparency = 1
+	root.Position, root.AnchorPoint, root.Size = position, anchor, size
+	root.Parent = parent
+	local shadow = Instance.new("Frame")
+	shadow.Name = "Shadow"
+	shadow.Position = UDim2.fromOffset(graphics.ShadowOffsetPixels, graphics.ShadowOffsetPixels)
+	shadow.Size = UDim2.fromScale(1, 1)
+	shadow.BorderSizePixel = 0
+	shadow.BackgroundColor3 = Color3.new(0, 0, 0)
+	shadow.BackgroundTransparency = graphics.ShadowTransparency
+	shadow.Parent = root
+	local back = Instance.new("Frame")
+	back.Name = "Backdrop"
+	back.Size = UDim2.fromScale(1, 1)
+	back.BorderSizePixel = 0
+	back.BackgroundColor3 = graphics.PanelColor
+	back.BackgroundTransparency = graphics.PanelTransparency
+	back.Parent = root
+	for _, frame in { shadow, back } do
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, graphics.CornerPixels)
+		corner.Parent = frame
+	end
+	local border = Instance.new("UIStroke")
+	border.Color = graphics.BorderColor
+	border.Transparency = graphics.BorderTransparency
+	border.Thickness = graphics.StrokePixels
+	border.Parent = back
+	return back
+end
+
+function HudKit.icon(parent: Instance, name: string, position: UDim2, pixels: number, color: Color3): Frame
+	local segments = ICONS[name]
+	assert(segments, `Unknown HUD icon {name}`)
+	local root = Instance.new("Frame")
+	root.Name = name .. "Icon"
+	root.BackgroundTransparency = 1
+	root.Position = position
+	root.Size = UDim2.fromOffset(pixels, pixels)
+	root.Parent = parent
+	for _, points in segments do
+		local x, y = points[3] - points[1], points[4] - points[2]
+		local line = Instance.new("Frame")
+		line.AnchorPoint = Vector2.new(0.5, 0.5)
+		line.Position = UDim2.fromScale((points[1] + points[3]) / 2, (points[2] + points[4]) / 2)
+		line.Size = UDim2.fromOffset(math.sqrt(x * x + y * y) * pixels, pixels * graphics.IconStrokeFraction)
+		line.Rotation = math.deg(math.atan2(y, x))
+		line.BackgroundColor3 = color
+		line.BorderSizePixel = 0
+		line.Parent = root
+	end
+	return root
+end
 
 function HudKit.screen(name: string): ScreenGui
 	local gui = Instance.new("ScreenGui")

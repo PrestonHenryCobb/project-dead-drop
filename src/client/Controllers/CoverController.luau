@@ -13,18 +13,25 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local HudKit = require(Shared:WaitForChild("Util"):WaitForChild("HudKit"))
+local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local RemoteController = require(script.Parent.RemoteController)
 
 type Ping = { position: Vector3, expires: number, label: TextLabel }
 
 local CoverController = {}
+local janitor = Janitor.new()
 
 local ui = GameConfig.UI
+local graphics = ui.GraphicHud
 local cover = GameConfig.Cover
 local localPlayer = Players.LocalPlayer
 
 local gui: ScreenGui? = nil
 local panel: TextLabel? = nil
+local alarmLabel: TextLabel? = nil
+local alarmPips: { Frame } = {}
+local coverRoot: Frame? = nil
+local alive = true
 local stateLabel: TextLabel? = nil
 local meterFill: Frame? = nil
 local warning: TextLabel? = nil
@@ -48,6 +55,7 @@ local pings: { Ping } = {}
 
 local function build()
 	local screen = HudKit.screen("CoverHud")
+	janitor:Add(screen)
 	gui = screen
 
 	local flashFrame = Instance.new("Frame")
@@ -65,36 +73,109 @@ local function build()
 	debugPanel.TextXAlignment = Enum.TextXAlignment.Left
 	debugPanel.TextYAlignment = Enum.TextYAlignment.Top
 	debugPanel.TextSize = ui.TextSize - 4
+	debugPanel.Visible = graphics.ShowDiagnostics
 	panel = debugPanel
+	local alarmPanel = HudKit.panel(
+		screen,
+		"Alarm",
+		UDim2.fromOffset(graphics.MarginPixels, graphics.MarginPixels),
+		Vector2.zero,
+		UDim2.fromOffset(graphics.VitalsWidthPixels, graphics.CoverHeightPixels)
+	)
+	HudKit.icon(
+		alarmPanel,
+		"Alarm",
+		UDim2.fromOffset(graphics.PaddingPixels, graphics.PaddingPixels),
+		graphics.IconPixels,
+		ui.WarningColor
+	)
+	alarmLabel = HudKit.text(
+		alarmPanel,
+		"Level",
+		UDim2.fromOffset(graphics.PaddingPixels * 2 + graphics.IconPixels, graphics.PaddingPixels),
+		Vector2.zero,
+		UDim2.new(1, -graphics.PaddingPixels * 3 - graphics.IconPixels, 0, graphics.IconPixels)
+	)
+	alarmLabel.TextSize = graphics.CaptionSize
+	local alarmLevels = GameConfig.Security.Alarm.MaxLevel
+	for index = 1, alarmLevels do
+		local pip = Instance.new("Frame")
+		pip.BorderSizePixel = 0
+		pip.Size = UDim2.new(1 / alarmLevels, -graphics.PaddingPixels, 0, graphics.ReloadBarPixels)
+		pip.Position = UDim2.new((index - 1) / alarmLevels, graphics.PaddingPixels, 1, -graphics.PaddingPixels)
+		pip.Parent = alarmPanel
+		alarmPips[index] = pip
+	end
 
-	-- The meter (spec 21): state text above a bar that fills left to right.
+	-- Ticket HUD refresh: one eye, one state word and one meter replace the persistent diagnostics block.
+	local coverPanel = HudKit.panel(
+		screen,
+		"Cover",
+		UDim2.new(0.5, 0, 1, -graphics.CoverBottomPixels),
+		Vector2.new(0.5, 1),
+		UDim2.fromOffset(graphics.CoverWidthPixels, graphics.CoverHeightPixels)
+	)
+	coverRoot = coverPanel.Parent :: Frame
+	HudKit.icon(
+		coverPanel,
+		"Eye",
+		UDim2.fromOffset(graphics.PaddingPixels, graphics.PaddingPixels),
+		graphics.IconPixels,
+		ui.TextColor
+	)
 	local meterBack = Instance.new("Frame")
 	meterBack.Name = "Meter"
 	meterBack.AnchorPoint = Vector2.new(0.5, 1)
-	meterBack.Position = UDim2.new(0.5, 0, 1, -24)
-	meterBack.Size = UDim2.fromOffset(ui.MeterWidthPixels, ui.MeterHeightPixels)
+	meterBack.Position = UDim2.new(0.5, 0, 1, -graphics.PaddingPixels)
+	meterBack.Size = UDim2.fromOffset(graphics.CoverWidthPixels - graphics.PaddingPixels * 2, ui.MeterHeightPixels)
 	meterBack.BackgroundColor3 = ui.ScanRingDimColor
 	meterBack.BorderSizePixel = 0
-	meterBack.Parent = screen
+	meterBack.Parent = coverPanel
 	local fill = Instance.new("Frame")
 	fill.Name = "Fill"
 	fill.Size = UDim2.fromScale(0, 1)
 	fill.BorderSizePixel = 0
 	fill.Parent = meterBack
 	meterFill = fill
-	stateLabel = HudKit.text(screen, "State", UDim2.new(0.5, 0, 1, -38), Vector2.new(0.5, 1), UDim2.fromOffset(300, 24))
+	stateLabel = HudKit.text(
+		coverPanel,
+		"State",
+		UDim2.new(1, -graphics.PaddingPixels, 0, graphics.PaddingPixels),
+		Vector2.new(1, 0),
+		UDim2.fromOffset(
+			graphics.CoverWidthPixels - graphics.PaddingPixels * 3 - graphics.IconPixels,
+			graphics.IconPixels
+		)
+	)
 
-	local warningText =
-		HudKit.text(screen, "Warning", UDim2.new(0.5, 0, 0, 120), Vector2.new(0.5, 0), UDim2.fromOffset(500, 36))
+	local warningText = HudKit.text(
+		screen,
+		"Warning",
+		UDim2.new(0.5, 0, 0, 120),
+		Vector2.new(0.5, 0),
+		UDim2.fromOffset(graphics.ActionWidthPixels, graphics.PaddingPixels * 3)
+	)
 	warningText.TextColor3 = ui.WarningColor
-	warningText.TextSize = ui.TextSize + 10
+	warningText.TextSize = ui.TextSize
 	warningText.Visible = false
 	warning = warningText
 
-	local promptText =
-		HudKit.text(screen, "Prompt", UDim2.new(0.5, 0, 1, -80), Vector2.new(0.5, 1), UDim2.fromOffset(400, 24))
+	local promptText = HudKit.text(
+		screen,
+		"Prompt",
+		UDim2.new(0.5, 0, 1, -80),
+		Vector2.new(0.5, 1),
+		UDim2.fromOffset(graphics.ActionWidthPixels, graphics.PaddingPixels * 2)
+	)
 	promptText.Visible = false
 	prompt = promptText
+	for _, text in { warningText, promptText } do
+		text.BackgroundColor3 = graphics.PanelColor
+		text.BackgroundTransparency = graphics.PanelTransparency
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, graphics.CornerPixels)
+		corner.Parent = text
+	end
 
 	local bigText =
 		HudKit.text(screen, "Exposed", UDim2.fromScale(0.5, 0.3), Vector2.new(0.5, 0.5), UDim2.fromOffset(600, 80))
@@ -111,39 +192,50 @@ local function refreshText(now: number)
 		return
 	end
 	local color = ui.CoverColors[coverState]
+	if coverRoot then
+		coverRoot.Visible = alive
+	end
 	fill.BackgroundColor3 = color
 	fill.Size = UDim2.fromScale(math.clamp(suspicion.Value / cover.SuspicionMax, 0, 1), 1)
 	label.Text = string.upper(coverState)
 	label.TextColor3 = color
+	if alarmLabel then
+		alarmLabel.Text = `ALARM {alarm}`
+	end
+	for index, pip in alarmPips do
+		pip.BackgroundColor3 = if index <= alarm then ui.WarningColor else ui.ScanRingDimColor
+	end
 
 	local lockout = math.max(0, lockoutEndsAt - now)
-	local lines = {
-		`COVER {string.upper(coverState)}`,
-		`SUSPICION {suspicion.Value}%`,
-		`ZONE T{trespass.ZoneTier}  CLEARANCE T{trespass.Clearance}`,
-		`WITNESSES S{suspicion.Security} N{suspicion.Npc} C{suspicion.Camera}`,
-		`ALARM {alarm}`,
-	}
-	if lockout > 0 then
-		table.insert(lines, string.format("LOCKOUT %.1fs", lockout))
+	if debugPanel.Visible then
+		local lines = {
+			`COVER {string.upper(coverState)}`,
+			`SUSPICION {suspicion.Value}%`,
+			`ZONE T{trespass.ZoneTier}  CLEARANCE T{trespass.Clearance}`,
+			`WITNESSES S{suspicion.Security} N{suspicion.Npc} C{suspicion.Camera}`,
+			`ALARM {alarm}`,
+		}
+		if lockout > 0 then
+			table.insert(lines, string.format("LOCKOUT %.1fs", lockout))
+		end
+		debugPanel.Text = table.concat(lines, "\n")
 	end
-	debugPanel.Text = table.concat(lines, "\n")
 
 	-- The restricted-area warning is always up while above clearance; it says so when someone is watching.
 	local watched = suspicion.Security + suspicion.Npc + suspicion.Camera > 0
-	warn.Visible = trespass.Restricted and coverState ~= "Exposed"
-	warn.Text = if watched then "SUSPECTED: RESTRICTED AREA" else "RESTRICTED AREA"
+	warn.Visible = alive and trespass.Restricted and coverState ~= "Exposed"
+	warn.Text = if watched then `! SEEN / T{trespass.ZoneTier}` else `! RESTRICTED / T{trespass.ZoneTier}`
 
 	local waitSeconds = math.max(lockout, exposedMinEndsAt - now)
-	hint.Visible = coverState == "Exposed"
+	hint.Visible = alive and coverState == "Exposed"
 	if canRecover then
-		hint.Text = "COVER AVAILABLE [G]"
+		hint.Text = `[ {GameConfig.Controls.Disguise.Name} ] COVER`
 		hint.TextColor3 = ui.CoverColors.Covered
 	else
 		if blocker == "Zone" then
-			hint.Text = "LEAVE THE RESTRICTED AREA TO RE-COVER"
+			hint.Text = "EXIT RESTRICTED AREA"
 		elseif blocker == "Seen" then
-			hint.Text = "BREAK LINE OF SIGHT FROM GUARDS"
+			hint.Text = "BREAK SIGHT"
 		else
 			hint.Text = string.format("COVER IN %.0fs", math.max(waitSeconds, 0))
 		end
@@ -208,8 +300,17 @@ function CoverController.Init() end
 
 function CoverController.Start()
 	build()
+	janitor:Add(RemoteController.connect("Downed", function()
+		alive = false
+	end))
+	janitor:Add(RemoteController.connect("Eliminated", function()
+		alive = false
+	end))
+	janitor:Add(RemoteController.connect("Revived", function()
+		alive = true
+	end))
 
-	RemoteController.connect("CoverStateChanged", function(info: Types.CoverInfo)
+	janitor:Add(RemoteController.connect("CoverStateChanged", function(info: Types.CoverInfo)
 		local now = os.clock()
 		if info.State == "Exposed" and coverState ~= "Exposed" then
 			exposedAt = now
@@ -219,17 +320,17 @@ function CoverController.Start()
 		blocker = info.Blocker
 		lockoutEndsAt = now + info.LockoutSeconds
 		exposedMinEndsAt = now + info.ExposedMinSeconds
-	end)
-	RemoteController.connect("SuspicionUpdate", function(info: Types.SuspicionInfo)
+	end))
+	janitor:Add(RemoteController.connect("SuspicionUpdate", function(info: Types.SuspicionInfo)
 		suspicion = info
-	end)
-	RemoteController.connect("TrespassWarning", function(info: Types.TrespassInfo)
+	end))
+	janitor:Add(RemoteController.connect("TrespassWarning", function(info: Types.TrespassInfo)
 		trespass = info
-	end)
-	RemoteController.connect("AlarmLevel", function(level: number)
+	end))
+	janitor:Add(RemoteController.connect("AlarmLevel", function(level: number)
 		alarm = level
-	end)
-	RemoteController.connect("ExposedPing", function(info: { Position: Vector3, Seconds: number })
+	end))
+	janitor:Add(RemoteController.connect("ExposedPing", function(info: { Position: Vector3, Seconds: number })
 		local screen = gui
 		if not screen then
 			return
@@ -241,21 +342,25 @@ function CoverController.Start()
 		label.TextSize = ui.TextSize + 24
 		table.insert(pings, { position = info.Position, expires = os.clock() + info.Seconds, label = label })
 		pingFlashAt = os.clock() -- a fainter version of the flash you get when you are exposed yourself
-	end)
+	end))
 
 	-- A new body is Covered; the server sends the state again, but do not show the last life's.
-	localPlayer.CharacterAdded:Connect(function()
+	janitor:Add(localPlayer.CharacterAdded:Connect(function()
+		alive = true
 		coverState = "Covered"
 		canRecover = false
 		suspicion = { Value = 0, Security = 0, Npc = 0, Camera = 0 }
-	end)
+	end))
 
-	RunService.RenderStepped:Connect(function()
+	janitor:Add(RunService.RenderStepped:Connect(function()
 		local now = os.clock()
 		refreshText(now)
 		updateEffects(now)
 		updatePings(now)
-	end)
+	end))
+	janitor:Add(script.Destroying:Connect(function()
+		janitor:Destroy()
+	end))
 end
 
 return CoverController

@@ -20,13 +20,16 @@ local OutfitDefs = require(Shared:WaitForChild("Defs"):WaitForChild("OutfitDefs"
 local Types = require(Shared:WaitForChild("Types"))
 local Aim = require(Shared:WaitForChild("Util"):WaitForChild("Aim"))
 local HudKit = require(Shared:WaitForChild("Util"):WaitForChild("HudKit"))
+local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local PoseAnimation = require(Shared:WaitForChild("Util"):WaitForChild("PoseAnimation"))
 local RemoteController = require(script.Parent.RemoteController)
 local WeaponController = require(script.Parent.WeaponController)
 
 local DisguiseController = {}
+local janitor = Janitor.new()
 
 local ui = GameConfig.UI
+local graphics = ui.GraphicHud
 local controls = GameConfig.Controls
 local localPlayer = Players.LocalPlayer
 
@@ -38,12 +41,15 @@ local scanSeconds = 0
 local ringSegments: { Frame } = {}
 local centerDot: Frame? = nil
 local badge: TextLabel? = nil
+local storedBadge: TextLabel? = nil
+local tierPips: { Frame } = {}
 local toast: TextLabel? = nil
 local toastToken = 0
 local crouchTrack: AnimationTrack? = nil
 
 local function buildHud()
 	local gui = HudKit.screen("DisguiseHud")
+	janitor:Add(gui)
 
 	local dot = Instance.new("Frame")
 	dot.Name = "Dot"
@@ -71,10 +77,48 @@ local function buildHud()
 		table.insert(ringSegments, tick)
 	end
 
-	local badgeText = HudKit.text(gui, "Badge", UDim2.new(0, 16, 1, -16), Vector2.new(0, 1), UDim2.fromOffset(280, 44))
+	local badgePanel = HudKit.panel(
+		gui,
+		"Disguise",
+		UDim2.new(0, graphics.MarginPixels, 1, -graphics.CoverBottomPixels),
+		Vector2.new(0, 1),
+		UDim2.fromOffset(graphics.VitalsWidthPixels, graphics.PaddingPixels * 4)
+	)
+	HudKit.icon(
+		badgePanel,
+		"Badge",
+		UDim2.fromOffset(graphics.PaddingPixels, graphics.PaddingPixels),
+		graphics.IconPixels,
+		ui.TextColor
+	)
+	local badgeText = HudKit.text(
+		badgePanel,
+		"Badge",
+		UDim2.fromOffset(graphics.PaddingPixels * 2 + graphics.IconPixels, graphics.PaddingPixels / 2),
+		Vector2.zero,
+		UDim2.new(1, -graphics.PaddingPixels * 3 - graphics.IconPixels, 0, graphics.IconPixels)
+	)
 	badgeText.TextXAlignment = Enum.TextXAlignment.Left
-	badgeText.TextYAlignment = Enum.TextYAlignment.Bottom
+	badgeText.TextSize = graphics.CaptionSize
 	badge = badgeText
+	for index = 1, #GameConfig.Zones.TierPips do
+		local pip = Instance.new("Frame")
+		pip.BorderSizePixel = 0
+		pip.Size = UDim2.fromOffset(graphics.ReloadBarPixels, graphics.PaddingPixels)
+		pip.Position = UDim2.new(1, -graphics.PaddingPixels * index, 0, graphics.PaddingPixels / 2)
+		pip.Parent = badgePanel
+		tierPips[index] = pip
+	end
+	storedBadge = HudKit.text(
+		badgePanel,
+		"Stored",
+		UDim2.fromOffset(graphics.PaddingPixels * 2 + graphics.IconPixels, graphics.PaddingPixels * 2),
+		Vector2.zero,
+		UDim2.new(1, -graphics.PaddingPixels * 3 - graphics.IconPixels, 0, graphics.CaptionSize)
+	)
+	storedBadge.TextSize = graphics.CaptionSize
+	storedBadge.TextColor3 = ui.DimTextColor
+	storedBadge.TextXAlignment = Enum.TextXAlignment.Left
 
 	local toastText =
 		HudKit.text(gui, "Toast", UDim2.new(0.5, 0, 0, 80), Vector2.new(0.5, 0), UDim2.fromOffset(420, 24))
@@ -114,7 +158,16 @@ local function showDisguise(update: Types.DisguiseUpdate)
 	local stored = update.Slots[1]
 	local storedLine = if type(stored) == "string" then roleOf(stored) else "EMPTY"
 	local wornLine = if update.Exposed then "TRUE FORM" else roleOf(update.Worn)
-	text.Text = `WEARING {wornLine}\nSTORED {storedLine}`
+	text.Text = wornLine
+	local outfit = OutfitDefs.byId[update.Worn]
+	local tier = if outfit and not update.Exposed then outfit.Tier else 0
+	text.TextColor3 = if update.Exposed then ui.CoverColors.Exposed else GameConfig.Zones.TierColors[tier]
+	for index, pip in tierPips do
+		pip.BackgroundColor3 = if index <= tier then GameConfig.Zones.TierColors[tier] else ui.ScanRingDimColor
+	end
+	if storedBadge then
+		storedBadge.Text = `{controls.Disguise.Name} / {storedLine}`
+	end
 end
 
 local function setRing(progress: number?)
@@ -195,19 +248,28 @@ function DisguiseController.Start()
 	ContextActionService:BindAction("Disguise", onDisguise, false, controls.Disguise, controls.DisguisePad)
 	ContextActionService:BindAction("Sprint", onSprint, false, controls.Sprint)
 	ContextActionService:BindAction("Crouch", onCrouch, false, controls.Crouch)
+	janitor:Add(function()
+		for _, action in { "Scan", "Disguise", "Sprint", "Crouch" } do
+			ContextActionService:UnbindAction(action)
+		end
+		if crouchTrack then
+			crouchTrack:Stop()
+		end
+		toastToken += 1
+	end)
 
 	-- A new body starts standing.
-	localPlayer.CharacterAdded:Connect(function()
+	janitor:Add(localPlayer.CharacterAdded:Connect(function()
 		crouchTrack = nil
-	end)
+	end))
 
-	RemoteController.connect("DisguiseUpdate", function(update: Types.DisguiseUpdate)
+	janitor:Add(RemoteController.connect("DisguiseUpdate", function(update: Types.DisguiseUpdate)
 		showDisguise(update)
-	end)
-	RemoteController.connect("Notification", function(text: string)
+	end))
+	janitor:Add(RemoteController.connect("Notification", function(text: string)
 		showToast(text)
-	end)
-	RemoteController.connect("ScanState", function(info: { State: string, Seconds: number? })
+	end))
+	janitor:Add(RemoteController.connect("ScanState", function(info: { State: string, Seconds: number? })
 		if info.State == "Started" then
 			scanStartedAt = os.clock()
 			scanSeconds = info.Seconds or GameConfig.Cover.ScanSeconds
@@ -219,11 +281,12 @@ function DisguiseController.Start()
 				showToast("Disguise stored")
 			end
 		end
-	end)
+	end))
 
-	RunService.RenderStepped:Connect(function()
+	janitor:Add(RunService.RenderStepped:Connect(function()
 		if centerDot then
-			centerDot.Visible = not WeaponController.getStatus().attackBlocked
+			local status = WeaponController.getStatus()
+			centerDot.Visible = status.active and not status.attackBlocked
 		end
 		if scanHeld then
 			-- Tell the server what we are aiming at whenever it changes; it does the rest.
@@ -236,7 +299,10 @@ function DisguiseController.Start()
 		if scanStartedAt then
 			setRing(math.clamp((os.clock() - scanStartedAt) / scanSeconds, 0, 1))
 		end
-	end)
+	end))
+	janitor:Add(script.Destroying:Connect(function()
+		janitor:Destroy()
+	end))
 end
 
 return DisguiseController

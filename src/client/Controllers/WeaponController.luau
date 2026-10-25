@@ -32,10 +32,12 @@ local RemoteController = require(script.Parent.RemoteController)
 local HeldItemController = require(script.Parent.HeldItemController)
 
 export type Status = {
+	active: boolean, -- owner is alive and not downed/eliminated
 	name: string,
 	mag: number,
 	reserve: number,
 	reloading: boolean,
+	reloadProgress: number?, -- Ticket HUD refresh: the same predicted clock used by the view model
 	spreadDegrees: number, -- the cone a shot can land in now
 	weaponUp: boolean, -- aiming, exposed or just fired: the weapon is in hand
 	aiming: boolean,
@@ -347,10 +349,14 @@ function WeaponController.getStatus(): Status
 	local _, _, root = character()
 	local camera = workspace.CurrentCamera
 	return {
+		active = root ~= nil,
 		name = def.Name,
 		mag = mag,
 		reserve = reserve,
 		reloading = isReloading(now),
+		reloadProgress = if isReloading(now)
+			then math.clamp((now - reloadStartedAt) / def.ReloadSeconds, 0, 1)
+			else nil,
 		spreadDegrees = currentSpread(root),
 		weaponUp = root ~= nil and held and weaponUp(now),
 		aiming = aiming,

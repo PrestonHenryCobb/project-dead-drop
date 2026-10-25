@@ -63,6 +63,20 @@ local ok, failure = pcall(function()
 			end
 		end
 	end
+	-- Ticket 8.16: translating the camera must not drag a settled gun through world space. Use a separate
+	-- camera far from the map so the real collision sampler is clear, without changing the player's camera.
+	local fixtureCamera = Instance.new("Camera")
+	table.insert(fixtures, fixtureCamera)
+	fixtureCamera.CFrame = CFrame.new(10000, 10000, 10000)
+	for _, model in models do
+		model:update(fixtureCamera, 1, { pose = "Ready", speedFraction = 0 })
+		local beforeFrame = fixtureCamera.CFrame:ToObjectSpace(model.drawFrame)
+		fixtureCamera.CFrame += Vector3.new(20, 10, 5)
+		model:update(fixtureCamera, 1 / 60, { pose = "Ready", speedFraction = 0 })
+		local afterFrame = fixtureCamera.CFrame:ToObjectSpace(model.drawFrame)
+		check((afterFrame.Position - beforeFrame.Position).Magnitude < epsilon, "Camera translation dragged the gun")
+		check(model.drawScale <= GameConfig.Combat.Presentation.ViewDepthScale, "FPS model exceeded close-depth scale")
+	end
 	check(Placement.tuckFraction(GameConfig.Combat.Presentation.WallReachStuds) == 0, "Resting gun should not tuck")
 	check(Placement.tuckFraction(GameConfig.Combat.Presentation.FullTuckStuds) == 1, "Full tuck threshold incorrect")
 	check(

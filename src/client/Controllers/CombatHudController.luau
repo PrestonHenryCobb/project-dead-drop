@@ -13,6 +13,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local HudKit = require(Shared:WaitForChild("Util"):WaitForChild("HudKit"))
+local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local SoundPlayer = require(script.Parent.Parent:WaitForChild("Combat"):WaitForChild("SoundPlayer"))
 local RemoteController = require(script.Parent.RemoteController)
 local WeaponController = require(script.Parent.WeaponController)
@@ -20,16 +21,17 @@ local WeaponController = require(script.Parent.WeaponController)
 type Marker = { label: TextLabel, position: Vector3, expires: number }
 
 local CombatHudController = {}
+local janitor = Janitor.new()
 
 local combat = GameConfig.Combat
 local feedback = combat.Feedback
 local ui = GameConfig.UI
+local graphics = ui.GraphicHud
 local localPlayer = Players.LocalPlayer
 
-local BAR_WIDTH = 200
+local BAR_WIDTH = graphics.VitalsWidthPixels - graphics.PaddingPixels * 2
 local BAR_HEIGHT = 8
-local PLATE_WIDTH = 60
-local MARGIN = 24
+local MARGIN = graphics.MarginPixels
 local VITALS_BOTTOM = combat.Hud.VitalsBottomPixels
 local CROSSHAIR_THICKNESS = 2
 local TAKEDOWN_WIDTH = 160
@@ -55,6 +57,13 @@ local ammoText: TextLabel? = nil
 local takedownBack: Frame? = nil
 local takedownFill: Frame? = nil
 local obstruction: Frame? = nil
+local vitalsPanel: Frame? = nil
+local reloadFill: Frame? = nil
+local reloadBack: Frame? = nil
+local weaponCaption: TextLabel? = nil
+local shownHP = hp / combat.MaxHP
+local shownArmor = armor
+local damageAt = -math.huge
 
 local function bar(parent: Instance, name: string, color: Color3): Frame
 	local frame = Instance.new("Frame")
@@ -67,6 +76,7 @@ end
 
 local function build()
 	local gui = HudKit.screen("CombatHud")
+	janitor:Add(gui)
 	screen = gui
 	-- Ticket 8.15: the normal reticle is replaced, not overlaid, when the same attack gate reports obstruction.
 	local blocked = Instance.new("Frame")
@@ -116,31 +126,86 @@ local function build()
 		table.insert(hitmarkerBars, stroke)
 	end
 
-	local health = HudKit.text(
+	local vitals = HudKit.panel(
 		gui,
-		"Health",
-		UDim2.new(0, MARGIN, 1, -VITALS_BOTTOM - 28),
+		"Vitals",
+		UDim2.new(0, MARGIN, 1, -VITALS_BOTTOM + BAR_HEIGHT),
 		Vector2.new(0, 1),
-		UDim2.fromOffset(BAR_WIDTH, 24)
+		UDim2.fromOffset(graphics.VitalsWidthPixels, graphics.VitalsHeightPixels)
 	)
+	vitalsPanel = vitals
+	HudKit.icon(
+		vitals,
+		"Health",
+		UDim2.fromOffset(graphics.PaddingPixels, graphics.PaddingPixels),
+		graphics.IconPixels,
+		feedback.HealthColor
+	)
+	local health = HudKit.text(
+		vitals,
+		"Health",
+		UDim2.fromOffset(graphics.PaddingPixels * 2 + graphics.IconPixels, 0),
+		Vector2.zero,
+		UDim2.fromOffset(BAR_WIDTH - graphics.IconPixels, graphics.PaddingPixels * 3)
+	)
+	health.TextSize = graphics.NumberSize
 	health.TextXAlignment = Enum.TextXAlignment.Left
 	healthText = health
-	local back = bar(gui, "HealthBack", ui.ScanRingDimColor)
-	back.Position = UDim2.new(0, MARGIN, 1, -VITALS_BOTTOM - 14)
+	local back = bar(vitals, "HealthBack", ui.ScanRingDimColor)
+	back.Position = UDim2.fromOffset(graphics.PaddingPixels, graphics.PaddingPixels * 3)
 	back.Size = UDim2.fromOffset(BAR_WIDTH, BAR_HEIGHT)
 	healthFill = bar(back, "Fill", feedback.HealthColor)
 	for index = 1, combat.MaxPlates do
-		local plateBack = bar(gui, `PlateBack{index}`, ui.ScanRingDimColor)
-		plateBack.Position = UDim2.new(0, MARGIN + (index - 1) * (PLATE_WIDTH + 10), 1, -VITALS_BOTTOM)
-		plateBack.Size = UDim2.fromOffset(PLATE_WIDTH, BAR_HEIGHT)
+		local plateBack = bar(vitals, `PlateBack{index}`, ui.ScanRingDimColor)
+		local plateWidth = (BAR_WIDTH - graphics.PaddingPixels * (combat.MaxPlates - 1)) / combat.MaxPlates
+		plateBack.Position = UDim2.fromOffset(
+			graphics.PaddingPixels + (index - 1) * (plateWidth + graphics.PaddingPixels),
+			graphics.VitalsHeightPixels - graphics.PaddingPixels - BAR_HEIGHT
+		)
+		plateBack.Size = UDim2.fromOffset(plateWidth, BAR_HEIGHT)
 		plates[index] = bar(plateBack, "Fill", feedback.ArmorColor)
 	end
 
-	local ammo =
-		HudKit.text(gui, "Ammo", UDim2.new(1, -MARGIN, 1, -MARGIN), Vector2.new(1, 1), UDim2.fromOffset(260, 56))
+	local ammoPanel = HudKit.panel(
+		gui,
+		"Ammunition",
+		UDim2.new(1, -MARGIN, 1, -MARGIN),
+		Vector2.new(1, 1),
+		UDim2.fromOffset(graphics.AmmoWidthPixels, graphics.AmmoHeightPixels)
+	)
+	HudKit.icon(
+		ammoPanel,
+		"Bullet",
+		UDim2.fromOffset(graphics.PaddingPixels, graphics.PaddingPixels * 3),
+		graphics.IconPixels,
+		ui.TextColor
+	)
+	weaponCaption = HudKit.text(
+		ammoPanel,
+		"Weapon",
+		UDim2.fromOffset(graphics.PaddingPixels, graphics.PaddingPixels),
+		Vector2.zero,
+		UDim2.new(1, -graphics.PaddingPixels * 2, 0, graphics.CaptionSize)
+	)
+	weaponCaption.TextSize = graphics.CaptionSize
+	weaponCaption.TextColor3 = ui.DimTextColor
+	weaponCaption.TextXAlignment = Enum.TextXAlignment.Right
+	local ammo = HudKit.text(
+		ammoPanel,
+		"Ammo",
+		UDim2.new(1, -graphics.PaddingPixels, 1, -graphics.PaddingPixels * 2),
+		Vector2.new(1, 1),
+		UDim2.new(1, -graphics.PaddingPixels * 3 - graphics.IconPixels, 0, graphics.NumberSize)
+	)
+	ammo.TextSize = graphics.NumberSize
 	ammo.TextXAlignment = Enum.TextXAlignment.Right
 	ammo.TextYAlignment = Enum.TextYAlignment.Bottom
 	ammoText = ammo
+	local reload = bar(ammoPanel, "ReloadProgress", ui.ScanRingDimColor)
+	reload.Position = UDim2.new(0, graphics.PaddingPixels, 1, -graphics.PaddingPixels)
+	reload.Size = UDim2.new(1, -graphics.PaddingPixels * 2, 0, graphics.ReloadBarPixels)
+	reloadBack = reload
+	reloadFill = bar(reload, "Fill", feedback.ArmorColor)
 
 	local takedown = bar(gui, "TakedownBack", ui.ScanRingDimColor)
 	takedown.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -175,9 +240,15 @@ local function updateCrosshair(viewportHeight: number)
 		line.Position = if horizontal then UDim2.new(0.5, along, 0.5, 0) else UDim2.new(0.5, 0, 0.5, along)
 	end
 	if ammoText then
-		local line = `{status.name}\n{status.mag} / {status.reserve}`
-		ammoText.Text = if status.reloading then `{line}\nRELOADING` else line
+		ammoText.Text = `{status.mag} / {status.reserve}`
 		ammoText.TextColor3 = if status.mag == 0 then feedback.LowHealthColor else ui.TextColor
+	end
+	if weaponCaption then
+		weaponCaption.Text = status.name
+	end
+	if reloadBack and reloadFill then
+		reloadBack.Visible = status.reloading
+		reloadFill.Size = UDim2.fromScale(status.reloadProgress or 0, 1)
 	end
 end
 
@@ -213,21 +284,30 @@ local function updateMarkers(camera: Camera, now: number)
 	end
 end
 
-local function updateVitals()
+local function updateVitals(dt: number, now: number)
+	local settle = 1 - math.exp(-graphics.MeterSettleSpeed * dt)
+	shownHP += (hp / combat.MaxHP - shownHP) * settle
+	shownArmor += (armor - shownArmor) * settle
+	if vitalsPanel then
+		local pulse = math.clamp(1 - (now - damageAt) / graphics.DamagePulseSeconds, 0, 1)
+		vitalsPanel.BackgroundColor3 = graphics.PanelColor:Lerp(feedback.LowHealthColor, pulse)
+		vitalsPanel.BackgroundTransparency = graphics.PanelTransparency
+			+ (graphics.DamagePulseTransparency - graphics.PanelTransparency) * pulse
+	end
 	if healthText and healthFill then
 		local fraction = hp / combat.MaxHP
-		healthText.Text = `HP {math.ceil(hp)}`
-		healthFill.Size = UDim2.fromScale(fraction, 1)
+		healthText.Text = `{math.ceil(hp)}`
+		healthFill.Size = UDim2.fromScale(math.clamp(shownHP, 0, 1), 1)
 		local color = if fraction <= feedback.LowHealthFraction then feedback.LowHealthColor else feedback.HealthColor
 		healthFill.BackgroundColor3 = color
 		healthText.TextColor3 = if fraction <= feedback.LowHealthFraction then color else ui.TextColor
 	end
 	for index, fill in plates do
-		fill.Size = UDim2.fromScale(math.clamp((armor - (index - 1) * combat.PlateHP) / combat.PlateHP, 0, 1), 1)
+		fill.Size = UDim2.fromScale(math.clamp((shownArmor - (index - 1) * combat.PlateHP) / combat.PlateHP, 0, 1), 1)
 	end
 end
 
-local function update(_: number)
+local function update(dt: number)
 	local camera = workspace.CurrentCamera
 	if not (screen and camera) then
 		return
@@ -236,7 +316,7 @@ local function update(_: number)
 	updateCrosshair(camera.ViewportSize.Y)
 	updateHitmarker(now)
 	updateMarkers(camera, now)
-	updateVitals()
+	updateVitals(dt, now)
 	if takedownBack and takedownFill then
 		local started = takedownStartedAt
 		takedownBack.Visible = started ~= nil
@@ -285,20 +365,28 @@ function CombatHudController.Init() end
 function CombatHudController.Start()
 	build()
 	SoundPlayer.preload({ feedback.HitSounds.Npc, feedback.HitSounds.Agent, feedback.HitSounds.Head })
-	RemoteController.connect("HitConfirm", onHit)
-	RemoteController.connect("DamageTaken", onDamage)
-	RemoteController.connect("HealthUpdate", function(info: Types.HealthInfo)
+	janitor:Add(RemoteController.connect("HitConfirm", onHit))
+	janitor:Add(RemoteController.connect("DamageTaken", onDamage))
+	janitor:Add(RemoteController.connect("HealthUpdate", function(info: Types.HealthInfo)
+		if info.HP < hp or info.Armor < armor then
+			damageAt = os.clock()
+		end
 		hp, armor = info.HP, info.Armor
-	end)
-	RemoteController.connect("MeleeState", function(info: Types.MeleeState)
+	end))
+	janitor:Add(RemoteController.connect("MeleeState", function(info: Types.MeleeState)
 		takedownStartedAt = if info.Active then os.clock() else nil
 		takedownSeconds = info.Seconds
-	end)
-	localPlayer.CharacterAdded:Connect(function()
+	end))
+	janitor:Add(localPlayer.CharacterAdded:Connect(function()
 		hp, armor = combat.MaxHP, combat.StartPlates * combat.PlateHP
+		shownHP, shownArmor = hp / combat.MaxHP, armor
+		damageAt = -math.huge
 		takedownStartedAt = nil
-	end)
-	RunService.RenderStepped:Connect(update)
+	end))
+	janitor:Add(RunService.RenderStepped:Connect(update))
+	janitor:Add(script.Destroying:Connect(function()
+		janitor:Destroy()
+	end))
 end
 
 return CombatHudController
