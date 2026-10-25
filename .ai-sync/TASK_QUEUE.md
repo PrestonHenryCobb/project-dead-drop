@@ -17,10 +17,26 @@ Every ticket ends with the `CLAUDE.md` report, `stylua src` and `selene src` cle
 | 8.6 | SMG model in Blender for the owner to upload. | CLAUDE_CODE | Owner uploads | TODO |
 | 8.8 | First hit on a Covered or Suspicious agent uses body damage even on the head (SPEC_CHANGES 2026-10-24). | CLAUDE_CODE | | TODO |
 | 8.9 | Per-weapon `PostMeleeFireDelay` scaled to weapon strength (brief Q14): field in `WeaponDefs` (Codex), enforced on the server in `CombatService` (Claude Code). Values set case by case with each agent's weapons in 8.5. | CODEX + CLAUDE_CODE | 8.1 | TODO |
-| 8.10 | Ammo reconciliation in `WeaponController` (found in 8.1). Holding fire through a reload, the client completes the reload on its own clock and fires at once (mag 29), then the server's reload confirmation (`AmmoUpdate` Mag=30, ReloadSeconds=0) overwrites it, so the client counts one round too many. At the end of that magazine it fires one shot (sound, recoil) that the server rejects with Mag=0. Fix: keep the local count when an AmmoUpdate only confirms a reload the client already completed (same Reserve, Mag at or above the local one). | CODEX | | TODO |
+| 8.10 | Ammo reconciliation in `WeaponController` (found in 8.1). Holding fire through a reload, the client completes the reload on its own clock and fires at once (mag 29), then the server's reload confirmation (`AmmoUpdate` Mag=30, ReloadSeconds=0) overwrites it, so the client counts one round too many. At the end of that magazine it fires one shot (sound, recoil) that the server rejects with Mag=0. Fix: keep the local count when an AmmoUpdate only confirms a reload the client already completed (same Reserve, Mag at or above the local one). | CODEX | | READY_FOR_REVIEW |
+| 8.11 | Bullet tracers and muzzle flash for every weapon that is not `Quiet` (the suppressed SMG has neither, STEP8_QUESTIONS). Client only, from the existing data: your own shots from WeaponController's prediction, other players' from `ShotHeard` (Origin, Hit). Per-weapon look in `WeaponDefs`, shared numbers in `GameConfig.Combat.Feedback`. No server or remote changes. Runs alongside 8.5. | CODEX | | READY_FOR_REVIEW |
 | 8.7 | Step 8 end report (CLAUDE.md format). | CLAUDE_CODE | 8.1 to 8.6 | TODO |
 
 ## Step 8B: feel pass (after Step 8)
+<!-- Ticket 8.11 (CODEX, 2026-10-24): ShotVisuals preallocates 64 tracers and 24 flashes under a client-only
+workspace folder; Janitor owns the folder/connections. Quiet skips both. WeaponDefs contains default look and
+WeaponDef optional overrides; GameConfig.Feedback contains timing, pool sizes and remote muzzle offset.
+Own prediction uses ViewModel.Muzzle; ShotHeard uses an approximate held-gun origin. SPEC-QUESTION in
+ShotFxController: should tracers be visible beyond shot earshot? No server/Remotes changes.
+StyLua/Selene clean; Rojo build and git diff --check pass. Studio visuals unverified. To test Quiet=false without
+disk changes, break in client WeaponController before WeaponDefs require, edit the running client copy of
+ReplicatedStorage.Shared.Defs.WeaponDefs before it loads (the returned data is frozen), then resume.
+Repeat on both clients for Test > Clients 2 > Start; stay within 25 studs since server SMG remains Quiet.
+Stop discards runtime changes. Locks released; no commit/push. -->
+<!-- Ticket 8.10 (CODEX, 2026-10-24): WeaponController now tracks a locally completed reload and consumes
+its matching server confirmation once without restoring rounds already fired. Other corrections still apply;
+respawn clears the pending prediction. StyLua and Selene pass (0 errors/warnings); git diff --check passes.
+Owner reported 8.10 passes the Studio check on 2026-10-24.
+Locks released. Studio check passed per owner; awaiting commit confirmation. No commit made for 8.10. -->
 <!-- Ticket 8.3 progress (CODEX, 2026-10-24): static review found the combat vitals overlapping the disguise badge.
 Moved vitals above it via GameConfig.Combat.Hud.VitalsBottomPixels; StyLua and Selene pass (0 errors/warnings).
 Owner reported the requested Studio HUD checks "all clear" on 2026-10-24. Verification is owner-reported;

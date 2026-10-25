@@ -23,6 +23,7 @@ local Types = require(Shared:WaitForChild("Types"))
 local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"))
 local Combat = script.Parent.Parent:WaitForChild("Combat")
 local ShotFx = require(Combat:WaitForChild("ShotFx"))
+local ShotVisuals = require(Combat:WaitForChild("ShotVisuals"))
 local SoundPlayer = require(Combat:WaitForChild("SoundPlayer"))
 local ViewModel = require(Combat:WaitForChild("ViewModel"))
 local RemoteController = require(script.Parent.RemoteController)
@@ -61,6 +62,7 @@ local mag = def.MagSize
 local reserve = def.ReserveAmmo
 local reloadEndsAt = 0
 local reloadStartedAt = 0
+local predictedReloadPending = false -- waiting for the server to confirm a reload completed locally
 local nextFireAt = 0
 local firing = false
 local aiming = false
@@ -160,6 +162,13 @@ local function fireOnce(camera: Camera, root: BasePart, now: number)
 		viewModel:kick()
 	end
 	local point, normal = ShotFx.mapHit(camera.CFrame.Position, direction)
+	if viewModel then
+		ShotVisuals.fire(
+			def,
+			viewModel:getMuzzlePosition(),
+			point or (camera.CFrame.Position + direction * combat.MaxShotStuds)
+		)
+	end
 	if point and normal then
 		ShotFx.impact(point, normal)
 	end
@@ -221,6 +230,7 @@ local function step(dt: number)
 		local take = math.min(def.MagSize - mag, reserve)
 		mag += take
 		reserve -= take
+		predictedReloadPending = true
 	end
 
 	-- Recoil climbs the view and settles; spread closes up while the trigger is off.
@@ -330,6 +340,7 @@ end
 local function resetForSpawn()
 	mag, reserve = def.MagSize, def.ReserveAmmo
 	reloadEndsAt = 0
+	predictedReloadPending = false
 	firing, aiming = false, false
 	spreadExtra, recoilPitch, recoilYaw = 0, 0, 0
 	appliedPitch, appliedYaw = 0, 0
@@ -339,6 +350,7 @@ end
 function WeaponController.Init() end
 
 function WeaponController.Start()
+	ShotVisuals.start()
 	local sounds = {
 		def.Sounds.Fire,
 		def.Sounds.Reload,
@@ -349,9 +361,18 @@ function WeaponController.Start()
 	SoundPlayer.preload(sounds)
 
 	RemoteController.connect("AmmoUpdate", function(info: Types.AmmoInfo)
-		mag, reserve = info.Mag, info.Reserve
+		-- Ticket 8.10: a delayed reload confirmation must not put predicted shots back in the magazine.
+		-- Only consume this exception once, for a reload we actually completed; other updates correct normally.
+		local confirmsPredictedReload = predictedReloadPending
+			and info.ReloadSeconds <= 0
+			and info.Reserve == reserve
+			and info.Mag >= mag
+		if not confirmsPredictedReload then
+			mag, reserve = info.Mag, info.Reserve
+		end
 		if info.ReloadSeconds <= 0 then
 			reloadEndsAt = 0
+			predictedReloadPending = false
 		end
 	end)
 	RemoteController.connect("CoverStateChanged", function(info: Types.CoverInfo)

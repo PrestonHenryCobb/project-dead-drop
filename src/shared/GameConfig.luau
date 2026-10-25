@@ -449,6 +449,12 @@ local GameConfig = {
 		ViolationLogEvery = 10, -- the server warns about a player's impossible requests this often (spec 26: log, never ban on it)
 		-- Client side: what a shot, a hit and a wound look and sound like. All of it is feedback only; the server decides.
 		Feedback = {
+			-- Ticket 8.11: shared limits and timing for client-only pooled shot visuals.
+			TracerPoolSize = 64,
+			FlashPoolSize = 24,
+			FlashSeconds = 0.045,
+			ShotVisualMinStuds = 0.01,
+			RemoteMuzzleOffset = Vector3.new(0.65, -0.65, -1.2), -- right, down, forward from the shot's head frame
 			HitmarkerSeconds = 0.18,
 			HitmarkerPixels = 14,
 			HeadshotHitmarkerScale = 1.6,

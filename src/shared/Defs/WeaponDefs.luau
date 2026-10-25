@@ -49,6 +49,15 @@ end
 
 local WeaponDefs = {
 	byId = byId,
+	-- Ticket 8.11: default look for non-Quiet weapons; individual definitions may override each field.
+	ShotDefaults = {
+		TracerColor = Color3.fromRGB(255, 218, 140),
+		TracerWidth = 0.07,
+		TracerLength = 7,
+		TracerSpeed = 1600,
+		FlashColor = Color3.fromRGB(255, 193, 80),
+		FlashSize = Vector3.new(0.28, 0.28, 0.65),
+	},
 }
 
 function WeaponDefs.get(id: string): WeaponDef?

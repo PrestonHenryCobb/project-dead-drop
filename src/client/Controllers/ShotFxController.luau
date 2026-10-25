@@ -10,6 +10,7 @@ local Types = require(Shared:WaitForChild("Types"))
 local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"))
 local Combat = script.Parent.Parent:WaitForChild("Combat")
 local ShotFx = require(Combat:WaitForChild("ShotFx"))
+local ShotVisuals = require(Combat:WaitForChild("ShotVisuals"))
 local SoundPlayer = require(Combat:WaitForChild("SoundPlayer"))
 local RemoteController = require(script.Parent.RemoteController)
 
@@ -24,6 +25,8 @@ local function onShotHeard(info: Types.ShotInfo)
 	end
 	local range = if def.Quiet then GameConfig.Audio.SuppressedWeaponRadius else GameConfig.Audio.DefaultWeaponRadius
 	SoundPlayer.playAt(def.Sounds.Fire, info.Origin, feedback.ShotVolume, range)
+	-- SPEC-QUESTION: should tracers be visible farther away than shots are heard? ShotHeard currently limits both.
+	ShotVisuals.fire(def, ShotVisuals.remoteMuzzle(info.Origin, info.Hit), info.Hit)
 	if not info.Struck then
 		local direction = info.Hit - info.Origin
 		if direction.Magnitude > 0 then
@@ -36,6 +39,7 @@ end
 function ShotFxController.Init() end
 
 function ShotFxController.Start()
+	ShotVisuals.start()
 	SoundPlayer.preload({ feedback.ImpactSound })
 	RemoteController.connect("ShotHeard", onShotHeard)
 end

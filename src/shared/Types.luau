@@ -137,6 +137,13 @@ export type WeaponDef = {
 	Recoil: WeaponRecoil,
 	AimZoom: number, -- the field of view is multiplied by this while aiming
 	Sounds: WeaponSounds,
+	-- Ticket 8.11: optional per-weapon visuals; omitted fields use WeaponDefs.ShotDefaults. Quiet suppresses both.
+	TracerColor: Color3?,
+	TracerWidth: number?,
+	TracerLength: number?,
+	TracerSpeed: number?,
+	FlashColor: Color3?,
+	FlashSize: Vector3?,
 }
 
 -- Combat messages. All are sent only to the player they concern, except ShotInfo (to players within earshot).

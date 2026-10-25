@@ -45,6 +45,7 @@ export type ViewModel = typeof(setmetatable(
 		bobPhase: number,
 		lastCamera: CFrame?,
 		visible: boolean,
+		muzzle: Attachment,
 	},
 	ViewModel
 ))
@@ -95,6 +96,11 @@ local function buildSuppressedSmg(model: Model): ({ Part }, { Part })
 		body
 	)
 	suppressor.Shape = Enum.PartType.Cylinder
+	-- Ticket 8.11: the cylinder's local +X end is the barrel tip. This stays entirely in the local view model.
+	local muzzle = Instance.new("Attachment")
+	muzzle.Name = "Muzzle"
+	muzzle.Position = Vector3.new(suppressor.Size.X / 2, 0, 0)
+	muzzle.Parent = suppressor
 	addPart(
 		model,
 		"Magazine",
@@ -159,7 +165,12 @@ function ViewModel.new(def: WeaponDef): ViewModel
 		bobPhase = 0,
 		lastCamera = nil,
 		visible = true,
+		muzzle = model:FindFirstChild("Muzzle", true) :: Attachment,
 	}, ViewModel)
+end
+
+function ViewModel.getMuzzlePosition(self: ViewModel): Vector3
+	return self.muzzle.WorldPosition
 end
 
 function ViewModel.setColors(self: ViewModel, sleeve: Color3, skin: Color3)
