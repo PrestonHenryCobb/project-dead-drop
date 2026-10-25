@@ -22,7 +22,7 @@ ring and a Staff link behind it, so there are loops and no dead ends. The **five
 | Problem you reported | What the layout does |
 |---|---|
 | Hard to navigate | One landmark (the atrium, 76 x 92 void on four floors), one colour and look per wing, a ring corridor on the ground and mezzanine, and the same ring pattern at every level (the guard ring on the top floor is the same shape). |
-| Awkward vertical routes | A deliberate mix: 1 grand stair, 2 escalator ramps in the colonnade, 4 corner switchbacks (public); 6 narrow Staff stairs; 3 guard stairs (Security); 4 glass elevators plus the Sanctum elevator; roof stairs; hidden routes. 38 connectors in all. |
+| Awkward vertical routes | A deliberate mix: 1 grand stair, 2 escalator ramps in the colonnade, 4 corner switchbacks and 3 more switchbacks and roof stairs (public); 8 narrow Staff stairs; 4 guard stairs (Security); 4 glass elevators plus the Sanctum elevator; roof stairs; hidden routes. 38 connectors in all. |
 | NPC jams and dead ends | Public portals average 20 studs (5 lanes). Only 4 rooms have a single way in (a hotel suite, the sky deck, two Sanctum landings, all deliberate). The ring gives every wing two entrances. |
 | Same-looking rooms | Each room has one purpose and a tier colour; wings are themed (see section 4). |
 
@@ -59,7 +59,7 @@ ziplines give open-air ones.
 |---|---|---|---|
 | Grand stair (24 wide) | 2 | Lobby to the stair hall; the wing's casino to its hotel lobby | Public |
 | Escalator ramp (12) | 2 | Up each side of the colonnade | Public |
-| Switchback stair (12) | 8 | Four ground corners, two terrace stairs, the wing's two | Public |
+| Switchback stair (12) | 7 | Four ground corners, two terrace stairs, the wing's sky bar to its suites | Public |
 | Roof stairs | 3 | Upper west terrace to the roof party; the wing's arcade to its roof garden; garden to the sky deck | Public |
 | Staff stairs (6) | 8 | Basement to ground to mezzanine, both towers, plus the two plant rooms | Staff |
 | Guard stairs (6) | 4 | Security basement up to the service passage; security hub to the top floor; guard hall to the roof; wing security up to the cage | Security |
