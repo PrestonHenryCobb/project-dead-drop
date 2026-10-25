@@ -1,0 +1,122 @@
+<div id="cover-hud-review" class="viz-carousel" aria-label="Cover Story HUD directions">
+  <section data-variant="Field notes" aria-label="Field notes HUD">
+    <div class="cs-product cs-floating">
+      <header class="cs-header">
+        <div class="cs-intel"><small>VAULT LOCK</small><strong>18 / 25</strong><div class="cs-track"><span style="width:72%"></span></div><small>TEAM INTEL · 12</small></div>
+        <div class="cs-clock"><strong>06:42</strong><span>INFILTRATION</span><small class="cs-alarm">ALARM · ● ● ○ ○</small></div>
+        <div class="cs-team"><small>YOUR TEAM</small><span>SUTURE <em>COVERED</em></span><div class="cs-track"><span style="width:84%"></span></div><small>84 HP · 1 PLATE</small></div>
+      </header>
+      <div class="cs-compass">W <span>NW</span> N <span>NE</span> E</div>
+      <main class="cs-world" aria-label="HUD placement over a schematic gala scene">
+        <div class="cs-building cs-building-left"></div><div class="cs-building cs-building-right"></div>
+        <div class="cs-floor"></div>
+        <div class="cs-map"><small>GALA · LEVEL 2</small><div class="cs-map-grid"><span>STAFF</span><span>PUBLIC</span><span>PUBLIC</span><span>SECURITY</span></div><small>M · FLOOR MAP</small></div>
+        <div class="cs-reticle" hidden><i data-lucide="crosshair" aria-hidden="true"></i></div>
+        <div class="cs-feed">An agent was eliminated</div>
+        <div class="cs-interaction"><kbd>F</kbd><span>SCAN DISGUISE</span><small>Hold to scan</small></div>
+      </main>
+      <footer class="cs-footer">
+        <div class="cs-vitals"><small>HEALTH</small><div class="cs-health"><strong>100</strong><span>HP</span></div><div class="cs-track"><span style="width:100%"></span></div><div class="cs-plates"><span></span><span></span><span></span></div><small class="cs-disguise">WORN · STAFF<br>STORED · GUEST</small></div>
+        <div class="cs-cover" aria-live="polite"><small class="cs-warning" hidden>RESTRICTED · SECURITY</small><div><i data-lucide="eye" aria-hidden="true"></i><strong class="cs-cover-name">COVERED</strong></div><div class="cs-track"><span class="cs-suspicion" style="width:0%"></span></div><small class="cs-cover-hint">Stay in character</small></div>
+        <div class="cs-loadout"><small>SUPPRESSED SMG</small><div class="cs-ammo"><strong>30</strong><span>/ 60</span></div><div class="cs-equipment"><span><kbd>Q</kbd> QUICK CHANGE<small>READY</small></span><span><kbd>2</kbd> BUG CAM<small>2 CHARGES</small></span><span><kbd>3</kbd> PLATE PACK<small>2 CHARGES</small></span></div></div>
+      </footer>
+      <div class="cs-tier"><span>PUBLIC</span><span>STAFF</span><span>SECURITY</span><span>EXECUTIVE</span><span>VAULT</span></div>
+    </div>
+  </section>
+  <section data-variant="Control strip" aria-label="Control strip HUD" hidden><div class="cs-product cs-strip"></div></section>
+</div>
+<style>
+#cover-hud-review{color-scheme:light dark}
+#cover-hud-review .cs-product{--cs-scene:light-dark(#dce1e5,#151d25);--cs-panel:light-dark(#f3f1e9,#202b34);--cs-ink:light-dark(#1f2a30,#eee9dc);--cs-muted:light-dark(#526169,#acb7be);--cs-line:light-dark(#bdc7cb,#40515b);--cs-gold:light-dark(#866519,#e3bc65);--cs-green:light-dark(#236041,#80c69e);--cs-red:light-dark(#a1323b,#f08588);font:14px/1.45 "Courier New",monospace;color:var(--cs-ink);background:var(--cs-scene);padding:26px 22px 14px;min-height:620px;display:flex;flex-direction:column;box-sizing:border-box;position:relative;isolation:isolate}
+#cover-hud-review .cs-product *{box-sizing:border-box}
+#cover-hud-review .cs-product strong{font-weight:500}
+#cover-hud-review .cs-product small{font-size:11px;color:var(--cs-muted);letter-spacing:.06em;display:block}
+#cover-hud-review .cs-header{display:grid;grid-template-columns:1fr 1fr 1fr;gap:26px;align-items:start}
+#cover-hud-review .cs-intel{max-width:180px}.cs-intel strong{display:block;font-size:24px}
+#cover-hud-review .cs-clock{text-align:center;display:flex;flex-direction:column;gap:4px}
+#cover-hud-review .cs-clock strong{font-size:32px;letter-spacing:.08em;font-variant-numeric:tabular-nums}
+#cover-hud-review .cs-clock>span{letter-spacing:.12em;font-size:11px}
+#cover-hud-review .cs-alarm{margin-top:8px;color:var(--cs-gold)}
+#cover-hud-review .cs-team{justify-self:end;min-width:160px;padding-right:50px}
+#cover-hud-review .cs-team>span{display:block;margin:6px 0;font-size:12px}
+#cover-hud-review .cs-team em{font-style:normal;color:var(--cs-green);display:block;font-size:11px}
+#cover-hud-review .cs-track{height:5px;background:var(--cs-line);margin:7px 0;overflow:hidden}
+#cover-hud-review .cs-track>span{height:100%;display:block;background:var(--cs-gold)}
+#cover-hud-review .cs-compass{align-self:center;color:var(--cs-ink);letter-spacing:.2em;margin:18px 0 0;font-size:12px;word-spacing:16px}
+#cover-hud-review .cs-compass span{color:var(--cs-muted)}
+#cover-hud-review .cs-world{min-height:250px;flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#cover-hud-review .cs-building{position:absolute;top:38%;width:24%;height:100px;background:var(--cs-panel);border-top:2px solid var(--cs-gold);z-index:-1}
+#cover-hud-review .cs-building-left{left:6%;transform:skewY(8deg)}
+#cover-hud-review .cs-building-right{right:6%;transform:skewY(-8deg)}
+#cover-hud-review .cs-floor{position:absolute;bottom:0;width:100%;height:32%;background:linear-gradient(transparent,var(--cs-panel));z-index:-1}
+#cover-hud-review .cs-map{position:absolute;left:0;top:30px;width:154px;padding:12px;background:var(--cs-panel);display:none}
+#cover-hud-review .cs-map-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:10px 0}
+#cover-hud-review .cs-map-grid span{font-size:11px;background:var(--cs-scene);padding:12px 2px;text-align:center;color:var(--cs-muted)}
+#cover-hud-review .cs-feed{position:absolute;right:0;top:36px;color:var(--cs-muted);font-size:11px;max-width:170px;text-align:right}
+#cover-hud-review .cs-reticle{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%)}
+#cover-hud-review .cs-reticle svg{width:24px;height:24px}
+#cover-hud-review .cs-interaction{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center;align-self:end;margin-bottom:26px;font-size:12px}
+#cover-hud-review .cs-interaction small{grid-column:2}
+#cover-hud-review kbd{font:inherit;background:var(--cs-panel);border:1px solid var(--cs-line);padding:2px 6px;display:inline-block;min-width:23px;text-align:center}
+#cover-hud-review .cs-footer{display:grid;grid-template-columns:1fr 1fr 1.25fr;gap:24px;align-items:end}
+#cover-hud-review .cs-health{display:flex;align-items:baseline;gap:8px}.cs-health strong{font-size:30px}
+#cover-hud-review .cs-health>span{font-size:11px;color:var(--cs-muted)}
+#cover-hud-review .cs-vitals{max-width:190px}
+#cover-hud-review .cs-vitals .cs-track>span{background:var(--cs-green)}
+#cover-hud-review .cs-plates{display:flex;gap:6px;margin:7px 0 15px}
+#cover-hud-review .cs-plates span{height:6px;flex:1;background:var(--cs-line)}
+#cover-hud-review .cs-plates span:first-child{background:var(--cs-ink)}
+#cover-hud-review .cs-disguise{line-height:1.7}
+#cover-hud-review .cs-cover{text-align:center;margin-bottom:40px}
+#cover-hud-review .cs-cover>div:first-of-type{display:flex;gap:8px;justify-content:center;align-items:center}
+#cover-hud-review .cs-cover svg{width:18px;height:18px}
+#cover-hud-review .cs-cover-name{color:var(--cs-green);letter-spacing:.06em}
+#cover-hud-review .cs-cover-hint{margin-top:10px}
+#cover-hud-review .cs-warning{color:var(--cs-gold);margin-bottom:10px}
+#cover-hud-review .cs-loadout{text-align:right}
+#cover-hud-review .cs-ammo{display:flex;justify-content:end;gap:9px;align-items:baseline;font-variant-numeric:tabular-nums}
+#cover-hud-review .cs-ammo strong{font-size:32px}.cs-ammo>span{color:var(--cs-muted)}
+#cover-hud-review .cs-equipment{display:flex;gap:12px;justify-content:end;margin-top:12px;font-size:11px}
+#cover-hud-review .cs-equipment>span{display:grid;gap:4px;justify-items:center;text-align:center;max-width:90px}
+#cover-hud-review .cs-equipment kbd{margin-bottom:3px}
+#cover-hud-review .cs-tier{display:flex;justify-content:center;gap:14px;margin-top:26px;font-size:11px;color:var(--cs-muted);flex-wrap:wrap}
+#cover-hud-review .cs-tier span:nth-child(2){color:var(--cs-green)}
+#cover-hud-review .cs-tier span:nth-child(3){color:light-dark(#59356c,#c1a3d2)}
+#cover-hud-review .cs-tier span:nth-child(4){color:var(--cs-gold)}
+#cover-hud-review .cs-tier span:nth-child(5){color:var(--cs-red)}
+#cover-hud-review .cs-strip .cs-footer{background:var(--cs-panel);padding:18px;gap:20px;border-top:1px solid var(--cs-gold)}
+#cover-hud-review .cs-strip .cs-cover{margin-bottom:22px}
+#cover-hud-review .cs-strip .cs-header{padding-bottom:14px;border-bottom:1px solid var(--cs-line)}
+#cover-hud-review .cs-strip .cs-map{display:block}
+@media(max-width:650px){#cover-hud-review .cs-product{min-height:850px;padding:20px 16px 12px}#cover-hud-review .cs-header{grid-template-columns:1fr 1fr;gap:16px}#cover-hud-review .cs-clock{grid-column:2;grid-row:1}#cover-hud-review .cs-team{grid-row:2;grid-column:1/-1;justify-self:start;padding-right:0}#cover-hud-review .cs-team em{display:inline;margin-left:12px}#cover-hud-review .cs-world{min-height:230px}#cover-hud-review .cs-map{top:16px;width:130px}#cover-hud-review .cs-feed{top:12px;max-width:125px}#cover-hud-review .cs-footer{grid-template-columns:1fr 1fr;gap:18px}#cover-hud-review .cs-cover{grid-column:1/-1;grid-row:1;margin:0 0 12px}#cover-hud-review .cs-equipment{flex-wrap:wrap;gap:8px}#cover-hud-review .cs-compass{word-spacing:7px}#cover-hud-review .cs-tier{gap:9px}#cover-hud-review .cs-strip .cs-cover{margin-bottom:12px}}
+</style>
+<script>
+(() => {
+  const root = document.getElementById('cover-hud-review');
+  const floating = root.querySelector('.cs-floating');
+  const strip = root.querySelector('.cs-strip');
+  strip.innerHTML = floating.innerHTML;
+  for (const product of [floating, strip]) {
+    const state = { cover: 'Covered', map: product === strip, weaponDrawn: false };
+    const render = () => {
+      const exposed = state.cover === 'Exposed';
+      const suspicious = state.cover === 'Suspicious';
+      product.querySelector('.cs-cover-name').textContent = state.cover.toUpperCase();
+      product.querySelector('.cs-cover-name').style.color = exposed ? 'var(--cs-red)' : suspicious ? 'var(--cs-gold)' : 'var(--cs-green)';
+      product.querySelector('.cs-suspicion').style.width = exposed ? '100%' : suspicious ? '48%' : '0%';
+      product.querySelector('.cs-suspicion').style.background = exposed ? 'var(--cs-red)' : 'var(--cs-gold)';
+      product.querySelector('.cs-cover-hint').textContent = exposed ? 'Break line of sight to recover Cover' : suspicious ? 'Slow down. Blend into the crowd.' : 'Stay in character';
+      product.querySelector('.cs-reticle').hidden = !state.weaponDrawn;
+      product.querySelector('.cs-warning').hidden = !suspicious;
+      product.querySelector('.cs-map').style.display = state.map ? 'block' : 'none';
+    };
+    render();
+    if (globalThis.Tweak) {
+      const tweak = new Tweak({ container: product, onChange: render });
+      tweak.addSelect(state, 'cover', { label: 'Cover state', options: ['Covered', 'Suspicious', 'Exposed'] });
+      tweak.addToggle(state, 'map', { label: 'Floor map' });
+      tweak.addToggle(state, 'weaponDrawn', { label: 'Weapon drawn' });
+    }
+  }
+})();
+</script>

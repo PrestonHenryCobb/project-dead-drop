@@ -26,7 +26,7 @@ and commit-confirmation rules for this development run.
 | 8.11 | Bullet tracers and muzzle flash for every weapon that is not `Quiet` (the suppressed SMG has neither, STEP8_QUESTIONS). Client only, from the existing data: your own shots from WeaponController's prediction, other players' from `ShotHeard` (Origin, Hit). Per-weapon look in `WeaponDefs`, shared numbers in `GameConfig.Combat.Feedback`. No server or remote changes. Runs alongside 8.5. | CODEX | | READY_FOR_REVIEW |
 | 8.7 | Step 8 end report (CLAUDE.md format). | CLAUDE_CODE | 8.1 to 8.6 | TODO |
 | 8.12 | Fix client facing and pose stepping to support the classic Motor6D rig now built by RigService, retaining compatibility with AnimationConstraint rigs. StyLua/Selene pass; Studio review pending. | CODEX | | READY_FOR_REVIEW |
-| 8.13 | Clean up weapon bindings/connections/view model on teardown; recreate the model on respawn/camera replacement; reject dead-player aim/reload prediction and hide their crosshair. | CODEX | | IN_PROGRESS (CODEX) |
+| 8.13 | Clean up weapon bindings/connections/view model on teardown; recreate the model on respawn/camera replacement; reject dead-player aim/reload prediction and hide their crosshair. Added tools/CheckClientCombat.luau for real-module frustum/model/pooled-FX assertions in Studio's Client Command Bar. StyLua/Selene/Rojo pass; runtime assertions and playtest remain pending. | CODEX | | READY_FOR_REVIEW |
 | 8.5d-client | Reticle folding carbine: complete data, shaped model, semi-auto prediction, no falloff, per-weapon shot look, 0.35 s post-melee recovery. Guise SMG starts at 0.2 s recovery. Remaining Reticle DMR glint and pistol pierce need server integration; no fake selection UI. Test carbine by selecting ReticleCarbine as Combat.DefaultWeapon in a temporary Studio copy before play. Handling/recovery values are initial playtest tuning. | CODEX | Studio review | READY_FOR_REVIEW |
 
 ## Step 8B: feel pass (after Step 8)
@@ -71,6 +71,11 @@ In this order; each depends on the one before. Decisions: `IDEAS_2026-10-24.md` 
 | Id | Ticket | Owner | Status |
 |---|---|---|---|
 | 9.x | Split into tickets when the owner starts Step 9 (spectator rules are in `SPEC_CHANGES.md`). | | BLOCKED |
+
+## Future client review
+| Id | Ticket | Owner | Needs | Status |
+|---|---|---|---|---|
+| 19-client-preview | Two HUD design directions in docs/mockups/combat-hud-review.html: Field notes and Control strip. Preview only; no unbuilt gameplay UI added to src. See .ai-sync/CODEX_CLIENT_HANDOFF.md for commits, API integration, exact Studio checks and remaining server-effect handoffs. | CODEX | Owner design review; gameplay contracts for later features | READY_FOR_REVIEW |
 
 ## Waiting on the owner
 <!-- Codex integration note: 06357ec includes Claude's concurrent GameConfig edits for 8B.1/8B.7
