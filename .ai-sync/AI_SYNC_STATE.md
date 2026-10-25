@@ -30,7 +30,7 @@ Times are local, `YYYY-MM-DD HH:MM`.
 
 | File | Locked by | Since | Ticket |
 |---|---|---|---|
-| (none) | | | |
+| `src/server/NPC/*`, `src/server/Services/NPCService.luau`, `DoorService.luau`, `ZoneService.luau` | CLAUDE_CODE | 2026-10-25 | R1, R2, R3 |
 
 ## Shared-file rules (`Remotes`, `Types`, `Enums`, `GameConfig`)
 - Lock the file for the few minutes of the edit, not for the whole ticket.
