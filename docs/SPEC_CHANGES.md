@@ -198,3 +198,11 @@ The obsolete stepping controllers, PositionStep helper and Animation stepping co
 - **Latest selection answer supersedes early ready-start:** use the full **30 seconds** even if everyone readies.
   Allow loadout changes during the selection window before deployment, under existing team/agent restrictions.
   Final deployment loadouts remain server-validated. Do not end selection early on all-ready.
+
+## Owner Dossier/menu/damage answers (2026-10-25)
+
+- Earned progress goes directly into the selected non-expiring Dossier. Do not add a separate Catalog Token currency.
+- Main tabs: **Play, Agents, Assets, Dossiers, Black Market, Profile**. Reach the Mint from the Stocks balance.
+  Assets explains perks found in matches; it does not sell permanent combat power.
+- Limb hits retain existing body-damage rules. The firing range displays actual server-confirmed results, with no
+  invented limb multiplier or imported example damage numbers. Existing lobby/Step 22 range planning is preserved.

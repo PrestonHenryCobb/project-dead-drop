@@ -84,3 +84,10 @@ so Attire, Finishes and effects show only in True Form, in the lobby, on podiums
   track; titles and frames from achievements.
 
 **Flags decided:** the "Invisible" Man is smoked glass with a readable silhouette; placing a spray mid-match raises suspicion like any action NPCs never do.
+
+## Dossier progression and menu structure (owner answers 2026-10-25)
+
+- Dossiers remain non-expiring. Earned progress goes directly to the selected Dossier; no Catalog Token currency.
+- Main tabs are Play, Agents, Assets, Dossiers, Black Market and Profile. The Stocks balance opens the Mint.
+- Assets is an explanation/reference for perks found in matches, not a permanent combat-power store.
+- Existing Black Market rotation is unchanged by these answers; non-expiring Dossiers do not silently replace it.

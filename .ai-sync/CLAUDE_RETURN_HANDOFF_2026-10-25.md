@@ -191,3 +191,9 @@ was added. Agent Tags/caches remain dependencies. Mastery 1–10 displays existi
 retain team-agent restrictions and server final validation. No early all-ready start. Step 21 owns persistence, shop, Stocks
 and Dossiers. Keep forthcoming menus as reviewable mockups until actual data exists. The live HUD refresh does not
 pretend these systems are already implemented.
+
+Further confirmed answers: Dossier progress goes directly to the selected non-expiring Dossier; no reward-token
+currency. Menu tabs are Play/Agents/Assets/Dossiers/Black Market/Profile; Stocks balance opens Mint. Assets explains
+perks found in matches, not permanent combat power. Keep limb damage equal to body damage. The lobby firing range
+must show actual server-confirmed results, not imported sample numbers or an invented limb multiplier. Core roster,
+gadget pool, controls and shop rotation remain preserved by the earlier owner instruction.

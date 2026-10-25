@@ -56,13 +56,60 @@ Progression answers: Q20 Agent Tag rescue initial cost is 10 Intel through the n
 updated; rescue is still unbuilt). Q27 levels 1–10 display the existing roughly ten-match pace, accelerated by wins
 and objectives. Q28 **corrected final answer:** full 30 seconds to allow loadout changes; no early all-ready deployment.
 
+Latest answers: Q29 direct progress into selected non-expiring Dossier, no Catalog Tokens. Q30 Play/Agents/Assets/
+Dossiers/Black Market/Profile, Mint from Stocks balance; Assets explains match perks rather than permanent power.
+Q32 limb hits retain body damage and the range shows real server-confirmed results.
+
 Completed round: Q3 gun composition, Q8 takedown result, Q9 takedown presentation/control, Q10 crawl/death style,
 Q11 door exit rules, input/result/direction follow-ups, side-shot/roll clarification, charge starting balance and Q12
 NPC tier exceptions, Q5–6 HUD details, Q33 HUD motion and Q14–19 navigation/traversal plus passage/Cover follow-ups.
-Q20 and Q22–24 interaction/economy/feedback plus Q27–28 mastery/selection are answered. Next: Q29 Dossier progress
-versus reward tokens, Q30 menu/Assets structure and Q32 limb-damage behavior. Broad preservation answers retain original
+Q20 and Q22–24 interaction/economy/feedback plus Q27–30 mastery/selection/menu and Q32 limb rules are answered.
+Final pending group: Q34 camera comfort, Q33 minimum resolution and Q35 next-work priority. Broad preservation answers retain original
 map design, economy/mode/kit decisions; do not ask those again as if undecided. Ask manageable groups; retain original IDs even if reply numbering starts
 at 1 in each group. Startup/NPC animations were restored per owner; remaining visual acceptance is separate from answers.
+
+## Resolution index for the original 35 questions
+
+The original questions below remain as historical prompts. This index and the latest answers above govern. "Preserved"
+means retained by the owner's instruction to keep current decisions, rather than a newly requested design change.
+
+| Q | Status | Current decision |
+|---|---|---|
+| 1 | Answered | Preserve current recorded decisions; reconcile attachment proposals individually |
+| 2 | Answered | Smooth own gun/arms and fully smooth world movement/animation; stepping removed |
+| 3 | Answered | Shoulder stock may crop; keep grips, sights and muzzle readable |
+| 4 | Answered | Field notes; Gala map skin over common HUD |
+| 5 | Answered | Essentials persistent; action prompts/warnings contextual |
+| 6 | Answered | Clear numbers/body text, pixel headings |
+| 7 | Answered | Takedown 6.5 studs / 90 degrees; ordinary melee unchanged |
+| 8 | Answered | Takedown remains 90 damage |
+| 9 | Answered | First person; confirmed-down/elimination cosmetic finishers; tap/charge input separated |
+| 10 | Answered | Directional front/rear/side falls and crawl transitions; stable elimination collapse |
+| 11 | Answered | Ordinary doors free exit from inside; authorized exterior entry |
+| 12 | Answered | NPC clearance cap also applies to panic/fleeing |
+| 13 | Preserved | Original Gala layout; references are inspiration only |
+| 14 | Answered | Actual generated-map named floor bands, no invented GH floor |
+| 15 | Answered | Elevation arrows for different floor bands |
+| 16 | Answered | Existing marker permissions, ranges and lifetimes |
+| 17 | Answered | Small original secret-exit set; open passage bidirectional |
+| 18 | Answered | Inside/proximity/facing/LOS activation, Discreet under witness rules |
+| 19 | Answered | Working glass elevators in plan; Cover preserved, destination clearance retained |
+| 20 | Answered | Intel-only; Agent Tag rescue initial 10 Intel |
+| 21 | Preserved | Discount remains 10% per worn disguise tier |
+| 22 | Answered | Cover-break feedback cosmetic only; no shield/extra detection |
+| 23 | Answered | Cover-break badge without extra confirmation |
+| 24 | Answered | Placement-led balancing, then validated totals; no Funds pickups |
+| 25 | Preserved | Approved 18-weapon design, including Feint pistol replacement |
+| 26 | Preserved | Original 12 gadgets; no automatic imported-roster replacement |
+| 27 | Answered | Mastery 1–10 displays existing roughly ten-match pace |
+| 28 | Answered | Full 30-second loadout selection; no early all-ready deployment |
+| 29 | Answered | Direct selected-Dossier progress, no tokens; existing shop terminology/rotation retained |
+| 30 | Answered | Six agreed tabs; Assets reference, Mint via Stocks |
+| 31 | Preserved | Approved control scheme, including Q ability / E interact, not the attachment's conflicting E |
+| 32 | Answered | Limbs use body damage; real server results; existing lobby range plan retained |
+| 33 | Partial | Event-driven HUD and reduced motion approved; minimum resolution pending |
+| 34 | Pending | Cosmetic camera comfort |
+| 35 | Pending | Work priority after interview |
 
 ## How this document is being used
 
