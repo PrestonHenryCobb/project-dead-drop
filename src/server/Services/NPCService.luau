@@ -75,11 +75,23 @@ local function activitySeconds(): number
 	return rng:NextNumber(config.ActivitySeconds.Min, config.ActivitySeconds.Max)
 end
 
--- Somewhere near the node's ground point, so NPCs sharing an area don't stand on one spot.
-local function spreadAround(point: Vector3): Vector3
-	local angle = rng:NextNumber(0, 2 * math.pi)
-	local radius = rng:NextNumber(0, config.ArrivalSpread)
-	return point + Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+-- Somewhere near the node's ground point, so NPCs sharing an area don't stand on one spot. The spot must be reachable
+-- in a straight line, on the floor and within the role's tier (R1-ground, R2-tiers); otherwise the node itself.
+local function spreadAround(graph: NavGraph.Graph, point: Vector3, maxTier: number): Vector3
+	for _ = 1, config.ArrivalSpreadTries do
+		local angle = rng:NextNumber(0, 2 * math.pi)
+		local radius = rng:NextNumber(0, config.ArrivalSpread)
+		local spot = NavGraph.standable(
+			graph,
+			point,
+			point + Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius),
+			maxTier
+		)
+		if spot then
+			return spot
+		end
+	end
+	return point
 end
 
 -- How much a role likes a node, by the node's tier (GameConfig.NPC.RoleTierWeights).
@@ -100,8 +112,8 @@ local function startTrip(npc: Npc, now: number, graph: NavGraph.Graph)
 	release(npc.node)
 	claim(destination)
 	npc.node = destination
-	table.insert(points, spreadAround(points[#points]))
-	npc.path = points
+	table.insert(points, spreadAround(graph, points[#points], npc.maxTier))
+	npc.path = Movement.withResume(npc, points)
 	npc.pathIndex = 1
 	npc.speed = npc.baseSpeed
 	npc.state = "Walk"
@@ -156,7 +168,7 @@ end
 local function createNpc(role: Types.Role, node: number, graph: NavGraph.Graph, now: number): Npc
 	local maxTier = config.RoleMaxTier[role]
 	claim(node)
-	local ground = spreadAround(graph.feet[node])
+	local ground = spreadAround(graph, graph.feet[node], maxTier)
 	local yaw = rng:NextNumber(-math.pi, math.pi)
 	local outfit = OutfitDefs.random(role, rng)
 	local model, rootHeight = RigService.createNpcRig(outfit, CFrame.new(ground) * CFrame.Angles(0, yaw, 0))

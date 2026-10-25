@@ -38,6 +38,7 @@ export type Npc = {
 	yaw: number,
 	path: { Vector3 }?,
 	pathIndex: number,
+	resume: { Vector3 }?, -- the rest of a stored path a reaction interrupted; walked before the next route (R2-tiers)
 	state: NpcState,
 	stateUntil: number, -- when Cower, Gasp, Flee, Investigate or Downed ends
 	idleUntil: number,

@@ -15,6 +15,7 @@ local TweenService = game:GetService("TweenService")
 local GameConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("GameConfig"))
 local AnimationSync = require(script.Parent.AnimationSync)
 local Movement = require(script.Parent.Movement)
+local NavGraph = require(script.Parent.NavGraph)
 local NpcTypes = require(script.Parent.NpcTypes)
 
 type Npc = NpcTypes.Npc
@@ -58,7 +59,9 @@ local function crawlPath(crowd: Crowd, npc: Npc, awayFrom: Vector3?): { Vector3 
 	if hit then
 		step = step.Unit * math.max(0, (hit.Position - (npc.ground + PROBE_LIFT)).Magnitude - WALL_CLEARANCE)
 	end
-	return { npc.ground + step }
+	-- Only onto floor (R1-ground); a downed body is not limited by tier.
+	local spot = NavGraph.standable(crowd.graph, npc.ground, npc.ground + step, math.huge)
+	return if spot then { spot } else {}
 end
 
 -- Puts an NPC down. `awayFrom` is where the shot or blast came from, if known.

@@ -3,7 +3,9 @@
 --
 -- Each NPCNode is linked to its nearest neighbours. For every link the walking path is computed once with
 -- PathfindingService and stored as a list of points, together with the highest clearance tier the path passes
--- through, so an NPC never cuts through a zone its role may not enter. At runtime routes are found by a shortest-path
+-- through, so an NPC never cuts through a zone its role may not enter. The stored points are resampled about once a stud
+-- and each is set on the real floor under it (R1-ground): PathfindingService's waypoints are sparse, and the straight
+-- line between two of them cuts through the air above stair treads. At runtime routes are found by a shortest-path
 -- search over this graph and simply follow the stored points.
 --
 --   local graph = NavGraph.build(nodeParts, ZoneService.tierAt)   -- yields while paths are computed
@@ -28,7 +30,8 @@ export type Edge = {
 
 export type Graph = {
 	feet: { Vector3 }, -- ground position under each node
-	tiers: { number },
+	tiers: { number }, -- the stricter of the node's authored Tier and the zone it stands in
+	tierAt: (Vector3) -> number, -- ZoneService.tierAt, kept for checks made at runtime (NavGraph.standable)
 	activities: { string },
 	edges: { { Edge } },
 	linkCount: number,
@@ -39,9 +42,36 @@ local NavGraph = {}
 local GROUND_PROBE = Vector3.new(0, -8, 0)
 local TIER_PROBE_LIFT = Vector3.new(0, 2, 0) -- sample tiers at body height, not at the floor surface
 
+-- Rays in the character group meet only the walkable map: not characters, invisible zone volumes or other triggers.
+local floorParams = RaycastParams.new()
+floorParams.CollisionGroup = GameConfig.Rig.CollisionGroup
+floorParams.RespectCanCollide = true
+
 local function groundBelow(position: Vector3): Vector3
-	local result = workspace:Raycast(position, GROUND_PROBE)
+	local result = workspace:Raycast(position, GROUND_PROBE, floorParams)
 	return if result then result.Position else position
+end
+
+-- A walking path resampled every SupportSampleStuds, each point moved onto the floor found within SupportWindow of the
+-- straight line (so a tread under a stair line is found, but a hole is never followed down). A point with no floor in
+-- the window keeps the line's height.
+local function onFloor(points: { Vector3 }): { Vector3 }
+	local config = GameConfig.NPC.Graph
+	local window = config.SupportWindow
+	local probe = Vector3.new(0, -(window.Above + window.Below), 0)
+	local function supported(point: Vector3): Vector3
+		local hit = workspace:Raycast(point + Vector3.new(0, window.Above, 0), probe, floorParams)
+		return if hit then Vector3.new(point.X, hit.Position.Y, point.Z) else point
+	end
+	local out: { Vector3 } = { supported(points[1]) }
+	for index = 2, #points do
+		local a, b = points[index - 1], points[index]
+		local samples = math.max(1, math.ceil((b - a).Magnitude / config.SupportSampleStuds))
+		for sample = 1, samples do
+			table.insert(out, supported(a:Lerp(b, sample / samples)))
+		end
+	end
+	return out
 end
 
 local function pathLength(points: { Vector3 }): number
@@ -75,10 +105,12 @@ end
 
 function NavGraph.build(nodes: { BasePart }, tierAt: (Vector3) -> number): Graph
 	local config = GameConfig.NPC.Graph
-	local graph: Graph = { feet = {}, tiers = {}, activities = {}, edges = {}, linkCount = 0 }
+	local graph: Graph = { feet = {}, tiers = {}, tierAt = tierAt, activities = {}, edges = {}, linkCount = 0 }
 	for index, node in nodes do
 		graph.feet[index] = groundBelow(node.Position)
-		graph.tiers[index] = (node:GetAttribute("Tier") :: number?) or 0
+		-- R2-tiers: a node is only as open as both its authored tier and the zone volume it actually stands in.
+		local authored = (node:GetAttribute("Tier") :: number?) or 0
+		graph.tiers[index] = math.max(authored, tierAt(graph.feet[index] + TIER_PROBE_LIFT))
 		graph.activities[index] = (node:GetAttribute("Activity") :: string?) or "Idle"
 		graph.edges[index] = {}
 	end
@@ -153,13 +185,14 @@ function NavGraph.build(nodes: { BasePart }, tierAt: (Vector3) -> number): Graph
 		if not ok or path.Status ~= Enum.PathStatus.Success then
 			return
 		end
-		local points: { Vector3 } = {}
+		local waypoints: { Vector3 } = {}
 		for _, waypoint in path:GetWaypoints() do
-			table.insert(points, waypoint.Position)
+			table.insert(waypoints, waypoint.Position)
 		end
-		if #points < 2 then
+		if #waypoints < 2 then
 			return
 		end
+		local points = onFloor(waypoints)
 		local length = pathLength(points)
 		local isStair = stairPairs[if a < b then `{a}:{b}` else `{b}:{a}`] == true
 		if not isStair and length > (graph.feet[a] - graph.feet[b]).Magnitude * config.MaxDetourRatio then
@@ -190,6 +223,32 @@ function NavGraph.build(nodes: { BasePart }, tierAt: (Vector3) -> number): Graph
 	end
 	finished:Destroy()
 	return graph
+end
+
+-- Can a body step from `from` to `to` in a straight line (R1-ground, R2-tiers)? Clear of walls at chest height, with
+-- floor under `to` near `from`'s height, and no higher tier than maxTier there. Returns the supported point, or nil.
+-- Used for the few moves that leave the stored paths: standing spread round a node, backing away, a downed crawl.
+function NavGraph.standable(graph: Graph, from: Vector3, to: Vector3, maxTier: number): Vector3?
+	local config = GameConfig.NPC.Graph
+	local window = config.SupportWindow
+	local chest = TIER_PROBE_LIFT
+	local flat = Vector3.new(to.X - from.X, 0, to.Z - from.Z)
+	if flat.Magnitude > 1e-3 and workspace:Raycast(from + chest, flat, floorParams) then
+		return nil
+	end
+	local hit = workspace:Raycast(
+		Vector3.new(to.X, from.Y + window.Above, to.Z),
+		Vector3.new(0, -(window.Above + window.Below), 0),
+		floorParams
+	)
+	if not hit then
+		return nil
+	end
+	local supported = Vector3.new(to.X, hit.Position.Y, to.Z)
+	if graph.tierAt(supported + chest) > maxTier then
+		return nil
+	end
+	return supported
 end
 
 type Search = {

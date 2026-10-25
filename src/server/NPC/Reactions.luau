@@ -19,6 +19,7 @@ local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local AnimationSync = require(script.Parent.AnimationSync)
 local Death = require(script.Parent.Death)
 local NavGraph = require(script.Parent.NavGraph)
+local Movement = require(script.Parent.Movement)
 local NpcTypes = require(script.Parent.NpcTypes)
 
 type Npc = NpcTypes.Npc
@@ -45,7 +46,7 @@ end
 local function beginCower(npc: Npc, threat: Vector3, now: number)
 	npc.state = "Cower"
 	npc.stateUntil = now + config.Panic.CowerSeconds
-	npc.path = nil
+	Movement.interrupt(npc)
 	npc.threat = threat
 	AnimationSync.set(npc, Enums.NpcAnimation.Cower)
 end
@@ -61,7 +62,7 @@ local function beginFlee(crowd: Crowd, npc: Npc, now: number)
 	crowd.release(npc.node)
 	crowd.claim(destination)
 	npc.node = destination
-	npc.path = points
+	npc.path = Movement.withResume(npc, points)
 	npc.pathIndex = 1
 	npc.speed = config.Panic.FleeSpeed
 	npc.state = "Flee"
@@ -71,13 +72,13 @@ end
 local function beginGasp(npc: Npc, bodyPosition: Vector3, now: number)
 	npc.state = "Gasp"
 	npc.stateUntil = now + config.Panic.GaspSeconds
-	npc.path = nil
+	Movement.interrupt(npc)
 	npc.threat = bodyPosition
 	AnimationSync.set(npc, Enums.NpcAnimation.Gasp)
 end
 
 -- A short step directly away from the body, shortened if a wall is in the way.
-local function beginBackAway(npc: Npc)
+local function beginBackAway(crowd: Crowd, npc: Npc)
 	local from = npc.threat or npc.ground
 	local away = Vector3.new(npc.ground.X - from.X, 0, npc.ground.Z - from.Z)
 	AnimationSync.set(npc, "")
@@ -90,7 +91,13 @@ local function beginBackAway(npc: Npc)
 	if hit then
 		step = step.Unit * math.max(0, (hit.Position - (npc.ground + EYE_LIFT)).Magnitude - WALL_CLEARANCE)
 	end
-	npc.path = { npc.ground + step }
+	-- Only onto floor and within the role's tier (R1-ground, R2-tiers); otherwise it stays put.
+	local spot = NavGraph.standable(crowd.graph, npc.ground, npc.ground + step, npc.maxTier)
+	if not spot then
+		npc.state = "Idle"
+		return
+	end
+	npc.path = { spot }
 	npc.pathIndex = 1
 	npc.speed = npc.baseSpeed
 	npc.state = "BackAway"
@@ -142,6 +149,8 @@ local function beginInvestigate(crowd: Crowd, npc: Npc, position: Vector3, now: 
 	crowd.release(npc.node)
 	crowd.claim(destination)
 	npc.node = destination
+	Movement.interrupt(npc)
+	points = Movement.withResume(npc, points)
 	npc.path = if #points > 0 then points else nil
 	npc.pathIndex = 1
 	npc.speed = npc.baseSpeed
@@ -176,7 +185,7 @@ local function beginReturn(crowd: Crowd, npc: Npc, now: number)
 	crowd.release(npc.node)
 	crowd.claim(npc.post)
 	npc.node = npc.post
-	npc.path = points
+	npc.path = Movement.withResume(npc, points)
 	npc.pathIndex = 1
 	npc.speed = npc.baseSpeed
 	npc.state = "Return"
@@ -229,7 +238,7 @@ function Reactions.update(crowd: Crowd, npc: Npc, now: number)
 	if npc.state == "Cower" and now >= npc.stateUntil then
 		beginFlee(crowd, npc, now)
 	elseif npc.state == "Gasp" and now >= npc.stateUntil then
-		beginBackAway(npc)
+		beginBackAway(crowd, npc)
 	elseif npc.state == "Flee" and now >= npc.stateUntil then
 		-- Flee time is up: carry on to the node at normal pace, then stop there as usual.
 		npc.speed = npc.baseSpeed

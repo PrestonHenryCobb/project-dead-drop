@@ -98,6 +98,26 @@ function Movement.follow(npc: Npc, dt: number): boolean
 	return false
 end
 
+-- Stops a walk part way and keeps the rest of its stored path, so the NPC finishes it before taking any new route:
+-- a straight line from mid-path to the next route's start could cut through a zone its role may not enter.
+function Movement.interrupt(npc: Npc)
+	local path = npc.path
+	if path and npc.pathIndex <= #path then
+		npc.resume = table.move(path, npc.pathIndex, #path, 1, {})
+	end
+	npc.path = nil
+end
+
+-- A new route, preceded by whatever stored path an interruption left unfinished.
+function Movement.withResume(npc: Npc, points: { Vector3 }): { Vector3 }
+	local resume = npc.resume
+	npc.resume = nil
+	if not resume then
+		return points
+	end
+	return table.move(points, 1, #points, #resume + 1, resume)
+end
+
 -- Pushes NPCs that are closer than SeparationStuds apart away from each other (spec 5.2).
 function Movement.separate(npcs: { Npc }, dt: number, rng: Random)
 	local cellSize = config.SeparationStuds

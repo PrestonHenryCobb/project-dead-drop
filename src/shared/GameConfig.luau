@@ -301,10 +301,15 @@ local GameConfig = {
 			AgentHeight = 5,
 			ConcurrentPaths = 24, -- paths computed at the same time while the graph builds
 			TierSampleStuds = 4, -- how often a link is sampled to find the highest tier it passes through
+			-- R1-ground: stored paths are resampled this often and each point set on the floor found within the window
+			-- (studs above and below the straight line between waypoints).
+			SupportSampleStuds = 1,
+			SupportWindow = { Above = 3, Below = 2 },
 		},
 		MinTripStuds = 30, -- an NPC's next destination is at least this far away
 		TripPreferStuds = 120, -- destinations this far (walking) are half as likely as near ones; keeps long trips rare
 		ArrivalSpread = 3, -- NPCs stand within this many studs of a node, so they don't stack on one point
+		ArrivalSpreadTries = 4, -- R2-tiers: random spots tried (on floor, in tier, wall-free) before using the node itself
 		NodeCapacity = 2, -- NPCs that may stand at or head to one node at once (a pair chatting at a spot)
 		SeparationMaxOffset = 1.25, -- how far separation may push an NPC off its path
 		SeparationStrength = 4,
