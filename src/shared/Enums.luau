@@ -109,6 +109,17 @@ local Enums = {
 		Gasp = "Gasp",
 		GlanceLeft = "GlanceLeft",
 		GlanceRight = "GlanceRight",
+		-- R4-body-animation (Util/Knockdown names them by stage, fall and posture).
+		KnockdownForward = "KnockdownForward",
+		KnockdownBackward = "KnockdownBackward",
+		KnockdownLeft = "KnockdownLeft",
+		KnockdownRight = "KnockdownRight",
+		LieProne = "LieProne",
+		LieSupine = "LieSupine",
+		CrawlProne = "CrawlProne",
+		CrawlSupine = "CrawlSupine",
+		DeadProne = "DeadProne",
+		DeadSupine = "DeadSupine",
 	},
 
 	-- Spec 18.4: global alarm levels.

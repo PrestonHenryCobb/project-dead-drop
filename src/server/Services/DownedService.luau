@@ -5,6 +5,8 @@
 --     scan or change disguise, and bleed out after Downed.BleedOutSeconds. The body lies and crawls exactly like a
 --     downed NPC's: the server anchors the root face down at NPC.Death.RootLiftStuds and moves it at Speeds.Crawl
 --     (eased like every walk, GameConfig.Movement) the way the client asks (RequestCrawl). Shots pass through it.
+--     It falls the way the final hit sends it (Util/Knockdown: forward onto the front, backward onto the back, or to a
+--     side and then onto the front), and the crawl waits until the fall has played (R4-body-animation).
 --   * Hold Interact on a body (InteractService kind "Body", target = the model's name): a teammate is revived in
 --     Downed.ReviveSeconds (back up with ReviveHP and no armour); anyone else downed, player or NPC, is executed in
 --     ExecuteSeconds. Either breaks the holder's Cover (spec 7.2 #6). The client cannot tell which bodies are players.
@@ -27,6 +29,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
+local Knockdown = require(Shared:WaitForChild("Util"):WaitForChild("Knockdown"))
 local Death = require(script.Parent.Parent.NPC.Death)
 local CombatService = require(script.Parent.CombatService)
 local CoverService = require(script.Parent.CoverService)
@@ -46,6 +49,9 @@ type Downed = {
 	crawl: Vector3, -- the way the client asks to crawl, length 0 to 1
 	speed: number,
 	bleedAt: number, -- server clock
+	fall: Knockdown.Fall, -- how it went down (R4-body-animation), from the final hit's direction
+	posture: Knockdown.Posture, -- on its front or back
+	knockUntil: number, -- server clock: the fall plays until then, and the crawl waits for it
 }
 
 local DownedService = {}
@@ -98,26 +104,29 @@ local function yawOf(direction: Vector3): number
 	return math.atan2(-direction.X, -direction.Z)
 end
 
--- Face down, head the way it crawls, at the same height a downed NPC lies (Movement.place for NPCs).
+-- On its front or back, head the way it crawls, exactly as a downed NPC lies (Util/Knockdown).
 local function lay(body: Downed)
-	body.root.CFrame = CFrame.new(body.ground + Vector3.new(0, npcConfig.Death.RootLiftStuds, 0))
-		* CFrame.Angles(0, body.yaw, 0)
-		* CFrame.Angles(-math.pi / 2, 0, 0)
+	body.root.CFrame = Knockdown.lyingCFrame(body.ground, body.yaw, body.posture)
 end
 
-local function layDown(character: Model, humanoid: Humanoid, root: BasePart): Downed
+-- `from` is where the final damaging hit came from (nil or the body itself for a fall): it decides the fall.
+local function layDown(character: Model, humanoid: Humanoid, root: BasePart, from: Vector3?): Downed
 	local feet = root.Position - Vector3.new(0, humanoid.HipHeight + root.Size.Y / 2, 0)
 	local look = root.CFrame.LookVector
+	local fall = Knockdown.classify(look, root.Position, from)
 	local body: Downed = {
 		character = character,
 		humanoid = humanoid,
 		root = root,
 		ground = floorBelow(feet) or feet,
-		yaw = yawOf(Vector3.new(look.X, 0, look.Z)),
+		yaw = Knockdown.lyingYaw(fall, yawOf(Vector3.new(look.X, 0, look.Z))),
 		heading = Vector3.zero,
 		crawl = Vector3.zero,
 		speed = 0,
 		bleedAt = math.huge,
+		fall = fall,
+		posture = Knockdown.posture(fall),
+		knockUntil = workspace:GetServerTimeNow() + config.Knockdown.Seconds,
 	}
 	root.Anchored = true -- the server moves the body from now on, as it does a downed NPC's
 	humanoid.PlatformStand = true
@@ -140,7 +149,7 @@ end
 
 local checkTeamWipe: (Player) -> ()
 
-local function eliminate(player: Player)
+local function eliminate(player: Player, from: Vector3?)
 	if eliminated[player] then
 		return
 	end
@@ -149,8 +158,10 @@ local function eliminate(player: Player)
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local body = downed[player]
 	downed[player] = nil
+	local fromStanding = false
 	if not body and character and humanoid and root and root:IsA("BasePart") and humanoid.Health > 0 then
-		body = layDown(character, humanoid, root) -- Solos: straight from standing to a body on the floor
+		body = layDown(character, humanoid, root, from) -- Solos: straight from standing to a body on the floor
+		fromStanding = true
 	end
 	eliminated[player] = true
 	InteractService.cancel(player)
@@ -158,7 +169,12 @@ local function eliminate(player: Player)
 	if humanoid then
 		humanoid.Health = 0
 	end
-	RemoteService.fireClient("Eliminated", player)
+	local info: Types.EliminatedInfo = {
+		Fall = if body then body.fall else "Forward",
+		Posture = if body then body.posture else "Prone",
+		FromStanding = fromStanding,
+	}
+	RemoteService.fireClient("Eliminated", player, info)
 	for _, listener in eliminatedListeners do
 		task.spawn(listener, player)
 	end
@@ -187,12 +203,12 @@ function checkTeamWipe(player: Player)
 	end
 end
 
-local function down(player: Player, _from: Vector3)
+local function down(player: Player, from: Vector3)
 	if downed[player] or eliminated[player] then
 		return
 	end
 	if TeamService.isSolos() then
-		eliminate(player) -- spec 14.3: no downed state in Solos
+		eliminate(player, from) -- spec 14.3: no downed state in Solos
 		return
 	end
 	local character = player.Character
@@ -205,10 +221,10 @@ local function down(player: Player, _from: Vector3)
 	CombatService.disarm(player)
 	CombatService.setTargetable(player, false)
 	InteractService.cancel(player)
-	local body = layDown(character, humanoid, root)
+	local body = layDown(character, humanoid, root, from)
 	body.bleedAt = workspace:GetServerTimeNow() + config.BleedOutSeconds
 	downed[player] = body
-	local info: Types.DownedInfo = { BleedOutAt = body.bleedAt }
+	local info: Types.DownedInfo = { BleedOutAt = body.bleedAt, Fall = body.fall, Posture = body.posture }
 	RemoteService.fireClient("Downed", player, info)
 	checkTeamWipe(player)
 end
@@ -382,8 +398,8 @@ function DownedService.Start()
 		for player, body in downed do
 			if now >= body.bleedAt then
 				eliminate(player)
-			else
-				crawl(body, dt)
+			elseif now >= body.knockUntil then
+				crawl(body, dt) -- not while the fall is still playing
 			end
 		end
 	end)

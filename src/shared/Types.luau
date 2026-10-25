@@ -172,7 +172,10 @@ export type HitConfirm = { Kind: "Npc" | "Agent", Head: boolean } -- the shooter
 -- Step 9: a hold-interaction began (Active) or ended. Kind is what it does, for the HUD ("Revive", "Execute").
 export type InteractStateInfo = { Kind: string, Seconds: number, Active: boolean }
 -- Step 9: sent to a player who goes down; BleedOutAt is on the server clock.
-export type DownedInfo = { BleedOutAt: number }
+-- R4-body-animation: Fall and Posture name the poses the client plays (Util/Knockdown), the same set NPCs use.
+export type DownedInfo = { BleedOutAt: number, Fall: string, Posture: string }
+-- Sent to a player who is eliminated. FromStanding: they went straight from their feet (Solos), so the fall plays first.
+export type EliminatedInfo = { Fall: string, Posture: string, FromStanding: boolean }
 
 -- Step 9: a team's roster, sent only to its own members (CLAUDE.md rule 3).
 export type TeamRosterInfo = { TeamId: number, Members: { Player } }

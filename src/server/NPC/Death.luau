@@ -16,6 +16,7 @@ local GameConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild
 local AnimationSync = require(script.Parent.AnimationSync)
 local Movement = require(script.Parent.Movement)
 local NavGraph = require(script.Parent.NavGraph)
+local Knockdown = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Util"):WaitForChild("Knockdown"))
 local NpcTypes = require(script.Parent.NpcTypes)
 
 type Npc = NpcTypes.Npc
@@ -64,18 +65,27 @@ local function crawlPath(crowd: Crowd, npc: Npc, awayFrom: Vector3?): { Vector3 
 	return if spot then { spot } else {}
 end
 
--- Puts an NPC down. `awayFrom` is where the shot or blast came from, if known.
+-- Puts an NPC down. `awayFrom` is where the shot or blast came from, if known. It falls the way the hit sends it
+-- (Util/Knockdown, exactly as a player does), and crawls away once the fall is over.
 function Death.down(crowd: Crowd, npc: Npc, awayFrom: Vector3?, now: number)
 	if Death.isDown(npc) then
 		return
 	end
 	crowd.release(npc.node)
+	local facing = Vector3.new(-math.sin(npc.yaw), 0, -math.cos(npc.yaw))
+	npc.fall = Knockdown.classify(facing, npc.ground, awayFrom)
+	npc.posture = Knockdown.posture(npc.fall)
+	npc.yaw = Knockdown.lyingYaw(npc.fall, npc.yaw)
+	npc.knockUntil = now + GameConfig.Downed.Knockdown.Seconds
 	npc.state = "Downed"
 	npc.stateUntil = now + GameConfig.Downed.BleedOutSeconds
+	Movement.interrupt(npc)
+	npc.resume = nil
 	npc.path = crawlPath(crowd, npc, awayFrom)
 	npc.pathIndex = 1
 	npc.speed = config.Death.CrawlSpeed
-	AnimationSync.set(npc, "")
+	npc.moveSpeed = 0
+	AnimationSync.set(npc, Knockdown.animation("Knockdown", npc.fall, npc.posture))
 	table.insert(Death.bodies, {
 		model = npc.model,
 		npc = npc,
@@ -128,8 +138,12 @@ function Death.update(npc: Npc, dt: number, now: number, hooks: Hooks)
 	if npc.state ~= "Downed" then
 		return
 	end
-	if npc.path then
-		Movement.follow(npc, dt)
+	if now >= npc.knockUntil and now < npc.stateUntil then
+		local crawling = npc.path ~= nil
+		if crawling then
+			Movement.follow(npc, dt)
+		end
+		AnimationSync.set(npc, Knockdown.animation("Down", npc.fall, npc.posture, crawling))
 	end
 	if now < npc.stateUntil then
 		return
@@ -137,6 +151,7 @@ function Death.update(npc: Npc, dt: number, now: number, hooks: Hooks)
 
 	npc.state = "Eliminated"
 	npc.path = nil
+	AnimationSync.set(npc, Knockdown.animation("Dead", npc.fall, npc.posture))
 	local role, position = npc.role, npc.ground
 	for _, body in Death.bodies do
 		if body.npc == npc then

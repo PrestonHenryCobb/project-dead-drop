@@ -691,6 +691,17 @@ local GameConfig = {
 		InteractSlackStuds = 1.5, -- allowance for lag while the hold runs
 		CrawlRequestHz = 10, -- how often a downed client sends the way it is crawling
 		BodyAimDegrees = 35, -- a body this far off the crosshair can still be picked to revive or execute
+		-- R4-body-animation: how bodies go down (Util/Knockdown, Defs/PoseDefs). Shared by NPCs and players.
+		Knockdown = {
+			FrontBackDegrees = 90, -- a hit within this cone in front (or behind) is a front (or rear) hit; the rest are sides
+			MinSourceStuds = 0.5, -- a hit source closer than this to the body has no direction: the standard forward fall
+			Seconds = 0.75, -- the fall itself; crawling can start after it
+			RiseStuds = 1.2, -- how far a standing root sits above a lying one (the fall starts from standing height)
+			SideLiftStuds = 0.4, -- lying on a side holds the body this much higher than lying flat
+			CrawlCycleSeconds = 1.2, -- one full reach-and-pull of the crawl
+			CollapseSeconds = 0.5, -- the settle into stillness on death
+			DeadHoldSeconds = 600, -- how long the dead pose holds before its loop could repeat (far beyond any corpse)
+		},
 		Rescue = {
 			-- Ticket 9d: owner-approved initial Intel price, replacing the removed Funds price.
 			Cost = 10,

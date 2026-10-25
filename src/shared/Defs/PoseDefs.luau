@@ -333,4 +333,202 @@ local PoseDefs: { [string]: PoseDef } = {
 	},
 }
 
+-- Going down, lying, crawling and dying (R4-body-animation, owner decisions 2026-10-25). Original procedural poses,
+-- shared by NPCs and players (Util/Knockdown picks which). The server lays the root flat (face down when prone, face up
+-- when supine), so every pose here is relative to a lying root and moves the whole body through LowerTorso (the Root
+-- joint): a knockdown starts by turning the body back upright and raising it, then lets it fall to the lying pose.
+-- Every down pose names every joint, so nothing from the walk or idle animations shows through.
+do
+	local knock = GameConfig.Downed.Knockdown
+	local rise = knock.RiseStuds -- a standing root's height above a lying one
+	local fallTime = knock.Seconds
+
+	-- The whole body, turned and raised from the lying root. Up for a prone root is its +Z; for a supine root, its -Z.
+	local function whole(rx: number, ry: number, up: number, supine: boolean): Joints
+		return { LowerTorso = { rx, ry, 0, 0, 0, if supine then -up else up } }
+	end
+	-- Torso, head, then each limb as { upper joint, lower joint }.
+	local function limbs(
+		torso: JointPose,
+		head: JointPose,
+		rightArm: { JointPose },
+		leftArm: { JointPose },
+		rightLeg: { JointPose },
+		leftLeg: { JointPose }
+	): Joints
+		local joints: Joints = body(torso, head)
+		for _, part in
+			{
+				arm("Right", rightArm[1], rightArm[2]),
+				arm("Left", leftArm[1], leftArm[2]),
+				leg("Right", rightLeg[1], rightLeg[2]),
+				leg("Left", leftLeg[1], leftLeg[2]),
+			}
+		do
+			for name, pose in part do
+				joints[name] = pose
+			end
+		end
+		return joints
+	end
+	local function still(): { JointPose }
+		return { STRAIGHT, STRAIGHT }
+	end
+
+	local standing = limbs(STRAIGHT, STRAIGHT, still(), still(), still(), still())
+	-- On the front, up on the forearms, head raised to look ahead.
+	local proneRest = limbs(
+		{ 10, 0, 0 },
+		{ 35, 0, 0 },
+		{ { 150, 0, 18 }, { 75, 0, 0 } },
+		{ { 150, 0, 18 }, { 75, 0, 0 } },
+		{ { 0, 0, 4 }, { -6, 0, 0 } },
+		{ { 0, 0, 4 }, { -6, 0, 0 } }
+	)
+	-- One forearm reaching, the other pulling, the opposite knee drawn up to push.
+	local proneReachRight = limbs(
+		{ 10, 6, 0 },
+		{ 35, -6, 0 },
+		{ { 170, 0, 10 }, { 25, 0, 0 } },
+		{ { 120, 0, 25 }, { 100, 0, 0 } },
+		{ { 0, 0, 4 }, { -6, 0, 0 } },
+		{ { 20, 0, 35 }, { -80, 0, 0 } }
+	)
+	local proneReachLeft = limbs(
+		{ 10, -6, 0 },
+		{ 35, 6, 0 },
+		{ { 120, 0, 25 }, { 100, 0, 0 } },
+		{ { 170, 0, 10 }, { 25, 0, 0 } },
+		{ { 20, 0, 35 }, { -80, 0, 0 } },
+		{ { 0, 0, 4 }, { -6, 0, 0 } }
+	)
+	-- On the back, propped on the elbows, knees up, looking toward the feet.
+	local supineRest = limbs(
+		{ -18, 0, 0 },
+		{ -25, 0, 0 },
+		{ { -35, 0, 22 }, { 70, 0, 0 } },
+		{ { -35, 0, 22 }, { 70, 0, 0 } },
+		{ { 45, 0, 6 }, { -90, 0, 0 } },
+		{ { 45, 0, 6 }, { -90, 0, 0 } }
+	)
+	-- Pushing backward with one heel, then the other.
+	local supinePushRight = limbs(
+		{ -20, 4, 0 },
+		{ -25, 0, 0 },
+		{ { -45, 0, 22 }, { 80, 0, 0 } },
+		{ { -25, 0, 22 }, { 60, 0, 0 } },
+		{ { 65, 0, 6 }, { -115, 0, 0 } },
+		{ { 20, 0, 6 }, { -40, 0, 0 } }
+	)
+	local supinePushLeft = limbs(
+		{ -20, -4, 0 },
+		{ -25, 0, 0 },
+		{ { -25, 0, 22 }, { 60, 0, 0 } },
+		{ { -45, 0, 22 }, { 80, 0, 0 } },
+		{ { 20, 0, 6 }, { -40, 0, 0 } },
+		{ { 65, 0, 6 }, { -115, 0, 0 } }
+	)
+	-- Still: limbs slack, head turned to one side.
+	local proneDead = limbs(
+		STRAIGHT,
+		{ 0, 30, 0 },
+		{ { 100, 0, 45 }, { 10, 0, 0 } },
+		{ { 15, 0, 10 }, { 5, 0, 0 } },
+		{ { 0, 0, 8 }, STRAIGHT },
+		{ { 0, 0, 10 }, { -10, 0, 0 } }
+	)
+	local supineDead = limbs(
+		STRAIGHT,
+		{ 0, 30, 0 },
+		{ { -10, 0, 40 }, { 5, 0, 0 } },
+		{ { -10, 0, 30 }, { 10, 0, 0 } },
+		{ { 5, 0, 10 }, { -5, 0, 0 } },
+		{ { 15, 0, 6 }, { -25, 0, 0 } }
+	)
+	-- Arms thrown forward to break a forward fall; flung out going backward or sideways.
+	local bracing = limbs(
+		{ -10, 0, 0 },
+		{ 15, 0, 0 },
+		{ { 80, 0, 10 }, { 20, 0, 0 } },
+		{ { 80, 0, 10 }, { 20, 0, 0 } },
+		{ { 10, 0, 4 }, { -20, 0, 0 } },
+		{ { 10, 0, 4 }, { -20, 0, 0 } }
+	)
+	local flailing = limbs(
+		{ 10, 0, 0 },
+		{ -15, 0, 0 },
+		{ { 40, 0, 60 }, { 30, 0, 0 } },
+		{ { 40, 0, 60 }, { 30, 0, 0 } },
+		{ { 25, 0, 6 }, { -30, 0, 0 } },
+		{ { 10, 0, 6 }, { -10, 0, 0 } }
+	)
+
+	local flat, flatSupine = whole(0, 0, 0, false), whole(0, 0, 0, true)
+	local function once(...: Types.PoseKeyframe): PoseDef
+		return { Loop = false, Priority = "Action", Keyframes = { ... } }
+	end
+	local function looped(...: Types.PoseKeyframe): PoseDef
+		return { Loop = true, Priority = "Action", Keyframes = { ... } }
+	end
+	local cycle = knock.CrawlCycleSeconds
+
+	local downPoses: { [string]: PoseDef } = {
+		KnockdownForward = once(
+			frame(0, standing, whole(90, 0, rise, false)),
+			frame(fallTime * 0.4, bracing, whole(50, 0, rise * 0.6, false)),
+			frame(fallTime, proneRest, flat)
+		),
+		KnockdownBackward = once(
+			frame(0, standing, whole(-90, 0, rise, true)),
+			frame(fallTime * 0.4, flailing, whole(-55, 0, rise * 0.6, true)),
+			frame(fallTime, supineRest, flatSupine)
+		),
+		-- Down onto one side, then a roll onto the front.
+		KnockdownLeft = once(
+			frame(0, standing, whole(90, 0, rise, false)),
+			frame(fallTime * 0.45, flailing, whole(0, 80, knock.SideLiftStuds, false)),
+			frame(fallTime, proneRest, flat)
+		),
+		KnockdownRight = once(
+			frame(0, standing, whole(90, 0, rise, false)),
+			frame(fallTime * 0.45, flailing, whole(0, -80, knock.SideLiftStuds, false)),
+			frame(fallTime, proneRest, flat)
+		),
+		LieProne = looped(
+			frame(0, proneRest, flat),
+			frame(1.5, proneRest, whole(2, 0, 0, false)),
+			frame(3, proneRest, flat)
+		),
+		LieSupine = looped(
+			frame(0, supineRest, flatSupine),
+			frame(1.5, supineRest, whole(-2, 0, 0, true)),
+			frame(3, supineRest, flatSupine)
+		),
+		CrawlProne = looped(
+			frame(0, proneReachRight, flat),
+			frame(cycle / 2, proneReachLeft, flat),
+			frame(cycle, proneReachRight, flat)
+		),
+		CrawlSupine = looped(
+			frame(0, supinePushRight, flatSupine),
+			frame(cycle / 2, supinePushLeft, flatSupine),
+			frame(cycle, supinePushRight, flatSupine)
+		),
+		-- A brief settle into stillness, then held (not a ragdoll).
+		DeadProne = looped(
+			frame(0, proneRest, flat),
+			frame(knock.CollapseSeconds, proneDead, flat),
+			frame(knock.DeadHoldSeconds, proneDead, flat)
+		),
+		DeadSupine = looped(
+			frame(0, supineRest, flatSupine),
+			frame(knock.CollapseSeconds, supineDead, flatSupine),
+			frame(knock.DeadHoldSeconds, supineDead, flatSupine)
+		),
+	}
+	for name, def in downPoses do
+		PoseDefs[name] = def
+	end
+end
+
 return PoseDefs

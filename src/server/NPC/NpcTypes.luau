@@ -2,6 +2,8 @@
 -- Types shared by the server's NPC modules.
 
 local NavGraph = require(script.Parent.NavGraph)
+local Knockdown =
+	require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Util"):WaitForChild("Knockdown"))
 local Types = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Types"))
 
 -- Idle: standing at a node doing its activity. Walk: on a trip. Cower, Gasp: frozen reacting. BackAway: stepping away
@@ -43,6 +45,9 @@ export type Npc = {
 	stateUntil: number, -- when Cower, Gasp, Flee, Investigate or Downed ends
 	idleUntil: number,
 	offset: Vector3, -- separation push, added on top of the path
+	fall: Knockdown.Fall, -- how it went down, once downed (R4-body-animation)
+	posture: Knockdown.Posture, -- lying on its front or back, once downed
+	knockUntil: number, -- the fall plays until then; the crawl starts after it
 	placed: Vector3?, -- the root position last written, so unchanged NPCs are not rewritten every tick
 	placedYaw: number,
 	animation: string, -- what clients should play ("" means just walk or idle)

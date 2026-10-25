@@ -2,8 +2,10 @@
 -- The client side of being downed and of reviving or executing (spec 14.1, step 9).
 --
 --   * Downed: the server lies the body down and moves it; this sends the way the player asks to crawl
---     (MovementController.wantedDirection) Downed.CrawlRequestHz times a second, and plays the same walk and idle
---     animations a downed NPC shows (NPCController), so a crawling player looks like a crawling NPC.
+--     (MovementController.wantedDirection) Downed.CrawlRequestHz times a second, and plays the same down poses a
+--     downed NPC shows (R4-body-animation, Util/Knockdown and Defs/PoseDefs): the fall the server chose, then lying or
+--     crawling on the front or back, then the settle into death. They play on this player's own Animator, so every
+--     other client sees them, exactly as it sees an NPC's.
 --   * Interact on bodies: while a body lying on the floor is within Downed.InteractStuds and near the crosshair,
 --     Interact (held) asks the server to revive or execute it. Every body that lies down is a candidate, player or
 --     NPC: the client cannot tell them apart, and the server decides what the hold does.
@@ -16,6 +18,9 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local Knockdown = require(Shared:WaitForChild("Util"):WaitForChild("Knockdown"))
+local PoseAnimation = require(Shared:WaitForChild("Util"):WaitForChild("PoseAnimation"))
+local Types = require(Shared:WaitForChild("Types"))
 local MovementController = require(script.Parent.MovementController)
 local RemoteController = require(script.Parent.RemoteController)
 
@@ -30,8 +35,12 @@ local LYING_UP_Y = 0.5 -- a root whose up vector is flatter than this is lying d
 local DEATH_SOUND = "Died" -- the sound Roblox's RbxCharacterSounds adds to a player character
 
 local isDowned = false
-local walkTrack: AnimationTrack? = nil
-local idleTrack: AnimationTrack? = nil
+local fall: Knockdown.Fall = "Forward"
+local posture: Knockdown.Posture = "Prone"
+local fallEndsAt = 0 -- os.clock(): the fall pose plays until then, then lying or crawling
+local tracks: { [string]: AnimationTrack } = {}
+local playing: AnimationTrack? = nil
+local playingName = ""
 local lastPosition: Vector3? = nil
 local lastSent = Vector3.zero
 local sendElapsed = 0
@@ -42,52 +51,81 @@ local bodySight = RaycastParams.new()
 bodySight.CollisionGroup = GameConfig.Rig.CollisionGroup
 bodySight.RespectCanCollide = true
 
-local function loadTracks(character: Model)
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
+-- Plays one down pose on this player's character, fading out the last.
+local function play(name: string)
+	if name == playingName then
+		return
+	end
+	local character = localPlayer.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
-	local animate = character:FindFirstChild("Animate")
-	local walk = animate and animate:FindFirstChild("walk")
-	local idle = animate and animate:FindFirstChild("idle")
-	local walkAnimation = walk and walk:FindFirstChild("WalkAnim")
-	local idleAnimation = idle and idle:FindFirstChild("Animation1")
-	if
-		animator
-		and walkAnimation
-		and walkAnimation:IsA("Animation")
-		and idleAnimation
-		and idleAnimation:IsA("Animation")
-	then
-		walkTrack = animator:LoadAnimation(walkAnimation)
-		idleTrack = animator:LoadAnimation(idleAnimation)
+	local animation = PoseAnimation.registerAll()[name]
+	if not (animator and animation) then
+		return
 	end
+	local track = tracks[name]
+	if not track then
+		track = animator:LoadAnimation(animation)
+		tracks[name] = track
+	end
+	if playing then
+		playing:Stop(npcConfig.AnimationFadeSeconds)
+	end
+	track:Play(npcConfig.AnimationFadeSeconds)
+	playing, playingName = track, name
 end
 
-local function stopTracks()
-	for _, track in { walkTrack, idleTrack } do
-		if track then
-			track:Stop(npcConfig.AnimationFadeSeconds)
-		end
+local function stopAll()
+	for _, track in tracks do
+		track:Stop(npcConfig.AnimationFadeSeconds)
 	end
+	table.clear(tracks)
+	playing, playingName = nil, ""
 end
 
-local function setDowned(on: boolean)
-	isDowned = on
+local function onDowned(info: Types.DownedInfo)
+	isDowned = true
 	lastPosition = nil
 	lastSent = Vector3.zero
-	if on then
-		local character = localPlayer.Character
-		if character then
-			loadTracks(character)
-		end
-		if idleTrack then
-			idleTrack:Play(npcConfig.AnimationFadeSeconds)
-		end
+	fall = info.Fall :: Knockdown.Fall
+	posture = info.Posture :: Knockdown.Posture
+	fallEndsAt = os.clock() + config.Knockdown.Seconds
+	play(Knockdown.animation("Knockdown", fall, posture))
+end
+
+local function onEliminated(info: Types.EliminatedInfo?)
+	isDowned = false
+	if not info then
+		return
+	end
+	fall = info.Fall :: Knockdown.Fall
+	posture = info.Posture :: Knockdown.Posture
+	local dead = Knockdown.animation("Dead", fall, posture)
+	local falling = Knockdown.animation("Knockdown", fall, posture)
+	if info.FromStanding then
+		-- Solos: no downed state, so the fall plays first.
+		fallEndsAt = os.clock() + config.Knockdown.Seconds
+		play(falling)
+	end
+	local fallLeft = fallEndsAt - os.clock()
+	if fallLeft > 0 then
+		-- Still falling (Solos, or a team wipe straight after going down): settle at the end of the fall.
+		task.delay(fallLeft, function()
+			if playingName == falling then
+				play(dead)
+			end
+		end)
 	else
-		stopTracks()
+		play(dead)
 	end
 end
 
--- While downed: send the crawl direction, and walk-animate at crawl speed like a downed NPC.
+local function onUp()
+	isDowned = false
+	stopAll()
+end
+
+-- While downed: send the crawl direction, and lie or crawl like a downed NPC once the fall has played.
 local function stepDowned(dt: number)
 	local character = localPlayer.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -106,22 +144,12 @@ local function stepDowned(dt: number)
 	local position = root.Position
 	local previous = lastPosition
 	lastPosition = position
-	local walk, idle = walkTrack, idleTrack
-	if not (previous and walk and idle and dt > 0) then
+	if os.clock() < fallEndsAt or not previous or dt <= 0 then
 		return
 	end
 	local delta = position - previous
-	local speed = Vector3.new(delta.X, 0, delta.Z).Magnitude / dt
-	if speed > npcConfig.WalkAnimationMinSpeed then
-		if not walk.IsPlaying then
-			idle:Stop(npcConfig.AnimationFadeSeconds)
-			walk:Play(npcConfig.AnimationFadeSeconds)
-		end
-		walk:AdjustSpeed(speed / npcConfig.AnimationSpeedReference)
-	elseif walk.IsPlaying then
-		walk:Stop(npcConfig.AnimationFadeSeconds)
-		idle:Play(npcConfig.AnimationFadeSeconds)
-	end
+	local moving = Vector3.new(delta.X, 0, delta.Z).Magnitude / dt > npcConfig.WalkAnimationMinSpeed
+	play(Knockdown.animation("Down", fall, posture, moving))
 end
 
 -- The body lying down nearest the crosshair within reach, if any.
@@ -205,17 +233,11 @@ function DownedController.hasBodyTarget(): boolean
 end
 
 function DownedController.Start()
-	RemoteController.connect("Downed", function()
-		setDowned(true)
-	end)
-	RemoteController.connect("Revived", function()
-		setDowned(false)
-	end)
-	RemoteController.connect("Eliminated", function()
-		setDowned(false)
-	end)
+	RemoteController.connect("Downed", onDowned)
+	RemoteController.connect("Revived", onUp)
+	RemoteController.connect("Eliminated", onEliminated)
 	localPlayer.CharacterAdded:Connect(function()
-		setDowned(false)
+		onUp()
 		holding = false
 	end)
 

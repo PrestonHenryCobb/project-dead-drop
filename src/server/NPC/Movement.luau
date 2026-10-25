@@ -6,6 +6,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("GameConfig"))
+local Knockdown = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Util"):WaitForChild("Knockdown"))
 local NpcTypes = require(script.Parent.NpcTypes)
 
 type Npc = NpcTypes.Npc
@@ -172,7 +173,7 @@ end
 
 -- Writes the NPC's position and facing to its root, if they changed.
 function Movement.place(npc: Npc)
-	-- A downed NPC lies face down with its head the way it is crawling.
+	-- A downed NPC lies on its front or back with its head the way it is crawling (Util/Knockdown, as players do).
 	local lying = npc.state == "Downed" or npc.state == "Eliminated"
 	local height = if lying then config.Death.RootLiftStuds else npc.rootHeight
 	local position = npc.ground + npc.offset + Vector3.new(0, height, 0)
@@ -186,9 +187,9 @@ function Movement.place(npc: Npc)
 	end
 	npc.placed = position
 	npc.placedYaw = npc.yaw
-	npc.root.CFrame = CFrame.new(position)
-		* CFrame.Angles(0, npc.yaw, 0)
-		* CFrame.Angles(if lying then -math.pi / 2 else 0, 0, 0)
+	npc.root.CFrame = if lying
+		then Knockdown.lyingCFrame(npc.ground + npc.offset, npc.yaw, npc.posture)
+		else CFrame.new(position) * CFrame.Angles(0, npc.yaw, 0)
 end
 
 return Movement
