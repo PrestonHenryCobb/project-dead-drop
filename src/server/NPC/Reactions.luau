@@ -40,7 +40,7 @@ local function distance(npc: Npc, position: Vector3): number
 end
 
 local function reacting(npc: Npc): boolean
-	return npc.state == "Cower" or npc.state == "Gasp" or npc.state == "BackAway"
+	return npc.state == "Cower" or npc.state == "Gasp" or npc.state == "BackAway" or npc.state == "Held"
 end
 
 local function beginCower(npc: Npc, threat: Vector3, now: number)
@@ -109,6 +109,7 @@ local function panic(crowd: Crowd, position: Vector3, radius: number, now: numbe
 			config.Panic.PanicRoles[npc.role]
 			and not Death.isDown(npc)
 			and npc.state ~= "Cower"
+			and npc.state ~= "Held"
 			and distance(npc, position) <= radius
 		then
 			beginCower(npc, position, now)

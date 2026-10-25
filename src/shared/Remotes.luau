@@ -41,6 +41,7 @@ local Remotes = {
 		"SwapMarker", -- to a rival who comes within range: where someone changed disguise, until when (brief Q6)
 		"ScopeGlint", -- to a rival agent who can see a scoped DMR: where the glint is (STEP8 unique effects)
 		"InteractState", -- to the holder only: a hold-interaction (revive, execute, later intel and doors) began or ended
+		"TakedownVictim", -- to the target of a takedown only: the hold on them began or ended (R5-takedown)
 		"TeamRoster", -- to each member of a team only: who is on it (rule 3; spec 3.3 teammate markers build on it)
 	},
 

@@ -191,7 +191,12 @@ export type DamageInfo = { Position: Vector3, Amount: number } -- where the shot
 export type ShotInfo = { Origin: Vector3, Hit: Vector3, WeaponId: string, Struck: boolean } -- Struck: a person was hit
 -- Ticket 8.22: owner-only action acknowledgements. Strike confirms an attack, not a down/elimination.
 export type MeleeKind = "Takedown" | "Charge" | "Strike"
-export type MeleeState = { Kind: MeleeKind, Seconds: number, Active: boolean, StartedAt: number? }
+export type MeleeState = { Kind: MeleeKind, Seconds: number, Active: boolean, StartedAt: number?, Result: MeleeResult? }
+-- R5-takedown: what a completed takedown did, server-confirmed. Only "Downed" or "Eliminated" may trigger a cosmetic
+-- finisher; "Hit" (the target survived the damage) never does. Absent on every other MeleeState.
+export type MeleeResult = "Downed" | "Eliminated" | "Hit"
+-- R5-takedown: sent only to a player who is being taken down, so their own character plays the struggle.
+export type TakedownVictimInfo = { Active: boolean, Seconds: number, StartedAt: number? }
 
 -- Token-bucket limits for one client -> server remote (GameConfig.Network).
 export type RateLimit = {

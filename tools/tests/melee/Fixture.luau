@@ -59,6 +59,11 @@ e.NPCService = {
 		npc.hp -= damage
 		return npc.hp <= 0
 	end,
+	-- R5-takedown: a takedown holds an NPC still for its duration.
+	setHeld = function(npc, held)
+		npc.held = held
+		return true
+	end,
 }
 e.aliveParts = function(player)
 	return if player.down then nil else { Health = 100 }, e.roots[player]

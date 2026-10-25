@@ -128,20 +128,42 @@ local function sendAmmo(player: Player, state: State, reloadSeconds: number)
 	RemoteService.fireClient("AmmoUpdate", player, info)
 end
 
-local function sendMelee(player: Player, active: boolean, kind: Types.MeleeKind?, startedAt: number?)
+local function sendMelee(
+	player: Player,
+	active: boolean,
+	kind: Types.MeleeKind?,
+	startedAt: number?,
+	result: Types.MeleeResult?
+)
 	local action = kind or "Takedown"
 	local info: Types.MeleeState = {
 		Kind = action,
 		Seconds = if action == "Charge" then config.Melee.FullChargeSeconds else config.Takedown.HoldSeconds,
 		Active = active,
 		StartedAt = startedAt,
+		Result = result,
 	}
 	RemoteService.fireClient("MeleeState", player, info)
 end
 
+-- R5-takedown: the target's side of a hold. An NPC is held still and struggles (every client sees it through
+-- NPCAnimation); a player is told, so their own character plays the struggle, and may still break free by moving.
+local function holdVictim(target: Target, active: boolean, startedAt: number?)
+	local npc = target.npc
+	if npc then
+		NPCService.setHeld(npc :: any, active)
+	elseif target.player then
+		local info: Types.TakedownVictimInfo =
+			{ Active = active, Seconds = config.Takedown.HoldSeconds, StartedAt = startedAt }
+		RemoteService.fireClient("TakedownVictim", target.player :: Player, info)
+	end
+end
+
 local function cancelMelee(player: Player, state: State)
-	if state.takedown then
+	local takedown = state.takedown
+	if takedown then
 		state.takedown = nil
+		holdVictim(takedown.target, false)
 		sendMelee(player, false)
 	end
 	if state.chargeStartedAt then
@@ -193,22 +215,39 @@ local function damagePlayer(victim: Player, amount: number, from: Vector3, attac
 end
 
 -- A hit lands on `target`: the person is hurt, and the shooter sees a hitmarker that says what they hit (spec 8.4).
-local function applyDamage(shooter: Player, target: Target, amount: number, head: boolean, from: Vector3)
+-- Returns what the hit did (R5-takedown): "Downed", "Eliminated" or "Hit" (nil when teammates were spared).
+local function applyDamage(
+	shooter: Player,
+	target: Target,
+	amount: number,
+	head: boolean,
+	from: Vector3
+): Types.MeleeResult?
 	-- Ticket 8.22: spec 13.6 also applies to melee/takedowns and all other damage routed here.
 	if target.player and TeamService.areTeammates(shooter, target.player) then
-		return
+		return nil
 	end
 	local confirm: Types.HitConfirm
+	local result: Types.MeleeResult = "Hit"
 	if target.kind == "Npc" then
 		if NPCService.hitNpc(target.npc :: any, amount, from) then
 			CoverService.onNpcKilled(shooter) -- killing an NPC exposes the killer (spec 7.2 #11)
+			result = "Downed"
 		end
 		confirm = { Kind = "Npc", Head = head }
 	else
-		damagePlayer(target.player :: Player, amount, from, shooter)
+		local victim = target.player :: Player
+		damagePlayer(victim, amount, from, shooter)
+		local victimState = states[victim]
+		if isDowned(victim) then
+			result = "Downed"
+		elseif victimState and victimState.dead then
+			result = "Eliminated"
+		end
 		confirm = { Kind = "Agent", Head = head }
 	end
 	RemoteService.fireClient("HitConfirm", shooter, confirm)
+	return result
 end
 
 local function falloffMult(def: WeaponDef, distance: number): number
@@ -632,7 +671,9 @@ local function onMelee(player: Player, kind: unknown, lookArg: unknown)
 		CoverService.expose(player, "Takedown")
 		CoverService.startLockout(player)
 		state.takedown = { target = target, look = look, startedAt = now, startPosition = target.rootPart.Position }
-		sendMelee(player, true, "Takedown", workspace:GetServerTimeNow())
+		local startedAt = workspace:GetServerTimeNow()
+		holdVictim(target, true, startedAt)
+		sendMelee(player, true, "Takedown", startedAt)
 		return
 	end
 	state.chargeStartedAt = now
@@ -673,8 +714,10 @@ local function checkTakedowns(now: number)
 			elseif now - takedown.startedAt >= config.Takedown.HoldSeconds then
 				state.takedown = nil
 				state.lastMeleeAt = now
-				applyDamage(player, target, config.Takedown.Damage, false, (root :: BasePart).Position)
-				sendMelee(player, false, "Strike")
+				holdVictim(target, false)
+				-- R5-takedown: the server-confirmed result; only Downed or Eliminated may trigger a cosmetic finisher.
+				local result = applyDamage(player, target, config.Takedown.Damage, false, (root :: BasePart).Position)
+				sendMelee(player, false, "Strike", nil, result)
 			end
 		end
 	end

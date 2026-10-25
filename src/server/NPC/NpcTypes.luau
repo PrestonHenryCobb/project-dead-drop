@@ -19,6 +19,7 @@ export type NpcState =
 	| "Flee"
 	| "Investigate"
 	| "Return"
+	| "Held" -- grabbed in a takedown: stands still until it ends (R5-takedown)
 	| "Downed"
 	| "Eliminated"
 

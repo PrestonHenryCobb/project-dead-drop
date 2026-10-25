@@ -120,6 +120,9 @@ local Enums = {
 		CrawlSupine = "CrawlSupine",
 		DeadProne = "DeadProne",
 		DeadSupine = "DeadSupine",
+		-- R5-takedown: the two bodies of a takedown hold.
+		TakedownGrab = "TakedownGrab",
+		TakedownStruggle = "TakedownStruggle",
 	},
 
 	-- Spec 18.4: global alarm levels.

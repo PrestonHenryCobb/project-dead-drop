@@ -140,6 +140,8 @@ local function update(npc: Npc, dt: number, now: number, graph: NavGraph.Graph)
 	local state = npc.state
 	if state == "Downed" or state == "Eliminated" then
 		Death.update(npc, dt, now, hooks)
+	elseif state == "Held" then
+		return -- grabbed in a takedown: it stands still until released or downed
 	elseif state == "Cower" or state == "Gasp" then
 		Reactions.update(crowd :: NpcTypes.Crowd, npc, now)
 	elseif state == "Idle" then
@@ -376,6 +378,27 @@ function NPCService.executeNpc(npc: Npc): boolean
 		return false
 	end
 	Death.execute(npc, os.clock())
+	return true
+end
+
+-- A takedown grabs an NPC (R5-takedown): it stops where it is and struggles until the hold ends. Releasing it lets it
+-- carry on: it finishes the walk it was on, then picks its next trip. Returns false if it could not be held.
+function NPCService.setHeld(npc: Npc, held: boolean): boolean
+	if held then
+		if Death.isDown(npc) then
+			return false
+		end
+		Movement.interrupt(npc)
+		npc.state = "Held"
+		npc.moveSpeed = 0
+		AnimationSync.set(npc, Enums.NpcAnimation.TakedownStruggle)
+		return true
+	end
+	if npc.state == "Held" then
+		npc.state = "Idle"
+		npc.idleUntil = os.clock()
+		AnimationSync.set(npc, "")
+	end
 	return true
 end
 

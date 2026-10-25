@@ -526,6 +526,36 @@ do
 			frame(knock.DeadHoldSeconds, supineDead, flatSupine)
 		),
 	}
+	-- R5-takedown: the attacker's arms locked round the target from behind, leaning in; the target clawing at the hold.
+	-- Arms, torso and head only, so feet keep their footing from the idle animation underneath.
+	local grab = body({ -14, 0, 0 }, { -8, 0, 0 })
+	for name, pose in arm("Right", { 75, 0, -20 }, { 95, 0, 0 }) do
+		grab[name] = pose
+	end
+	for name, pose in arm("Left", { 70, 0, -25 }, { 100, 0, 0 }) do
+		grab[name] = pose
+	end
+	local grabTight = body({ -16, 0, 0 }, { -10, 0, 0 })
+	for name, pose in arm("Right", { 80, 0, -24 }, { 105, 0, 0 }) do
+		grabTight[name] = pose
+	end
+	for name, pose in arm("Left", { 74, 0, -28 }, { 108, 0, 0 }) do
+		grabTight[name] = pose
+	end
+	local function struggling(twist: number): Joints
+		local joints = body({ 12, twist, 0 }, { 22, -twist, 0 })
+		for name, pose in arm("Right", { 140, 0, 25 + twist }, { 120, 0, 0 }) do
+			joints[name] = pose
+		end
+		for name, pose in arm("Left", { 135, 0, 30 - twist }, { 115, 0, 0 }) do
+			joints[name] = pose
+		end
+		return joints
+	end
+	downPoses.TakedownGrab = looped(frame(0, grab), frame(0.4, grabTight), frame(0.8, grab))
+	downPoses.TakedownStruggle =
+		looped(frame(0, struggling(10)), frame(0.3, struggling(-10)), frame(0.6, struggling(10)))
+
 	for name, def in downPoses do
 		PoseDefs[name] = def
 	end
