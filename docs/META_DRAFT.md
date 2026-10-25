@@ -52,8 +52,8 @@ so Attire, Finishes and effects show only in True Form, in the lobby, on podiums
 - Extraction animations and match-win animations (a stealth chopper, a vanish in smoke, a luxury car).
 - **Takedown animations** (owner approved 2026-10-25): short first-person cosmetics available in the shop and as
   non-expiring Dossier rewards. Play only after the server confirms a down/elimination, never a nonlethal 90-damage hit.
-  A later request for "equivalent animation for either side" is being clarified as front/rear sets or attacker/victim
-  pairing; it has not changed the confirmed-result trigger.
+  Front/rear/left/right directional knockdown animations are baseline character behavior for NPCs and players;
+  they are separate from paid/reward cosmetic finishers. The side-shot clarification does not change the trigger.
   Same damage, acquisition, hold and recovery rules for every cosmetic. No gameplay benefit or pre-confirmation kill.
 - Intro poses for agent select (checking a wrist gadget, straightening a tie, spinning a silencer).
 - Cover-bust effects: what plays when a disguise breaks (glitch pixels, confetti, cartoon smoke).

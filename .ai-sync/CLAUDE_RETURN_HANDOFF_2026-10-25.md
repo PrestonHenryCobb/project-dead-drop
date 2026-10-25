@@ -82,8 +82,11 @@ has no actual authored crawl cycle; runtime loading of those particular tracks s
 
 Coordinate shared player/NPC directional transitions: a rear downing falls forward into prone forearm crawl; a front
 downing falls backward as if stunned into supine backward crawl. Final elimination is a brief stable collapse, not
-ragdoll. Owner confirmed final damaging-hit direction relative to victim facing; side hits choose the nearer half,
-and falls use standard forward collapse. Keep classification server-side. Use approved assets or original procedural
+ragdoll. Owner confirmed final damaging-hit direction relative to victim facing. **Latest clarification:** include
+distinct left/right-side shot knockdown animations, not nearest-front/back reuse. Side-fall crawl settling is awaiting
+an answer (roll prone, roll supine, or side crawl); front/rear crawl choices stay approved. Falls without an attacker
+use standard forward collapse. Keep classification server-side and use the same directional set for NPCs/players.
+These baseline downing animations are separate from shop/Dossier finisher cosmetics. Use approved assets or original procedural
 poses; no copied reference animations. Server owns transitions, movement, hit eligibility and interaction timing.
 Animation must never announce player identity, team or agent while disguised. Restore joints/tracks cleanly on revive,
 respawn and removal. Visible world rigs now animate smoothly; do not restore pose stepping.
@@ -117,8 +120,8 @@ Codex readiness hint is generic geometry for both NPC/player rigs, with the curr
 It is advisory because client pose/latency can differ. A server range change must update the same shared data/hint.
 **Round 1 answer:** keep first person and 90 damage. Add short cosmetic takedown animations as shop/Dossier rewards
 after a server-confirmed down/elimination, with no effect on combat stats/timing. A nonlethal 90-damage completion
-does not trigger the cosmetic finisher. The later "equivalent animation for either side" qualifier is being clarified
-as front/rear sets, attacker/victim pairs or both, and has not reversed the trigger. MeleeState.Active=false means cancel or completion;
+does not trigger the cosmetic finisher. The later clarification requires directional knockdowns for front/rear/side
+shots, and has not reversed the finisher trigger. MeleeState.Active=false means cancel or completion;
 that alone is insufficient proof of success and must not trigger a cosmetic execution.
 
 Charged melee is approved; input semantics are now confirmed, but charge timing/damage/recovery need definition.

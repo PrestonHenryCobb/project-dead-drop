@@ -28,14 +28,15 @@ gun composition, damage, camera, directional poses and ordinary-door exit. Do no
 
 Selectable follow-ups answered: V press in the valid takedown window starts the hold without a preliminary melee;
 outside it, tap/charge strikes on release. Cosmetic finishers require server-confirmed down/elimination. Directional
-downing uses final hit direction relative to victim facing, nearest front/back half for side hits, forward fall fallback.
-Charge balance remains unspecified. The later "equivalent animation for either side" qualifier has one pending
-selectable clarification: front/rear downings, paired attacker/victim takedowns, or both. Do not reinterpret this as
-permission to play a finisher on a surviving target. Do not repeat the answered choices.
+downing uses final hit direction relative to victim facing, with forward fall fallback for falls without an attacker.
+Latest clarification: include equivalent left/right-side shot knockdowns as well as front/rear, superseding the
+previous nearest-front/back-half side fallback. This does not authorize finishers on a surviving target. Side-fall
+crawl settling, default charge balance and NPC panic clearance are the next selectable questions. Do not repeat
+the answered choices.
 
 Completed round: Q3 gun composition, Q8 takedown result, Q9 takedown presentation/control, Q10 crawl/death style,
-Q11 door exit rules, plus input/result/direction follow-ups. Next: equivalent-animation qualifier, charge balance,
-Q12 NPC tier exceptions, HUD details Q5–6, and the world/economy/kit
+Q11 door exit rules, plus input/result/direction follow-ups and side-shot animation clarification. Next: side-fall crawl
+settling, charge balance, Q12 NPC tier exceptions, HUD details Q5–6, and the world/economy/kit
 questions Q13–35. Ask manageable groups; keep these original IDs in the decision record even if reply numbering starts
 at 1 in each group. Startup/NPC animations were restored per owner; remaining visual acceptance is separate from answers.
 
