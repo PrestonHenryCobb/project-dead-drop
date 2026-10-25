@@ -71,6 +71,10 @@ rework makes the layout the source of truth instead.
 | Door costs | Hacking costs **Staff 3, Security 6, Executive 8**, and **10** for the Sanctum's Package door and for the keycard printer (the most expensive of all). This lowers the old 4 / 7 / 10. |
 | Two Package doors | The Package room has a **front door** (from the foyer: hack for 10 or use the keycard) and a **back door** (from the west terrace: **keycard only**, the quiet way in). The west terrace is reached by a Cover-breaking service ladder from the roof deck. |
 | Elevators | The four glass elevators are **Staff and above**: Staff, Security and Executive disguises ride free; a Guest must hack the lobby door (3 intel) or tailgate, and is trespassing inside. **Staff NPCs ride them.** Public movement between floors is by stairs and ramps. |
+| Tier 4 door costs | By door: the Executive stair's head **8**, the elevator's arrival **8**, the terrace doors **6**; the Package doors **10**. A Tier 4 keycard or a warden or curator disguise opens all of them free. |
+| Keycard behaviour | **Single use**: it is spent on the first Tier 4 door it opens; another door needs another print (another 10 intel). |
+| Printing | **20 seconds** at the printer. (Noise level not stated: assumed loud, like opening a supply cache, so it breaks Cover; to confirm.) |
+| Vault core doors | The five vault cores' doors are **Executive doors (8 intel)**: an Executive disguise opens them free, anyone else hacks them, and the vent and secret exit are the other ways in. |
 | Sky deck | Stays the **far** extraction (about 887 studs of walking from the Sanctum): the long, risky way out. |
 | Package room routes | "Several routes" means the Sanctum area (three routes into the foyer) and **two doors** into the Package room itself. |
 

@@ -178,8 +178,12 @@ A vault is measured at its antechamber on foot (doors and stairs) and at its cor
 | Staff | 3 |
 | Security | 6 |
 | Executive | 8 |
-| Tier 4 (Package doors) | 10 |
-| Keycard printer | 10 |
+| Vault core doors | 8 |
+| Tier 4 stair head | 8 |
+| Tier 4 elevator arrival | 8 |
+| Tier 4 terrace doors | 6 |
+| Package doors | 10 |
+| Keycard printer (20 s, single-use card) | 10 |
 
 Keycard printer candidates (5, one active each match): P1 r_plant, P2 r_vaulte_ante, P3 r_summit, P4 t_gallery, P5 t_guard_ne. Tier 4 NPCs: Warden (stays on the summit); Curator (walks the penthouse, the roof and the summit lobby).
 

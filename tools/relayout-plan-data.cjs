@@ -279,7 +279,7 @@ const tier4Npcs = [
 	{ role: "Warden", rooms: ["s_foyer", "s_ter_w", "s_ter_e", "r_summit"], note: "stays on the summit" },
 	{ role: "Curator", rooms: ["t_great", "t_gallery", "r_summit", "r_deck"], note: "walks the penthouse, the roof and the summit lobby" },
 ];
-const doorCosts = { Staff: 3, Security: 6, Executive: 8, "Tier 4 (Package doors)": 10, "Keycard printer": 10 };
+const doorCosts = { Staff: 3, Security: 6, Executive: 8, "Vault core doors": 8, "Tier 4 stair head": 8, "Tier 4 elevator arrival": 8, "Tier 4 terrace doors": 6, "Package doors": 10, "Keycard printer (20 s, single-use card)": 10 };
 const sanctum = { level: "S", room: "s_sanctum", x: 0, z: -92 };
 const extraction = [
 	{ id: "Helipad", level: "R", x: -70, z: 45 }, { id: "SkyDeck", level: "D", x: 255, z: -50 }, { id: "TerraceLawn", level: "T", x: -108, z: 20 },

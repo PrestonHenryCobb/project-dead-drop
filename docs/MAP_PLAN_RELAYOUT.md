@@ -96,7 +96,8 @@ pair is B and C at 128. Walking from the Sanctum, the Helipad is 170 studs, the 
 all over the 120 minimum. **Extraction sites:** Helipad (roof west deck), Sky Deck (wing, 96), Terrace Lawn (top-floor west).
 
 ### Tier 4 content
-- **Door costs:** Staff 3, Security 6, Executive 8, the Package doors 10, the keycard printer 10.
+- **Door costs:** Staff 3, Security 6, Executive 8; Tier 4: stair head 8, elevator arrival 8, terrace doors 6, Package doors 10;
+  the five vault core doors 8 (Executive); the keycard printer 10 (20 seconds). The keycard is **single use**.
 - **Keycard printers:** 5 candidate spots, 1 active per match, none marked: the rooftop plant room (P1), the observatory
   hall (P2), the summit lobby (P3), the private gallery (P4) and the north-east guard post (P5). All are reachable with an
   Executive disguise.
@@ -129,16 +130,10 @@ All figures are estimates until measured in Studio (generated in `plan-report.md
 5. Art pass re-applied by Codex (generator-driven art is repeatable; sculptures and furniture are re-placed).
 
 ## 9. Decisions to confirm (my defaults are in the plan)
-Settled by the second round (see the brief): the Sanctum is Tier 4 with a warden and a curator, a keycard printed for 10
+Settled by the second and third rounds (see the brief): the Sanctum is Tier 4 with a warden and a curator, a keycard printed for 10
 intel, door costs 3 / 6 / 8 / 10, two Package doors (front hack or keycard, back keycard only), Staff-and-above
 elevators with Staff NPCs riding them, and the sky deck stays far. Still open:
-- **The foyer entrances (Tier 4 doors that are not the Package doors):** I assumed the same 10 intel, keycard or a warden
-  or curator disguise. Tell me if they should cost less, or be disguise-and-keycard only with no hack.
-- **The five vault doors** (into each vault core) are assumed to be Executive doors (8 intel): the terminal inside is the
-  prize, not the door.
-- **Printing time and noise:** assumed 10 seconds and loud (it breaks Cover), like opening a supply cache.
-- **Keycard rules:** one card per match; it drops if its carrier is downed; it opens only Tier 4 doors. Tell me if it
-  should be consumed on use or reusable.
+- **Printing noise:** you gave 20 seconds but not how loud. I assumed loud (it breaks Cover, like opening a supply cache).
 - **Single-entrance rooms** (a hotel suite, the sky deck, two Sanctum landings reached only through the foyer). Tell me if
   any should get a second door.
 - **The Warden and Curator look:** a distinct suit (black with red, and white with gold). Tell me a look you prefer.
