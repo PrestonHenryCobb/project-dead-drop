@@ -52,7 +52,7 @@ In this order; each depends on the one before. Decisions: `IDEAS_2026-10-24.md` 
 | Id | Ticket | Owner | Status |
 |---|---|---|---|
 | 8B.1 | Slimmer, taller bodies for everyone (height 105-115%, width and depth 80-90%); check hit boxes, doors, vents, camera height, NPC pathing height, clothes. **Done:** per-axis ranges in GameConfig.Rig, OutfitDefs, True Form at the middle; bodies measure 5.6 to 6.1 studs; a player walks a horizontal vent with 0.4 to 0.9 studs of headroom; player hit-box height now follows their current size. NPC graph AgentHeight left at 5 (NPCs are server-moved). | CLAUDE_CODE | READY_FOR_REVIEW |
-| 8B.2 | Full-body first person: torso, legs and feet visible, head and accessories hidden; real arms hold the gun. | CODEX | IN_PROGRESS (CODEX) |
+| 8B.2 | Full-body first person: torso, legs and feet visible, head and accessories hidden; real arms hold the gun. Added FirstPersonBodyController with local two-bone Motor6D arm posing on the shared 8 Hz clock; removed duplicate sleeve/hand blocks. Survives outfit changes and respawn. StyLua/Selene/Rojo pass; Studio body/IK/scale review required. | CODEX | READY_FOR_REVIEW |
 | 8B.3 | Gun always in frame (poses from real FOV and aspect) and the wall tuck (rays, blocks firing when fully tucked). Implemented against current view model: cached bounds, real-frustum fitting, five wall probes, high-ready tuck, camera-space depth compression, firing gate. StyLua/Selene/Rojo pass; Studio/FOV/wall review pending and recheck after 8B.2 arm rebuild. | CODEX | READY_FOR_REVIEW |
 | 8B.4 | Held-item switch: one input layer decides whether fire and aim mean weapon or gadget. Implemented HeldItemController; switching/focus loss cancel inputs, stowed weapon hides while reload/FOV recovery continue. No gadget slots or fake items. Owner authorized independent client work across steps. StyLua/Selene/Rojo pass; Studio review pending. | CODEX | READY_FOR_REVIEW |
 | 8B.5 | Movement feel: gravity about 150, longer jump, ground easing for players **and** NPCs. | CLAUDE_CODE | BLOCKED |
@@ -66,6 +66,9 @@ In this order; each depends on the one before. Decisions: `IDEAS_2026-10-24.md` 
 | 9.x | Split into tickets when the owner starts Step 9 (spectator rules are in `SPEC_CHANGES.md`). | | BLOCKED |
 
 ## Waiting on the owner
+<!-- Codex integration note: 06357ec includes Claude's concurrent GameConfig edits for 8B.1/8B.7
+(Height/Width scale ranges and Hitbox.BodyRadius=1.0), as well as Codex's Combat.Presentation section.
+The associated OutfitDefs/History changes were left for Claude to commit. Do not reapply those config changes. -->
 - The brief's answers (`docs/IDEAS_2026-10-24_BRIEF.md`) are decided; each lands in the step its table names. Only 8.8 is
   ticketed now. Step 16 needs 12 new Talents and 12 new Instincts designed with the owner first.
 - The Deceive Inc. tutorial videos for Step 13C (`IDEAS_2026-10-24.md` Q10).

@@ -55,8 +55,9 @@ local function build(model: Model)
 	local skip: { [number]: boolean } = {}
 	if model == localPlayer.Character then
 		for index, joint in joints do
-			if joint.Name == "Neck" then
-				skip[index] = true -- FacingController turns the head every frame
+			local part = if joint:IsA("Motor6D") then joint.Part1 else nil
+			if joint.Name == "Neck" or (part and (string.find(part.Name, "Arm") or string.find(part.Name, "Hand"))) then
+				skip[index] = true -- FacingController owns the neck; FirstPersonBodyController steps real arm poses.
 			end
 		end
 	end

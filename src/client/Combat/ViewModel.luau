@@ -1,16 +1,16 @@
 --!strict
--- The first-person gun and arms (STEP8 answers). Client only: nobody else ever sees these parts.
+-- The first-person gun (STEP8 answers). Client only: nobody else ever sees these parts.
 --
 -- The model hangs off the camera. Each frame it settles toward the pose asked for (Tucked: across the chest while
 -- disguised; Ready: up in the right third of the screen once exposed; Aim: centred on the line of sight), with a little
 -- lag behind the view turning, a walking bob, a jolt for each shot and a dip while reloading.
 --
--- The arms are plain sleeves and hands in the colours of the local character; a real arm rig comes with the art pass.
+-- Step 8B.2: there are no duplicate sleeve/hand blocks. FirstPersonBodyController poses the real arms to the grips.
 --
 --   ViewModel.new(def) -> ViewModel
 --   vm:update(camera, dt, input)   place it for this frame
 --   vm:kick()                      a shot's jolt
---   vm:setColors(sleeve, skin)
+--   vm:getHandTargets()            world frames for the real character's hands
 --   vm:setVisible(visible)
 --   vm:destroy()
 
@@ -41,8 +41,9 @@ export type ViewModel = typeof(setmetatable(
 	{} :: {
 		def: WeaponDef,
 		model: Model,
-		sleeves: { Part },
-		hands: { Part },
+		rightGrip: CFrame,
+		leftGrip: CFrame,
+		drawFrame: CFrame,
 		current: CFrame,
 		sway: Vector3,
 		kickBack: number,
@@ -92,7 +93,7 @@ local function addPart(
 end
 
 -- The suppressed SMG, built from parts: +x right, +y up, -z the way it points.
-local function buildSuppressedSmg(model: Model): ({ Part }, { Part })
+local function buildSuppressedSmg(model: Model): (CFrame, CFrame)
 	local body, accent = config.GunColor, config.AccentColor
 	addPart(model, "Receiver", Vector3.new(0.3, 0.42, 1.5), CFrame.new(0, 0, 0), body)
 	addPart(model, "TopRail", Vector3.new(0.18, 0.1, 1.2), CFrame.new(0, 0.26, -0.05), accent)
@@ -128,30 +129,10 @@ local function buildSuppressedSmg(model: Model): ({ Part }, { Part })
 	addPart(model, "RearSight", Vector3.new(0.1, 0.16, 0.2), CFrame.new(0, 0.39, 0.45), body)
 	addPart(model, "FrontSight", Vector3.new(0.08, 0.16, 0.12), CFrame.new(0, 0.37, -0.75), body)
 
-	local hands = {
-		addPart(model, "RightHand", Vector3.new(0.36, 0.36, 0.38), CFrame.new(0.02, -0.55, 0.6), Color3.new(1, 1, 1)),
-		addPart(model, "LeftHand", Vector3.new(0.36, 0.36, 0.38), CFrame.new(-0.03, -0.24, -0.95), Color3.new(1, 1, 1)),
-	}
-	local sleeves = {
-		addPart(
-			model,
-			"RightSleeve",
-			Vector3.new(0.4, 0.4, 2),
-			CFrame.new(0.2, -0.95, 1.65) * CFrame.Angles(math.rad(-22), math.rad(-10), 0),
-			Color3.new(1, 1, 1)
-		),
-		addPart(
-			model,
-			"LeftSleeve",
-			Vector3.new(0.4, 0.4, 2.1),
-			CFrame.new(-0.55, -0.75, 0.2) * CFrame.Angles(math.rad(-30), math.rad(34), 0),
-			Color3.new(1, 1, 1)
-		),
-	}
-	return sleeves, hands
+	return CFrame.new(0.02, -0.55, 0.6), CFrame.new(-0.03, -0.24, -0.95)
 end
 
-local builders: { [string]: (Model) -> ({ Part }, { Part }) } = {
+local builders: { [string]: (Model) -> (CFrame, CFrame) } = {
 	GuiseSMG = buildSuppressedSmg,
 }
 
@@ -160,7 +141,7 @@ function ViewModel.new(def: WeaponDef): ViewModel
 	assert(build, `No view model for weapon {def.Id}`)
 	local model = Instance.new("Model")
 	model.Name = "ViewModel"
-	local sleeves, hands = build(model)
+	local rightGrip, leftGrip = build(model)
 	local parts: { DrawPart } = {}
 	local low = Vector3.new(math.huge, math.huge, math.huge)
 	local high = -low
@@ -203,8 +184,9 @@ function ViewModel.new(def: WeaponDef): ViewModel
 	return setmetatable({
 		def = def,
 		model = model,
-		sleeves = sleeves,
-		hands = hands,
+		rightGrip = rightGrip,
+		leftGrip = leftGrip,
+		drawFrame = CFrame.identity,
 		current = CFrame.identity,
 		sway = Vector3.zero,
 		kickBack = 0,
@@ -228,13 +210,13 @@ function ViewModel.isFireBlocked(_self: ViewModel, camera: Camera): boolean
 	return WeaponPlacement.wallDistance(camera) <= presentation.FullTuckStuds
 end
 
-function ViewModel.setColors(self: ViewModel, sleeve: Color3, skin: Color3)
-	for _, part in self.sleeves do
-		part.Color = sleeve
+function ViewModel.getHandTargets(self: ViewModel): (CFrame?, CFrame?)
+	if not self.visible or self.drawFrame == CFrame.identity then
+		return nil, nil
 	end
-	for _, part in self.hands do
-		part.Color = skin
-	end
+	local right = CFrame.new(self.rightGrip.Position * self.drawScale) * self.rightGrip.Rotation
+	local left = CFrame.new(self.leftGrip.Position * self.drawScale) * self.leftGrip.Rotation
+	return self.drawFrame * right, self.drawFrame * left
 end
 
 function ViewModel.setVisible(self: ViewModel, visible: boolean)
@@ -328,6 +310,7 @@ function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: In
 	)
 	self.drawScale = math.min(scale, self.drawScale + (1 - self.drawScale) * blend)
 	local drawFrame = cameraCFrame * (CFrame.new(relative.Position * self.drawScale) * relative.Rotation)
+	self.drawFrame = drawFrame
 	for _, entry in self.parts do
 		entry.part.Size = entry.size * self.drawScale
 		entry.part.CFrame = drawFrame * (CFrame.new(entry.offset.Position * self.drawScale) * entry.offset.Rotation)

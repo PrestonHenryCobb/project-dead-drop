@@ -46,9 +46,7 @@ local combat = GameConfig.Combat
 local controls = GameConfig.Controls
 local rng = Random.new()
 
-local ARM_PARTS = { "LeftUpperArm", "LeftLowerArm", "LeftHand", "RightUpperArm", "RightLowerArm", "RightHand" }
 local RAISE_AFTER_FIRE_SECONDS = 1 -- the gun stays up this long after a shot, until the server confirms cover is broken
-local COLOR_REFRESH_SECONDS = 1
 local EMPTY_CLICK_GAP = 0.3
 local MAX_SHOTS_PER_FRAME = 3
 local FOV_TOLERANCE = 0.01 -- degrees: the camera stores its field of view at lower precision than a number
@@ -76,7 +74,6 @@ local lastEmptyAt = -math.huge
 local exposed = false
 local baseFov = 70
 local appliedFov = 0
-local lastColorRefresh = -math.huge
 
 local function character(): (Model?, Humanoid?, BasePart?)
 	local model = localPlayer.Character
@@ -181,28 +178,6 @@ local function fireOnce(camera: Camera, root: BasePart, now: number)
 	end
 end
 
--- Hides the local character's own arms; the view model has arms of its own.
-local function hideOwnArms(model: Model)
-	for _, name in ARM_PARTS do
-		local part = model:FindFirstChild(name)
-		if part and part:IsA("BasePart") then
-			part.LocalTransparencyModifier = 1
-		end
-	end
-end
-
-local function refreshColors(model: Model, now: number)
-	if now - lastColorRefresh < COLOR_REFRESH_SECONDS or not viewModel then
-		return
-	end
-	lastColorRefresh = now
-	local sleeve = model:FindFirstChild("LeftUpperArm")
-	local hand = model:FindFirstChild("LeftHand")
-	if sleeve and sleeve:IsA("BasePart") and hand and hand:IsA("BasePart") then
-		viewModel:setColors(sleeve.Color, hand.Color)
-	end
-end
-
 local function step(dt: number)
 	local camera = workspace.CurrentCamera
 	local model, humanoid, root = character()
@@ -268,8 +243,6 @@ local function step(dt: number)
 		return
 	end
 
-	hideOwnArms(model)
-	refreshColors(model, now)
 	if not viewModel then
 		viewModel = ViewModel.new(def)
 	end
@@ -286,6 +259,13 @@ local function step(dt: number)
 		speedFraction = math.clamp(speed / GameConfig.Speeds.Sprint, 0, 1),
 		reloadProgress = if isReloading(now) then (now - reloadStartedAt) / def.ReloadSeconds else nil,
 	})
+end
+
+function WeaponController.getHandTargets(): (CFrame?, CFrame?)
+	if held and viewModel then
+		return viewModel:getHandTargets()
+	end
+	return nil, nil
 end
 
 function WeaponController.getStatus(): Status
