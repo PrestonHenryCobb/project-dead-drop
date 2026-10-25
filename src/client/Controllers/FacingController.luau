@@ -6,8 +6,8 @@
 -- toward the camera, up to Cover.NeckMaxYaw sideways. Standing still, the body turns slowly to the camera once it has
 -- been idle for IdleTurnDelay, like an NPC glancing around.
 --
--- The client owns its own character, so the body rotation and the neck set here reach everyone else. The neck is an
--- AnimationConstraint on this rig; its Transform is set directly, which replaces whatever an animation did to it.
+-- Root rotation follows network ownership; neck posing is local visual feedback. RigService converts the rig to
+-- Motor6D joints. Accept AnimationConstraint too while a legacy rig is present in Studio.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -23,7 +23,7 @@ local STOP_TURNING_DEGREES = 3 -- an idle turn ends when the body is this close 
 
 local humanoid: Humanoid? = nil
 local root: BasePart? = nil
-local neck: AnimationConstraint? = nil
+local neck: (Motor6D | AnimationConstraint)? = nil
 local idleSeconds = 0
 local idleTurning = false
 
@@ -44,7 +44,8 @@ local function onCharacter(newCharacter: Model)
 	humanoid = newCharacter:WaitForChild("Humanoid") :: Humanoid
 	root = newCharacter:WaitForChild("HumanoidRootPart") :: BasePart
 	local head = newCharacter:WaitForChild("Head")
-	neck = head:WaitForChild("Neck") :: AnimationConstraint
+	local joint = head:WaitForChild("Neck")
+	neck = if joint:IsA("Motor6D") or joint:IsA("AnimationConstraint") then joint else nil
 	idleSeconds = 0
 	idleTurning = false; -- We rotate the body ourselves; the default would face the camera.
 	(humanoid :: Humanoid).AutoRotate = false

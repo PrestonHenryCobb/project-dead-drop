@@ -7,6 +7,11 @@ Status: `TODO`, `IN_PROGRESS (CLAUDE_CODE)` or `IN_PROGRESS (CODEX)`, `READY_FOR
 Every ticket ends with the `CLAUDE.md` report, `stylua src` and `selene src` clean, and no commit unless the owner asks.
 
 ## Step 8: finish weapons (current)
+Owner authorization (2026-10-24): Codex may continue client/weapon work across steps where the design and dependencies
+allow, and commit each completed change without another confirmation. Keep server ownership/locks intact and document
+server handoffs rather than presenting incomplete mechanics as finished. This supersedes the earlier one-ticket stop
+and commit-confirmation rules for this development run.
+
 | Id | Ticket | Owner | Needs | Status |
 |---|---|---|---|---|
 | 8.1 | Test pass in Studio: melee (V), takedown from behind (hold V 1.2 s, breaks at 4 studs or when hurt), reload, empty click, fall damage; ziplines, gondola and vents must not cause fall damage. Fix what fails. **Fixed:** falls are now measured by height (the server's copy of a player's Humanoid state reported Landed mid-fall, so a 40-stud drop did nothing); the first shot after a reload is no longer dropped. Takedown breaking when the attacker is hurt is untested (needs 2 players, 8.4). | CLAUDE_CODE | Studio | READY_FOR_REVIEW |
@@ -20,6 +25,7 @@ Every ticket ends with the `CLAUDE.md` report, `stylua src` and `selene src` cle
 | 8.10 | Ammo reconciliation in `WeaponController` (found in 8.1). Holding fire through a reload, the client completes the reload on its own clock and fires at once (mag 29), then the server's reload confirmation (`AmmoUpdate` Mag=30, ReloadSeconds=0) overwrites it, so the client counts one round too many. At the end of that magazine it fires one shot (sound, recoil) that the server rejects with Mag=0. Fix: keep the local count when an AmmoUpdate only confirms a reload the client already completed (same Reserve, Mag at or above the local one). | CODEX | | READY_FOR_REVIEW |
 | 8.11 | Bullet tracers and muzzle flash for every weapon that is not `Quiet` (the suppressed SMG has neither, STEP8_QUESTIONS). Client only, from the existing data: your own shots from WeaponController's prediction, other players' from `ShotHeard` (Origin, Hit). Per-weapon look in `WeaponDefs`, shared numbers in `GameConfig.Combat.Feedback`. No server or remote changes. Runs alongside 8.5. | CODEX | | READY_FOR_REVIEW |
 | 8.7 | Step 8 end report (CLAUDE.md format). | CLAUDE_CODE | 8.1 to 8.6 | TODO |
+| 8.12 | Fix client facing and pose stepping to support the classic Motor6D rig now built by RigService, retaining compatibility with AnimationConstraint rigs. StyLua/Selene pass; Studio review pending. | CODEX | | READY_FOR_REVIEW |
 
 ## Step 8B: feel pass (after Step 8)
 <!-- Ticket 8.11 (CODEX, 2026-10-24): ShotVisuals preallocates 64 tracers and 24 flashes under a client-only

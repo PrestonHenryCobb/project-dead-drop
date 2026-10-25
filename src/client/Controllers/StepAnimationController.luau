@@ -18,7 +18,7 @@ local GameConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild
 
 type Entry = {
 	root: BasePart,
-	joints: { AnimationConstraint },
+	joints: { Motor6D | AnimationConstraint },
 	held: { CFrame },
 	hasHeld: boolean,
 	nextStep: number,
@@ -42,9 +42,10 @@ local function build(model: Model)
 	if not (root and root:IsA("BasePart")) then
 		return
 	end
-	local joints: { AnimationConstraint } = {}
+	local joints: { Motor6D | AnimationConstraint } = {}
 	for _, descendant in model:GetDescendants() do
-		if descendant:IsA("AnimationConstraint") then
+		-- Ticket 8.12: RigService uses classic joints for both NPCs and players.
+		if descendant:IsA("Motor6D") or descendant:IsA("AnimationConstraint") then
 			table.insert(joints, descendant)
 		end
 	end
