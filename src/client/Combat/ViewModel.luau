@@ -165,9 +165,46 @@ local function buildFoldingCarbine(model: Model): (CFrame, CFrame)
 	return CFrame.new(0.02, -0.46, 0.4), CFrame.new(-0.03, -0.18, -1.0)
 end
 
+local function buildPistol(model: Model, suppressed: boolean): (CFrame, CFrame)
+	local body, accent = config.GunColor, config.AccentColor
+	addPart(model, "Receiver", Vector3.new(0.23, 0.25, 0.95), CFrame.identity, body)
+	addPart(model, "Slide", Vector3.new(0.25, 0.18, 1.0), CFrame.new(0, 0.18, -0.03), accent)
+	addPart(
+		model,
+		"Grip",
+		Vector3.new(0.23, 0.58, 0.3),
+		CFrame.new(0, -0.36, 0.26) * CFrame.Angles(math.rad(-13), 0, 0),
+		body
+	)
+	addPart(model, "TriggerGuard", Vector3.new(0.16, 0.12, 0.26), CFrame.new(0, -0.21, -0.08), accent)
+	addPart(model, "FrontSight", Vector3.new(0.05, 0.06, 0.07), CFrame.new(0, 0.3, -0.43), body)
+	addPart(model, "RearSight", Vector3.new(0.12, 0.06, 0.07), CFrame.new(0, 0.3, 0.35), body)
+	local length = if suppressed then 0.75 else 0.45
+	local radius = if suppressed then 0.2 else 0.17
+	local barrel = addPart(
+		model,
+		if suppressed then "Suppressor" else "ShroudedBarrel",
+		Vector3.new(length, radius, radius),
+		CFrame.new(0, 0.15, -0.5 - length / 2) * CFrame.Angles(0, math.pi / 2, 0),
+		body
+	)
+	barrel.Shape = Enum.PartType.Cylinder
+	local muzzle = Instance.new("Attachment")
+	muzzle.Name = "Muzzle"
+	muzzle.Position = Vector3.new(length / 2, 0, 0)
+	muzzle.Parent = barrel
+	return CFrame.new(0.01, -0.32, 0.25), CFrame.new(-0.15, -0.3, 0.18)
+end
+
 local builders: { [string]: (Model) -> (CFrame, CFrame) } = {
 	GuiseSMG = buildSuppressedSmg,
 	ReticleCarbine = buildFoldingCarbine,
+	GuisePistol = function(model)
+		return buildPistol(model, true)
+	end,
+	FeintPistol = function(model)
+		return buildPistol(model, false)
+	end,
 }
 
 function ViewModel.new(def: WeaponDef): ViewModel

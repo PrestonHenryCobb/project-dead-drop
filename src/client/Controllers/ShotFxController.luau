@@ -23,7 +23,8 @@ local function onShotHeard(info: Types.ShotInfo)
 	if not def then
 		return
 	end
-	local range = if def.Quiet then GameConfig.Audio.SuppressedWeaponRadius else GameConfig.Audio.DefaultWeaponRadius
+	local range = def.HearStuds
+		or (if def.Quiet then GameConfig.Audio.SuppressedWeaponRadius else GameConfig.Audio.DefaultWeaponRadius)
 	SoundPlayer.playAt(def.Sounds.Fire, info.Origin, feedback.ShotVolume, range)
 	-- SPEC-QUESTION: should tracers be visible farther away than shots are heard? ShotHeard currently limits both.
 	ShotVisuals.fire(def, ShotVisuals.remoteMuzzle(info.Origin, info.Hit), info.Hit)

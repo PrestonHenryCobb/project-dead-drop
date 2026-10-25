@@ -75,6 +75,11 @@ In this order; each depends on the one before. Decisions: `IDEAS_2026-10-24.md` 
 | 9.x | Split into tickets when the owner starts Step 9 (spectator rules are in `SPEC_CHANGES.md`). | | BLOCKED |
 
 ## Future client review
+<!-- 8.5a/8.5f client update: GuisePistol and FeintPistol definitions and shaped models are ready for review.
+Owner delegated Feint stats: 20 damage, semi 320 RPM, 12/24 ammo, 1.5 s reload, 35–85 stud falloff to 65%,
+0.25 s post-melee delay, Quiet/HearStuds=12/SoundOffset=8–15. Guise keeps 22 damage and AmbushMult=1.5.
+ShotFxController honors per-weapon HearStuds. Existing 8.5-server handles both effects. Test either by temporarily
+setting Combat.DefaultWeapon in Studio only before Play. No new selection UI or default weapon change. -->
 | Id | Ticket | Owner | Needs | Status |
 |---|---|---|---|---|
 | 19-client-preview | Two HUD design directions in docs/mockups/combat-hud-review.html: Field notes and Control strip. Preview only; no unbuilt gameplay UI added to src. See .ai-sync/CODEX_CLIENT_HANDOFF.md for commits, API integration, exact Studio checks and remaining server-effect handoffs. | CODEX | Owner design review; gameplay contracts for later features | READY_FOR_REVIEW |

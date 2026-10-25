@@ -40,6 +40,12 @@ to Claude. Going forward stage only owned hunks in shared files, not entire shar
   Do not expose a weapon whose required effect is missing. Feint pistol stats need the owner's answer; the old
   revolver's numbers are superseded and were not reused.
 
+Update: the owner delegated Feint's pistol balance. FeintPistol is now defined and modeled: 20 damage, 320 RPM,
+12/24 ammo, 1.5 s reload, falloff 35–85 to 65%, post-melee recovery 0.25 s, Quiet, HearStuds=12,
+SoundOffset=NumberRange.new(8,15). GuisePistol is also defined/modeled with the decided 22/300/12+24/1.4 s and
+AmbushMult=1.5. ShotFxController honors HearStuds overrides. Neither needs a new server rule; existing 8.5-server
+fields supply their effects. Both remain subject to the normal loadout/default-weapon test procedure below.
+
 ## Studio review
 
 1. Restart Play after sync. Look down and check real torso, legs, feet and hands. Swap disguises, die and respawn.

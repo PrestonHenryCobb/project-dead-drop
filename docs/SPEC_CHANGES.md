@@ -1,5 +1,13 @@
 # Proposed spec changes
 
+## Delegated Feint pistol balance (2026-10-24)
+
+The owner delegated the replacement silent pistol's numbers to Codex. It replaces the heavy revolver: 20 damage,
+1.5x headshots, semi-auto 320 RPM, 12 loaded / 24 reserve, 1.5 s reload, falloff from 35 to 85 studs to 65%, 0.25 s
+post-melee recovery. Quiet: no tracer/flash, 12-stud hearing range around a sound origin displaced 8–15 studs.
+It has no Guise ambush multiplier. The lower damage and shorter effective range pay for its misdirection advantage.
+Tune these initial values through playtests.
+
 Derived from the decisions in `docs/OPEN_QUESTIONS.md` (Decided section). `docs/cover-story-game-spec.md` has **not**
 been edited. Review this list, then tell me to apply it.
 
