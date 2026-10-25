@@ -8,6 +8,7 @@ local DeepFreeze = require(script.Parent.Util.DeepFreeze)
 local Remotes = {
 	-- Server -> client
 	ServerToClient = {
+		"TestLoadoutChanged", -- Ticket studio-test-loadout: Studio-only, selected weapon to its owner only.
 		"PhaseChanged",
 		"TimerSync",
 		"CoverStateChanged",
@@ -45,6 +46,7 @@ local Remotes = {
 
 	-- Client -> server (requests only; the server validates every one)
 	ClientToServer = {
+		"RequestTestLoadout", -- Ticket studio-test-loadout: ignored outside Studio; server chooses the next weapon.
 		"RequestScan",
 		"RequestDisguise",
 		"RequestInteract",

@@ -29,6 +29,7 @@ local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local MeleeRules = require(Shared:WaitForChild("Util"):WaitForChild("MeleeRules"))
 local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"))
+local TestLoadout = require(Shared.Util.TestLoadout)
 local Ballistics = require(script.Parent.Parent.Combat.Ballistics)
 local Death = require(script.Parent.Parent.NPC.Death)
 local FireRate = require(script.Parent.Parent.Combat.FireRate)
@@ -84,6 +85,8 @@ local CombatService = {}
 
 local config = GameConfig.Combat
 local states: { [Player]: State } = {}
+-- Ticket studio-test-loadout: private server selections, retained through respawn, never character metadata.
+local testWeapons: { [Player]: string } = {}
 local sampleAccumulator = 0
 local takedownAccumulator = 0
 local downedHooks: DownedHooks? = nil
@@ -116,7 +119,12 @@ local function sendHealth(player: Player, state: State)
 end
 
 local function sendAmmo(player: Player, state: State, reloadSeconds: number)
-	local info: Types.AmmoInfo = { Mag = state.mag, Reserve = state.reserve, ReloadSeconds = reloadSeconds }
+	local info: Types.AmmoInfo = {
+		Mag = state.mag,
+		Reserve = state.reserve,
+		ReloadSeconds = reloadSeconds,
+		WeaponId = state.weapon.Id,
+	}
 	RemoteService.fireClient("AmmoUpdate", player, info)
 end
 
@@ -710,7 +718,9 @@ local function onCharacterAdded(player: Player, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 	local root = character:WaitForChild("HumanoidRootPart") :: BasePart
 	character:WaitForChild("Head")
-	local def = WeaponDefs.get(config.DefaultWeapon)
+	local def = WeaponDefs.get(
+		if RunService:IsStudio() then testWeapons[player] or config.DefaultWeapon else config.DefaultWeapon
+	)
 	assert(def, `Combat.DefaultWeapon {config.DefaultWeapon} is not a weapon`)
 	local state: State = {
 		weapon = def,
@@ -759,6 +769,60 @@ local function onCharacterAdded(player: Player, character: Model)
 
 	sendHealth(player, state)
 	sendAmmo(player, state, 0)
+	if RunService:IsStudio() then
+		RemoteService.fireClient(
+			"TestLoadoutChanged",
+			player,
+			{ WeaponId = def.Id, Mag = state.mag, Reserve = state.reserve, Reset = true }
+		)
+	end
+end
+
+-- Ticket studio-test-loadout: no IDs/stats accepted from a client. This method also supports explicit Studio probes.
+function CombatService.testCycle(player: Player, action: unknown): boolean
+	if not RunService:IsStudio() or type(action) ~= "string" then
+		return false
+	end
+	local state = states[player]
+	local humanoid = aliveParts(player)
+	if not state or not humanoid or state.dead or isDowned(player) then
+		return false
+	end
+	local nextDef = TestLoadout.nextWeapon(state.weapon.Id, action)
+	if not nextDef then
+		return false
+	end
+	if action ~= "Sync" then
+		cancelReload(player)
+		cancelMelee(player, state)
+		state.reloadId += 1 -- invalidate delayed reload completion, even when the timer just elapsed
+		state.reloadEndsAt = 0
+		state.weapon = nextDef
+		state.mag, state.reserve = nextDef.MagSize, nextDef.ReserveAmmo
+		state.nextFireAt, state.lastMeleeAt = 0, -math.huge
+		state.streak = FireRate.newStreak()
+		state.aiming = false
+		CoverService.setWeaponDrawn(player, false)
+		testWeapons[player] = nextDef.Id
+		RemoteService.fireClient("Notification", player, `STUDIO: {nextDef.Agent} / {nextDef.Name}`)
+		print(`[StudioLoadout] {player.Name}: {nextDef.Id}`)
+	end
+	RemoteService.fireClient("TestLoadoutChanged", player, {
+		WeaponId = state.weapon.Id,
+		Mag = state.mag,
+		Reserve = state.reserve,
+		Reset = action ~= "Sync",
+	})
+	return true
+end
+
+-- Read-only server-side Studio diagnostics; never sent to another player or stored on a rig.
+function CombatService.getTestWeaponId(player: Player): string?
+	if not RunService:IsStudio() then
+		return nil
+	end
+	local state = states[player]
+	return if state and not state.dead then state.weapon.Id else nil
 end
 
 function CombatService.setDownedHooks(hooks: DownedHooks)
@@ -812,6 +876,11 @@ function CombatService.Init()
 end
 
 function CombatService.Start()
+	if RunService:IsStudio() then
+		RemoteService.onRequest("RequestTestLoadout", function(player: Player, action: unknown)
+			CombatService.testCycle(player, action)
+		end)
+	end
 	RemoteService.onRequest("FireRequest", onFire)
 	RemoteService.onRequest("ReloadRequest", onReload)
 	RemoteService.onRequest("RequestDraw", onDraw)
@@ -833,6 +902,7 @@ function CombatService.Start()
 	Players.PlayerRemoving:Connect(function(player)
 		History.untrack(targetIdOf(player))
 		states[player] = nil
+		testWeapons[player] = nil
 	end)
 
 	local sampleInterval = 1 / config.LagCompHistoryHz

@@ -180,7 +180,9 @@ export type TeamRosterInfo = { TeamId: number, Members: { Player } }
 -- Brief Q6: a disguise-swap marker. ExpiresAt is on the server clock (workspace:GetServerTimeNow()).
 export type SwapMarkerInfo = { Position: Vector3, ExpiresAt: number }
 
-export type AmmoInfo = { Mag: number, Reserve: number, ReloadSeconds: number } -- ReloadSeconds > 0 as a reload starts
+-- Ticket studio-test-loadout: WeaponId discards late ammo corrections from a previous selection.
+export type AmmoInfo = { Mag: number, Reserve: number, ReloadSeconds: number, WeaponId: string? }
+export type TestLoadoutInfo = { WeaponId: string, Mag: number, Reserve: number, Reset: boolean }
 export type HealthInfo = { HP: number, Armor: number }
 export type DamageInfo = { Position: Vector3, Amount: number } -- where the shot came from, for the direction marker
 export type ShotInfo = { Origin: Vector3, Hit: Vector3, WeaponId: string, Struck: boolean } -- Struck: a person was hit

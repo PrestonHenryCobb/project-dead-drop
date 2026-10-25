@@ -34,6 +34,7 @@ local HeldItemController = require(script.Parent.HeldItemController)
 
 export type Status = {
 	active: boolean, -- owner is alive and not downed/eliminated
+	weaponId: string,
 	name: string,
 	mag: number,
 	reserve: number,
@@ -358,6 +359,7 @@ function WeaponController.getStatus(): Status
 	local camera = workspace.CurrentCamera
 	return {
 		active = root ~= nil,
+		weaponId = def.Id,
 		name = def.Name,
 		mag = mag,
 		reserve = reserve,
@@ -457,9 +459,7 @@ local function onMelee(_: string, state: Enum.UserInputState): Enum.ContextActio
 	return Enum.ContextActionResult.Sink
 end
 
-local function resetForSpawn()
-	combatEnabled = true
-	characterJanitor:Cleanup()
+local function resetWeapon()
 	if viewModel then
 		viewModel:destroy()
 		viewModel = nil
@@ -476,6 +476,37 @@ local function resetForSpawn()
 	lastMeleeAt = -math.huge
 	takedownActive = false
 	meleePending = false
+end
+
+local function resetForSpawn()
+	combatEnabled = true
+	characterJanitor:Cleanup()
+	resetWeapon()
+end
+
+local function onTestLoadout(info: Types.TestLoadoutInfo)
+	if not RunService:IsStudio() then
+		return
+	end
+	local nextDef = WeaponDefs.get(info.WeaponId)
+	if not nextDef then
+		return
+	end
+	if not info.Reset and nextDef.Id == def.Id then
+		mag, reserve = info.Mag, info.Reserve
+		return -- a sync must not interrupt a live reload or held trigger
+	end
+	local camera = workspace.CurrentCamera
+	if camera then
+		camera.CFrame *= CFrame.Angles(math.rad(-appliedPitch), math.rad(-appliedYaw), 0)
+	end
+	def = nextDef
+	shotDirections = table.create(def.Pellets or 1)
+	resetWeapon() -- deliberately retains downed state and the current character's lifecycle connections
+	mag, reserve = info.Mag, info.Reserve
+	aimBlend = 0
+	lastFireAt = -math.huge
+	SoundPlayer.preload({ def.Sounds.Fire, def.Sounds.Reload, def.Sounds.Empty })
 end
 
 local function setCombatEnabled(value: boolean)
@@ -527,8 +558,14 @@ function WeaponController.Start()
 		combat.Feedback.ImpactSound,
 	}
 	SoundPlayer.preload(sounds)
+	if RunService:IsStudio() then
+		janitor:Add(RemoteController.connect("TestLoadoutChanged", onTestLoadout))
+	end
 
 	janitor:Add(RemoteController.connect("AmmoUpdate", function(info: Types.AmmoInfo)
+		if info.WeaponId and info.WeaponId ~= def.Id then
+			return
+		end
 		-- Ticket 8.10: a delayed reload confirmation must not put predicted shots back in the magazine.
 		-- Only consume this exception once, for a reload we actually completed; other updates correct normally.
 		local confirmsPredictedReload = predictedReloadPending

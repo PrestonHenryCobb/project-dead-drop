@@ -1013,6 +1013,12 @@ local GameConfig = {
 
 	-- Temporary development switches. Turn off before release.
 	Debug = {
+		-- Ticket studio-test-loadout: runtime-gated by IsStudio on BOTH sides; no saved unlock/progression effects.
+		TestLoadout = {
+			AgentKey = Enum.KeyCode.F8,
+			WeaponKey = Enum.KeyCode.F9,
+			AgentOrder = { "Guise", "Parapet", "Lattice", "Reticle", "Suture", "Feint" },
+		},
 		PrintZoneChanges = true, -- ZoneService prints a line whenever a player's zone tier changes
 		PrintNpcCost = true, -- NPCService and NPCController print their average per-update cost every few seconds
 		CostReportSeconds = 10,
@@ -1028,6 +1034,8 @@ local GameConfig = {
 	Network = {
 		DefaultRateLimit = { PerSecond = 20, Burst = 20 },
 		RateLimits = {
+			-- Ticket studio-test-loadout: separate from gameplay input budgets.
+			RequestTestLoadout = { PerSecond = 2, Burst = 4 },
 			-- Fastest weapon fires 900 rpm (15/s); 30/s leaves room for jitter. The server also checks fire rate itself.
 			FireRequest = { PerSecond = 30, Burst = 30 },
 			RequestCrawl = { PerSecond = 15, Burst = 15 }, -- sent at Downed.CrawlRequestHz

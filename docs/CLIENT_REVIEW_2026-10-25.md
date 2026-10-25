@@ -294,3 +294,28 @@ Validation: StyLua, Selene, Rojo build and the existing 29 server-melee regressi
 Known gaps: a vent badge is an approach warning, not a prediction of the exact server entry tick. Gondola warnings accompany its call prompt; they do not claim that calling exposes you.
 SPEC-QUESTIONs: none added; the 8-stud approach distance and facing dot 0.25 are presentation tuning, not a gameplay requirement. Ready for: remaining Step 19 HUD review; Step 9c spectating remains the next gameplay-plan step.
 
+## Studio F8/F9 weapon-kit selector (studio-test-loadout, 2026-10-25)
+
+What I built:
+- `GameConfig.luau`: Studio test keys, kit order and a dedicated request rate limit; shared lock released after formatting/linting.
+- `Remotes.luau`: RequestTestLoadout / owner-only TestLoadoutChanged, created through the existing registry.
+- `Types.luau`: selection acknowledgement and optional weapon ID on ammo corrections, to discard old-weapon packets.
+- `Util/TestLoadout.luau`: deterministic cycling through registered weapons, skipping kits with no working weapons.
+- `CombatService.luau`: hard Studio gate, alive/downed validation, server-selected weapon/stats/ammo, reload/melee cancellation and private per-player respawn persistence.
+- `TestLoadoutController.luau`: F8/F9 contextual bindings and startup sync, all inactive outside Studio and Janitor-owned.
+- `WeaponController.luau`: rebuilds the own gun and updates ammo, fire cadence, pellets, spread, recoil/zoom and HUD from the server's acknowledgement. Keeps character lifecycle/downed state intact.
+- `Tools/TestLoadoutReview.luau`: explicit temporary two-client probes, with actual client requests, all registered choices, ammo/reload reset, respawn and player independence checks.
+- `tools/check-test-loadout.cjs`: executes the actual selector and server production-guard functions with Luau fixtures.
+
+How to test in Studio:
+1. Stop the old test, sync Rojo, then **Play**. Click the game viewport. **F8** cycles available weapon kits; **F9** cycles that kit's registered weapons. A short STUDIO toast confirms the kit/gun, and the ammo/name/model should update.
+2. Fire several rounds, press **R**, then immediately press **F9**. Expect the new gun's full magazine/reserve, no old reload completion overwriting it, no continuing burst/held trigger or old recoil. Aim/fire again and check the correct semi/automatic behavior.
+3. Select a non-default gun, then reset your character using Roblox's menu. Your selected gun should return with fresh ammo. Stop/start a new test: the normal default returns; no selection is saved as progression.
+4. **Test > Clients 2 > Start:** change one client's selection and confirm the other client's own gun/ammo stay unchanged. Current Duos mode makes these clients teammates; use four clients for opposing-team combat/downed tests. Downed/eliminated players cannot change weapon until revived/respawned.
+5. Optional automated regression in Edit: fresh-clone `ServerScriptService.Server.Tools.TestLoadoutReview`, parent the clone to ServerStorage, run `require(clone).run()`, then destroy it. Require a server PASS and TWO client PASS logs, not just ServerPassed.
+
+Known gaps: eight registered firearms across Guise, Parapet, Reticle, Suture and Feint are selectable. Lattice has no registered weapon yet and is skipped. These are weapon-kit selections; unbuilt Talents/Instincts/unlocks are not granted. This does not change disguises or true-form identity. Other-player exposed held-gun visuals still use the existing default model; heard-shot effects already use the real WeaponId. A future authorized visible-weapon contract is required for per-player third-person gun models without leaking hidden kits.
+
+Validation: StyLua/Selene/Rojo, actual-source selector/live-server guard checks and the existing 29 melee assertions pass. The final Studio run logged server PASS plus TWO client PASS results at 17:43 UTC: 14 real selection requests reached all eight registered weapons, cancelled a pending server reload, preserved the chosen GuisePistol across respawn, and left Player2's own weapon unchanged. Earlier harness timeouts came from waiting for an ammo message that normal firing does not send; the corrected test uses an explicit server sync after its simulated shot. Physical keyboard focus and visual acceptance remain owner review.
+SPEC-QUESTIONs: none added; unimplemented choices remain excluded. Ready for: Step 8 weapon testing (8.4); main next gameplay-plan step remains Step 9c spectating.
+

@@ -313,3 +313,30 @@ Edit. Initial test tried to read Plugin-protected map properties from clients; c
 Final 17:02 UTC run: server PASS, TWO client PASS lines, then ServerPassed. StyLua/Selene/Rojo and deterministic
 generator checks pass. See docs/GALA_ART_REVIEW.md for exact one-player and Test > Clients 2 > Start review steps,
 source-only reinstall steps, gaps, SPEC-QUESTIONs (none new), and next: owner Gala review / Step 9c spectating.
+## Codex: Studio F8/F9 selector (studio-test-loadout)
+
+Owner asked to implement the last test-control change; implemented STEP8_QUESTIONS A3 rather than permanently
+changing DefaultWeapon. F8 cycles available weapon kits, F9 cycles registered guns within that kit. Shared helper
+sorts real WeaponDefs and skips empty kits (currently Lattice). No agent abilities/progression/unlocks are invented.
+Keys/order live in GameConfig.Debug.TestLoadout; new request has a dedicated 2/s burst-4 rate limit. Both server and
+client hard-gate on IsStudio; actual-source Luau tests execute the server method under IsStudio=false and confirm
+all actions are refused. The registry creates the remotes normally; no live-server selection handler is registered.
+
+CombatService validates state/alive/downed/action, chooses definitions server-side, resets ammo/cadence, cancels
+reload/melee/draw state and keeps selections privately through respawn. Owner-only TestLoadoutChanged replaces the
+local gun, firing properties and HUD; AmmoUpdate now carries an optional WeaponId to discard stale corrections.
+Character cleanup and downed state remain intact. Existing FireRequest weapon-ID checks reject old-weapon shots.
+No character/NPC metadata, attributes, hidden-kit broadcast or default Quiet/config weapon changes. No git push.
+
+Final native StudioTestService two-client review at 17:43 UTC: SERVER PASS and BOTH client PASS logs, then ServerPassed.
+14 real client selection requests reached all eight weapons, checked fresh ammo, pending-reload cancellation,
+non-default GuisePistol respawn persistence and Player2 independence. The first tests incorrectly awaited a normal
+shot AmmoUpdate; normal shots use prediction, so the corrected harness explicitly syncs after the simulated shot.
+Test tools clean their scripts/connections. StyLua/Selene/Rojo, new production-guard/selector assertions and existing
+29 melee assertions pass. Exact manual steps and file report: docs/CLIENT_REVIEW_2026-10-25.md, Studio selector section.
+
+Known limitation retained: WeaponVisualController still draws the existing default third-person gun for exposed
+looks; heard-shot FX already use the real WeaponId. Do not attach kit data to characters or broadcast disguised
+loadouts to "fix" it. Per-player third-person guns need an authorized visible-weapon contract. The selector covers
+own gun/server stats; physical key focus and visual acceptance remain owner review. From default Guise, F8 twice
+selects ReticleCarbine. SPEC-QUESTIONs: none new. Ready for Step 8/8.4 testing; next main gameplay step is Step 9c.
