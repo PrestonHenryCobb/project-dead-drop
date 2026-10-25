@@ -210,6 +210,15 @@ function ViewModel.isFireBlocked(_self: ViewModel, camera: Camera): boolean
 	return WeaponPlacement.wallDistance(camera) <= presentation.FullTuckStuds
 end
 
+-- Third-person display reuses the same geometry, but is parented in a separate client-only folder.
+function ViewModel.placeAtRightHand(self: ViewModel, hand: CFrame)
+	local origin = hand * self.rightGrip:Inverse()
+	for _, entry in self.parts do
+		entry.part.Size = entry.size
+		entry.part.CFrame = origin * entry.offset
+	end
+end
+
 function ViewModel.getHandTargets(self: ViewModel): (CFrame?, CFrame?)
 	if not self.visible or self.drawFrame == CFrame.identity then
 		return nil, nil

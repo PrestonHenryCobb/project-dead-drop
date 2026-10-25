@@ -335,6 +335,16 @@ local GameConfig = {
 		CarrierMult = 0.9,
 	},
 
+	-- Step 8B.5 (SPEC_CHANGES 6.8 / 8.1): floatier movement. Lower gravity with the jump height kept, so a jump lasts
+	-- longer without reaching anything new; smooth starts and stops on the ground for players and NPCs alike, from the
+	-- same two numbers, so easing is never a tell.
+	Movement = {
+		Gravity = 150,
+		JumpHeight = 6.4, -- studs; what the old default jump reached, so no new ledge comes in reach
+		AccelSeconds = 0.18, -- from standing to full speed
+		DecelSeconds = 0.15, -- from full speed to standing
+	},
+
 	-- Spec 9: intel.
 	Intel = {
 		-- Four station types (SPEC_CHANGES, intel amounts), chosen per station on the map. Points is the intel a station
@@ -412,6 +422,8 @@ local GameConfig = {
 	Combat = {
 		-- Ticket 8B.4: fire/aim, reload and melee share the same input precedence.
 		InputPriority = 3000,
+		-- Ticket 8B.8: recognise the visible True Form look, never a player/agent attribute or roster.
+		ThirdPersonWeapon = { ScanSeconds = 0.25, CullStuds = 140 },
 		-- Ticket 8B.3: camera-space framing and wall tuck. These affect presentation; hits remain server-authoritative.
 		Presentation = {
 			ScreenMarginFraction = 0.12,
@@ -705,6 +717,14 @@ local GameConfig = {
 		ReloadPad = Enum.KeyCode.ButtonX,
 		Melee = Enum.KeyCode.V, -- tap to strike; from behind, hold to take down (spec 13.4)
 		MeleePad = Enum.KeyCode.ButtonR3,
+		-- Step 8B.5: walking is ours (MovementController), so its keys live here too. The gamepad uses the left stick.
+		MoveForward = { Enum.KeyCode.W, Enum.KeyCode.Up },
+		MoveBack = { Enum.KeyCode.S, Enum.KeyCode.Down },
+		MoveLeft = { Enum.KeyCode.A, Enum.KeyCode.Left },
+		MoveRight = { Enum.KeyCode.D, Enum.KeyCode.Right },
+		Jump = Enum.KeyCode.Space,
+		JumpPad = Enum.KeyCode.ButtonA,
+		StickDeadzone = 0.2,
 	},
 
 	-- Spec 23: audio radii in studs.

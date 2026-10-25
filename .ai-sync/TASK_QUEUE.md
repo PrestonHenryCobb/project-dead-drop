@@ -58,7 +58,7 @@ In this order; each depends on the one before. Decisions: `IDEAS_2026-10-24.md` 
 | 8B.5 | Movement feel: gravity about 150, longer jump, ground easing for players **and** NPCs. | CLAUDE_CODE | BLOCKED |
 | 8B.6 | Frame stepping: animation 8 a second for everything, other characters' positions 12 a second on the server clock; server rewinds shots to snapped positions. | CLAUDE_CODE | BLOCKED |
 | 8B.7 | Hit-box radius about 1.0 stud. **Done** (GameConfig.Combat.Hitbox.BodyRadius = 1.0). | CLAUDE_CODE | READY_FOR_REVIEW |
-| 8B.8 | Others see a gun on a character wearing a True Form look (client-side only, no new server message). | CODEX | BLOCKED |
+| 8B.8 | Others see a gun on a character wearing a True Form look (client-side only, no new server message). WeaponVisualController matches the complete visible True Form body palette on any rig and reuses gun geometry in a client-only folder; disappears on disguise swap. No character markers. DefaultWeapon only until loadouts differ. StyLua/Selene/Rojo pass; 2-player Studio review pending. | CODEX | READY_FOR_REVIEW |
 
 ## Step 9: downed, revive, elimination, spectate
 | Id | Ticket | Owner | Status |
