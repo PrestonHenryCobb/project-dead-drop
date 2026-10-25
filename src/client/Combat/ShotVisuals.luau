@@ -147,7 +147,7 @@ function ShotVisuals.remoteMuzzle(origin: Vector3, hit: Vector3): Vector3
 	return shotFrame(origin, delta.Unit):PointToWorldSpace(feedback.RemoteMuzzleOffset)
 end
 
-function ShotVisuals.fire(def: Types.WeaponDef, muzzle: Vector3, hit: Vector3)
+function ShotVisuals.fire(def: Types.WeaponDef, muzzle: Vector3, hit: Vector3, showFlash: boolean?)
 	if def.Quiet or not started then
 		return
 	end
@@ -170,6 +170,9 @@ function ShotVisuals.fire(def: Types.WeaponDef, muzzle: Vector3, hit: Vector3)
 	tracer.active = true
 	tracer.fresh = true
 	drawTracer(tracer)
+	if showFlash == false then
+		return -- a pellet still gets a tracer; one muzzle flash belongs to the whole trigger pull
+	end
 
 	flashIndex = flashIndex % #flashes + 1
 	local flash = flashes[flashIndex]

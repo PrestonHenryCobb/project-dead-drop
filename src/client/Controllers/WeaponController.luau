@@ -26,6 +26,7 @@ local ShotFx = require(Combat:WaitForChild("ShotFx"))
 local ShotVisuals = require(Combat:WaitForChild("ShotVisuals"))
 local SoundPlayer = require(Combat:WaitForChild("SoundPlayer"))
 local ViewModel = require(Combat:WaitForChild("ViewModel"))
+local WeaponCadence = require(Combat:WaitForChild("WeaponCadence"))
 local RemoteController = require(script.Parent.RemoteController)
 local HeldItemController = require(script.Parent.HeldItemController)
 
@@ -57,6 +58,9 @@ local AIM_BLEND_RATE = 14
 local FIRE_NOISE_PITCH = 0.04 -- shots vary a little in pitch so a burst is not a machine
 
 local def: Types.WeaponDef = WeaponDefs.get(combat.DefaultWeapon) :: Types.WeaponDef
+local streak = WeaponCadence.newStreak()
+local burstRemaining = 0
+local shotDirections: { Vector3 } = table.create(def.Pellets or 1)
 local viewModel: ViewModel.ViewModel? = nil
 
 local mag = def.MagSize
@@ -127,6 +131,7 @@ local function startReload(now: number)
 		return
 	end
 	reloadStartedAt = now
+	burstRemaining = 0
 	reloadEndsAt = now + def.ReloadSeconds
 	SoundPlayer.play(def.Sounds.Reload, combat.Feedback.ShotVolume)
 	RemoteController.fire("ReloadRequest")
@@ -140,6 +145,7 @@ local function fireOnce(camera: Camera, root: BasePart, now: number)
 		return -- Ticket 8.9: match the server's recovery gate before predicting any ammo, sound or recoil
 	end
 	if viewModel and viewModel:isFireBlocked(camera) then
+		burstRemaining = 0
 		return -- a fully tucked gun cannot fire; keep ammo, recoil and requests untouched
 	end
 	if mag <= 0 then
@@ -150,12 +156,27 @@ local function fireOnce(camera: Camera, root: BasePart, now: number)
 		startReload(now)
 		return
 	end
-	nextFireAt = math.max(nextFireAt, now - combat.FireRateToleranceSeconds) + 60 / def.RPM
+	nextFireAt = math.max(nextFireAt, now - combat.FireRateToleranceSeconds)
+		+ WeaponCadence.gapAfterShot(def, streak, now, aiming)
+	if def.Burst then
+		if burstRemaining == 0 then
+			burstRemaining = def.Burst.Count
+		end
+		burstRemaining -= 1
+	end
 	mag -= 1
 	lastFireAt = now
 
-	local direction = spreadDirection(camera.CFrame, currentSpread(root))
-	RemoteController.fire("FireRequest", camera.CFrame.Position, direction, workspace:GetServerTimeNow(), def.Id)
+	for index = 1, def.Pellets or 1 do
+		shotDirections[index] = spreadDirection(camera.CFrame, currentSpread(root))
+	end
+	RemoteController.fire(
+		"FireRequest",
+		camera.CFrame.Position,
+		if def.Pellets then shotDirections else shotDirections[1],
+		workspace:GetServerTimeNow(),
+		def.Id
+	)
 
 	-- What the shot feels like, at once.
 	SoundPlayer.play(
@@ -170,16 +191,19 @@ local function fireOnce(camera: Camera, root: BasePart, now: number)
 	if viewModel then
 		viewModel:kick()
 	end
-	local point, normal = ShotFx.mapHit(camera.CFrame.Position, direction)
-	if viewModel then
-		ShotVisuals.fire(
-			def,
-			viewModel:getMuzzlePosition(),
-			point or (camera.CFrame.Position + direction * combat.MaxShotStuds)
-		)
-	end
-	if point and normal then
-		ShotFx.impact(point, normal)
+	for index, direction in shotDirections do
+		local point, normal = ShotFx.mapHit(camera.CFrame.Position, direction)
+		if viewModel then
+			ShotVisuals.fire(
+				def,
+				viewModel:getMuzzlePosition(),
+				point or (camera.CFrame.Position + direction * combat.MaxShotStuds),
+				index == 1
+			)
+		end
+		if point and normal then
+			ShotFx.impact(point, normal)
+		end
 	end
 	if mag <= 0 then
 		startReload(now)
@@ -233,9 +257,13 @@ local function step(dt: number)
 	camera.CFrame *= CFrame.Angles(math.rad(recoilPitch - appliedPitch), math.rad(recoilYaw - appliedYaw), 0)
 	appliedPitch, appliedYaw = recoilPitch, recoilYaw
 
-	if firing and def.Automatic then
+	if (firing and def.Automatic) or burstRemaining > 0 then
 		local shots = 0
-		while firing and now >= nextFireAt and shots < MAX_SHOTS_PER_FRAME do
+		while
+			((firing and def.Automatic) or burstRemaining > 0)
+			and now >= nextFireAt
+			and shots < MAX_SHOTS_PER_FRAME
+		do
 			fireOnce(camera, root, now)
 			shots += 1
 			if mag <= 0 or isReloading(now) then
@@ -311,6 +339,9 @@ local function onFire(_: string, state: Enum.UserInputState): Enum.ContextAction
 		end
 	else
 		firing = false
+		if state == Enum.UserInputState.Cancel then
+			burstRemaining = 0
+		end
 	end
 	return Enum.ContextActionResult.Sink
 end
@@ -343,6 +374,7 @@ local function onMelee(_: string, state: Enum.UserInputState): Enum.ContextActio
 			return Enum.ContextActionResult.Sink
 		end
 		lastMeleeAt = now
+		burstRemaining = 0
 		RemoteController.fire("RequestMelee", "Press", camera.CFrame.LookVector)
 		SoundPlayer.play(combat.Feedback.MeleeSound, combat.Feedback.ShotVolume)
 	elseif state == Enum.UserInputState.End then
@@ -364,6 +396,8 @@ local function resetForSpawn()
 	spreadExtra, recoilPitch, recoilYaw = 0, 0, 0
 	appliedPitch, appliedYaw = 0, 0
 	nextFireAt = 0
+	streak = WeaponCadence.newStreak()
+	burstRemaining = 0
 	lastMeleeAt = -math.huge
 	takedownActive = false
 end

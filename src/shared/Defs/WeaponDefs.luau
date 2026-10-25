@@ -133,6 +133,11 @@ local WeaponDefs = {
 	byId = byId,
 	-- Ticket 8.11: default look for non-Quiet weapons; individual definitions may override each field.
 	ShotDefaults = {
+		-- Ticket 8.5-client-rules: scope flare appearance; duration/range come from the server's glint contract.
+		ScopeGlintPixels = 18,
+		ScopeGlintColor = Color3.fromRGB(255, 245, 210),
+		ScopeGlintBarFraction = 0.12,
+		ScopeGlintCoreFraction = 0.25,
 		TracerColor = Color3.fromRGB(255, 218, 140),
 		TracerWidth = 0.07,
 		TracerLength = 7,
