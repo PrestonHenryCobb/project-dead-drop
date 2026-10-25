@@ -15,7 +15,7 @@ local RunService={IsStudio=function() return false end}
 local CombatService={}
 ${cycle}
 ${getter}
-for _,action in {"Agent","Weapon","Sync","ArbitraryWeaponId",{},false} do
+for _,action in {"All","Agent","Weapon","Sync","ArbitraryWeaponId",{},false} do
     assert(CombatService.testCycle({},action)==false,"Non-Studio selection was accepted")
 end
 assert(CombatService.getTestWeaponId({})==nil,"Non-Studio diagnostics leaked state")
@@ -25,6 +25,7 @@ local function def(id,agent) local value={Id=id,Agent=agent}; WeaponDefs.byId[id
 local a=def("AlphaA","Alpha")
 local b=def("AlphaB","Alpha")
 local z=def("BetaZ","Beta")
+local future=def("FutureRifle","NewKit")
 function WeaponDefs.get(id) return WeaponDefs.byId[id] end
 local selector=(function()
 ${body}
@@ -37,6 +38,17 @@ assert(selector.nextWeapon("BetaZ","Agent")==a,"Agent cycle did not wrap")
 assert(selector.nextWeapon("AlphaB","Sync")==b)
 assert(selector.nextWeapon("Missing","Weapon")==nil)
 assert(selector.nextWeapon("AlphaA","ArbitraryWeaponId")==nil)
+local current=a
+local reached={}
+for _=1,4 do
+    assert(not reached[current.Id],"All-weapons cycle repeated before reaching every weapon")
+    reached[current.Id]=true
+    current=selector.nextWeapon(current.Id,"All")
+end
+assert(current==a,"All-weapons cycle did not wrap")
+assert(reached[a.Id] and reached[b.Id] and reached[z.Id] and reached[future.Id],"Registry weapon missing from F8 rotation")
+assert(selector.nextWeapon("AlphaB","All")==z,"Configured kit ordering changed")
+assert(selector.nextWeapon("BetaZ","All")==future,"Unlisted future kit was excluded")
 print("Test loadout: production guards and deterministic selector assertions passed")
 `;
 const file = path.join(os.tmpdir(), 'cover-story-test-loadout-regression.luau');

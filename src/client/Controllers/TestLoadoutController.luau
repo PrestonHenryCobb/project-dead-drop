@@ -18,7 +18,7 @@ function TestLoadoutController.cycle(action: string): boolean
 	if not RunService:IsStudio() or UserInputService:GetFocusedTextBox() then
 		return false
 	end
-	if action ~= "Agent" and action ~= "Weapon" then
+	if action ~= "Agent" and action ~= "Weapon" and action ~= "All" then
 		return false
 	end
 	RemoteController.fire("RequestTestLoadout", action)
@@ -44,7 +44,7 @@ function TestLoadoutController.Start()
 			ContextActionService:UnbindAction(name)
 		end)
 	end
-	bind("StudioCycleAgent", "Agent", config.AgentKey)
+	bind("StudioCycleAgent", "All", config.AgentKey)
 	bind("StudioCycleWeapon", "Weapon", config.WeaponKey)
 	local function sync()
 		RemoteController.fire("RequestTestLoadout", "Sync")

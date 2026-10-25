@@ -358,3 +358,13 @@ How to test in Studio:
 Validation: 25 actual-source optical assertions passed. Native Studio passed 45,360 frustum checks plus actual bolt movement/recovery and matching client/server cadence. The two-client run passed both clients and server, 15 real selection requests, all nine registered firearms, reload cancellation, private respawn selection and three received scope glints. StyLua, Selene and Rojo build passed.
 Known gaps: handling/recoil/post-melee recovery and bolt timing are initial tuning; reused library audio is not a bespoke DMR sound. Other players' held-gun models still use the existing default model. Existing scope glints reach any other eligible viewer, including teammates; this ticket does not introduce an enemy-only filter. The shared server ray cap remains 400 studs; the older DMR table mentions 300 and needs a server/design reconciliation before changing range. Visual playfeel remains owner review.
 SPEC-QUESTION: review initial DMR handling/recovery values marked in WeaponDefs. Ready for: remaining Step 8 weapons/client review; Step 9c spectating remains the next main gameplay-plan step.
+## F8 complete weapon rotation (studio-all-weapons, 2026-10-25)
+
+What I built: TestLoadout now derives a complete deterministic rotation from WeaponDefs.byId, ordered by configured kit order and weapon ID, with unlisted future kits included. TestLoadoutController binds F8 to this rotation; F9 still cycles within the current kit. Existing server validation, private acknowledgements and Studio-only guards remain in use. The actual-source selector regression checks full coverage, wrapping and a new weapon belonging to an unlisted kit.
+How to test in Studio:
+1. Stop, sync Rojo and Play with one player. Click the viewport and press F8 at a measured pace. Every registered firearm, including ReticleDMR, must appear before the sequence repeats. Check the model/name/ammo change together.
+2. On Reticle, press F9 to cycle its carbine, DMR and pistol. F8 then continues the full rotation from the currently selected weapon.
+3. Future completed weapon definitions registered in WeaponDefs.byId enter F8 automatically on the next test start. Model geometry alone is not an equipped firearm definition.
+Validation: actual-source production guards and selector assertions passed; StyLua and Selene passed. Physical F8 input for this revised binding remains owner review; the preceding DMR multiplayer run covered the existing server selection/acknowledgement path.
+Known gaps: Studio shortcuts can consume keys when the viewport lacks focus. No progression unlocks or new kit abilities are granted.
+SPEC-QUESTIONs: none. Ready for: remaining Step 8 weapon/client review.

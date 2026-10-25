@@ -6,11 +6,25 @@ local WeaponDefs = require(Shared.Defs.WeaponDefs)
 local Types = require(Shared.Types)
 local TestLoadout = {}
 local byAgent: { [string]: { Types.WeaponDef } } = {}
+local allWeapons: { Types.WeaponDef } = {}
 for _, def in WeaponDefs.byId do
+	table.insert(allWeapons, def)
 	local weapons = byAgent[def.Agent] or {}
 	byAgent[def.Agent] = weapons
 	table.insert(weapons, def)
 end
+-- Ticket studio-all-weapons: registry-driven, so new weapons need no selector edits.
+table.sort(allWeapons, function(a, b)
+	local order = GameConfig.Debug.TestLoadout.AgentOrder
+	local aRank = table.find(order, a.Agent) or math.huge
+	local bRank = table.find(order, b.Agent) or math.huge
+	if aRank ~= bRank then
+		return aRank < bRank
+	elseif a.Agent ~= b.Agent then
+		return a.Agent < b.Agent
+	end
+	return a.Id < b.Id
+end)
 for _, weapons in byAgent do
 	table.sort(weapons, function(a, b)
 		return a.Id < b.Id
@@ -24,6 +38,10 @@ function TestLoadout.nextWeapon(currentId: string, action: string): Types.Weapon
 	end
 	if action == "Sync" then
 		return current
+	end
+	if action == "All" then
+		local index = table.find(allWeapons, current) or 1
+		return allWeapons[index % #allWeapons + 1]
 	end
 	if action == "Weapon" then
 		local choices = byAgent[current.Agent]
