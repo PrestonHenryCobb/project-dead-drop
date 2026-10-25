@@ -177,3 +177,13 @@ The obsolete stepping controllers, PositionStep helper and Animation stepping co
 - Secret activation is **Discreet**, using existing witness rules: it breaks Cover only if witnessed.
 - Glass elevator riding preserves Cover like ordinary walking. Destination rooms retain normal clearance rules.
 - These are approved plan additions, not already implemented gameplay or working UI contracts.
+
+## Owner interaction/feedback/placement answers (2026-10-25)
+
+- Cover-breaking traversal (vents, ziplines, moving gondola) shows a clear Cover-break badge in the prompt, without
+  an additional confirmation press. This does not change each route's actual Cover behavior.
+- The brief's "Cover-Break Shield" means cosmetic feedback only: no shield or extra HP. Preserve existing authorized
+  exposure visibility; the effect does not add enemy detection, tracking or through-wall information.
+- Balance pickup, station, safe and cache placement by travel time, room tier and safe routes, then validate totals.
+  The brief's counts are not hard targets. Funds pickups remain removed. Keep generated-map validation in step
+  with reviewed layout changes rather than bypassing checks to accept arbitrary totals.

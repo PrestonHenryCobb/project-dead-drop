@@ -362,3 +362,10 @@ playtest with 200 NPCs, NPCs opened 23 different clearance doors in 20 s, and a 
 - Before calling either feature implemented: define shared contracts under locks, run generator/self-check/NavReport,
   then test calls/activation from both sides, obstruction, riders, death/disconnect, crowd behavior and performance.
   Existing traversal remains available; this addendum does not claim generated parts or working remotes exist yet.
+
+## Pickup and station distribution review (owner answer 2026-10-25)
+
+The attachment's counts are illustrative, not required totals. Balance pickups, health/ammo/food stations, safes and
+caches around travel time, room tiers and safe routes; then validate and document actual totals. Funds pickups remain
+removed. Keep layout data, GameConfig bounds and self-checks consistent with reviewed changes; do not disable a
+validation failure merely to accept a new count. This is a distribution policy, not a claim that placement was rebuilt.

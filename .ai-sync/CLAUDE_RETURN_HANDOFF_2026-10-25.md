@@ -178,6 +178,12 @@ exits allow anyone through in either direction, with inside-only activation. Act
 witness rules. Elevator riding preserves Cover; destination rooms keep normal clearance rules. No pending owner
 decision remains on those three points. Do not copy the reference map.
 
+Further owner answers: existing Cover-breaking traversal prompts need a clear badge without a second confirmation.
+The "Cover-Break Shield" is cosmetic only, with no shield/HP and no extra exposure visibility. Codex owns original
+client feedback against existing authorized events; no character-attached identity effects or expanded enemy tracking.
+Map pickup/station/safe/cache counts should follow placement balance (travel time, tier, safe routes), then validated
+totals. The attachment's counts are not mandatory; Funds pickups stay removed. Update layout/config/checks together.
+
 Step 18 owns
 Intel/economy interactions and Agent Tag rescue pricing still needs the owner. Step 21 owns persistence, shop, Stocks
 and Dossiers. Keep forthcoming menus as reviewable mockups until actual data exists. The live HUD refresh does not

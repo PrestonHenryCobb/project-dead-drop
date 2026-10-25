@@ -48,10 +48,15 @@ requires inside-room position, proximity, facing and clear line of sight. Q19 ad
 plan now. Follow-up answers: open exits allow anyone through in either direction, activation stays inside-only and
 Discreet (breaks Cover only if witnessed); elevators preserve Cover, with normal destination clearance rules.
 
+Interaction answers: Q23 clear Cover-break traversal badge without an extra confirmation. Q22 cosmetic Cover-break
+feedback only, no shield/HP or expanded exposure visibility. Q24 placement balanced around travel time, tiers and safe
+routes, followed by validated totals; brief counts are not mandatory and Funds pickups stay removed.
+
 Completed round: Q3 gun composition, Q8 takedown result, Q9 takedown presentation/control, Q10 crawl/death style,
 Q11 door exit rules, input/result/direction follow-ups, side-shot/roll clarification, charge starting balance and Q12
 NPC tier exceptions, Q5–6 HUD details, Q33 HUD motion and Q14–19 navigation/traversal plus passage/Cover follow-ups.
-Next: Q23 traversal warning UX, Q22 Cover-break cosmetic semantics and Q24 map pickup counts. Broad preservation answers retain original
+Q22–24 interaction/feedback/placement are now answered. Next: Q20 Agent Tag rescue price in Intel, Q27 mastery level
+presentation and Q28 agent-select timer/ready behavior. Broad preservation answers retain original
 map design, economy/mode/kit decisions; do not ask those again as if undecided. Ask manageable groups; retain original IDs even if reply numbering starts
 at 1 in each group. Startup/NPC animations were restored per owner; remaining visual acceptance is separate from answers.
 
