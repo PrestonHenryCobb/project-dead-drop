@@ -239,3 +239,14 @@ clear sans typography. Other map skins keep the shared behavior/layout. Brief im
 .15-.22 seconds. Quiet weapon tracer/muzzle-flash suppression remains intact. Full design, actual source-pass scope,
 remaining original mesh work and Studio steps: docs/GALA_ART_REVIEW.md. Sculpted heads/tailoring/furniture meshes are
 not built by this source pass and must not be recorded as completed assets.
+
+## Added 2026-10-25 (the re-layout interview, docs/MAP_BRIEF_RELAYOUT.md; not built yet)
+
+| Spec section | Current | Proposed |
+|---|---|---|
+| 10 (the vault) and 9 (intel unlock) | A team-scaled intel threshold unlocks one of the vaults | 5 vault rooms, 3 active a match, each with a terminal; hacking one gives server-wide progress and the hacking team a gold Asset; when all 3 are hacked, **The Sanctum** (the Package room, at the tower summit) unlocks. Intel stays the spending currency. |
+| 4.2 and 5.1 (tiers and roles) | Tiers 0 to 3 | A **Tier 4** above Executive for the Sanctum crown, with two NPCs (a Warden and a Curator). Their disguises give Tier 4 clearance. |
+| 4.3 / 7 (tier door costs) | Staff 4, Security 7, Executive 10 | **Staff 3, Security 6, Executive 8**; the Sanctum's Package doors cost **10**. |
+| 17 and 14.2 (keycards) | Keycard doors with lock-picking | A **Tier 4 keycard** printed at a keycard printer for **10 intel** (5 candidate spots, 1 active a match). It opens Tier 4 doors with no hack. |
+| 10 (the Package room) | One vault door | Two doors: a front door (hack for 10, or the keycard) and a back door (keycard only), reached by a Cover-breaking ladder to the west terrace. |
+| 4.3 (map) | Elevators planned but unspecified | Four glass elevators that are **Staff and above** (a Guest hacks the lobby door for 3 or tailgates), with **Staff NPCs riding them**. |

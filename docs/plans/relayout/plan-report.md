@@ -102,10 +102,10 @@ Checks: **all pass**
 | R | Rooftop plant room (`r_plant`) | 1 | IN | 1050 | 30 |  |
 | R | Wing roof garden (`wr_garden`) | 0 | OUT | 13930 | 75 |  |
 | R | Wing plant room (`wr_plant`) | 1 | IN | 1820 | 26 |  |
-| S | THE SANCTUM (`s_sanctum`) | 3 | IN | 3150 | 45 | vault S; package |
-| S | Sanctum foyer (`s_foyer`) | 3 | IN | 1800 | 20 |  |
-| S | Sanctum terrace west (`s_ter_w`) | 3 | OUT | 450 | 10 |  |
-| S | Sanctum terrace east (zipline landing) (`s_ter_e`) | 3 | OUT | 450 | 10 |  |
+| S | THE SANCTUM (`s_sanctum`) | 4 | IN | 3150 | 45 | vault S; package |
+| S | Sanctum foyer (`s_foyer`) | 4 | IN | 1800 | 20 |  |
+| S | Sanctum terrace west (back door) (`s_ter_w`) | 4 | OUT | 450 | 10 |  |
+| S | Sanctum terrace east (zipline landing) (`s_ter_e`) | 4 | OUT | 450 | 10 |  |
 | D | Sky deck (extraction) (`wd_skydeck`) | 0 | OUT | 3430 | 49 |  |
 
 ## Vertical connectors
@@ -133,22 +133,23 @@ Checks: **all pass**
 | wing_plant_stair | Staff stair | T (wt_arcade) | R (wr_plant) | 6 | 1 | suite arcade up to the wing plant room |
 | wing_guard_stair | Guard stair | B (wb_security) | G (wg_cage) | 6 | 2 | wing security office up to the cashier's cage (the wing basement's third way in) |
 | guard_t_r | Guard stair | T (t_east) | R (r_deck) | 6 | 2 | east guard hall to the rooftop party |
-| elev_atrium_w_gm | Glass elevator | G (g_atrium) | M (m_balcony) | 6 | 0 | atrium west shaft, ground to mezzanine |
-| elev_atrium_w_mt | Glass elevator | M (m_balcony) | T (t_west) | 6 | 0 | atrium west shaft, mezzanine to the top floor: arrives in the west guard hall (Security tier on arrival) |
-| elev_atrium_e_gm | Glass elevator | G (g_atrium) | M (m_balcony) | 6 | 0 | atrium east shaft, ground to mezzanine |
-| elev_atrium_e_mr | Glass elevator | M (m_balcony) | R (r_deck) | 6 | 0 | atrium east shaft, mezzanine to the rooftop party deck (passes the top floor without a stop) |
-| elev_wing_a_gm | Glass elevator | G (wg_casino) | M (wm_bar) | 6 | 0 | casino to the sky bar |
-| elev_wing_a_mt | Glass elevator | M (wm_bar) | T (wt_arcade) | 6 | 0 | sky bar to the suite arcade |
-| elev_wing_b_gm | Glass elevator | G (wg_entry) | M (wm_bar) | 6 | 0 | entrance lobby to the sky bar |
-| elev_wing_b_mt | Glass elevator | M (wm_bar) | T (wt_terrace) | 6 | 0 | sky bar to the suite terrace |
-| elev_wing_b_tr | Glass elevator | T (wt_terrace) | R (wr_garden) | 6 | 0 | suite terrace to the roof garden |
+| elev_atrium_w_gm | Glass elevator | G (g_atrium) | M (m_balcony) | 6 | 1 | atrium west shaft, ground to mezzanine |
+| elev_atrium_w_mt | Glass elevator | M (m_balcony) | T (t_west) | 6 | 1 | atrium west shaft, mezzanine to the top floor: arrives in the west guard hall (Security tier on arrival) |
+| elev_atrium_e_gm | Glass elevator | G (g_atrium) | M (m_balcony) | 6 | 1 | atrium east shaft, ground to mezzanine |
+| elev_atrium_e_mr | Glass elevator | M (m_balcony) | R (r_deck) | 6 | 1 | atrium east shaft, mezzanine to the rooftop party deck (passes the top floor without a stop) |
+| elev_wing_a_gm | Glass elevator | G (wg_casino) | M (wm_bar) | 6 | 1 | casino to the sky bar |
+| elev_wing_a_mt | Glass elevator | M (wm_bar) | T (wt_arcade) | 6 | 1 | sky bar to the suite arcade |
+| elev_wing_b_gm | Glass elevator | G (wg_entry) | M (wm_bar) | 6 | 1 | entrance lobby to the sky bar |
+| elev_wing_b_mt | Glass elevator | M (wm_bar) | T (wt_terrace) | 6 | 1 | sky bar to the suite terrace |
+| elev_wing_b_tr | Glass elevator | T (wt_terrace) | R (wr_garden) | 6 | 1 | suite terrace to the roof garden |
 | wing_grand_stair | Grand stair | G (wg_casino) | M (wm_lobby) | 24 | 0 | casino floor up to the hotel lobby |
 | wing_stair_m_t | Switchback stair | M (wm_bar) | T (wt_terrace) | 12 | 0 | sky bar to the suite terrace |
 | wing_stair_t_r | Roof stair | T (wt_arcade) | R (wr_garden) | 12 | 0 | suite arcade to the roof garden |
 | wing_deck_stair | Stair | R (wr_garden) | D (wd_skydeck) | 6 | 0 | roof garden to the sky deck (extraction) |
 | sanctum_elevator | Sanctum elevator | T (t_great) | R (r_summit) | 12 | 3 | penthouse great room up to the summit lobby; only runs once all 3 terminals are hacked Locked until all 3 terminals are hacked. |
-| sanctum_stair | Executive stair | R (r_summit) | S (s_foyer) | 6 | 3 | summit lobby up to the Sanctum foyer; a Tier 3 clearance door at the foot |
-| sanctum_lift_top | Sanctum elevator (upper) | R (r_summit) | S (s_foyer) | 6 | 3 | second leg of the elevator, to the foyer Locked until all 3 terminals are hacked. |
+| sanctum_stair | Executive stair | R (r_summit) | S (s_foyer) | 6 | 4 | summit lobby up to the Sanctum foyer; a Tier 4 clearance door at the head of the stair (hack 10, keycard, or a warden or curator disguise) |
+| sanctum_lift_top | Sanctum elevator (upper) | R (r_summit) | S (s_foyer) | 6 | 4 | second leg of the elevator, to the foyer (Tier 4 door on arrival) Locked until all 3 terminals are hacked. |
+| summit_ladder | Service ladder | R (r_deck) | S (s_ter_w) | 6 | 0 | up the crown's west wall from the roof deck to the west terrace: Cover-breaking, trespass on arrival, and the only way to the back Package door |
 
 ## Reachability from the grand lobby, by clearance cap (doors and stairs, Sanctum elevator unlocked)
 | Cap | Rooms reached | Not reached |
@@ -156,7 +157,8 @@ Checks: **all pass**
 | 0 | 44 | none |
 | 1 | 67 | none |
 | 2 | 85 | none |
-| 3 | 101 | none |
+| 3 | 97 | none |
+| 4 | 101 | none |
 
 ## Independent routes in, counted from all 12 insertion points
 A vault is measured at its antechamber on foot (doors and stairs) and at its core with vents and secret exits; the Sanctum is measured at its foyer, with the elevator unlocked and the zipline.
@@ -167,7 +169,19 @@ A vault is measured at its antechamber on foot (doors and stairs) and at its cor
 | Vault C | 2 | 3 |
 | Vault D | 3 | 3 |
 | Vault E | 2 | 3 |
-| The Sanctum | 2 | 3 |
+| The Sanctum foyer | 3 | 4 |
+| The Package room | 3 | 2 |
+
+## Door costs (intel) and the Tier 4 content
+| Door | Cost |
+|---|---|
+| Staff | 3 |
+| Security | 6 |
+| Executive | 8 |
+| Tier 4 (Package doors) | 10 |
+| Keycard printer | 10 |
+
+Keycard printer candidates (5, one active each match): P1 r_plant, P2 r_vaulte_ante, P3 r_summit, P4 t_gallery, P5 t_guard_ne. Tier 4 NPCs: Warden (stays on the summit); Curator (walks the penthouse, the roof and the summit lobby).
 
 ## Spacing
 - Vault pairs (3D studs): A-B 226, A-C 298, A-D 301, A-E 148, B-C 128, B-D 257, B-E 211, C-D 180, C-E 257, D-E 220
@@ -180,16 +194,17 @@ A vault is measured at its antechamber on foot (doors and stairs) and at its cor
 | Public | 258710 | 5149 |
 | Staff | 109694 | 844 |
 | Security | 70254 | 390 |
-| Executive | 40584 | 123 |
-| **All** | 479242 | **6506** |
+| Executive | 34734 | 111 |
+| Tier 4 (2 NPCs) | 5850 | 6 |
+| **All** | 479242 | **6500** |
 
 ### Load at each crowd size (60% Guests, 20% Staff, 12.5% Security, 7.5% Executive)
 | NPCs | Guests vs public capacity | Staff | Security | Executive |
 |---|---|---|---|---|
-| 200 | 120 / 5149 (2%) | 40 / 844 (5%) | 25 / 390 (6%) | 15 / 123 (12%) |
-| 300 | 180 / 5149 (3%) | 60 / 844 (7%) | 38 / 390 (10%) | 23 / 123 (18%) |
-| 400 | 240 / 5149 (5%) | 80 / 844 (9%) | 50 / 390 (13%) | 30 / 123 (24%) |
-| 500 | 300 / 5149 (6%) | 100 / 844 (12%) | 63 / 390 (16%) | 38 / 123 (30%) |
+| 200 | 120 / 5149 (2%) | 40 / 844 (5%) | 25 / 390 (6%) | 15 / 111 (14%) |
+| 300 | 180 / 5149 (3%) | 60 / 844 (7%) | 38 / 390 (10%) | 23 / 111 (20%) |
+| 400 | 240 / 5149 (5%) | 80 / 844 (9%) | 50 / 390 (13%) | 30 / 111 (27%) |
+| 500 | 300 / 5149 (6%) | 100 / 844 (12%) | 63 / 390 (16%) | 38 / 111 (34%) |
 
 ### Hub density (Guests per 100 studs² at each crowd size; comfortable is 2.9)
 | Hub | Area | 200 | 300 | 400 | 500 |
@@ -217,8 +232,7 @@ A lane takes 3.5 studs and passes 2.5 NPCs a second (10 studs/s, 4 studs apart).
 
 ## Dead ends (rooms with one way in or out, by door or stair)
 - City suite (`wt_suite4`, tier 0)
-- Sanctum terrace west (`s_ter_w`, tier 3)
-- Sanctum terrace east (zipline landing) (`s_ter_e`, tier 3)
+- Sanctum terrace east (zipline landing) (`s_ter_e`, tier 4)
 - Sky deck (extraction) (`wd_skydeck`, tier 0)
 
 ## Vertical links NPCs can use (stairs and ramps; people per second each way)
@@ -229,6 +243,6 @@ A lane takes 3.5 studs and passes 2.5 NPCs a second (10 studs/s, 4 studs apart).
 | T to R | 5 | 15 | 5 | 2.5 | 0 |
 | B to G | 5 | 0 | 7.5 | 5 | 0 |
 | R to D | 1 | 2.5 | 0 | 0 | 0 |
-| R to S | 1 | 0 | 0 | 0 | 2.5 |
+| R to S | 2 | 2.5 | 0 | 0 | 0 |
 
 At 400 NPCs about a quarter of the 10.8 trips a second change level, about 2.7 a second, spread over every link above.

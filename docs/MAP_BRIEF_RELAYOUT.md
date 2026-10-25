@@ -62,6 +62,18 @@ rework makes the layout the source of truth instead.
 4. **Reaction and tier rules unchanged**: role clearance is a hard cap, including panic and fleeing; higher tiers may visit
    lower ones; nothing on a rig reveals a player.
 
+## Second round of decisions (2026-10-25, on the layout plan)
+| Topic | Decision |
+|---|---|
+| The Sanctum's tier | A **new Tier 4**, above Executive. The whole crown (foyer, Package room, terraces) is Tier 4. |
+| Tier 4 NPCs | **Two**: one **Warden** who stays on the summit (summit lobby, foyer, terraces) and one **Curator** who walks the penthouse, the roof and the summit lobby. Scanning either gives a Tier 4 disguise, which opens every Tier 4 door without a hack. |
+| Tier 4 keycard | **Crafted from intel**: a **keycard printer** costs **10 intel**. There are **5 candidate printer spots** near the summit and **1 is active per match**; none is marked. The card opens the Tier 4 doors with no hack. |
+| Door costs | Hacking costs **Staff 3, Security 6, Executive 8**, and **10** for the Sanctum's Package door and for the keycard printer (the most expensive of all). This lowers the old 4 / 7 / 10. |
+| Two Package doors | The Package room has a **front door** (from the foyer: hack for 10 or use the keycard) and a **back door** (from the west terrace: **keycard only**, the quiet way in). The west terrace is reached by a Cover-breaking service ladder from the roof deck. |
+| Elevators | The four glass elevators are **Staff and above**: Staff, Security and Executive disguises ride free; a Guest must hack the lobby door (3 intel) or tailgate, and is trespassing inside. **Staff NPCs ride them.** Public movement between floors is by stairs and ramps. |
+| Sky deck | Stays the **far** extraction (about 887 studs of walking from the Sanctum): the long, risky way out. |
+| Package room routes | "Several routes" means the Sanctum area (three routes into the foyer) and **two doors** into the Package room itself. |
+
 ## Interview complete: what I will propose (all "by the design" answers)
 These are my defaults; the first layout plan (floor plans and a list of rooms, as for the last re-plan) shows them for
 review before any building, and the owner can overrule any of them.

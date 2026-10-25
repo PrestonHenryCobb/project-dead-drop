@@ -16,13 +16,13 @@ mezzanine by a **14-wide colonnade ring** that links four themed wings: **Galler
 hubs), **Dining and kitchen**, and **Library, lobby and lounge**. Behind the public rings sit the Staff areas, then
 Security, then the Executive penthouse: the **layered security zones** of Diamond Spire. Every wing has two doors onto the
 ring and a Staff link behind it, so there are loops and no dead ends. The **five vaults** sit in five different zones, and
-**The Sanctum** crowns the tower, reached by three routes.
+**The Sanctum** (a new Tier 4) crowns the tower, reached by three routes into its foyer and two doors into the Package room.
 
 ## 2. What changes, and what it fixes
 | Problem you reported | What the layout does |
 |---|---|
 | Hard to navigate | One landmark (the atrium, 76 x 92 void on four floors), one colour and look per wing, a ring corridor on the ground and mezzanine, and the same ring pattern at every level (the guard ring on the top floor is the same shape). |
-| Awkward vertical routes | A deliberate mix: 1 grand stair, 2 escalator ramps in the colonnade, 4 corner switchbacks and 3 more switchbacks and roof stairs (public); 8 narrow Staff stairs; 4 guard stairs (Security); 4 glass elevators plus the Sanctum elevator; roof stairs; hidden routes. 38 connectors in all. |
+| Awkward vertical routes | A deliberate mix: 1 grand stair, 2 escalator ramps in the colonnade, 4 corner switchbacks and 3 more switchbacks and roof stairs (public); 8 narrow Staff stairs; 4 guard stairs (Security); 4 glass elevators (Staff and above) plus the Sanctum elevator; roof stairs; a service ladder; hidden routes. 39 connectors in all. |
 | NPC jams and dead ends | Public portals average 20 studs (5 lanes). Only 4 rooms have a single way in (a hotel suite, the sky deck, two Sanctum landings, all deliberate). The ring gives every wing two entrances. |
 | Same-looking rooms | Each room has one purpose and a tier colour; wings are themed (see section 4). |
 
@@ -63,8 +63,9 @@ ziplines give open-air ones.
 | Roof stairs | 3 | Upper west terrace to the roof party; the wing's arcade to its roof garden; garden to the sky deck | Public |
 | Staff stairs (6) | 8 | Basement to ground to mezzanine, both towers, plus the two plant rooms | Staff |
 | Guard stairs (6) | 4 | Security basement up to the service passage; security hub to the top floor; guard hall to the roof; wing security up to the cage | Security |
-| Glass elevators | 9 hops | Atrium west (G, M, T), atrium east (G, M, R), wing A (G, M, T), wing B (G, M, T, R) | Public (arrive in the tier of the stop) |
-| The Sanctum | 3 routes | Elevator (locked until all 3 terminals are hacked), Executive stair (Tier 3 clearance door), zipline from the sky deck | Executive |
+| Glass elevators | 9 hops | Atrium west (G, M, T), atrium east (G, M, R), wing A (G, M, T), wing B (G, M, T, R) | **Staff and above**: Guests hack the lobby door (3 intel) or tailgate; Staff NPCs ride them |
+| The Sanctum | 3 routes into the foyer | Elevator (locked until all 3 terminals are hacked), Executive stair (Tier 4 door at its head), zipline from the sky deck | Tier 4 |
+| Service ladder | 1 | Roof deck up to the Sanctum's west terrace (Cover-breaking): the only way to the back Package door | Anyone (trespass on arrival) |
 
 **Ziplines (2):** sky deck down to the Sanctum east terrace (the third way into the Sanctum); roof party deck down to the
 upper west terrace. **Vents (6 pairs):** one into each vault core and the security hub. **Secret exits (8):** one for each
@@ -76,8 +77,9 @@ vault core, the panic room, the executive office and the records room (all singl
 | Vault A, B, C, D, E | 2, 3, 2, 3, 2 | 3 each |
 | The Sanctum (foyer) | 2 after the unlock | 3 |
 
-**Clearance reach (from the grand lobby):** Guests reach all 44 public rooms; Staff 67; Security 85; Executives 101 (every
-room but the Sanctum, which needs the unlock). No tier is cut off from anything it should reach.
+**Clearance reach (from the grand lobby):** Guests reach all 44 public rooms (by stairs: the elevators are Staff and above);
+Staff 67; Security 85; Executives 97; Tier 4 (the warden and curator) 101, everything. No tier is cut off from anything it
+should reach.
 
 ## 6. Vault and terminal positions, and the Sanctum
 | Vault | Level | Zone | Terminal at | Notes |
@@ -87,14 +89,23 @@ room but the Sanctum, which needs the unlock). No tier is cut off from anything 
 | C | Ground | North-east, behind the kitchen chain | (110, -155) | Cold room doors from the pantry and the service passage (laser). |
 | D | Basement, wing | Counting room | (232, -25) | Counting hall with three doors (laundry, boiler, service hall). |
 | E | Roof | South-east of the party deck | (70, 88) | Observatory vault with two doors onto the deck. |
-**The Sanctum** (Package at (0, -92), height 84): a Tier 3 vault-class room, foyer south, two terraces (the east one is the
-zipline landing). Locked until all 3 active terminals are hacked. Vault-to-vault spacing is 128 to 301 studs; nearest
+**The Sanctum** (Package at (0, -92), height 84): a **Tier 4** room, foyer south, two terraces (the east one is the zipline
+landing, the west one has the back door). **Two Package doors**: the front (from the foyer) opens by a hack for 10 intel or
+the Tier 4 keycard; the back (from the west terrace) opens by the keycard only. Locked until all 3 active terminals are hacked. Vault-to-vault spacing is 128 to 301 studs; nearest
 pair is B and C at 128. Walking from the Sanctum, the Helipad is 170 studs, the Terrace Lawn 331, the Sky Deck far longer,
 all over the 120 minimum. **Extraction sites:** Helipad (roof west deck), Sky Deck (wing, 96), Terrace Lawn (top-floor west).
 
+### Tier 4 content
+- **Door costs:** Staff 3, Security 6, Executive 8, the Package doors 10, the keycard printer 10.
+- **Keycard printers:** 5 candidate spots, 1 active per match, none marked: the rooftop plant room (P1), the observatory
+  hall (P2), the summit lobby (P3), the private gallery (P4) and the north-east guard post (P5). All are reachable with an
+  Executive disguise.
+- **Tier 4 NPCs:** the Warden (summit lobby, foyer, terraces) and the Curator (penthouse, private gallery, summit lobby,
+  roof deck).
+
 ## 7. NPC capacity: what the plan says about 200 to 500 NPCs
 All figures are estimates until measured in Studio (generated in `plan-report.md`).
-- **Space is not the limit.** The plan has about 479,000 studs² of floor. Comfortable capacity is about 6,500 NPCs, and a
+- **Space is not the limit.** The plan has about 479,000 studs² of floor. Comfortable capacity is about 6,500 NPCs (plus the two Tier 4 NPCs), and a
   500-strong crowd uses 6% of public capacity, 12% of Staff, 16% of Security and 30% of Executive.
 - **Flow is not the limit either.** The 55 public portals could pass about 760 NPCs a second; 500 NPCs make about 68
   crossings a second (9%). The stair links are also well below capacity (ground to mezzanine alone: 75 a second public).
@@ -118,14 +129,18 @@ All figures are estimates until measured in Studio (generated in `plan-report.md
 5. Art pass re-applied by Codex (generator-driven art is repeatable; sculptures and furniture are re-placed).
 
 ## 9. Decisions to confirm (my defaults are in the plan)
-- **The Sanctum's tier:** Tier 3 plus a vault gate (not a new Tier 4), so Executive disguises can enter once it is
-  unlocked, and an Executive NPC never wanders in. Confirm, or ask for a Tier 4 above Executives.
-- **Do NPCs use elevators?** The plan lets NPCs use stairs and ramps only; elevators are for players, to avoid NPC queues
-  at the shafts. Confirm, or allow Staff NPCs to ride them.
-- **The Package room has one vault door**, and the foyer outside has three routes in. Confirm that "several routes" means
-  to the Sanctum area, not to the Package room itself.
-- **Four single-entrance rooms** (a hotel suite, the sky deck, two Sanctum landings). Tell me if any should get a second
-  door.
-- **The sky deck as extraction is far (887 studs) from the Sanctum on foot.** Close, or fine as the long route?
+Settled by the second round (see the brief): the Sanctum is Tier 4 with a warden and a curator, a keycard printed for 10
+intel, door costs 3 / 6 / 8 / 10, two Package doors (front hack or keycard, back keycard only), Staff-and-above
+elevators with Staff NPCs riding them, and the sky deck stays far. Still open:
+- **The foyer entrances (Tier 4 doors that are not the Package doors):** I assumed the same 10 intel, keycard or a warden
+  or curator disguise. Tell me if they should cost less, or be disguise-and-keycard only with no hack.
+- **The five vault doors** (into each vault core) are assumed to be Executive doors (8 intel): the terminal inside is the
+  prize, not the door.
+- **Printing time and noise:** assumed 10 seconds and loud (it breaks Cover), like opening a supply cache.
+- **Keycard rules:** one card per match; it drops if its carrier is downed; it opens only Tier 4 doors. Tell me if it
+  should be consumed on use or reusable.
+- **Single-entrance rooms** (a hotel suite, the sky deck, two Sanctum landings reached only through the foyer). Tell me if
+  any should get a second door.
+- **The Warden and Curator look:** a distinct suit (black with red, and white with gold). Tell me a look you prefer.
 - **The 5 vault rooms' look:** the old themes (bank, art, cold storage, counting room) carry over; Vault E is new
   (an observatory with a glass dome). Anything else for E?

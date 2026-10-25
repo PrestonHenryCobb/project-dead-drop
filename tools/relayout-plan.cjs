@@ -7,7 +7,7 @@ const D = require("./relayout-plan-data.cjs");
 
 const outDir = process.argv[2] || path.join(__dirname, "..", "docs", "plans", "relayout");
 fs.mkdirSync(outDir, { recursive: true });
-const { LEVELS, rooms, FOOT, VOIDS, doors, conns, ziplines, vents, secretExits, vaults, sanctum, extraction, insertion, hubShare } = D;
+const { printers, tier4Npcs, doorCosts, LEVELS, rooms, FOOT, VOIDS, doors, conns, ziplines, vents, secretExits, vaults, sanctum, extraction, insertion, hubShare } = D;
 const byId = Object.fromEntries(rooms.map((r) => [r.id, r]));
 const problems = [];
 const bad = (m) => problems.push(m);
@@ -98,13 +98,13 @@ for (const c of conns) {
 // ---------- 4. the walking graph: doors and connectors (NPCs), plus vents, secret exits and ziplines (players)
 function graph(opts) {
 	const g = {};
-	const link = (a, b, w = 1, oneWay = false) => {
-		(g[a] = g[a] || []).push({ to: b, w });
-		if (!oneWay) (g[b] = g[b] || []).push({ to: a, w });
+	const link = (a, b, w = 1, oneWay = false, tier = 0) => {
+		(g[a] = g[a] || []).push({ to: b, w, tier });
+		if (!oneWay) (g[b] = g[b] || []).push({ to: a, w, tier });
 	};
 	const dist = (a, b) => { const [ax, az] = centre(byId[a]), [bx, bz] = centre(byId[b]); return Math.hypot(ax - bx, az - bz) + Math.abs(LEVELS[byId[a].level] - LEVELS[byId[b].level]); };
 	for (const d of doors) if (byId[d.a] && byId[d.b] && d.wall) link(d.a, d.b, dist(d.a, d.b));
-	for (const c of conns) if (c.fromRoom && c.toRoom && c.fromRoom !== c.toRoom && (opts.locked || !c.locked)) link(c.fromRoom, c.toRoom, dist(c.fromRoom, c.toRoom) + 30);
+	for (const c of conns) if (c.fromRoom && c.toRoom && c.fromRoom !== c.toRoom && (opts.locked || !c.locked)) link(c.fromRoom, c.toRoom, dist(c.fromRoom, c.toRoom) + 30, false, c.tier);
 	if (opts.players) {
 		for (const v of vents) link(v.from, v.to, dist(v.from, v.to) + 20);
 		for (const s of secretExits) link(s.room, s.to, dist(s.room, s.to) + 10);
@@ -121,18 +121,19 @@ const all = graph({ locked: true, players: true });
 
 // reachability by clearance cap, from the grand lobby, over rooms at or below the cap (vault cores need tier 3)
 const reach = [];
-for (let cap = 0; cap <= 3; cap++) {
+for (let cap = 0; cap <= 4; cap++) {
 	const ok = (id) => byId[id].tier <= cap;
 	const seen = new Set(["g_lobby"]);
 	const queue = ["g_lobby"];
 	while (queue.length) {
 		const id = queue.shift();
-		for (const e of walkAfterUnlock[id] || []) if (!seen.has(e.to) && ok(e.to) && !(byId[e.to].vault && byId[e.to].tier === 3 && cap < 3)) { seen.add(e.to); queue.push(e.to); }
+		for (const e of walkAfterUnlock[id] || []) if (!seen.has(e.to) && ok(e.to) && (e.tier || 0) <= cap && !(byId[e.to].vault && byId[e.to].tier === 3 && cap < 3)) { seen.add(e.to); queue.push(e.to); }
 	}
 	const missing = rooms.filter((r) => ok(r.id) && !r.nested && !seen.has(r.id) && r.id !== "g_lobby");
 	reach.push({ cap, reached: seen.size, missing: missing.map((m) => m.id) });
 	if (cap === 0) { const m0 = missing.filter((m) => m.tier === 0); if (m0.length) bad(`Guests (cap 0) cannot reach: ${m0.map((m) => m.id).join(", ")}`); }
-	if (cap === 3) { const m3 = missing.filter((m) => m.id !== "s_sanctum" && m.id !== "s_foyer"); if (m3.length) bad(`Executives (cap 3) cannot reach: ${m3.map((m) => m.id).join(", ")}`); }
+	if (cap === 3) { const m3 = missing.filter((m) => m.tier <= 3); if (m3.length) bad(`Executives (cap 3) cannot reach: ${m3.map((m) => m.id).join(", ")}`); }
+	if (cap === 4 && missing.length) bad(`Tier 4 (the warden and curator) cannot reach: ${missing.map((m) => m.id).join(", ")}`);
 	if (cap === 1) { const m1 = missing.filter((m) => m.tier <= 1); if (m1.length) bad(`Staff (cap 1) cannot reach: ${m1.map((m) => m.id).join(", ")}`); }
 	if (cap === 2) { const m2 = missing.filter((m) => m.tier <= 2); if (m2.length) bad(`Security (cap 2) cannot reach: ${m2.map((m) => m.id).join(", ")}`); }
 }
@@ -140,7 +141,7 @@ for (let cap = 0; cap <= 3; cap++) {
 // entrances: every Tier 1+ room, except nested rooms and vault cores, has two or more neighbours by door or stair
 const neighbours = {};
 for (const [a, list] of Object.entries(walkAfterUnlock)) neighbours[a] = new Set(list.map((e) => e.to));
-const fewEntrances = rooms.filter((r) => r.tier >= 1 && !r.nested && !r.vault && !(r.kind === "OUT" && r.tier === 3) && (neighbours[r.id] || new Set()).size < 2);
+const fewEntrances = rooms.filter((r) => r.tier >= 1 && !r.nested && !r.vault && !(r.kind === "OUT" && r.tier >= 3) && (neighbours[r.id] || new Set()).size < 2);
 for (const r of fewEntrances) bad(`room ${r.id} (tier ${r.tier}) has only ${(neighbours[r.id] || new Set()).size} entrance(s)`);
 
 // ---------- 5. routes into each vault: edge-disjoint paths from the lobby (max-flow, unit capacities)
@@ -168,11 +169,11 @@ function withSource(g) {
 	for (const m of insertion) { const r = roomAt(m.level, m.x, m.z); if (r) c.SRC.push({ to: r.id, w: 1 }), (c[r.id] = c[r.id] || []).push({ to: "SRC", w: 1 }); }
 	return c;
 }
-const objectives = [...vaults.map((v) => ({ name: `Vault ${v.id}`, room: v.room, what: "core", ante: rooms.find((r) => r.vault === v.id && r.tier === 2).id })), { name: "The Sanctum", room: "s_foyer", what: "foyer" }];
+const objectives = [...vaults.map((v) => ({ name: `Vault ${v.id}`, room: v.room, what: "core", ante: rooms.find((r) => r.vault === v.id && r.tier === 2).id })), { name: "The Sanctum foyer", room: "s_foyer", what: "foyer" }, { name: "The Package room", room: "s_sanctum", what: "package", ante: "s_foyer" }];
 const routes = objectives.map((o) => {
 	const walking = disjointPaths(withSource(walkAfterUnlock), "SRC", o.ante || o.room);
 	const total = disjointPaths(withSource(all), "SRC", o.room);
-	if (total < 3) bad(`${o.name}: only ${total} routes in (need 3 or more)`);
+	if (total < (o.what === "package" ? 2 : 3)) bad(`${o.name}: only ${total} routes in (need ${o.what === "package" ? 2 : 3} or more)`);
 	return { name: o.name, walking, total, what: o.what };
 });
 
@@ -186,6 +187,8 @@ if (minVault < 100) bad(`two vaults are only ${minVault} studs apart`);
 for (const v of vaults) if (!inRoom(byId[v.room], v.x, v.z)) bad(`vault ${v.id} terminal is outside its room`);
 if (!inRoom(byId[sanctum.room], sanctum.x, sanctum.z)) bad("the Sanctum marker is outside its room");
 for (const e of extraction) if (!roomAt(e.level, e.x, e.z)) bad(`extraction ${e.id} is in no room`);
+for (const pr of printers) { const room = byId[pr.room]; if (!room) bad(`printer ${pr.id}: unknown room`); else { if (!inRoom(room, pr.x, pr.z)) bad(`printer ${pr.id} is outside ${pr.room}`); if (room.tier > 3) bad(`printer ${pr.id} is in a Tier 4 room: it must be reachable without Tier 4`); } }
+for (const n of tier4Npcs) for (const id of n.rooms) if (!byId[id]) bad(`${n.role}: unknown room ${id}`);
 let minIns = Infinity;
 for (const a of insertion) {
 	if (!roomAt(a.level, a.x, a.z)) bad(`insertion ${a.id} is in no room`);
@@ -209,7 +212,7 @@ const extractionDist = extraction.map((e) => { const r = roomAt(e.level, e.x, e.
 for (const e of extractionDist) if (e.d < 120) bad(`extraction ${e.id} is only ${e.d} studs of walking from the Sanctum`);
 
 // ---------- 7. NPC capacity model (estimates, to be measured)
-const DENS = { hub: 35, public: 70, corridor: 90, outdoor: 60, 1: 130, 2: 180, 3: 220 }; // studs of floor per NPC, comfortable
+const DENS = { hub: 35, public: 70, corridor: 90, outdoor: 60, 1: 130, 2: 180, 3: 220, 4: 1000 }; // studs of floor per NPC, comfortable
 function densityOf(r) {
 	if (r.vault && r.tier === 3) return Infinity;
 	if (r.hub && r.hub !== "guards") return DENS.hub;
@@ -218,14 +221,14 @@ function densityOf(r) {
 	return DENS[r.tier];
 }
 let capacity = 0;
-const byTier = { 0: 0, 1: 0, 2: 0, 3: 0 }, areaTier = { 0: 0, 1: 0, 2: 0, 3: 0 };
+const byTier = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 }, areaTier = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
 for (const r of rooms) {
 	if (r.nested) continue;
 	const a = area(r), d = densityOf(r);
 	areaTier[r.tier] += a;
 	if (d !== Infinity) { capacity += a / d; byTier[r.tier] += a / d; }
 }
-const mix = { 0: 0.6, 1: 0.2, 2: 0.125, 3: 0.075 }; // today's role split
+const mix = { 0: 0.6, 1: 0.2, 2: 0.125, 3: 0.075, 4: 0 }; // today's role split; the two Tier 4 NPCs are extra
 const crowdRows = [200, 300, 400, 500].map((n) => {
 	const rowsT = {};
 	for (const t of [0, 1, 2, 3]) rowsT[t] = { npcs: Math.round(n * mix[t]), cap: Math.round(byTier[t]), pct: Math.round((100 * n * mix[t]) / byTier[t]) };
@@ -248,7 +251,7 @@ const portalCap = portalWidths.reduce((s, w) => s + throughput(w), 0);
 
 // ---------- 8. drawing
 const S = 2.6, MARGIN = 30;
-const TIER = ["#e8e6dc", "#6fbf73", "#8d5fc7", "#e3b23c"], VAULT = "#c0392b";
+const TIER = ["#e8e6dc", "#6fbf73", "#8d5fc7", "#e3b23c", "#2b0f12"], VAULT = "#c0392b";
 function drawLevel(key, title, levels, bounds) {
 	const [x1, z1, x2, z2] = bounds;
 	const W = Math.round((x2 - x1) * S + MARGIN * 2), H = Math.round((z2 - z1) * S + MARGIN * 2);
@@ -322,9 +325,11 @@ md.push("\n## Reachability from the grand lobby, by clearance cap (doors and sta
 for (const r of reach) md.push(`| ${r.cap} | ${r.reached} | ${r.missing.join(", ") || "none"} |`);
 md.push("\n## Independent routes in, counted from all 12 insertion points\nA vault is measured at its antechamber on foot (doors and stairs) and at its core with vents and secret exits; the Sanctum is measured at its foyer, with the elevator unlocked and the zipline.\n| Objective | On foot, to the antechamber or foyer | All routes, to the core or foyer |\n|---|---|---|");
 for (const r of routes) md.push(`| ${r.name} | ${r.walking} | ${r.total} |`);
+md.push("\n## Door costs (intel) and the Tier 4 content\n| Door | Cost |\n|---|---|\n" + Object.entries(doorCosts).map(([k, v]) => `| ${k} | ${v} |`).join("\n"));
+md.push("\nKeycard printer candidates (5, one active each match): " + printers.map((p) => `${p.id} ${p.room}`).join(", ") + ". Tier 4 NPCs: " + tier4Npcs.map((n) => `${n.role} (${n.note})`).join("; ") + ".");
 md.push("\n## Spacing\n- Vault pairs (3D studs): " + vaultSpacing.map((s) => `${s.a}-${s.b} ${s.d}`).join(", ") + `\n- Nearest insertion points on one level: ${Math.round(minIns)} studs\n- Walking distance from the Sanctum to each extraction site: ` + extractionDist.map((e) => `${e.id} ${e.d}`).join(", "));
 md.push("\n## NPC capacity (estimate, comfortable densities: hubs 1 per 35 studs², public 70, corridors 90, outdoors 60, Staff 130, Security 180, Executive 220)\n| Tier | Floor area (studs²) | Comfortable NPCs |\n|---|---|---|");
-for (const t of [0, 1, 2, 3]) md.push(`| ${["Public", "Staff", "Security", "Executive"][t]} | ${Math.round(areaTier[t])} | ${Math.round(byTier[t])} |`);
+for (const t of [0, 1, 2, 3, 4]) md.push(`| ${["Public", "Staff", "Security", "Executive", "Tier 4 (2 NPCs)"][t]} | ${Math.round(areaTier[t])} | ${Math.round(byTier[t])} |`);
 md.push(`| **All** | ${Math.round(Object.values(areaTier).reduce((a, b) => a + b, 0))} | **${Math.round(capacity)}** |`);
 md.push("\n### Load at each crowd size (60% Guests, 20% Staff, 12.5% Security, 7.5% Executive)\n| NPCs | Guests vs public capacity | Staff | Security | Executive |\n|---|---|---|---|---|");
 for (const c of crowdRows) md.push(`| ${c.n} | ${c.tiers[0].npcs} / ${c.tiers[0].cap} (${c.tiers[0].pct}%) | ${c.tiers[1].npcs} / ${c.tiers[1].cap} (${c.tiers[1].pct}%) | ${c.tiers[2].npcs} / ${c.tiers[2].cap} (${c.tiers[2].pct}%) | ${c.tiers[3].npcs} / ${c.tiers[3].cap} (${c.tiers[3].pct}%) |`);
