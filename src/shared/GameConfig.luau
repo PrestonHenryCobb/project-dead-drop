@@ -261,7 +261,14 @@ local GameConfig = {
 		-- Spec 5.2: NPCs open doors automatically and the doors close DoorCloseDelay after the last body passes.
 		-- SPEC-QUESTION: the spec doesn't say whether NPCs open keycard shortcut doors. They do here, which lets a
 		-- player slip through behind an NPC. Set OpenForNpcs to false to keep them shut.
-		Door = { OpenStuds = 8, OpenForNpcs = true, PlayerCheckSeconds = 0.1 },
+		Door = {
+			OpenStuds = 8,
+			OpenForNpcs = true,
+			PlayerCheckSeconds = 0.1,
+			-- R3-doors: each doorway's inside is the side whose zone volume, this far out and this high, has the higher tier.
+			SideProbeStuds = 3,
+			SideProbeHeight = 2,
+		},
 		-- Guards investigate gunfire and explosions (OPEN_QUESTIONS A6). SPEC-QUESTION: the spec has Security ignore
 		-- noise. A guard on the same floor within SameFloorStuds goes to look. A guard on another floor goes only if it
 		-- is within OpenFloorStuds and can see the source, which is how a stair or balcony open to the floor counts.
