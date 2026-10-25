@@ -18,6 +18,14 @@ is the record until then.
 - **No duplicates on a team:** in agent select, the first teammate to lock an agent gets it and it greys out for the rest
   of their team. Other teams can still pick it.
 
+## Mastery display and selection window (owner answers 2026-10-25)
+
+- Mastery levels 1–10 present the existing roughly ten-match kit-unlock progression; wins/objectives accelerate
+  progress. Start with one Hardware/Talent/Instinct and retain the approved unlock structure without extra grind.
+- Agent selection uses the full 30-second window, even when everyone readies. Players may revise loadouts before
+  deployment, subject to the existing no-duplicate-agent/team rules and server validation at the cutoff.
+  This corrected answer supersedes the earlier early-start-on-all-ready reply.
+
 ## Cases
 - **Earned only** (levelling up and match rewards), never bought with Robux, so agents are never sold by chance and Roblox's
   paid-random-item rules do not apply.

@@ -187,3 +187,14 @@ The obsolete stepping controllers, PositionStep helper and Animation stepping co
 - Balance pickup, station, safe and cache placement by travel time, room tier and safe routes, then validate totals.
   The brief's counts are not hard targets. Funds pickups remain removed. Keep generated-map validation in step
   with reviewed layout changes rather than bypassing checks to accept arbitrary totals.
+
+## Owner rescue/mastery/selection answers (2026-10-25)
+
+- Agent Tag rescue starts testing at **10 Intel**, spent through the normal Intel economy and reducing available
+  vault-unlock progress. GameConfig.Downed.Rescue.Cost replaces the obsolete 150-Funds value with 10; rescue
+  functionality still depends on Agent Tags/Supply Caches and is not built by this config change.
+- Mastery levels 1–10 display the existing roughly ten-match kit-unlock pace; wins and objectives accelerate it.
+  They do not add another grind requirement or change the approved Hardware/Talent/Instinct structure.
+- **Latest selection answer supersedes early ready-start:** use the full **30 seconds** even if everyone readies.
+  Allow loadout changes during the selection window before deployment, under existing team/agent restrictions.
+  Final deployment loadouts remain server-validated. Do not end selection early on all-ready.

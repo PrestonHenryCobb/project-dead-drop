@@ -52,11 +52,15 @@ Interaction answers: Q23 clear Cover-break traversal badge without an extra conf
 feedback only, no shield/HP or expanded exposure visibility. Q24 placement balanced around travel time, tiers and safe
 routes, followed by validated totals; brief counts are not mandatory and Funds pickups stay removed.
 
+Progression answers: Q20 Agent Tag rescue initial cost is 10 Intel through the normal spending economy (source config
+updated; rescue is still unbuilt). Q27 levels 1–10 display the existing roughly ten-match pace, accelerated by wins
+and objectives. Q28 **corrected final answer:** full 30 seconds to allow loadout changes; no early all-ready deployment.
+
 Completed round: Q3 gun composition, Q8 takedown result, Q9 takedown presentation/control, Q10 crawl/death style,
 Q11 door exit rules, input/result/direction follow-ups, side-shot/roll clarification, charge starting balance and Q12
 NPC tier exceptions, Q5–6 HUD details, Q33 HUD motion and Q14–19 navigation/traversal plus passage/Cover follow-ups.
-Q22–24 interaction/feedback/placement are now answered. Next: Q20 Agent Tag rescue price in Intel, Q27 mastery level
-presentation and Q28 agent-select timer/ready behavior. Broad preservation answers retain original
+Q20 and Q22–24 interaction/economy/feedback plus Q27–28 mastery/selection are answered. Next: Q29 Dossier progress
+versus reward tokens, Q30 menu/Assets structure and Q32 limb-damage behavior. Broad preservation answers retain original
 map design, economy/mode/kit decisions; do not ask those again as if undecided. Ask manageable groups; retain original IDs even if reply numbering starts
 at 1 in each group. Startup/NPC animations were restored per owner; remaining visual acceptance is separate from answers.
 

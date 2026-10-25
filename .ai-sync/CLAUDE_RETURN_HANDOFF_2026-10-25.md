@@ -184,7 +184,10 @@ client feedback against existing authorized events; no character-attached identi
 Map pickup/station/safe/cache counts should follow placement balance (travel time, tier, safe routes), then validated
 totals. The attachment's counts are not mandatory; Funds pickups stay removed. Update layout/config/checks together.
 
-Step 18 owns
-Intel/economy interactions and Agent Tag rescue pricing still needs the owner. Step 21 owns persistence, shop, Stocks
+Step 18 owns Intel/economy interactions. **Rescue price is now approved:** initial 10 Intel through normal spending,
+reducing vault-unlock progress. Codex updated Downed.Rescue.Cost from obsolete 150 Funds to 10; no rescue behavior
+was added. Agent Tags/caches remain dependencies. Mastery 1–10 displays existing roughly ten-match kit unlocks.
+**Final corrected selection rule:** full 30 seconds even if everyone readies, permitting loadout revisions until deploy;
+retain team-agent restrictions and server final validation. No early all-ready start. Step 21 owns persistence, shop, Stocks
 and Dossiers. Keep forthcoming menus as reviewable mockups until actual data exists. The live HUD refresh does not
 pretend these systems are already implemented.

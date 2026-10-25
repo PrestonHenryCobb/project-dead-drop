@@ -585,7 +585,8 @@ local GameConfig = {
 		CrawlRequestHz = 10, -- how often a downed client sends the way it is crawling
 		BodyAimDegrees = 35, -- a body this far off the crosshair can still be picked to revive or execute
 		Rescue = {
-			Cost = 150,
+			-- Ticket 9d: owner-approved initial Intel price, replacing the removed Funds price.
+			Cost = 10,
 			TagPickupSeconds = 1,
 			CacheSeconds = 3,
 			HP = 100,
