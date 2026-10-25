@@ -29,11 +29,24 @@ changes); build plan in `docs/BUILD_ORDER.md`.
 - **Done:** Steps 1 to 7B. Two towers (the Gala and a hotel/casino wing) on skyscrapers over a generated night city,
   200 crowd NPCs, disguise and scanning, cover and suspicion, tier doors, vaults, ziplines, vents, a gondola, signs, and
   the map re-plan (stages 1 to 4 and every review fix). Self-check passes with 0 problems.
-- **Step 8 (weapons) is part done and committed:** Guise's suppressed SMG with server-validated, lag-compensated hits,
-  armour plates, melee and takedowns, a HUD and a first-person view. The firing path was verified; melee, takedown, fall
-  damage, the HUD and view-model look, and two-player tests are **still to do** (details in `STEP8_HANDOFF.md`).
-- **Next, in order:** finish Step 8; then **Step 8B** (the feel pass: slimmer and taller bodies, full-body first person,
-  gun always in frame with a wall tuck, floatier movement, frame-stepping); Step 9 (downed, revive, spectator mode);
+- **Status on 2026-10-24 (late): `.ai-sync/TASK_QUEUE.md` is the live ticket list.** The owner asked both agents to
+  build ahead and commit as they go, so Steps 8, 8B and 9 run together. Every ticket below is committed (not pushed).
+- **Step 8 (weapons):** Guise's SMG and Reticle's carbine; melee, takedowns, fall damage (now by height), reloads
+  (swap cancels them), disguised hits count as body shots, the post-melee fire delay, tracers and muzzle flash, and the
+  server side of every firing-path unique effect (pellets, bursts, spin-up, aimed rate, pierce, ambush shot, scope glint,
+  displaced sound). **Left:** the other weapons' data and client rules (Codex, 8.5 and 8.5-client-rules), the
+  status and projectile effects (stagger, taser, knockback, flare, knives, smoke, tracker), the SMG model (8.6) and the
+  two-player test (8.4).
+- **Step 8B (feel):** done in code: taller, slimmer bodies and narrower hit boxes; full-body first person with real
+  arms (Codex); gun framing and wall tuck (Codex); eased movement for players and NPCs with gravity 150 (walking now
+  goes through `MovementController`; Roblox's own keyboard controls are off); other characters drawn in 12 Hz steps
+  with shots rewound to match. All waiting for the owner's review.
+- **Brief items built early:** the disguise-swap marker replaces the swap puff (brief Q6).
+- **Step 9:** 9a teams (`TeamService`, mode from `GameConfig.Debug.TestMode`) and 9b downed, revive, execute, team wipe
+  and elimination (`InteractService`, `DownedService`, `DownedController`) are done. Tested solo; crawling, bleed-out,
+  revive and executing a player need two players. **Left:** 9b-hud (Codex), 9c spectating, 9d Agent Tag and rescue
+  (blocked on Step 18 and a cost now that Funds are gone).
+- **Next, in order:** the two-player test session (8.4 plus everything marked "needs 2 players"), 9c spectating, then
   Step 10 onward as in `BUILD_ORDER.md`, with **13B** (bots that fill empty slots) and **13C** (a first-run tutorial).
 - **Waiting on the owner:** the Deceive Inc. tutorial videos (files or links) so the tutorial can be shaped by them;
   designing the new Talents and Instincts before Step 16 (brief Q8); confirming the proposed file ownership in `.ai-sync/AI_SYNC_STATE.md`.
