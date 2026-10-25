@@ -74,7 +74,7 @@ In this order; each depends on the one before. Decisions: `IDEAS_2026-10-24.md` 
 |---|---|---|---|
 | 9a | TeamService: mode (Debug.TestMode until the lobby), teams filled in join order, TeamRoster sent only to each team; Solos start with 2 plates. | CLAUDE_CODE | READY_FOR_REVIEW |
 | 9b | Downed (spec 14.1, 14.3): InteractService (hold-to-interact framework, kind "Body"), DownedService (down at 0 HP and Exposed; body lies and crawls like a downed NPC, server-moved; shots pass through downed bodies; 30 s bleed-out; hold E: revive a teammate 4 s / execute any other downed body, player or NPC, 2 s; team wipe; Solos eliminated at once; eliminated bodies lie intact then fade), DownedController (crawl input, crawl animation, body targeting, death sound muted). Also fixed: a spawn teleport was counted as a fall (Combat.TeleportStuds). Tested solo: fall down, team wipe, elimination, intact body; executing a downed NPC. **Needs 2 players:** crawling, bleed-out, revive, executing a player. | CLAUDE_CODE | READY_FOR_REVIEW |
-| 9b-hud | HUD for 9b: a bleed-out countdown from the Downed remote (BleedOutAt, server clock); a hold progress bar from InteractState (Kind, Seconds, Active), like the takedown bar; an Eliminated screen until spectating exists. | CODEX | IN_PROGRESS (CODEX) |
+| 9b-hud | DownedHudController: server-clock bleed-out countdown, generic body readiness without identity/team assumptions, server-confirmed Revive/Execute hold progress, eliminated state and Janitor cleanup. DownedController body targeting now checks map line of sight. No fake spectating controls. StyLua/Selene/Rojo pass; four-client Duos acceptance pending (two teams, partner alive). | CODEX | READY_FOR_REVIEW |
 | 9c | Spectating (SPEC_CHANGES 14.4): living teammates first; once the whole team is out, any living player plus a bounded drone (through walls, inside the building volumes and terraces); a spectator chat the living never hear; a "now spectating" hook. Not started. | CLAUDE_CODE | TODO |
 | 9d | Agent Tag drop and Rescue (spec 14.2): needs supply caches (Step 18) and a cost, since Funds were removed (SPEC-QUESTION). Not started. | CLAUDE_CODE | BLOCKED |
 
@@ -98,7 +98,22 @@ setting Combat.DefaultWeapon in Studio only before Play. No new selection UI or 
 |---|---|---|---|---|
 | 8.15 | Owner test fixes: hide actual avatar locally; camera-relative cosmetic arm meshes; across-body wall tuck; shared attack gate blocks fire/aim/melee/takedown before feedback or requests and clears queued attacks. Crossed-out OBSTRUCTED reticle replaces weapon crosshair and disguise dot. Removed second tuck filter to keep rendering/gating aligned. Reload/respawn paths preserved. StyLua/Selene/Rojo pass; Studio regression checks and visual retest pending. | CODEX | Owner playtest report | READY_FOR_REVIEW |
 | 8.16 | Fix gun/hand drift: cosmetic hands follow the gun's exact rendered grips every frame; persist pose smoothing in camera space; scale first-person geometry and camera offsets to 65% depth while preserving projection and third-person size. Shared wall-tuck gate retained. StyLua/Selene clean; Studio visual review pending. | CODEX | Owner gun placement report | READY_FOR_REVIEW |
+| 8.17 | Generic takedown proximity hint: nearest visible upright rig within current server melee reach/front cone/rear cone; same NPC/player geometry, no identity labels/character decoration; hide while incapacitated, wall-tucked or holding an action. Advisory only; no server reach change. | CODEX | Studio acceptance; range/animation handoff below | READY_FOR_REVIEW |
+| 19-client-hud | Owner authorized importing functional HUD now: original drawn icons, shadowed dark panels, health/armor easing and damage pulse, reload progress, compact role/tier/stored-disguise badge, cover/short warnings and alarm pips. Default diagnostics hidden. Uses existing events only; no unbuilt menus/objective/economy state. Report: docs/CLIENT_REVIEW_2026-10-25.md. | CODEX | Owner visual acceptance | READY_FOR_REVIEW |
 | 19-client-preview | Two HUD design directions in docs/mockups/combat-hud-review.html: Field notes and Control strip. Preview only; no unbuilt gameplay UI added to src. See .ai-sync/CODEX_CLIENT_HANDOFF.md for commits, API integration, exact Studio checks and remaining server-effect handoffs. | CODEX | Owner design review; gameplay contracts for later features | READY_FOR_REVIEW |
+
+## Owner-reported bugs: Claude return work
+
+Owner requested this area split while Claude was unavailable. Full source evidence and acceptance tests are in
+`.ai-sync/CLAUDE_RETURN_HANDOFF_2026-10-25.md`. These are queued assignments, not completed fixes.
+
+| Id | Ticket | Owner | Needs | Status |
+|---|---|---|---|---|
+| R1-ground | Reproduce NPC airwalking; distinguish unsupported cached route / separation offset / client interpolation. Validate support without a global Y offset. | CLAUDE_CODE | Studio/map review | TODO |
+| R2-tiers | Reproduce low-role access above clearance. Existing graph edge/destination tier filters already exist: check zone bounds, sample gaps, spawn/flee and separation. | CLAUDE_CODE | Studio/map review | TODO |
+| R3-doors | Correct exterior authorized opening. Existing holdNear is symmetric; inspect geometry/range/auth on both sides before changing rules. | CLAUDE_CODE | Studio/map review | TODO |
+| R4-body-animation | Shared player/NPC crawl, collapse and elimination presentation coordinated with authoritative body state; restore cleanly on revive/removal. | CLAUDE_CODE with CODEX client follow-up | Owner style answers; animation contract | TODO |
+| R5-takedown | Broader takedown allowance and synchronized two-body action. Current 5.5 reach/60 rear cone; recommended test target 6.5/90 with ordinary melee unchanged. Coordinate start/cancel/finish without identity decoration. | CLAUDE_CODE with CODEX client follow-up | Review questions 7–9; server validation | TODO |
 
 ## Waiting on the owner
 <!-- Codex integration note: 06357ec includes Claude's concurrent GameConfig edits for 8B.1/8B.7

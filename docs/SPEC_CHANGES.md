@@ -86,3 +86,16 @@ The wall-driven tuck blocks shooting, aiming and melee/takedown attacks before r
 Keep the block while the visible tuck recovers. A crossed-out reticle with OBSTRUCTED replaces both normal weapon
 crosshair and disguise dot. Clear the queued trigger/burst so backing away does not fire unexpectedly. Movement,
 normal interactions and reload remain available; respawn behavior stays as implemented.
+
+## Owner HUD import and gun-grip review (2026-10-24/25)
+
+The owner brought the functional combat HUD refresh forward from Step 19: reduce persistent explanatory text,
+use graphical assets/icons and meters, add readable shadows or translucent colored backdrops, and make feedback
+more responsive. Keep actual health/ammo numbers and brief critical warnings. New UI must use existing authorized
+game state, without pretending unbuilt shop, objective, elevator or rescue systems exist.
+
+The own gun must stay close and attached to the cosmetic hands through turning, recoil, reload and wall tuck.
+Codex's initial correction uses camera-relative smoothing and hands sampled from the rendered gun each frame;
+the final choice between smooth first-person motion and a shared stepped gun/hand clock is still in owner review.
+The attached design brief's conflicts are audited in PROMPT_REVIEW_2026-10-24.md; its new gameplay proposals have
+not silently replaced any earlier answer.
