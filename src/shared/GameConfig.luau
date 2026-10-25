@@ -410,6 +410,8 @@ local GameConfig = {
 
 	-- Spec 13: combat.
 	Combat = {
+		-- Ticket 8B.4: fire/aim, reload and melee share the same input precedence.
+		InputPriority = 3000,
 		MaxHP = 100,
 		PlateHP = 25,
 		MaxPlates = 3,

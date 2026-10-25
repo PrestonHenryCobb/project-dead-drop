@@ -15,7 +15,6 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
@@ -27,6 +26,7 @@ local ShotVisuals = require(Combat:WaitForChild("ShotVisuals"))
 local SoundPlayer = require(Combat:WaitForChild("SoundPlayer"))
 local ViewModel = require(Combat:WaitForChild("ViewModel"))
 local RemoteController = require(script.Parent.RemoteController)
+local HeldItemController = require(script.Parent.HeldItemController)
 
 export type Status = {
 	name: string,
@@ -65,6 +65,7 @@ local reloadStartedAt = 0
 local predictedReloadPending = false -- waiting for the server to confirm a reload completed locally
 local nextFireAt = 0
 local firing = false
+local held = true
 local aiming = false
 local aimBlend = 0
 local spreadExtra = 0
@@ -130,7 +131,7 @@ local function startReload(now: number)
 end
 
 local function fireOnce(camera: Camera, root: BasePart, now: number)
-	if isReloading(now) then
+	if not held or isReloading(now) then
 		return
 	end
 	if mag <= 0 then
@@ -257,6 +258,12 @@ local function step(dt: number)
 	local zoom = 1 + (def.AimZoom - 1) * aimBlend
 	appliedFov = baseFov * zoom
 	camera.FieldOfView = appliedFov
+	if not held then
+		if viewModel then
+			viewModel:setVisible(false)
+		end
+		return
+	end
 
 	hideOwnArms(model)
 	refreshColors(model, now)
@@ -288,7 +295,7 @@ function WeaponController.getStatus(): Status
 		reserve = reserve,
 		reloading = isReloading(now),
 		spreadDegrees = currentSpread(root),
-		weaponUp = weaponUp(now),
+		weaponUp = held and weaponUp(now),
 		aiming = aiming,
 		viewportFov = if camera then camera.FieldOfView else baseFov,
 	}
@@ -320,7 +327,7 @@ local function onAim(_: string, state: Enum.UserInputState): Enum.ContextActionR
 end
 
 local function onReload(_: string, state: Enum.UserInputState): Enum.ContextActionResult
-	if state == Enum.UserInputState.Begin then
+	if held and state == Enum.UserInputState.Begin then
 		startReload(os.clock())
 	end
 	return Enum.ContextActionResult.Sink
@@ -328,7 +335,7 @@ end
 
 local function onMelee(_: string, state: Enum.UserInputState): Enum.ContextActionResult
 	local camera = workspace.CurrentCamera
-	if state == Enum.UserInputState.Begin and camera then
+	if held and state == Enum.UserInputState.Begin and camera then
 		RemoteController.fire("RequestMelee", "Press", camera.CFrame.LookVector)
 		SoundPlayer.play(combat.Feedback.MeleeSound, combat.Feedback.ShotVolume)
 	elseif state == Enum.UserInputState.End then
@@ -379,27 +386,35 @@ function WeaponController.Start()
 		exposed = info.State == "Exposed"
 	end)
 
-	ContextActionService:BindActionAtPriority("WeaponFire", onFire, false, 3000, controls.Fire, controls.FirePad)
-	ContextActionService:BindActionAtPriority("WeaponAim", onAim, false, 3000, controls.Aim, controls.AimPad)
+	HeldItemController.registerWeapon({
+		fire = function(state)
+			onFire("WeaponFire", state)
+		end,
+		aim = function(state)
+			onAim("WeaponAim", state)
+		end,
+		setHeld = function(value)
+			held = value
+		end,
+	})
 	ContextActionService:BindActionAtPriority(
 		"WeaponReload",
 		onReload,
 		false,
-		3000,
+		combat.InputPriority,
 		controls.Reload,
 		controls.ReloadPad
 	)
-	ContextActionService:BindActionAtPriority("WeaponMelee", onMelee, false, 3000, controls.Melee, controls.MeleePad)
+	ContextActionService:BindActionAtPriority(
+		"WeaponMelee",
+		onMelee,
+		false,
+		combat.InputPriority,
+		controls.Melee,
+		controls.MeleePad
+	)
 
 	localPlayer.CharacterAdded:Connect(resetForSpawn)
-	-- Losing the window means the button-up never arrives, so the trigger and the aim let go here.
-	UserInputService.WindowFocusReleased:Connect(function()
-		firing = false
-		if aiming then
-			aiming = false
-			RemoteController.fire("RequestDraw", false)
-		end
-	end)
 	-- After the default camera has run this frame, so the recoil sits on top of where the view points.
 	RunService:BindToRenderStep("WeaponStep", Enum.RenderPriority.Camera.Value + 2, step)
 end
