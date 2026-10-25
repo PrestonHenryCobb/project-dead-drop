@@ -1,6 +1,6 @@
 # Gala re-layout and NPC rework: brief (interview 2026-10-25)
 
-Status: **interview in progress, nothing built.** The owner asked for a re-layout of the Gala with the NPC system reworked
+Status: **interview complete, awaiting approval; nothing built.** The owner asked for a re-layout of the Gala with the NPC system reworked
 to fit it, and asked to be grilled in detail first so the first build is as polished as possible. Answers are recorded
 here as they are given. The generator is not touched until the owner approves this brief (the usual process: brief,
 questions, approval, build, screenshots).
@@ -18,7 +18,14 @@ questions, approval, build, screenshots).
 | NPC goals | No floating or clipping; believable routes; crowd feel (busy hubs, quiet corners, no empty rooms, no jams); better performance; and **more than 200 NPCs, planned for in the map and the budget**. |
 | NPC count | "Whatever fits": the highest count that stays smooth on a mid-range PC, measured. The layout leaves room for it (wide hubs, loops, no long single-file corridors). |
 | Elevators and secret exits | By the design: as many as the layout needs for route variety (both already approved in principle on 2026-10-25). |
-| Towers and map size | Up to the design / not decided: I propose them with trade-offs. |
+| Reference maps | **Diamond Spire** (Deceive Inc.) and **Entry Point** maps. |
+| Towers and map size | **Two towers, same size**: the Gala and the hotel/casino wing, about 520 x 520 studs, similar part budget (about 10k), re-laid out inside. |
+| Vault spots | **One per zone**: the 5 vault rooms are as spread out as possible across the zones (basement, ground west, top floor, the wing's basement, and one near the summit approach); each keeps at least 3 routes out and is far from extraction. Exact rooms are proposed in the layout plan. |
+| The Sanctum access | By the design (I propose, with at least 3 routes in). |
+| The Package | **Inside The Sanctum.** Picking it up starts Phase 3 (carrier ping, extraction) as now. |
+| Crowd hubs | **Ballroom and atrium**, **bar and casino floor**, **rooftop party**. Galleries and the lobby are ordinary busy rooms. |
+| Route widths | **Mixed, 8 to 14 studs**: wide public loops (12 to 14), Staff corridors about 8 to 10, tight Security and secret routes; the tier is felt in the width. |
+| Placed counts | **Scale to the design**: counts (intel stations, caches, cameras, ziplines, vents) are set from the new pacing and travel times, and the self-check is updated to match. Intel is no longer the unlock, so fewer stations are expected. |
 
 ### The new objective loop (changes the spec; see "Conflicts")
 - The map has **5 vault rooms in fixed, spread-out positions**. **3 are active each match** (randomised); the other 2 are empty.
@@ -55,9 +62,21 @@ rework makes the layout the source of truth instead.
 4. **Reaction and tier rules unchanged**: role clearance is a hard cap, including panic and fleeing; higher tiers may visit
    lower ones; nothing on a rig reveals a player.
 
-## Still to ask
-Map footprint and number of towers; where the 5 vault rooms go (which floors and wings); how The Sanctum is reached
-(routes, tier, entrances); whether the Package is in The Sanctum; elevator and secret-exit placement rules; the crowd hubs
-(which rooms are the big ones); corridor and doorway widths; which Deceive Inc. and Entry Point maps are the references;
-how many of the existing counts (intel stations, caches, cameras, ziplines, vents) to keep; and when to re-apply the art
-pass.
+## Interview complete: what I will propose (all "by the design" answers)
+These are my defaults; the first layout plan (floor plans and a list of rooms, as for the last re-plan) shows them for
+review before any building, and the owner can overrule any of them.
+- **Levels:** keep five (basement, ground, mezzanine, top floor, roof) with the existing half-levels; the summit gets its
+  own level above the roof deck for The Sanctum.
+- **The Sanctum:** an Executive-and-above tier at the tower summit with **three routes in**: a glass elevator that only
+  runs once all 3 terminals are hacked, a long Executive stair behind a clearance door, and a rooftop approach (zipline
+  from the wing's sky deck). Entering any of them is Cover-breaking except the disguised stair.
+- **Elevators and secret exits:** two glass elevators per tower plus the Sanctum elevator, and a secret exit in each
+  restricted wing room that has only one door (to keep "at least 2 entrances"), so the number follows the layout.
+- **Counts:** set from travel times in the plan; the self-check is updated in the same change.
+- **Art pass:** re-applied after the layout is approved and rebuilt (generator, sculptures, materials), by Codex.
+- **Build order:** layout plan, then review, then the lane-authored node graph and the NPC rework together with the
+  generator changes, then terminals and The Sanctum behaviour in the match steps (10 to 12), then the art pass.
+
+## Next step
+Approve (or change) this brief. Then I produce the layout plan: floor plans for every level, the room list with tiers
+and widths, the route graph, vault and terminal positions, and the NPC capacity estimate.
