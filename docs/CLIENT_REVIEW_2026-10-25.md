@@ -368,3 +368,9 @@ How to test in Studio:
 Validation: actual-source production guards and selector assertions passed; StyLua and Selene passed. Physical F8 input for this revised binding remains owner review; the preceding DMR multiplayer run covered the existing server selection/acknowledgement path.
 Known gaps: Studio shortcuts can consume keys when the viewport lacks focus. No progression unlocks or new kit abilities are granted.
 SPEC-QUESTIONs: none. Ready for: remaining Step 8 weapon/client review.
+## Test key conflict correction (studio-key-conflict, 2026-10-25)
+
+Root cause: the within-kit test binding used F9, which Roblox reserves for the Developer Console. F7 is already assigned to graphics quality. Updated GameConfig.Debug.TestLoadout.WeaponKey to RightBracket; the controller reads this configuration automatically. This supersedes all earlier F9 instructions in this report.
+Test: Stop, sync Rojo, restart Play and click the viewport. F8 cycles all registered weapons; ] cycles within the current kit; F7 changes graphics quality. F9 retains the console. Close the console before trying weapon input.
+Validation: full-source StyLua check and Selene passed; actual-source selector/production-guard regression passed. Physical keyboard acceptance remains owner review.
+Known gaps: viewport/text-box focus still determines whether game controls receive input. SPEC-QUESTIONs: none. Ready for: remaining Step 8 weapon/client review.

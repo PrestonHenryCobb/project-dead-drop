@@ -1046,7 +1046,8 @@ local GameConfig = {
 		-- Ticket studio-test-loadout: runtime-gated by IsStudio on BOTH sides; no saved unlock/progression effects.
 		TestLoadout = {
 			AgentKey = Enum.KeyCode.F8,
-			WeaponKey = Enum.KeyCode.F9,
+			-- Ticket studio-key-conflict: F9 opens Roblox's console; F7 already cycles graphics.
+			WeaponKey = Enum.KeyCode.RightBracket,
 			AgentOrder = { "Guise", "Parapet", "Lattice", "Reticle", "Suture", "Feint" },
 		},
 		PrintZoneChanges = true, -- ZoneService prints a line whenever a player's zone tier changes
