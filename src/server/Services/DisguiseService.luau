@@ -63,6 +63,7 @@ type State = {
 	slot: OutfitDef?, -- one slot for now (Cover.DisguiseSlots); the second slot comes with Vesper in Step 16
 	scan: Scan?,
 	applyId: number, -- bumped whenever a disguise change starts or is cancelled
+	swapEndsAt: number, -- when the disguise change in progress finishes; 0 when none is
 	sprinting: boolean,
 	crouching: boolean,
 }
@@ -74,6 +75,7 @@ local rng = Random.new()
 local states: { [Player]: State } = {}
 local npcLookup: ((string) -> NpcInfo?)? = nil
 local coverHooks: CoverHooks? = nil
+local swapListeners: { (Player) -> () } = {}
 local validateAccumulator = 0
 
 -- Rays in the character group skip characters and only meet the map.
@@ -87,6 +89,17 @@ end
 
 function DisguiseService.setCoverHooks(hooks: CoverHooks)
 	coverHooks = hooks
+end
+
+-- Called when a player starts changing disguise (spec 27 #22: Combat cancels a reload).
+function DisguiseService.onSwapStarted(listener: (Player) -> ())
+	table.insert(swapListeners, listener)
+end
+
+-- Is a disguise change under way?
+function DisguiseService.isChanging(player: Player): boolean
+	local state = states[player]
+	return state ~= nil and os.clock() < state.swapEndsAt
 end
 
 function DisguiseService.isExposed(player: Player): boolean
@@ -286,6 +299,7 @@ function DisguiseService.expose(player: Player)
 	end
 	cancelScan(player, state)
 	state.applyId += 1
+	state.swapEndsAt = 0
 	local applyId = state.applyId
 	state.exposed = true
 	state.lastDisguise = state.worn
@@ -338,11 +352,16 @@ local function onRequestDisguise(player: Player)
 
 	state.applyId += 1
 	local applyId = state.applyId
+	state.swapEndsAt = os.clock() + config.DisguiseSeconds
+	for _, listener in swapListeners do
+		listener(player)
+	end
 	task.delay(config.DisguiseSeconds, function()
 		local stillHumanoid, stillRoot = aliveRoot(player)
 		if states[player] ~= state or state.applyId ~= applyId or not (stillHumanoid and stillRoot) then
 			return
 		end
+		state.swapEndsAt = 0
 		-- The player may have walked somewhere the disguise is not allowed since they pressed the key.
 		if ZoneService.tierAt(stillRoot.Position) > target.Tier then
 			notify(player, "You can't change into that here")
@@ -422,6 +441,7 @@ function DisguiseService.spawn(player: Player, character: Model)
 		slot = nil,
 		scan = nil,
 		applyId = 0,
+		swapEndsAt = 0,
 		sprinting = false,
 		crouching = false,
 	}

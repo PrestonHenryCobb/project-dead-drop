@@ -144,6 +144,9 @@ export type WeaponDef = {
 	TracerSpeed: number?,
 	FlashColor: Color3?,
 	FlashSize: Vector3?,
+	-- Ticket 8.9: seconds after a melee strike before this weapon may fire (brief Q14), set per weapon by strength.
+	-- nil: no delay. The server enforces it; the client should wait the same time so no shot is predicted in vain.
+	PostMeleeFireDelay: number?,
 }
 
 -- Combat messages. All are sent only to the player they concern, except ShotInfo (to players within earshot).

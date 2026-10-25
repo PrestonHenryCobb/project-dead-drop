@@ -5,10 +5,12 @@
 --   * Health and armour: 100 HP and plates of 25 (spec 13.1). Damage hits armour first. No passive healing.
 --   * Firing (FireRequest): the shot is validated (alive, weapon, fire rate, ammo, origin near the shooter's head), then
 --     tested against every person's rewound pose (History, Hitbox), up to LagCompSeconds back, after a ray against the map.
---     The nearest person hit takes the weapon's damage with headshot and falloff. The shooter gets a HitConfirm (grey for
+--     The nearest person hit takes the weapon's damage with headshot and falloff (a disguised agent's head counts as
+--     body). The shooter gets a HitConfirm (grey for
 --     an NPC, red for an agent, spec 8.4); a wounded agent gets a DamageTaken marker; everyone within earshot gets a
 --     ShotHeard. Firing breaks Cover and starts the combat lockout (spec 7.2, 7.6); NPCs react to the noise (spec 5.4).
 --   * Reloading and aiming: ReloadRequest runs a timer here; RequestDraw tells CoverService the weapon is up (spec 7.3).
+--     A disguise swap cancels a reload, and no reload starts during one (spec 27 #22).
 --   * Melee and takedowns (RequestMelee, spec 13.4): V strikes; from behind it begins a held takedown instead, which the
 --     server times, and breaks if the target moves off, the attacker is hurt or either leaves reach.
 --   * Falls: a fall of more than FallSafeStuds hurts (spec 13.1), measured by height: from the highest point since the
@@ -31,6 +33,7 @@ local Death = require(script.Parent.Parent.NPC.Death)
 local Hitbox = require(script.Parent.Parent.Combat.Hitbox)
 local History = require(script.Parent.Parent.Combat.History)
 local CoverService = require(script.Parent.CoverService)
+local DisguiseService = require(script.Parent.DisguiseService)
 local NPCService = require(script.Parent.NPCService)
 local RemoteService = require(script.Parent.RemoteService)
 local VentService = require(script.Parent.VentService)
@@ -251,6 +254,11 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 		sendAmmo(player, state, 0)
 		return
 	end
+	-- A strong weapon cannot fire straight after a melee strike (brief Q14, ticket 8.9).
+	if now < state.lastMeleeAt + (def.PostMeleeFireDelay or 0) then
+		sendAmmo(player, state, 0)
+		return
+	end
 
 	-- The shot must start where the shooter's head was when they fired (spec 13.3).
 	local serverNow = workspace:GetServerTimeNow()
@@ -329,8 +337,12 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 		)
 	end
 	if bestTarget then
-		local amount = def.Damage * (if bestHead then def.HeadshotMult else 1) * falloffMult(def, bestDistance)
-		applyDamage(player, bestTarget, amount, bestHead, origin)
+		-- A disguised agent (Covered or Suspicious) always takes body damage, even on the head; headshots count once
+		-- they are Exposed (SPEC_CHANGES 2026-10-24, brief Q2). The hitmarker shows a body hit to match.
+		local head = bestHead
+			and not (bestTarget.kind == "Agent" and not CoverService.isExposed(bestTarget.player :: Player))
+		local amount = def.Damage * (if head then def.HeadshotMult else 1) * falloffMult(def, bestDistance)
+		applyDamage(player, bestTarget, amount, head, origin)
 		CoverService.startLockout(player) -- dealing damage refreshes it (spec 7.6)
 	end
 
@@ -353,7 +365,12 @@ local function onReload(player: Player)
 	end
 	local def = state.weapon
 	local now = os.clock()
-	if state.reloadEndsAt ~= 0 or state.mag >= def.MagSize or state.reserve <= 0 then
+	if
+		state.reloadEndsAt ~= 0
+		or state.mag >= def.MagSize
+		or state.reserve <= 0
+		or DisguiseService.isChanging(player) -- spec 27 #22
+	then
 		return
 	end
 	state.reloadId += 1
@@ -365,6 +382,17 @@ local function onReload(player: Player)
 			finishReload(player, state)
 		end
 	end)
+end
+
+-- A disguise swap cancels a reload in progress (spec 27 #22); the rounds stay out and the client is told.
+local function cancelReload(player: Player)
+	local state = states[player]
+	if not state or state.reloadEndsAt == 0 then
+		return
+	end
+	state.reloadId += 1
+	state.reloadEndsAt = 0
+	sendAmmo(player, state, 0)
 end
 
 local function onDraw(player: Player, drawn: unknown)
@@ -585,6 +613,7 @@ function CombatService.Start()
 	RemoteService.onRequest("ReloadRequest", onReload)
 	RemoteService.onRequest("RequestDraw", onDraw)
 	RemoteService.onRequest("RequestMelee", onMelee)
+	DisguiseService.onSwapStarted(cancelReload)
 
 	local function track(player: Player)
 		player.CharacterAdded:Connect(function(character)
