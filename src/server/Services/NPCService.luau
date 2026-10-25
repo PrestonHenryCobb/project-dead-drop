@@ -21,6 +21,7 @@ local OutfitDefs = require(Shared:WaitForChild("Defs"):WaitForChild("OutfitDefs"
 local Types = require(Shared:WaitForChild("Types"))
 local Weighted = require(Shared:WaitForChild("Util"):WaitForChild("Weighted"))
 local NPC = script.Parent.Parent:WaitForChild("NPC")
+local CrowdPath = require(NPC.CrowdPath)
 local AnimationSync = require(NPC:WaitForChild("AnimationSync"))
 local Death = require(NPC:WaitForChild("Death"))
 local Movement = require(NPC:WaitForChild("Movement"))
@@ -113,9 +114,13 @@ local function startTrip(npc: Npc, now: number, graph: NavGraph.Graph)
 	claim(destination)
 	npc.node = destination
 	table.insert(points, spreadAround(graph, points[#points], npc.maxTier))
-	npc.path = Movement.withResume(npc, points)
+	-- Only ordinary trips meander; reactions retain their purposeful, clearance-checked routes.
+	local varied = CrowdPath.vary(points, rng, function(from, to)
+		return NavGraph.standable(graph, from, to, npc.maxTier)
+	end)
+	npc.path = Movement.withResume(npc, varied)
 	npc.pathIndex = 1
-	npc.speed = npc.baseSpeed
+	npc.speed = npc.baseSpeed * rng:NextNumber(config.WalkVariation.SpeedMin, config.WalkVariation.SpeedMax)
 	npc.state = "Walk"
 	AnimationSync.set(npc, "")
 end

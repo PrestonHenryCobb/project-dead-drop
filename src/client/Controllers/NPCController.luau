@@ -6,7 +6,7 @@
 -- the server rewinds to the shot timestamp minus this same interpolation delay, without a stepped clock.
 --
 -- It also plays the animation the server says each NPC is doing (NPCAnimation: a node activity, cowering, gasping) and
--- gives every idle NPC a quick random glance to one side now and then (spec 8.1).
+-- SocialGlanceController supplies head glances consistently across NPCs and player rigs.
 --
 -- An NPC rig is a Model whose animation runs through an AnimationController (players have a Humanoid instead).
 
@@ -15,7 +15,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
-local Enums = require(Shared:WaitForChild("Enums"))
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local PoseAnimation = require(Shared:WaitForChild("Util"):WaitForChild("PoseAnimation"))
 local RemoteController = require(script.Parent.RemoteController)
@@ -29,7 +28,6 @@ type Entry = {
 	idle: AnimationTrack,
 	poses: { [string]: AnimationTrack }, -- pose animations loaded so far
 	pose: string, -- the pose the server asked for ("" for none)
-	nextGlance: number,
 	samples: { Sample },
 	written: CFrame?,
 	speed: number,
@@ -48,11 +46,6 @@ local entries: { [Model]: Entry } = {}
 local byId: { [string]: Entry } = {} -- the server names each NPC's model; that name is how it addresses it
 local wanted: { [string]: string } = {} -- poses that arrived before the NPC's rig was ready
 local poseAnimations: { [string]: Animation } = {}
-local rng = Random.new()
-
-local function glanceDelay(): number
-	return rng:NextNumber(config.GlanceInterval.Min, config.GlanceInterval.Max)
-end
 
 local function poseTrack(entry: Entry, name: string): AnimationTrack?
 	local loaded = entry.poses[name]
@@ -119,7 +112,6 @@ local function track(model: Model)
 		idle = idle,
 		poses = {},
 		pose = "",
-		nextGlance = workspace:GetServerTimeNow() + glanceDelay(),
 		samples = { { time = workspace:GetServerTimeNow(), cframe = root.CFrame } },
 		written = nil,
 		speed = 0,
@@ -201,19 +193,6 @@ local function update(entry: Entry, now: number)
 		speed = Vector3.new(delta.X, 0, delta.Z).Magnitude / math.max(b.time - a.time, 1e-3)
 	end
 	entry.speed = speed
-
-	if now >= entry.nextGlance then
-		entry.nextGlance = now + glanceDelay()
-		if entry.pose == "" then
-			local name = if rng:NextInteger(0, 1) == 0
-				then Enums.NpcAnimation.GlanceLeft
-				else Enums.NpcAnimation.GlanceRight
-			local glance = poseTrack(entry, name)
-			if glance then
-				glance:Play(config.AnimationFadeSeconds)
-			end
-		end
-	end
 
 	local fade = config.AnimationFadeSeconds
 	if speed > config.WalkAnimationMinSpeed then

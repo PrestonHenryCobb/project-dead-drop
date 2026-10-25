@@ -374,3 +374,22 @@ Root cause: the within-kit test binding used F9, which Roblox reserves for the D
 Test: Stop, sync Rojo, restart Play and click the viewport. F8 cycles all registered weapons; ] cycles within the current kit; F7 changes graphics quality. F9 retains the console. Close the console before trying weapon input.
 Validation: full-source StyLua check and Selene passed; actual-source selector/production-guard regression passed. Physical keyboard acceptance remains owner review.
 Known gaps: viewport/text-box focus still determines whether game controls receive input. SPEC-QUESTIONs: none. Ready for: remaining Step 8 weapon/client review.
+## Map-independent crowd movement and social glances (crowd-readability, 2026-10-25)
+
+What I built:
+- server/NPC/CrowdPath: departure-time gentle lateral bends with a smooth endpoint envelope; only supported, nearly flat, straight route portions can vary. Original cached routes are immutable. Entry/return links pass the existing wall, floor and clearance validator.
+- NPCService: ordinary trips use these bends and random 90–100% role walking speed; panic/investigation/stairs keep their existing route behavior. Server-owned positions still drive interpolation and shot history.
+- SocialGlanceController: bounded 0.3-second scans, six-stud nearby glances, line-of-sight/facing/height checks, four-to-eight-second cooldowns and existing occasional ambient glances. Uses the same head-only animations for NPCs and other players, with no identity metadata. Own head stays camera-controlled; action/knockdown poses take precedence. Tracks/connections use Janitor.
+- NPCController: removes its duplicate NPC-only random glance scheduler.
+- GameConfig: ticket sections for route and glance tuning; no map-specific values added. Owner redirected lighting to the coming map overhaul, so all proposed lighting changes were removed.
+- check-crowd-path.cjs / Tools/CrowdReadabilityReview: actual-source route fixtures and an explicit isolated two-client animation probe.
+
+How to test in Studio:
+1. Stop, sync Rojo, Play with one player. Watch several ordinary walkers in a broad open area for 30 seconds. Expect subtle different walking lines and pace, with gentle departure/arrival; no exaggerated zigzags. Check stairs/doorways and verify lower-clearance NPCs remain outside restricted rooms.
+2. Pass within roughly six studs of a visible upright NPC, slightly ahead or beside it. Expect occasional brief neck turns toward passersby while continuing to walk. Repeat after several seconds; a nearby wall must prevent a proximity-triggered look through it. Occasional unrelated ambient glances still happen.
+3. Test > Clients 2 > Start. Each client should also see the other player's model use the same social gesture; a glance must not identify an NPC. Own camera remains under normal control. Downed/takedown/body animations must retain priority.
+4. Optional Edit probe: fresh-clone ServerScriptService.Server.Tools.CrowdReadabilityReview to ServerStorage, call require(clone).run(), then destroy it. Require server PASS and both client PASS messages.
+
+Validation: actual-source bend tests passed for open floor, immutable source routes, fixed endpoints, denied regions, stairs and changed floor heights. Initial native two-client run passed both clients and server, observing NPC and player-model glances. The final fixture was reoriented to face the passersby and its lighting assertion removed after the scope change; that revised fixture has not been rerun. StyLua, Selene, Rojo build and whitespace checks passed. Full-crowd performance and map-specific edge/clearance acceptance remain owner review; this does not replace Claude's R1/R2 probes.
+Known gaps: narrow or unsupported routes deliberately remain straight. Nearby glances are local cosmetic presentation, not suspicion/detection behavior or replicated camera aim. Existing separation behavior is unchanged. Lighting is deferred to the map overhaul.
+SPEC-QUESTIONs: none; bend amplitude, pace and glance intervals are initial presentation tuning. Ready for: R8-pistol-pose; next main gameplay-plan step remains Step 9c spectating.

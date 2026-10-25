@@ -229,6 +229,26 @@ local GameConfig = {
 		DoorCloseDelay = 3,
 		GlanceInterval = { Min = 4, Max = 10 }, -- 8.1: random head glances
 		GlanceDegrees = 40,
+		-- Ticket crowd-readability: ordinary walking only; panic/investigation keep direct routes.
+		WalkVariation = {
+			OffsetMin = 0.35,
+			OffsetMax = 0.8,
+			WaveStuds = { Min = 18, Max = 30 },
+			MaxRiseStuds = 0.08,
+			StraightDot = 0.98,
+			SpeedMin = 0.9,
+			SpeedMax = 1,
+		},
+		-- Shared client presentation for all upright rigs, without identity/team information.
+		SocialGlance = {
+			ScanSeconds = 0.3,
+			NearStuds = 6,
+			HeightStuds = 3,
+			RenderStuds = 90,
+			FrontDot = -0.2,
+			UprightDot = 0.7,
+			Cooldown = { Min = 4, Max = 8 },
+		},
 		CorpseSeconds = 30,
 		ReplacementSeconds = 45,
 		MobileRenderDistance = 120, -- 27 #27: NPC visuals beyond this are not shown on low-end mobile
