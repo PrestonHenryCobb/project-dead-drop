@@ -35,10 +35,15 @@ Follow-up answers: side falls roll onto the stomach into prone crawl; default me
 50 damage after 0.75 s (capped, no added range/stun); NPC clearance caps stay enforced during panic/fleeing, while
 higher tiers can visit lower areas. Existing cooldown/recovery rules stay in place. Do not repeat answered choices.
 
+HUD detail answers: Q5 essentials (health/armor, ammo, disguise, Cover, alarm) stay visible; prompts/warnings are
+contextual. Q6 clearer numbers/body text with pixel headings. Q33 event-driven HUD motion plus reduced-motion option.
+These are recorded design decisions; the typography/preference implementation is queued separately.
+
 Completed round: Q3 gun composition, Q8 takedown result, Q9 takedown presentation/control, Q10 crawl/death style,
 Q11 door exit rules, input/result/direction follow-ups, side-shot/roll clarification, charge starting balance and Q12
-NPC tier exceptions. Next: HUD details Q5–6 and Q33 motion/accessibility, then the world/economy/kit
-questions Q13–35. Ask manageable groups; keep these original IDs in the decision record even if reply numbering starts
+NPC tier exceptions, Q5–6 HUD details and Q33 HUD motion. Next: Q14 floor labels, Q15 vertical indicators and Q16
+marker visibility, then the remaining world/economy/kit questions. Broad preservation answers already retain original
+map design, economy/mode/kit decisions; do not ask those again as if undecided. Ask manageable groups; retain original IDs even if reply numbering starts
 at 1 in each group. Startup/NPC animations were restored per owner; remaining visual acceptance is separate from answers.
 
 ## How this document is being used

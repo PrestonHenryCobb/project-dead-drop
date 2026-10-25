@@ -160,6 +160,11 @@ Gala HUD now resolves UI.HudThemeId through Util/HudTheme; only palette/corner/a
 Later map loading should provide its authorized map/skin ID at startup; no runtime map metadata contract is invented.
 Core layout, action timing and tier/cover/health meanings stay common. Field notes is the selected design direction.
 
+Owner's HUD detail answers: health/armor, ammo, disguise, Cover and alarm stay visible during normal play; contextual
+prompts/warnings appear only when relevant. Use clearer numbers/body text with pixel headings. HUD motion is driven
+by events, with a real player-facing reduced-motion preference. Preserve critical information/timers under that
+preference; do not change actual recoil/gameplay. Codex's typography and preference work is queued, not already built.
+
 Secret prop exits and elevators need original map design and server contracts before interactive UI. Step 18 owns
 Intel/economy interactions and Agent Tag rescue pricing still needs the owner. Step 21 owns persistence, shop, Stocks
 and Dossiers. Keep forthcoming menus as reviewable mockups until actual data exists. The live HUD refresh does not

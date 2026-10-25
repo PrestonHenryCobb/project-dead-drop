@@ -148,3 +148,13 @@ The obsolete stepping controllers, PositionStep helper and Animation stepping co
   established authorization. Vault/objective locks retain their own rules; the server must determine the interior side.
 - NPC role clearance remains a hard path cap during panic/fleeing as well as normal movement. Higher-clearance
   roles may visit lower-tier areas; panic does not authorize low-tier NPC entry into higher-tier rooms.
+
+## Owner HUD detail answers (2026-10-25)
+
+- Health/armor, ammo, disguise, Cover and alarm remain visible during normal play. Action prompts and warnings
+  appear when relevant; do not fade essentials merely because health/ammo are full or the player is idle.
+- Clearer numbers and body text replace all-pixel typography; retain pixel-style headings. Apply this common
+  readability hierarchy across map skins.
+- HUD motion is event-driven (damage, reload, suspicion and objective changes), with a player-facing reduced-motion
+  option. Prefer functional feedback over continuous decorative scanning/pulsing. Reduced motion must preserve
+  critical information and timers; it does not change weapon recoil or other gameplay rules.
