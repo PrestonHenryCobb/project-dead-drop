@@ -319,3 +319,23 @@ Known gaps: eight registered firearms across Guise, Parapet, Reticle, Suture and
 Validation: StyLua/Selene/Rojo, actual-source selector/live-server guard checks and the existing 29 melee assertions pass. The final Studio run logged server PASS plus TWO client PASS results at 17:43 UTC: 14 real selection requests reached all eight registered weapons, cancelled a pending server reload, preserved the chosen GuisePistol across respawn, and left Player2's own weapon unchanged. Earlier harness timeouts came from waiting for an ammo message that normal firing does not send; the corrected test uses an explicit server sync after its simulated shot. Physical keyboard focus and visual acceptance remain owner review.
 SPEC-QUESTIONs: none added; unimplemented choices remain excluded. Ready for: Step 8 weapon testing (8.4); main next gameplay-plan step remains Step 9c spectating.
 
+## Responsive panel sizing (19-hud-scale, 2026-10-25)
+
+What I built:
+- `src/shared/Util/HudScale.luau`: event-driven panel scaling with the same screen anchors and proportionate edge offsets; observes viewport/camera changes and cleans its connections with Janitor when a panel is destroyed.
+- `src/shared/Util/HudKit.luau`: every shared HUD panel opts into the same scale behavior, independent of its map palette. Crosshair/angular markers and fullscreen effects keep their existing coordinate systems.
+- `src/shared/GameConfig.luau`: ticket UI.PanelScale section, 1280×720 baseline, 1× minimum and 2× cap. The shared lock was released after formatting/linting.
+- `tools/check-hud-scale.cjs`: ten actual-source scale-factor assertions, including ultrawide, narrow and zero-sized startup viewports.
+- `tools/CheckHudScale.luau`: invisible native UI fixtures for six sizes, rendered widths/icons, Cover/warning separation, repeated resizing, live repositioning, camera binding and teardown. Does not start/stop Play or rebuild/touch the world.
+
+How to test in Studio:
+1. Restart Play after source sync when the shared Studio session is free. Compare 1280×720, 1920×1080 and 2560×1440 using Studio's device emulator or viewport sizing. Expected panel factors: 1×, 1.5× and 2×.
+2. Read health/ammo, disguise, Cover and alarm. Numbers/icons/panels should enlarge together; edge spacing should remain proportionate. Approach a vent: its warning card must stay above the Cover panel.
+3. Resize repeatedly, including ultrawide. Panels must stay anchored without creeping inward or enlarging again on each resize. Above the cap, the layout stays at 2×.
+4. Aim/fire at the same target while resizing. Crosshair spread and world-direction markers retain the original viewport-based aiming math. Reload, takedown hints and downed/hold panels should remain readable. Repeat on a fresh respawn.
+5. To repeat the non-world geometry check, paste `tools/CheckHudScale.luau` into Studio's Edit command bar. Require six HUD_SCALE_VIEWPORT_PASS lines and HUD_SCALE_NATIVE_PASS; all fixtures clean themselves up.
+
+Validation: ten Luau CLI assertions passed. Native Studio assertions passed at 720p, 900p, 1080p, 1440p, 4K and 3440×1440; final run also passed camera binding, reposition, repeat-resize and cleanup. No Play restart or map rebuild was performed during Claude's NPC/door work. StyLua/Selene/Rojo checks are recorded with the commit.
+Known gaps: complete gameplay visual acceptance and standalone world-marker/warning typography remain owner review; displays below 1280×720 are outside the agreed support target. The 2× cap is configurable visual tuning, not a new settings-menu feature.
+SPEC-QUESTIONs: none new. Ready for: remaining Step 19 HUD review; next gameplay-plan step remains Step 9c spectating.
+

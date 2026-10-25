@@ -818,6 +818,13 @@ local GameConfig = {
 				CornerPixels = 3,
 			},
 		},
+		-- Ticket 19-hud-scale: scale panel contents/margins together; reticles retain viewport-based aiming math.
+		PanelScale = {
+			ReferenceWidthPixels = 1280,
+			ReferenceHeightPixels = 720,
+			Minimum = 1,
+			Maximum = 2,
+		},
 		-- Ticket HUD refresh: code-drawn graphics need no uploaded images; numbers remain authoritative.
 		GraphicHud = {
 			-- Ticket gala-art-direction: skins can set legible ink and typography independently of world markers.

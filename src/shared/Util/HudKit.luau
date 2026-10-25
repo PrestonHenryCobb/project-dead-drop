@@ -9,6 +9,7 @@ local Players = game:GetService("Players")
 
 local GameConfig = require(script.Parent.Parent.GameConfig)
 local HudTheme = require(script.Parent.HudTheme)
+local HudScale = require(script.Parent.HudScale)
 
 local ui = GameConfig.UI
 local graphics = HudTheme.get()
@@ -97,6 +98,7 @@ function HudKit.panel(parent: Instance, name: string, position: UDim2, anchor: V
 	accent.Position = UDim2.fromOffset(graphics.PaddingPixels, 0)
 	accent.Size = UDim2.new(graphics.AccentWidthFraction, 0, 0, graphics.AccentThicknessPixels)
 	accent.Parent = back
+	HudScale.bind(root, if parent:IsA("GuiObject") then parent else nil)
 	return back
 end
 
