@@ -670,7 +670,8 @@ local GameConfig = {
 		ViewModel = {
 			Poses = {
 				-- Disguised: tucked across the chest, barrel angled down (STEP8 answers).
-				Tucked = { Position = Vector3.new(0.1, -1.35, -1.25), Rotation = Vector3.new(-38, 80, 8) },
+				-- Ticket R8-pistol-pose: bring the disguised carry closer to the chest.
+				Tucked = { Position = Vector3.new(0.1, -1.2, -0.9), Rotation = Vector3.new(-38, 80, 8) },
 				-- Exposed: up and combat ready, in the right third of the screen.
 				Ready = { Position = Vector3.new(1.05, -0.95, -1.85), Rotation = Vector3.new(0, -3, 0) },
 				-- Aiming: centred on the line of sight.

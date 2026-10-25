@@ -246,8 +246,24 @@ for _, def in defs do
 end
 
 -- Ticket 8.5d-dmr: presentation-only data; kept here alongside ShotDefaults, outside the authoritative WeaponDef.
-local visuals: { [string]: { Magnification: number?, BoltCycleSeconds: number?, BoltTravelStuds: number? } } = {
+type WeaponVisual = {
+	Magnification: number?,
+	BoltCycleSeconds: number?,
+	BoltTravelStuds: number?,
+	DualSeparationStuds: number?,
+	Poses: { [string]: { Position: Vector3, Rotation: Vector3 } }?,
+}
+local visuals: { [string]: WeaponVisual } = {
 	ReticleDMR = { Magnification = 3, BoltCycleSeconds = 0.65, BoltTravelStuds = 0.32 },
+	-- Ticket R8-pistol-pose: centre the pair, not the right-hand gun, in the ready view.
+	SutureDualPistols = {
+		DualSeparationStuds = 0.8,
+		Poses = {
+			Ready = { Position = Vector3.new(0, -0.95, -1.35), Rotation = Vector3.zero },
+			-- Both wrists lower together; a single-gun across-chest yaw would stack the pair on one side.
+			Tucked = { Position = Vector3.new(0, -1.15, -0.85), Rotation = Vector3.new(-55, 0, 0) },
+		},
+	},
 }
 
 local WeaponDefs = {

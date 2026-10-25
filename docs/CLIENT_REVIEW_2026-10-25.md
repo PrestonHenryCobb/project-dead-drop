@@ -393,3 +393,21 @@ How to test in Studio:
 Validation: actual-source bend tests passed for open floor, immutable source routes, fixed endpoints, denied regions, stairs and changed floor heights. Initial native two-client run passed both clients and server, observing NPC and player-model glances. The final fixture was reoriented to face the passersby and its lighting assertion removed after the scope change; that revised fixture has not been rerun. StyLua, Selene, Rojo build and whitespace checks passed. Full-crowd performance and map-specific edge/clearance acceptance remain owner review; this does not replace Claude's R1/R2 probes.
 Known gaps: narrow or unsupported routes deliberately remain straight. Nearby glances are local cosmetic presentation, not suspicion/detection behavior or replicated camera aim. Existing separation behavior is unchanged. Lighting is deferred to the map overhaul.
 SPEC-QUESTIONs: none; bend amplitude, pace and glance intervals are initial presentation tuning. Ready for: R8-pistol-pose; next main gameplay-plan step remains Step 9c spectating.
+## Centred dual pistols and closer carry (R8-pistol-pose, 2026-10-25)
+
+What I built:
+- WeaponDefs.Visuals: per-weapon optional pose overrides; Suture's pair has a centred ready pose, wider mirrored receiver spacing and a separate lowered two-wrist carry pose. These are cosmetic presentation values, not weapon stats.
+- ViewModel: resolves the active weapon's pose override for normal carry and wall-driven tuck. Parts, muzzles and cosmetic arm grip targets retain the same shared transform. Aiming still hides the left pistol and centres the right as previously approved.
+- GameConfig: brings the default disguised carry from 1.25 to 0.9 studs forward in model space, slightly higher against the chest; existing frustum/wall fitting may move it as needed.
+- tools/CheckDualPistols: isolated native geometry/hand/aim assertions without changing the camera or firing.
+
+How to test in Studio:
+1. Stop, sync Rojo, Play with one player and click the viewport. Press F8 until Suture's dual pistols appear. Ready/exposed stance should put one pistol on each side, with their hands following the grips.
+2. Return to disguise/Cover: both pistols should lower together near the torso, rather than use the single-rifle sideways carry. Compare the other weapons' disguised carry; it should sit closer.
+3. Aim: the left gun/hand should disappear and the right pistol should centre. Release aim, walk, turn, reload and repeat. Both should return smoothly, with no detached hand targets.
+4. Approach a wall: the pair should blend to its own carry pose and firing should remain blocked under the existing rule. Back away to recover. Repeat after respawn and compare 1280x720, 1920x1080 and ultrawide viewports.
+5. Optional Edit check: paste tools/CheckDualPistols.luau. Expect DUAL_PISTOL_NATIVE_PASS; its cloned modules/model clean themselves up.
+
+Validation: native Studio passed 12,312 frustum assertions across three FOVs/four aspect ratios/all three poses, plus actual update checks for symmetric ready muzzles, separate carry, both hand targets and hidden aimed left gun/hand. StyLua, Selene and Rojo build passed.
+Known gaps: the two-wrist carry is procedural pose blending, not an uploaded mocap animation. Exact arm comfort/framing while walking remains visual acceptance. Very narrow views still invoke the existing safety fit. No damage, input, reload timing or server rules changed.
+SPEC-QUESTIONs: none added; pose positions are initial cosmetic tuning. Ready for: remaining map-independent combat/HUD review; next main gameplay-plan step remains Step 9c spectating.

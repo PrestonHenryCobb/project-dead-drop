@@ -68,8 +68,10 @@ export type ViewModel = typeof(setmetatable(
 	ViewModel
 ))
 
-local function poseCFrame(name: string): CFrame
-	local pose = config.Poses[name]
+local function poseCFrame(name: string, weaponId: string): CFrame
+	local visual = WeaponDefs.Visuals[weaponId]
+	local override = visual and visual.Poses
+	local pose = (override and override[name]) or config.Poses[name]
 	assert(pose, `No view model pose {name}`)
 	local r = pose.Rotation
 	return CFrame.new(pose.Position) * CFrame.Angles(math.rad(r.X), math.rad(r.Y), math.rad(r.Z))
@@ -354,7 +356,7 @@ local function buildDualPistols(model: Model): (CFrame, CFrame)
 	local right = buildPistol(model, false)
 	local leftModel = Instance.new("Model")
 	local left = buildPistol(leftModel, false)
-	local separation = 0.35 -- model geometry: spacing between the two receivers
+	local separation = WeaponDefs.Visuals.SutureDualPistols.DualSeparationStuds :: number
 	for _, part in model:GetChildren() do
 		if part:IsA("BasePart") then
 			part:SetAttribute("Offset", CFrame.new(separation, 0, 0) * (part:GetAttribute("Offset") :: CFrame))
@@ -574,7 +576,7 @@ function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: In
 	self.singleAkimbo = self.leftMuzzle ~= nil and input.pose == "Aim"
 	local center = if self.singleAkimbo then CFrame.new(-self.aimShiftX, 0, 0) else CFrame.identity
 	local relativeTarget = WeaponPlacement.fit(
-		center * poseCFrame(input.pose) * offset,
+		center * poseCFrame(input.pose, self.def.Id) * offset,
 		self.frameCorners,
 		camera.FieldOfView,
 		camera.ViewportSize
@@ -594,7 +596,7 @@ function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: In
 	-- Apply wall tuck after ordinary pose settling. Filtering it twice would leave the gun visibly tucked after
 	-- the gate's fraction cleared. The same fraction now directly drives across-body rendering and blocking.
 	local relative = WeaponPlacement.fit(
-		baseRelative:Lerp(poseCFrame("Tucked") * offset, self.tuck),
+		baseRelative:Lerp(poseCFrame("Tucked", self.def.Id) * offset, self.tuck),
 		self.frameCorners,
 		camera.FieldOfView,
 		camera.ViewportSize
