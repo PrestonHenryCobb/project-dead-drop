@@ -64,6 +64,7 @@ local CLIENT = [=[
 --!strict
 local args = game:GetService("StudioTestService"):GetTestArgs()
 if type(args) ~= "table" or args.Tag ~= "GalaArtReview" then return end
+local fixtures = require(game.ReplicatedStorage.Shared.Util.Janitor).new()
 local ok, problem = pcall(function()
     local player = game:GetService("Players").LocalPlayer
     local deadline = os.clock() + 90
@@ -90,6 +91,42 @@ local ok, problem = pcall(function()
     local fx = require(client.Combat.ShotFx)
     local camera = workspace.CurrentCamera
     assert(camera)
+    -- Ticket 19-traversal-warnings: exercise the real client controller and engine raycasts.
+    local traversal = player.PlayerGui:WaitForChild("TraversalHud", 10)
+    assert(traversal, "Traversal HUD did not start")
+    local warning = traversal:WaitForChild("Warning") :: Frame
+    local body = player.Character :: Model
+    local root = body:FindFirstChild("HumanoidRootPart") :: BasePart
+    local savedRoot, savedAnchor = root.CFrame, root.Anchored
+    local savedCamera, savedType = camera.CFrame, camera.CameraType
+    fixtures:Add(function()
+        root.CFrame, root.Anchored = savedRoot, savedAnchor
+        camera.CFrame, camera.CameraType = savedCamera, savedType
+    end)
+    root.Anchored = true
+    root.CFrame = CFrame.new(0,500,0)
+    camera.CameraType = Enum.CameraType.Scriptable
+    camera.CFrame = CFrame.new(0,502,0)
+    local vent = fixtures:Add(Instance.new("Part"))
+    vent.Name, vent.Anchored, vent.CanCollide = "ReviewVent", true, false
+    vent.Size = Vector3.new(2,2,0.2)
+    vent.CFrame = camera.CFrame * CFrame.new(0,0,-4)
+    vent.Parent = workspace
+    game:GetService("CollectionService"):AddTag(vent, require(game.ReplicatedStorage.Shared.Enums).Tag.Vent)
+    task.wait(config.UI.TraversalWarnings.CheckSeconds * 3)
+    assert(warning.Visible, "Visible nearby vent had no warning")
+    local wall = fixtures:Add(Instance.new("Part"))
+    wall.Anchored, wall.CanCollide = true, false
+    wall.Size = Vector3.new(6,6,0.2)
+    wall.CFrame = camera.CFrame * CFrame.new(0,0,-2)
+    wall.Parent = workspace
+    task.wait(config.UI.TraversalWarnings.CheckSeconds * 3)
+    assert(not warning.Visible, "Vent warning leaked through wall")
+    wall:Destroy()
+    vent.CFrame = camera.CFrame * CFrame.new(0,0,4)
+    task.wait(config.UI.TraversalWarnings.CheckSeconds * 3)
+    assert(not warning.Visible, "Vent warning ignored facing")
+    fixtures:Cleanup()
     for _ = 1,24 do fx.impact(camera.CFrame.Position + camera.CFrame.LookVector * 8, Vector3.yAxis) end
     local pool = camera:FindFirstChild("CombatImpacts")
     assert(pool and #pool:GetChildren() == config.Art.ImpactPoolSize * config.Art.ImpactSpokes, "Spark pool grew")
@@ -108,6 +145,7 @@ local ok, problem = pcall(function()
     until os.clock() >= deadline
     assert(os.clock() < deadline, "Crowd did not replicate")
 end)
+fixtures:Destroy()
 if ok then print("GALA_REVIEW_CLIENT_PASS", "HUD, Low/Medium/High, pooled sparks and crowd")
 else warn("GALA_REVIEW_CLIENT_FAIL", problem) end
 ]=]

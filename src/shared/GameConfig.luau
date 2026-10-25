@@ -847,6 +847,13 @@ local GameConfig = {
 			DownedTopFraction = 0.68,
 			DirectionEpsilonStuds = 0.001,
 		},
+		-- Ticket 19-traversal-warnings: presentation only; server traversal rules remain authoritative.
+		TraversalWarnings = {
+			CheckSeconds = 0.1,
+			VentDistanceStuds = 8,
+			VentFacingDot = 0.25,
+			HeightPixels = 44,
+		},
 		PhaseBannerSeconds = 3,
 		TimerWarningSeconds = 60,
 		FovMin = 70,

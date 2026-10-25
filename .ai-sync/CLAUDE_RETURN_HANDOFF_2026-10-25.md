@@ -275,3 +275,19 @@ the server check. Require both client results rather than treating ServerPassed 
 Enabled-mode visual review remains owner-run. Exact one-/two-player steps are in CLIENT_REVIEW_2026-10-25.md.
 No new SPEC-QUESTIONs. Ready for Step 19 traversal warnings (main gameplay sequence: Step 9c spectating).
 
+## Codex: traversal warning UI (19-traversal-warnings)
+
+New TraversalFeedbackController auto-loads through the existing client boot. A reusable themed card with crossed-eye
+icon follows native zipline/gondola prompt visibility. The gondola caption says RIDING BREAKS COVER, because calling
+does not expose the caller. Vent entrances use the existing public Vent tag, a cached set, 10 Hz distance/facing/LOS
+checks and a reused RaycastParams. No character markers, new remotes, input interception or server gameplay edits.
+Downed/eliminated suppress the card; revival/respawn restore it. GUI/connections are Janitor-owned.
+
+New GameConfig.UI.TraversalWarnings holds the presentation tunables in its own ticket section; its short lock was
+released after formatting/linting. Studio probes at 15:36 UTC passed on BOTH clients, exercising real vent visibility,
+wall occlusion and facing checks plus the existing HUD/quality/spark/crowd tests. The initial fixture at the normal
+spawn failed; the regression now temporarily isolates its local character/camera away from spawn traffic/camera
+startup, then restores them and destroys fixtures even on failure. This tests presentation, not gameplay authority.
+StyLua/Selene/Rojo and the existing 29 melee runtime assertions passed. Manual traversal input, 720p layout and
+down/revive/respawn visual acceptance are owner review; exact steps are in CLIENT_REVIEW_2026-10-25.md.
+SPEC-QUESTIONs: none new. Ready for remaining Step 19 HUD review (main gameplay sequence: Step 9c spectating).

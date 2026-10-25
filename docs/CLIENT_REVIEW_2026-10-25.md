@@ -277,3 +277,20 @@ Validation: StyLua check, Selene (0 errors/warnings), and Rojo build passed. Liv
 Known gaps: this covers HUD presentation only; no claim that all world effects support reduced motion. Texture uploads remain blocked separately.
 SPEC-QUESTIONs: none added. Ready for: Step 19 traversal warnings; the main build plan still lists Step 9c spectating as the next gameplay step.
 
+## Traversal Cover-break badge (ticket 19-traversal-warnings, 2026-10-25)
+
+What I built:
+- `TraversalFeedbackController.luau`: one reusable crossed-eye badge on the shared map-themed panel. Zipline/gondola warnings follow native prompt visibility; vents require proximity, facing and clear line of sight. Hidden when downed/eliminated, restored on revival/respawn. Janitor owns the GUI and connections; no per-frame instance/table creation.
+- `GameConfig.luau` UI.TraversalWarnings: presentation scan interval, vent distance/facing and badge height in a ticket section. Shared-file lock released after formatting/linting.
+- `ReviewHarness.luau`: temporary client vent/wall fixtures check real visibility, occlusion and facing; fixtures always clean up.
+
+How to test in Studio:
+1. Stop, Rojo sync, then **Play** with one player. Approach a zipline mount until its normal prompt appears. Expect a crossed-eye badge reading ZIPLINE · BREAKS COVER. Use the original input/hold; no additional confirmation is required.
+2. Approach a gondola call button. Expect GONDOLA · RIDING BREAKS COVER. Calling alone must retain Cover; riding the moving car retains the existing exposure behavior.
+3. Look at a vent entrance within 8 studs. Expect VENT · BREAKS COVER. Turn away, back out, or put a wall between yourself and it: the badge disappears. Entering still uses the existing automatic server volume rule.
+4. Check 1280×720 and a larger viewport. The card sits above the Cover panel without replacing the crosshair or interaction input. Repeat after respawn. With **Test > Clients 2 > Start**, each client should see only their own contextual badge, with no new character effect.
+
+Validation: StyLua, Selene, Rojo build and the existing 29 server-melee regression assertions passed. At 15:36 UTC both Studio clients passed the isolated vent visibility/occlusion/facing fixtures and the server passed outfit parity. Manual zipline/gondola input and visual layout remain owner review.
+Known gaps: a vent badge is an approach warning, not a prediction of the exact server entry tick. Gondola warnings accompany its call prompt; they do not claim that calling exposes you.
+SPEC-QUESTIONs: none added; the 8-stud approach distance and facing dot 0.25 are presentation tuning, not a gameplay requirement. Ready for: remaining Step 19 HUD review; Step 9c spectating remains the next gameplay-plan step.
+
