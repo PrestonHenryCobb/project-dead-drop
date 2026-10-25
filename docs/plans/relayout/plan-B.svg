@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1204" height="1064" viewBox="0 0 1204 1064" font-family="Segoe UI, Arial, sans-serif"><rect width="100%" height="100%" fill="#1c1f26"/>
+<text x="16" y="22" fill="#fff" font-size="18" font-weight="700">Gala re-layout plan: Basement (B, -24): service ring, stores, the security complex, Vault A and Vault D</text>
+<rect x="56.0" y="56.0" width="728.0" height="36.4" fill="#6fbf73" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="56.0" y="851.6" width="728.0" height="36.4" fill="#6fbf73" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="56.0" y="92.4" width="36.4" height="759.2" fill="#6fbf73" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="747.6" y="92.4" width="36.4" height="759.2" fill="#6fbf73" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="92.4" y="92.4" width="145.6" height="405.6" fill="#6fbf73" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="92.4" y="498.0" width="145.6" height="353.6" fill="#6fbf73" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="602.0" y="92.4" width="145.6" height="405.6" fill="#6fbf73" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="602.0" y="498.0" width="145.6" height="353.6" fill="#6fbf73" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="383.6" y="92.4" width="72.8" height="197.6" fill="#8d5fc7" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="238.0" y="92.4" width="145.6" height="197.6" fill="#8d5fc7" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="456.4" y="92.4" width="145.6" height="197.6" fill="#8d5fc7" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="238.0" y="290.0" width="364.0" height="156.0" fill="#8d5fc7" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="238.0" y="446.0" width="145.6" height="208.0" fill="#8d5fc7" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="383.6" y="446.0" width="72.8" height="405.6" fill="#8d5fc7" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="456.4" y="446.0" width="145.6" height="208.0" fill="#8d5fc7" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="238.0" y="654.0" width="145.6" height="197.6" fill="#c0392b" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="456.4" y="654.0" width="145.6" height="197.6" fill="#8d5fc7" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="784.0" y="550.0" width="52.0" height="31.2" fill="#6fbf73" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="836.0" y="277.0" width="312.0" height="78.0" fill="#8d5fc7" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="836.0" y="355.0" width="143.0" height="156.0" fill="#6fbf73" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="836.0" y="511.0" width="143.0" height="130.0" fill="#6fbf73" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="979.0" y="355.0" width="91.0" height="156.0" fill="#c0392b" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="979.0" y="511.0" width="91.0" height="130.0" fill="#8d5fc7" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="1070.0" y="355.0" width="78.0" height="286.0" fill="#6fbf73" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<rect x="836.0" y="641.0" width="312.0" height="182.0" fill="#6fbf73" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
+<text x="420.0" y="74.2" text-anchor="middle" font-size="12" fill="#111">Service ring north</text>
+<text x="420.0" y="869.8" text-anchor="middle" font-size="12" fill="#111">Service ring south</text>
+<text x="74.2" y="472.0" text-anchor="middle" font-size="8" fill="#111">Service ring west</text>
+<text x="765.8" y="472.0" text-anchor="middle" font-size="8" fill="#111">Service ring east</text>
+<text x="165.2" y="295.2" text-anchor="middle" font-size="12" fill="#111">West stores</text>
+<text x="165.2" y="674.8" text-anchor="middle" font-size="12" fill="#111">Laundry and dry stores</text>
+<text x="674.8" y="295.2" text-anchor="middle" font-size="12" fill="#111">East stores</text>
+<text x="674.8" y="674.8" text-anchor="middle" font-size="12" fill="#111">Wine cellar</text>
+<text x="420.0" y="191.2" text-anchor="middle" font-size="8.088888888888889" fill="#fff">Security checkpoint (basement)</text>
+<text x="310.8" y="191.2" text-anchor="middle" font-size="12" fill="#fff">Camera room</text>
+<text x="529.2" y="191.2" text-anchor="middle" font-size="12" fill="#fff">Guard barracks</text>
+<text x="420.0" y="368.0" text-anchor="middle" font-size="12" fill="#fff">Guard muster hall *</text>
+<text x="310.8" y="550.0" text-anchor="middle" font-size="12" fill="#fff">Vault A laser hall</text>
+<text x="420.0" y="648.8" text-anchor="middle" font-size="8.088888888888889" fill="#fff">Security spine</text>
+<text x="529.2" y="550.0" text-anchor="middle" font-size="12" fill="#fff">Armoury</text>
+<text x="310.8" y="752.8" text-anchor="middle" font-size="12" fill="#fff">Vault A (bank vault)</text>
+<text x="529.2" y="752.8" text-anchor="middle" font-size="12" fill="#fff">Guard mess</text>
+<text x="810.0" y="565.6" text-anchor="middle" font-size="8" fill="#111">Service tunnel to the wing</text>
+<text x="992.0" y="316.0" text-anchor="middle" font-size="12" fill="#fff">Wing security office</text>
+<text x="907.5" y="433.0" text-anchor="middle" font-size="12" fill="#111">Linen store</text>
+<text x="907.5" y="576.0" text-anchor="middle" font-size="12" fill="#111">Hotel laundry</text>
+<text x="1024.5" y="433.0" text-anchor="middle" font-size="10.11111111111111" fill="#fff">Vault D (counting room)</text>
+<text x="1024.5" y="576.0" text-anchor="middle" font-size="10.11111111111111" fill="#fff">Vault D counting hall</text>
+<text x="1109.0" y="498.0" text-anchor="middle" font-size="8.666666666666666" fill="#111">Boiler corridor</text>
+<text x="992.0" y="732.0" text-anchor="middle" font-size="12" fill="#111">Hotel service hall</text>
+<rect x="56.0" y="90.3" width="36.4" height="4.2" fill="#ffe9a8" stroke="#000" stroke-width="0.7"/>
+<rect x="747.6" y="90.3" width="36.4" height="4.2" fill="#ffe9a8" stroke="#000" stroke-width="0.7"/>
+<rect x="56.0" y="849.5" width="36.4" height="4.2" fill="#ffe9a8" stroke="#000" stroke-width="0.7"/>
+<rect x="747.6" y="849.5" width="36.4" height="4.2" fill="#ffe9a8" stroke="#000" stroke-width="0.7"/>
+<rect x="90.3" y="282.2" width="4.2" height="26.0" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="152.2" y="90.3" width="26.0" height="4.2" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="90.3" y="661.8" width="4.2" height="26.0" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="152.2" y="849.5" width="26.0" height="4.2" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="154.8" y="495.9" width="20.8" height="4.2" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="745.5" y="282.2" width="4.2" height="26.0" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="661.8" y="90.3" width="26.0" height="4.2" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="745.5" y="661.8" width="4.2" height="26.0" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="661.8" y="849.5" width="26.0" height="4.2" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="664.4" y="495.9" width="20.8" height="4.2" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="407.0" y="90.3" width="26.0" height="4.2" fill="#5b2a9a" stroke="#000" stroke-width="0.7"/>
+<rect x="404.4" y="287.9" width="31.2" height="4.2" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="381.5" y="180.8" width="4.2" height="20.8" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="454.3" y="180.8" width="4.2" height="20.8" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="300.4" y="287.9" width="20.8" height="4.2" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="518.8" y="287.9" width="20.8" height="4.2" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="300.4" y="443.9" width="20.8" height="4.2" fill="#ff7a7a" stroke="#000" stroke-width="0.7"/>
+<rect x="404.4" y="443.9" width="31.2" height="4.2" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="518.8" y="443.9" width="20.8" height="4.2" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="381.5" y="539.6" width="4.2" height="20.8" fill="#5b2a9a" stroke="#000" stroke-width="0.7"/>
+<rect x="454.3" y="539.6" width="4.2" height="20.8" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="454.3" y="742.4" width="4.2" height="20.8" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="300.4" y="651.9" width="20.8" height="4.2" fill="#ff2d2d" stroke="#000" stroke-width="0.7"/>
+<rect x="407.0" y="849.5" width="26.0" height="4.2" fill="#5b2a9a" stroke="#000" stroke-width="0.7"/>
+<rect x="518.8" y="849.5" width="20.8" height="4.2" fill="#5b2a9a" stroke="#000" stroke-width="0.7"/>
+<rect x="781.9" y="555.2" width="4.2" height="20.8" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="833.9" y="555.2" width="4.2" height="20.8" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="897.1" y="352.9" width="20.8" height="4.2" fill="#5b2a9a" stroke="#000" stroke-width="0.7"/>
+<rect x="1098.6" y="352.9" width="20.8" height="4.2" fill="#5b2a9a" stroke="#000" stroke-width="0.7"/>
+<rect x="897.1" y="508.9" width="20.8" height="4.2" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="894.5" y="638.9" width="26.0" height="4.2" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="976.9" y="565.6" width="4.2" height="20.8" fill="#5b2a9a" stroke="#000" stroke-width="0.7"/>
+<rect x="1067.9" y="565.6" width="4.2" height="20.8" fill="#5b2a9a" stroke="#000" stroke-width="0.7"/>
+<rect x="1014.1" y="638.9" width="20.8" height="4.2" fill="#5b2a9a" stroke="#000" stroke-width="0.7"/>
+<rect x="1014.1" y="508.9" width="20.8" height="4.2" fill="#ff2d2d" stroke="#000" stroke-width="0.7"/>
+<rect x="1096.0" y="638.9" width="26.0" height="4.2" fill="#fff" stroke="#000" stroke-width="0.7"/>
+<rect x="680.0" y="212.0" width="36.4" height="78.0" fill="#3b3f4a" stroke="#ffd23f" stroke-width="1.4"/>
+<text x="698.2" y="254.0" text-anchor="middle" font-size="8" fill="#ffd23f">&#8593;G</text>
+<rect x="134.0" y="732.0" width="36.4" height="78.0" fill="#3b3f4a" stroke="#ffd23f" stroke-width="1.4"/>
+<text x="152.2" y="774.0" text-anchor="middle" font-size="8" fill="#ffd23f">&#8593;G</text>
+<rect x="849.0" y="654.0" width="36.4" height="78.0" fill="#3b3f4a" stroke="#ffd23f" stroke-width="1.4"/>
+<text x="867.2" y="696.0" text-anchor="middle" font-size="8" fill="#ffd23f">&#8593;G</text>
+<rect x="388.8" y="108.0" width="62.4" height="65.0" fill="#3b3f4a" stroke="#ffd23f" stroke-width="1.4"/>
+<text x="420.0" y="143.5" text-anchor="middle" font-size="8" fill="#ffd23f">&#8593;G</text>
+<rect x="1044.0" y="284.8" width="15.6" height="62.4" fill="#3b3f4a" stroke="#ffd23f" stroke-width="1.4"/>
+<text x="1051.8" y="319.0" text-anchor="middle" font-size="8" fill="#ffd23f">&#8593;G</text>
+<text x="310.8" y="762.0" text-anchor="middle" font-size="15" fill="#fff" font-weight="900">&#9635;</text><text x="310.8" y="775.0" text-anchor="middle" font-size="9" fill="#fff" font-weight="700">terminal A</text>
+<text x="1023.2" y="437.0" text-anchor="middle" font-size="15" fill="#fff" font-weight="900">&#9635;</text><text x="1023.2" y="450.0" text-anchor="middle" font-size="9" fill="#fff" font-weight="700">terminal D</text>
+<circle cx="321.2" cy="763.2" r="3.5" fill="#e83fb0" stroke="#fff"/>
+<circle cx="1034.9" cy="443.4" r="3.5" fill="#e83fb0" stroke="#fff"/>
+<rect x="297.8" y="739.8" width="18" height="18" fill="#f08a24" fill-opacity="0.35" stroke="#f08a24"/>
+<rect x="1011.5" y="420.0" width="18" height="18" fill="#f08a24" fill-opacity="0.35" stroke="#f08a24"/>
+<rect x="16" y="953" width="14" height="14" fill="#e8e6dc" stroke="#fff"/><text x="36" y="964" fill="#ddd" font-size="12">Public</text>
+<rect x="176" y="953" width="14" height="14" fill="#6fbf73" stroke="#fff"/><text x="196" y="964" fill="#ddd" font-size="12">Staff</text>
+<rect x="336" y="953" width="14" height="14" fill="#8d5fc7" stroke="#fff"/><text x="356" y="964" fill="#ddd" font-size="12">Security</text>
+<rect x="496" y="953" width="14" height="14" fill="#e3b23c" stroke="#fff"/><text x="516" y="964" fill="#ddd" font-size="12">Executive</text>
+<rect x="656" y="953" width="14" height="14" fill="#c0392b" stroke="#fff"/><text x="676" y="964" fill="#ddd" font-size="12">Vault / Sanctum</text>
+<rect x="816" y="953" width="14" height="14" fill="#3b3f4a" stroke="#fff"/><text x="836" y="964" fill="#ddd" font-size="12">Stair or ramp</text>
+<rect x="16" y="975" width="14" height="14" fill="#1fb5c9" stroke="#fff"/><text x="36" y="986" fill="#ddd" font-size="12">Glass elevator</text>
+<rect x="176" y="975" width="14" height="14" fill="#3d8bfd" stroke="#fff"/><text x="196" y="986" fill="#ddd" font-size="12">Insertion</text>
+<rect x="336" y="975" width="14" height="14" fill="#18c26b" stroke="#fff"/><text x="356" y="986" fill="#ddd" font-size="12">Extraction</text>
+<rect x="496" y="975" width="14" height="14" fill="#e83fb0" stroke="#fff"/><text x="516" y="986" fill="#ddd" font-size="12">Secret exit</text>
+<rect x="656" y="975" width="14" height="14" fill="#f08a24" stroke="#fff"/><text x="676" y="986" fill="#ddd" font-size="12">Vent shaft</text>
+<rect x="816" y="975" width="14" height="14" fill="#ffe9a8" stroke="#fff"/><text x="836" y="986" fill="#ddd" font-size="12">Arch / open</text>
+<text x="16" y="1024" fill="#999" font-size="11">North is up (-z). * = crowd hub. Doors are coloured by the clearance they need (green Staff, purple Security, gold Executive, red vault). Plan zones: the build splits them into rooms.</text></svg>
