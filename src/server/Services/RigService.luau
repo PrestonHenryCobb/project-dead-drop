@@ -101,6 +101,10 @@ local function buildTemplate(): Model
 		Players:CreateHumanoidModelFromDescription(Instance.new("HumanoidDescription"), Enum.HumanoidRigType.R15)
 	OutfitApplier.strip(rig)
 	useClassicJoints(rig)
+	-- Step 8B.5: the jump reaches the same height as before under the lower gravity, so it only lasts longer.
+	local humanoid = rig:FindFirstChildOfClass("Humanoid") :: Humanoid
+	humanoid.UseJumpPower = false
+	humanoid.JumpHeight = GameConfig.Movement.JumpHeight
 	rig.Name = STARTER_CHARACTER
 	return rig
 end
@@ -219,6 +223,8 @@ local function onCharacterAdded(player: Player, character: Model)
 end
 
 local function onPlayerAdded(player: Player)
+	-- Walking is MovementController's (step 8B.5: eased starts and stops), so Roblox's own keyboard controls are off.
+	player.DevComputerMovementMode = Enum.DevComputerMovementMode.Scriptable
 	player.CharacterAdded:Connect(function(character)
 		onCharacterAdded(player, character)
 	end)
@@ -229,6 +235,8 @@ function RigService.Init()
 	-- Spawning goes through us, and Roblox must not put the player's avatar on the rig.
 	Players.CharacterAutoLoads = false
 	StarterPlayer.LoadCharacterAppearance = false
+	StarterPlayer.DevComputerMovementMode = Enum.DevComputerMovementMode.Scriptable
+	workspace.Gravity = GameConfig.Movement.Gravity -- step 8B.5
 
 	local group = GameConfig.Rig.CollisionGroup
 	if not PhysicsService:IsCollisionGroupRegistered(group) then

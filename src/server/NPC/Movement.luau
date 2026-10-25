@@ -1,6 +1,7 @@
 --!strict
--- How an NPC gets from place to place (spec 5.2): follow a route at the NPC's speed, turn no faster than
--- GameConfig.NPC.MaxYawRate, keep apart from other NPCs, and write the result to the anchored root.
+-- How an NPC gets from place to place (spec 5.2): follow a route at the NPC's speed, easing up from a stop and down
+-- to one exactly as players do (step 8B.5), turn no faster than GameConfig.NPC.MaxYawRate, keep apart from other NPCs,
+-- and write the result to the anchored root.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -10,6 +11,7 @@ local NpcTypes = require(script.Parent.NpcTypes)
 type Npc = NpcTypes.Npc
 
 local config = GameConfig.NPC
+local movement = GameConfig.Movement
 local PLACE_TOLERANCE = 0.01 -- studs and radians; smaller changes are not worth replicating
 
 local Movement = {}
@@ -24,14 +26,49 @@ local function turnToward(current: number, target: number, maxStep: number): num
 	return current + math.clamp(delta, -maxStep, maxStep)
 end
 
+-- How far is left to walk along the path, counting no further than `limit`.
+local function distanceLeft(npc: Npc, path: { Vector3 }, limit: number): number
+	local total = 0
+	local from = npc.ground
+	for index = npc.pathIndex, #path do
+		total += (path[index] - from).Magnitude
+		if total >= limit then
+			return limit
+		end
+		from = path[index]
+	end
+	return total
+end
+
+-- The speed for this tick (step 8B.5): it eases up from a stop over Movement.AccelSeconds and eases down to a stop over
+-- DecelSeconds, braking in time to stand at the end of the path. Players ease with the same two numbers.
+local function easedSpeed(npc: Npc, path: { Vector3 }, dt: number): number
+	local cruise = npc.speed
+	local accel = cruise / movement.AccelSeconds
+	local decel = cruise / movement.DecelSeconds
+	local brakeStuds = cruise * cruise / (2 * decel)
+	local left = distanceLeft(npc, path, brakeStuds)
+	local target = if left < brakeStuds then math.sqrt(2 * decel * left) else cruise
+	local speed = npc.moveSpeed
+	if speed < target then
+		speed = math.min(target, speed + accel * dt)
+	else
+		speed = math.max(target, speed - decel * dt)
+	end
+	-- Never stall short of the end: the last fraction of a stud is walked at a crawl rather than not at all.
+	return math.max(speed, math.min(cruise, accel * dt))
+end
+
 -- Walks along the NPC's path for dt seconds. Returns true when the end of the path was reached.
 function Movement.follow(npc: Npc, dt: number): boolean
 	local path = npc.path
 	if not path then
+		npc.moveSpeed = 0
 		return true
 	end
 
-	local remaining = npc.speed * dt
+	npc.moveSpeed = easedSpeed(npc, path, dt)
+	local remaining = npc.moveSpeed * dt
 	local heading = Vector3.zero
 	while remaining > 0 and npc.pathIndex <= #path do
 		local target = path[npc.pathIndex]
@@ -55,6 +92,7 @@ function Movement.follow(npc: Npc, dt: number): boolean
 	end
 	if npc.pathIndex > #path then
 		npc.path = nil
+		npc.moveSpeed = 0
 		return true
 	end
 	return false

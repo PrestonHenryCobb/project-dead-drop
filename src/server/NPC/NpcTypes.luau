@@ -29,7 +29,8 @@ export type Npc = {
 	maxTier: number,
 	hp: number, -- health left; at 0 the NPC goes down (Death)
 	baseSpeed: number,
-	speed: number,
+	speed: number, -- the speed it is walking at when under way
+	moveSpeed: number, -- the speed right now: eases up from a stop and down to one (GameConfig.Movement)
 	rootHeight: number,
 	node: number, -- the node the NPC is at, or the one it is walking to
 	post: number, -- the node a guard goes back to after investigating

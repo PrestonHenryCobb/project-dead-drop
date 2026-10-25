@@ -42,6 +42,13 @@ These four files are touched by almost every feature. Follow the shared-file rul
 - One step at a time. Do not start the next ticket or step until the owner says so.
 - **Never commit or push unless the owner says to.** Never rewrite history.
 
+## Committing (you and Claude Code both commit as you go, in the same folder)
+- **Stage only your own changes.** Add your files by name; in a shared file (`GameConfig`, `Types`, `Remotes`,
+  `Enums`, `.ai-sync/*`), stage only your own hunks with `git add -p`. Never `git add -A`, `git add .` or
+  `git commit -a`, and never commit a hunk in a file Claude Code has locked: those are Claude Code's work in progress.
+- Run `stylua` only on the files you changed, never on all of `src`.
+- Details are in `.ai-sync/AI_SYNC_STATE.md` ("Committing").
+
 ## Working with Claude Code
 - Before editing a file, add a lock row in `.ai-sync/AI_SYNC_STATE.md`; remove it when the ticket is handed back.
   If a file is locked by Claude Code, do not edit it: pick another ticket or ask the owner.
