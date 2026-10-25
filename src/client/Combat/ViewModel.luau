@@ -16,9 +16,10 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Shared = script.Parent:FindFirstChild("SharedOverride") or ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
+local WeaponDefs = require(Shared.Defs.WeaponDefs)
 local ArtSurface = require(Shared.Util.ArtSurface)
 local WeaponPlacement = require(script.Parent.WeaponPlacement)
 
@@ -33,7 +34,7 @@ export type Input = {
 local config = GameConfig.Combat.ViewModel
 local presentation = GameConfig.Combat.Presentation
 local SIGNS = { -1, 1 }
-type DrawPart = { part: BasePart, offset: CFrame, size: Vector3, left: boolean }
+type DrawPart = { part: BasePart, offset: CFrame, size: Vector3, left: boolean, bolt: boolean }
 
 local ViewModel = {}
 ViewModel.__index = ViewModel
@@ -48,6 +49,7 @@ export type ViewModel = typeof(setmetatable(
 		current: CFrame,
 		sway: Vector3,
 		kickBack: number,
+		boltAt: number,
 		bobPhase: number,
 		lastCamera: CFrame?,
 		visible: boolean,
@@ -88,7 +90,13 @@ local function addPart(
 	part.Material = material or Enum.Material.SmoothPlastic
 	-- Ticket gala-art-direction: large surfaces stay matte. Only small mechanical details get brass.
 	local detail = string.gsub(name, "^Left", "")
-	if detail == "FrontSight" or detail == "RearSight" or detail == "TriggerGuard" then
+	if
+		detail == "FrontSight"
+		or detail == "RearSight"
+		or detail == "TriggerGuard"
+		or detail == "ScopeDial"
+		or detail == "BoltHandle"
+	then
 		ArtSurface.apply(part, "Brass")
 	elseif detail == "Stock" or detail == "Butt" then
 		ArtSurface.apply(part, "Walnut")
@@ -178,6 +186,74 @@ local function buildFoldingCarbine(model: Model): (CFrame, CFrame)
 	muzzle.Position = Vector3.new(barrel.Size.X / 2, 0, 0)
 	muzzle.Parent = barrel
 	return CFrame.new(0.02, -0.46, 0.4), CFrame.new(-0.03, -0.18, -1.0)
+end
+
+-- Ticket 8.5d-dmr: original geometry coordinates, not gameplay tunables. Hollow optic preserves the sightline.
+local function buildDmr(model: Model): (CFrame, CFrame)
+	local body, accent = config.GunColor, config.AccentColor
+	addPart(model, "Receiver", Vector3.new(0.32, 0.36, 1.6), CFrame.identity, body)
+	addPart(model, "Handguard", Vector3.new(0.27, 0.28, 1.5), CFrame.new(0, -0.03, -1.3), body)
+	addPart(model, "Rail", Vector3.new(0.2, 0.07, 1.5), CFrame.new(0, 0.23, -0.15), body)
+	addPart(
+		model,
+		"Grip",
+		Vector3.new(0.25, 0.6, 0.3),
+		CFrame.new(0, -0.46, 0.4) * CFrame.Angles(math.rad(-12), 0, 0),
+		body
+	)
+	addPart(model, "Magazine", Vector3.new(0.24, 0.38, 0.38), CFrame.new(0, -0.34, -0.22), body)
+	addPart(model, "TriggerGuard", Vector3.new(0.2, 0.08, 0.36), CFrame.new(0, -0.24, 0.28), accent)
+	addPart(model, "Stock", Vector3.new(0.25, 0.3, 1.12), CFrame.new(0, -0.02, 1.3), body)
+	addPart(model, "Butt", Vector3.new(0.3, 0.58, 0.12), CFrame.new(0, -0.1, 1.9), body)
+	for _, z in { 0.28, -0.62 } do
+		addPart(model, "ScopeMount" .. tostring(z), Vector3.new(0.16, 0.2, 0.1), CFrame.new(0, 0.36, z), body)
+	end
+	for _, side in { -1, 1 } do
+		addPart(model, "ScopeSide" .. side, Vector3.new(0.06, 0.46, 1.2), CFrame.new(side * 0.23, 0.62, -0.25), body)
+		addPart(
+			model,
+			"ScopeBeam" .. side,
+			Vector3.new(0.52, 0.06, 1.2),
+			CFrame.new(0, 0.62 + side * 0.23, -0.25),
+			body
+		)
+	end
+	for index, z in { 0.4, -0.9 } do
+		for _, side in { -1, 1 } do
+			addPart(
+				model,
+				`ScopeRing{index}Side{side}`,
+				Vector3.new(0.07, 0.52, 0.08),
+				CFrame.new(side * 0.26, 0.62, z),
+				body
+			)
+			addPart(
+				model,
+				`ScopeRing{index}Beam{side}`,
+				Vector3.new(0.59, 0.07, 0.08),
+				CFrame.new(0, 0.62 + side * 0.26, z),
+				body
+			)
+		end
+	end
+	local dial = addPart(model, "ScopeDial", Vector3.new(0.12, 0.19, 0.19), CFrame.new(0.32, 0.62, -0.18), accent)
+	dial.Shape = Enum.PartType.Cylinder
+	local stem = addPart(model, "BoltStem", Vector3.new(0.3, 0.07, 0.07), CFrame.new(0.25, 0.05, 0.45), body)
+	stem.Shape = Enum.PartType.Cylinder
+	local handle = addPart(model, "BoltHandle", Vector3.new(0.13, 0.13, 0.13), CFrame.new(0.43, 0.05, 0.45), accent)
+	handle.Shape = Enum.PartType.Ball
+	local barrel = addPart(
+		model,
+		"Barrel",
+		Vector3.new(1.35, 0.14, 0.14),
+		CFrame.new(0, 0.03, -2.55) * CFrame.Angles(0, math.pi / 2, 0),
+		body
+	)
+	barrel.Shape = Enum.PartType.Cylinder
+	local muzzle = Instance.new("Attachment")
+	muzzle.Name, muzzle.Position = "Muzzle", Vector3.new(barrel.Size.X / 2, 0, 0)
+	muzzle.Parent = barrel
+	return CFrame.new(0.02, -0.46, 0.4), CFrame.new(-0.03, -0.18, -1.05)
 end
 
 local function buildPistol(model: Model, suppressed: boolean): (CFrame, CFrame)
@@ -300,6 +376,7 @@ end
 local builders: { [string]: (Model) -> (CFrame, CFrame) } = {
 	GuiseSMG = buildSuppressedSmg,
 	ReticleCarbine = buildFoldingCarbine,
+	ReticleDMR = buildDmr,
 	ParapetHeavySMG = buildHeavySmg,
 	ReticlePistol = buildMarksmanPistol,
 	SutureShotgun = buildMedicShotgun,
@@ -320,15 +397,20 @@ function ViewModel.new(def: WeaponDef): ViewModel
 	local rightGrip, leftGrip = build(model)
 	local parts: { DrawPart } = {}
 	local frameCorners = { rightGrip.Position, leftGrip.Position }
+	local visual = WeaponDefs.Visuals[def.Id]
+	local boltTravel = if visual then visual.BoltTravelStuds or 0 else 0
 	local low = Vector3.new(math.huge, math.huge, math.huge)
 	local high = -low
 	for _, child in model:GetChildren() do
 		if child:IsA("BasePart") then
 			local offset = child:GetAttribute("Offset") :: CFrame
-			table.insert(
-				parts,
-				{ part = child, offset = offset, size = child.Size, left = string.sub(child.Name, 1, 4) == "Left" }
-			)
+			table.insert(parts, {
+				part = child,
+				offset = offset,
+				size = child.Size,
+				left = string.sub(child.Name, 1, 4) == "Left",
+				bolt = child.Name == "BoltStem" or child.Name == "BoltHandle",
+			})
 			-- Frame the gun itself; sleeves may extend behind the camera like real first-person arms.
 			if not string.find(child.Name, "Sleeve") then
 				for _, x in SIGNS do
@@ -337,10 +419,17 @@ function ViewModel.new(def: WeaponDef): ViewModel
 							local point = offset:PointToWorldSpace(child.Size * Vector3.new(x, y, z) / 2)
 							low = low:Min(point)
 							high = high:Max(point)
+							local movingBolt = child.Name == "BoltStem" or child.Name == "BoltHandle"
+							if movingBolt then
+								high = high:Max(point + Vector3.zAxis * boltTravel)
+							end
 							-- Fit actual visible geometry rather than fictitious corners combining the stock's rear
 							-- depth with the magazine's bottom. The shoulder stock/butt may extend offscreen.
 							if child.Name ~= "Stock" and child.Name ~= "Butt" then
 								table.insert(frameCorners, point)
+								if movingBolt then
+									table.insert(frameCorners, point + Vector3.zAxis * boltTravel)
+								end
 							end
 						end
 					end
@@ -377,6 +466,7 @@ function ViewModel.new(def: WeaponDef): ViewModel
 		current = CFrame.identity,
 		sway = Vector3.zero,
 		kickBack = 0,
+		boltAt = -math.huge,
 		bobPhase = 0,
 		lastCamera = nil,
 		visible = true,
@@ -436,6 +526,7 @@ end
 
 function ViewModel.kick(self: ViewModel)
 	self.kickBack = math.min(self.kickBack + self.def.Recoil.ViewKick, self.def.Recoil.ViewKick * 4)
+	self.boltAt = os.clock()
 end
 
 function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: Input)
@@ -517,9 +608,19 @@ function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: In
 	self.drawScale = math.min(scale, self.drawScale + (presentation.ViewDepthScale - self.drawScale) * blend)
 	local drawFrame = cameraCFrame * (CFrame.new(relative.Position * self.drawScale) * relative.Rotation)
 	self.drawFrame = drawFrame
+	local visual = WeaponDefs.Visuals[self.def.Id]
+	local boltTravel = 0
+	if visual and visual.BoltCycleSeconds and visual.BoltTravelStuds then
+		local boltProgress = math.clamp((os.clock() - self.boltAt) / visual.BoltCycleSeconds, 0, 1)
+		boltTravel = math.sin(math.pi * boltProgress) * visual.BoltTravelStuds
+	end
 	for _, entry in self.parts do
 		entry.part.Size = entry.size * self.drawScale
-		entry.part.CFrame = drawFrame * (CFrame.new(entry.offset.Position * self.drawScale) * entry.offset.Rotation)
+		local position = entry.offset.Position
+		if entry.bolt then
+			position += Vector3.zAxis * boltTravel
+		end
+		entry.part.CFrame = drawFrame * (CFrame.new(position * self.drawScale) * entry.offset.Rotation)
 		entry.part.Transparency = if entry.left and self.singleAkimbo then 1 else 0
 	end
 	self.muzzle.Position = self.muzzleOffset * self.drawScale

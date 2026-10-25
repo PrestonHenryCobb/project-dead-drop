@@ -29,6 +29,7 @@ local SoundPlayer = require(Combat:WaitForChild("SoundPlayer"))
 local ViewModel = require(Combat:WaitForChild("ViewModel"))
 local WeaponCadence = require(Combat:WaitForChild("WeaponCadence"))
 local WeaponPlacement = require(Combat:WaitForChild("WeaponPlacement"))
+local WeaponAim = require(Combat:WaitForChild("WeaponAim"))
 local RemoteController = require(script.Parent.RemoteController)
 local HeldItemController = require(script.Parent.HeldItemController)
 
@@ -313,8 +314,9 @@ local function step(dt: number)
 		end
 	end
 
-	local zoom = 1 + (def.AimZoom - 1) * aimBlend
-	appliedFov = baseFov * zoom
+	local visual = WeaponDefs.Visuals[def.Id]
+	local aimedFov = WeaponAim.fov(baseFov, def.AimZoom, if visual then visual.Magnification else nil)
+	appliedFov = baseFov + (aimedFov - baseFov) * aimBlend
 	camera.FieldOfView = appliedFov
 	if not held then
 		if viewModel then

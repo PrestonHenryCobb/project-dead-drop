@@ -4,8 +4,10 @@ local Review = {}
 local SERVER = [=[
 --!strict
 local studio=game:GetService("StudioTestService")
-if studio:GetTestArgs().Tag~="TestLoadoutReview" then return end
+local args=studio:GetTestArgs()
+if args.Tag~="TestLoadoutReview" then return end
 local connections={}
+local scopeFixture
 local ok,problem=pcall(function()
     local players=game:GetService("Players")
     local combat=require(game.ServerScriptService.Server.Services.CombatService)
@@ -20,6 +22,18 @@ local ok,problem=pcall(function()
     local observer=players:FindFirstChild("Player2")
     assert(driver and observer,"Expected two Studio test players")
     waitFor(function() return combat.getTestWeaponId(driver)~=nil and combat.getTestWeaponId(observer)~=nil end)
+    if args.ScopeCheck then
+        -- Explicit test snapshot only: deterministic clear LOS, with no fall damage or crowd interference.
+        for index,player in {driver,observer} do
+            local root=player.Character.HumanoidRootPart
+            root.Anchored=true
+            root.CFrame=CFrame.new(10000+(index-1)*12,10000,10000)
+        end
+        scopeFixture=Instance.new("BoolValue")
+        scopeFixture.Name="TestScopeFixtureReady"
+        scopeFixture.Value=true
+        scopeFixture.Parent=game.ReplicatedStorage
+    end
     assert(not combat.testCycle(driver,{}),"Accepted malformed selection")
     assert(not combat.testCycle(driver,"ArbitraryWeaponId"),"Accepted arbitrary weapon")
     local requests=0
@@ -40,14 +54,17 @@ local ok,problem=pcall(function()
     print("TEST_LOADOUT_SERVER_PASS",selected,requests)
 end)
 for _,connection in connections do connection:Disconnect() end
+if scopeFixture then scopeFixture:Destroy() end
 if not ok then warn("TEST_LOADOUT_SERVER_FAIL",problem) end
 studio:EndTest(if ok then "ServerPassed" else tostring(problem))
 ]=]
 local CLIENT = [=[
 --!strict
-print("TEST_LOADOUT_BOOT",game:GetService("HttpService"):JSONEncode(game:GetService("StudioTestService"):GetTestArgs()))
-if game:GetService("StudioTestService"):GetTestArgs().Tag~="TestLoadoutReview" then return end
+local args=game:GetService("StudioTestService"):GetTestArgs()
+print("TEST_LOADOUT_BOOT",game:GetService("HttpService"):JSONEncode(args))
+if args.Tag~="TestLoadoutReview" then return end
 local connection
+local scopeConnection
 local ok,problem=pcall(function()
     local players=game:GetService("Players")
     local player=players.LocalPlayer
@@ -74,14 +91,23 @@ local ok,problem=pcall(function()
     assert(cas:GetBoundActionInfo("StudioCycleWeapon").inputTypes[1]==config.Debug.TestLoadout.WeaponKey,"Weapon binding missing")
     assert(not selector.cycle("Unknown"),"Client accepted an unsupported action")
     local serial=0
+    local glints=0
     local last
     connection=game.ReplicatedStorage.Remotes.TestLoadoutChanged.OnClientEvent:Connect(function(info)
         serial+=1; last=info
+    end)
+    scopeConnection=game.ReplicatedStorage.Remotes.ScopeGlint.OnClientEvent:Connect(function(info)
+        assert(typeof(info.Position)=="Vector3" and info.Seconds>0,"Invalid scope glint")
+        glints+=1
     end)
     remote.fire("RequestTestLoadout","Sync")
     stage="server acknowledgement"
     waitFor(function() return serial>0 end) -- an avatar can exist before CombatService has initialized its state
     print("TEST_LOADOUT_STAGE","server acknowledged")
+    if args.ScopeCheck then
+        stage="scope fixture readiness"
+        waitFor(function() return game.ReplicatedStorage:FindFirstChild("TestScopeFixtureReady")~=nil end)
+    end
     task.wait(0.3) -- allow initial history samples and character replication to settle
     local driver=players:WaitForChild("Player1")
     local oldBody=driver.Character
@@ -89,6 +115,8 @@ local ok,problem=pcall(function()
         waitFor(function() return driver.Character and driver.Character~=oldBody end)
         task.wait(1)
         assert(weapon.getStatus().weaponId==config.Combat.DefaultWeapon,"Other player's choice leaked to observer")
+        if args.ScopeCheck then assert(glints>0,"Other client received no scope glint") end
+        print("TEST_LOADOUT_SCOPE_COUNT",glints)
     else
         local visited={}
         local groups={}
@@ -108,6 +136,11 @@ local ok,problem=pcall(function()
             assert(not status.reloading,"Selection retained a reload")
             visited[expected.Id]=true
             print("TEST_LOADOUT_STAGE","selected",expected.Id)
+            if args.ScopeCheck and expected.ScopeGlint then
+                remote.fire("RequestDraw",true)
+                task.wait(config.Combat.ScopeGlint.Seconds+1/config.Combat.ScopeGlint.CheckHz+0.2)
+                remote.fire("RequestDraw",false)
+            end
             task.wait(0.65) -- respect the actual production rate limiter
         end
         local initial=defs.get(weapon.getStatus().weaponId)
@@ -139,11 +172,12 @@ local ok,problem=pcall(function()
     end
 end)
 if connection then connection:Disconnect() end
+if scopeConnection then scopeConnection:Disconnect() end
 if ok then print("TEST_LOADOUT_CLIENT_PASS",game.Players.LocalPlayer.Name)
 else warn("TEST_LOADOUT_CLIENT_FAIL",problem) end
 ]=]
 
-function Review.run(): any
+function Review.run(checkScope: boolean?): any
 	local run = game:GetService("RunService")
 	assert(run:IsStudio() and not run:IsRunning(), "Run loadout review in Studio Edit mode")
 	local server = Instance.new("Script")
@@ -153,7 +187,8 @@ function Review.run(): any
 	server.Parent = game:GetService("ServerScriptService")
 	client.Parent = game:GetService("StarterPlayer").StarterPlayerScripts
 	local ok, result = pcall(function()
-		return game:GetService("StudioTestService"):ExecuteMultiplayerTestAsync(2, { Tag = "TestLoadoutReview" })
+		return game:GetService("StudioTestService")
+			:ExecuteMultiplayerTestAsync(2, { Tag = "TestLoadoutReview", ScopeCheck = checkScope == true })
 	end)
 	server:Destroy()
 	client:Destroy()

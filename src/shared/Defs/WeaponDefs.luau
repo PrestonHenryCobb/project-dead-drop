@@ -174,6 +174,28 @@ addFirearm({
 	AimZoom = 0.85,
 	Sounds = librarySounds,
 })
+-- Ticket 8.5d-dmr: approved revised stats; existing server cadence/glint paths handle this firearm.
+addFirearm({
+	Id = "ReticleDMR",
+	Name = "Bolt-action DMR",
+	Agent = "Reticle",
+	Automatic = false,
+	Damage = 68,
+	HeadshotMult = GameConfig.Combat.MarksmanHeadshotMult,
+	RPM = 45,
+	MagSize = 5,
+	ReserveAmmo = 10,
+	ReloadSeconds = 2.8,
+	Falloff = nil,
+	Quiet = false,
+	ScopeGlint = true,
+	-- SPEC-QUESTION: initial handling/recovery tuning, to review with the strong slow-fire kit.
+	PostMeleeFireDelay = 0.8,
+	Spread = { Hip = 4, Aim = 0.05, PerShot = 0.85, MaxExtra = 2.5, RecoverPerSecond = 4, MoveMult = 1.7 },
+	Recoil = { PitchPerShot = 2, YawPerShot = 0.15, RecoverRate = 2.3, ViewKick = 0.11 },
+	AimZoom = 1 / 3, -- legacy FOV multiplier; the optical visual below gives exact 3x magnification
+	Sounds = librarySounds,
+})
 addFirearm({
 	Id = "SutureShotgun",
 	Name = "Medic Shotgun",
@@ -223,8 +245,14 @@ for _, def in defs do
 	byId[def.Id] = def
 end
 
+-- Ticket 8.5d-dmr: presentation-only data; kept here alongside ShotDefaults, outside the authoritative WeaponDef.
+local visuals: { [string]: { Magnification: number?, BoltCycleSeconds: number?, BoltTravelStuds: number? } } = {
+	ReticleDMR = { Magnification = 3, BoltCycleSeconds = 0.65, BoltTravelStuds = 0.32 },
+}
+
 local WeaponDefs = {
 	byId = byId,
+	Visuals = visuals,
 	-- Ticket 8.11: default look for non-Quiet weapons; individual definitions may override each field.
 	ShotDefaults = {
 		-- Ticket 8.5-client-rules: scope flare appearance; duration/range come from the server's glint contract.

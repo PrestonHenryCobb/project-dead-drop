@@ -339,3 +339,22 @@ Validation: ten Luau CLI assertions passed. Native Studio assertions passed at 7
 Known gaps: complete gameplay visual acceptance and standalone world-marker/warning typography remain owner review; displays below 1280×720 are outside the agreed support target. The 2× cap is configurable visual tuning, not a new settings-menu feature.
 SPEC-QUESTIONs: none new. Ready for: remaining Step 19 HUD review; next gameplay-plan step remains Step 9c spectating.
 
+## Reticle scoped DMR (8.5d-dmr, 2026-10-25)
+
+What I built:
+- `WeaponDefs.luau`: approved 68 damage, 2x head multiplier, 45 RPM, 5/10 ammunition, 2.8-second reload and existing scope-glint behavior; presentation data for 3x optics and bolt motion.
+- `ViewModel.luau`: original walnut/steel rifle with three brass details, hollow scope and animated bolt; cached framing bounds include bolt travel. No character metadata or per-shot instance creation.
+- `WeaponAim.luau` / `WeaponController.luau`: exact optical magnification across base FOV settings; existing guns retain their zoom behavior.
+- `CheckReticleDMR.luau`, `check-weapon-aim.cjs`, `CheckClientCombat.luau`: native model/pose/aspect and optical checks; generic model check now includes every registered firearm.
+- `TestLoadoutReview.luau`: optional isolated two-client scope-glint fixture, real selections/ammo/reload cancellation and respawn persistence. Production gameplay/server rules were unchanged.
+
+How to test in Studio:
+1. Stop an old test, sync Rojo, then Play with one player. From default Guise, press F8 twice for Reticle's carbine, then F9 once for the DMR. Expect 5/10 ammunition and a wooden-stock scoped rifle. The stock may extend offscreen near the shoulder.
+2. Hold right mouse to aim: expect 3x optical enlargement and a readable sight opening. Fire single shots: expect slow 45-RPM cadence, a brief bolt cycle, recoil, tracer and muzzle flash. Holding fire must not make it automatic. R reloads in 2.8 seconds.
+3. Change viewport/FOV, walk, aim and approach walls: hands/muzzle should remain readable and fully tucked fire must stay blocked. Change weapon during reload and reset the character: no old reload may overwrite the new gun; the selected test gun returns after respawn.
+4. Test > Clients 2 > Start: select the DMR on one client, expose/draw it and aim while the other client watches within 200 studs with clear sight. Expect a brief glint; the observer's own weapon/ammo must not change. These two clients are teammates under current Duos defaults; use four clients for opposing-team damage checks.
+5. Automated Edit checks: paste tools/CheckReticleDMR.luau for RETICLE_DMR_NATIVE_PASS. Fresh-clone ServerScriptService.Server.Tools.TestLoadoutReview into ServerStorage, call require(clone).run(true), then destroy the clone. Require server PASS, both client PASS logs and a positive TEST_LOADOUT_SCOPE_COUNT.
+
+Validation: 25 actual-source optical assertions passed. Native Studio passed 45,360 frustum checks plus actual bolt movement/recovery and matching client/server cadence. The two-client run passed both clients and server, 15 real selection requests, all nine registered firearms, reload cancellation, private respawn selection and three received scope glints. StyLua, Selene and Rojo build passed.
+Known gaps: handling/recoil/post-melee recovery and bolt timing are initial tuning; reused library audio is not a bespoke DMR sound. Other players' held-gun models still use the existing default model. Existing scope glints reach any other eligible viewer, including teammates; this ticket does not introduce an enemy-only filter. The shared server ray cap remains 400 studs; the older DMR table mentions 300 and needs a server/design reconciliation before changing range. Visual playfeel remains owner review.
+SPEC-QUESTION: review initial DMR handling/recovery values marked in WeaponDefs. Ready for: remaining Step 8 weapons/client review; Step 9c spectating remains the next main gameplay-plan step.
