@@ -346,3 +346,18 @@ playtest with 200 NPCs, NPCs opened 23 different clearance doors in 20 s, and a 
 - **Roof plant room wall:** indoor room edges beside a shaft now build a full-height, room-styled wall; only outdoor
   edges keep the low railing. This closes the plant room side facing the roof courtyard.
 - In Studio, rebuild `Workspace.Gala`, then walk the roof stair and inspect the plant room's courtyard-facing wall.
+
+## Owner-approved traversal expansion (2026-10-25; planned, not built)
+
+- Add a small original set of prop-triggered secret exits inside restricted rooms. Use Gala's own geometry and
+  escape-route needs; reference videos are not a layout or prop-placement specification.
+- Activation requires inside-room position, proximity, facing and clear line of sight. The server rechecks these;
+  Codex's prompt mirrors them. No activation prompt or request should work through a wall/from outside the room.
+- Exit locations, footprint and support must be reviewed alongside crowd navigation, tier bounds and safe landings.
+  Open passage direction and Cover behavior are pending owner follow-ups; do not silently choose either.
+- Add functioning glass elevators to the plan now. Floors/stops use the map's actual named floor bands. Claude owns
+  shaft/car/door geometry, server travel and passenger safety; Codex owns floor selector/status/interaction graphics.
+  Destination clearance and riding Cover behavior must follow the completed owner answers.
+- Before calling either feature implemented: define shared contracts under locks, run generator/self-check/NavReport,
+  then test calls/activation from both sides, obstruction, riders, death/disconnect, crowd behavior and performance.
+  Existing traversal remains available; this addendum does not claim generated parts or working remotes exist yet.

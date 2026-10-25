@@ -109,7 +109,14 @@ setting Combat.DefaultWeapon in Studio only before Play. No new selection UI or 
 | 19-vertical-markers | Use actual generated-map named floor bands; arrows for different floors rather than 10-stud same-room height changes. Preserve existing marker visibility/range/lifetime permissions, with no extra enemy detection. | CODEX with CLAUDE_CODE floor-data support | Authored floor definitions and authorized marker data | TODO |
 | 19-client-preview | Two HUD design directions in docs/mockups/combat-hud-review.html: Field notes and Control strip. Preview only; no unbuilt gameplay UI added to src. See .ai-sync/CODEX_CLIENT_HANDOFF.md for commits, API integration, exact Studio checks and remaining server-effect handoffs. | CODEX | Owner design review; gameplay contracts for later features | READY_FOR_REVIEW |
 
-## Owner-reported bugs: Claude return work
+## Owner-approved traversal additions (planned)
+
+| Id | Ticket | Owner | Needs | Status |
+|---|---|---|---|---|
+| 7B-secret-exits | Small original set of prop-triggered secret exits in restricted rooms. Inside/proximity/facing/LOS activation, revalidated by server; matching client prompt. | CLAUDE_CODE map/server + CODEX UI | Original map design/contracts; open passage/Cover follow-ups | TODO |
+| 7B-glass-elevators | Add working glass elevators to the map plan now, using actual floor bands. Server travel/doors/passenger safety and client floor-selector/status graphics. | CLAUDE_CODE map/server + CODEX UI | Original map design/contracts; riding Cover answer | TODO |
+
+## Owner-reported bug assignments
 
 Owner requested this area split while Claude was unavailable. Full source evidence and acceptance tests are in
 `.ai-sync/CLAUDE_RETURN_HANDOFF_2026-10-25.md`. These are queued assignments, not completed fixes.

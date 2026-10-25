@@ -170,7 +170,13 @@ up/down arrows for different floors, not an arbitrary 10-stud difference within 
 consistent authored floor definitions for Codex's HUD. Preserve current marker visibility/ranges/lifetimes; do not
 expose extra enemy positions or keep a floor badge after its underlying marker expires. Vertical HUD work is queued.
 
-Secret prop exits and elevators need original map design and server contracts before interactive UI. Step 18 owns
+**Owner approved now:** a small original set of prop-triggered secret exits inside restricted rooms, with activation
+requiring inside-room position, proximity, facing and clear line of sight; also add working glass elevators to the map
+plan now. See MAP_BRIEF_REPLAN's traversal expansion. Claude owns map/server travel and validation; Codex owns prompts,
+floor selection/status graphics after real contracts exist. Floor stops follow actual map bands. Open passage direction
+and secret-activation/elevator Cover behavior have pending selectable follow-ups. Do not copy the reference map.
+
+Step 18 owns
 Intel/economy interactions and Agent Tag rescue pricing still needs the owner. Step 21 owns persistence, shop, Stocks
 and Dossiers. Keep forthcoming menus as reviewable mockups until actual data exists. The live HUD refresh does not
 pretend these systems are already implemented.

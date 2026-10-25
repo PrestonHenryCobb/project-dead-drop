@@ -166,3 +166,12 @@ The obsolete stepping controllers, PositionStep helper and Animation stepping co
 - Vertical arrows indicate different floor bands, not a fixed 10-stud height difference inside the same room/floor.
 - Floor/direction details preserve existing objective, teammate and enemy-marker visibility permissions, ranges and
   lifetimes. They do not reveal additional enemies through walls or keep metadata visible after its marker expires.
+
+## Owner traversal additions (2026-10-25)
+
+- Add a small original set of prop-triggered secret exits inside restricted rooms, alongside existing traversal.
+- Activation prompt requires the player to be inside the room, close to the prop, facing it, with clear line of sight.
+  Server validation must match the prompt's eligibility; no outside/through-wall activation.
+- Add working glass elevators to the map plan now, using this map's actual named floors and original layout.
+- Open secret-exit passage direction and Cover behavior for secret activation/elevator riding are being clarified.
+  These are approved plan additions, not already implemented gameplay or working UI contracts.
