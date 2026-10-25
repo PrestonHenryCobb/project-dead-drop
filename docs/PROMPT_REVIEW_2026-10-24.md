@@ -45,12 +45,13 @@ existing marker visibility permissions/ranges/lifetimes; floor information adds 
 
 Traversal answers: Q17 add a small original set of secret prop exits inside restricted rooms. Q18 prompt eligibility
 requires inside-room position, proximity, facing and clear line of sight. Q19 add working glass elevators to the map
-plan now. Follow-ups ask passage direction while an exit is open and Cover rules for secret activation/elevator riding.
+plan now. Follow-up answers: open exits allow anyone through in either direction, activation stays inside-only and
+Discreet (breaks Cover only if witnessed); elevators preserve Cover, with normal destination clearance rules.
 
 Completed round: Q3 gun composition, Q8 takedown result, Q9 takedown presentation/control, Q10 crawl/death style,
 Q11 door exit rules, input/result/direction follow-ups, side-shot/roll clarification, charge starting balance and Q12
-NPC tier exceptions, Q5–6 HUD details, Q33 HUD motion and Q14–19 navigation/traversal plans. Next: secret-exit passage
-and traversal Cover follow-ups, then remaining world/economy/kit questions. Broad preservation answers retain original
+NPC tier exceptions, Q5–6 HUD details, Q33 HUD motion and Q14–19 navigation/traversal plus passage/Cover follow-ups.
+Next: Q23 traversal warning UX, Q22 Cover-break cosmetic semantics and Q24 map pickup counts. Broad preservation answers retain original
 map design, economy/mode/kit decisions; do not ask those again as if undecided. Ask manageable groups; retain original IDs even if reply numbering starts
 at 1 in each group. Startup/NPC animations were restored per owner; remaining visual acceptance is separate from answers.
 

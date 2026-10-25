@@ -173,5 +173,7 @@ The obsolete stepping controllers, PositionStep helper and Animation stepping co
 - Activation prompt requires the player to be inside the room, close to the prop, facing it, with clear line of sight.
   Server validation must match the prompt's eligibility; no outside/through-wall activation.
 - Add working glass elevators to the map plan now, using this map's actual named floors and original layout.
-- Open secret-exit passage direction and Cover behavior for secret activation/elevator riding are being clarified.
-  These are approved plan additions, not already implemented gameplay or working UI contracts.
+- Once a secret exit opens, anyone can pass in either direction while open; activation remains inside-only.
+- Secret activation is **Discreet**, using existing witness rules: it breaks Cover only if witnessed.
+- Glass elevator riding preserves Cover like ordinary walking. Destination rooms retain normal clearance rules.
+- These are approved plan additions, not already implemented gameplay or working UI contracts.

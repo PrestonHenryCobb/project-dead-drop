@@ -354,10 +354,11 @@ playtest with 200 NPCs, NPCs opened 23 different clearance doors in 20 s, and a 
 - Activation requires inside-room position, proximity, facing and clear line of sight. The server rechecks these;
   Codex's prompt mirrors them. No activation prompt or request should work through a wall/from outside the room.
 - Exit locations, footprint and support must be reviewed alongside crowd navigation, tier bounds and safe landings.
-  Open passage direction and Cover behavior are pending owner follow-ups; do not silently choose either.
+  Once open, anyone can pass in either direction; activation remains inside-only and Discreet, breaking Cover only
+  under existing witness rules. Do not create one-way invisible passage restrictions.
 - Add functioning glass elevators to the plan now. Floors/stops use the map's actual named floor bands. Claude owns
   shaft/car/door geometry, server travel and passenger safety; Codex owns floor selector/status/interaction graphics.
-  Destination clearance and riding Cover behavior must follow the completed owner answers.
+  Riding preserves Cover like walking; destination rooms retain normal clearance rules.
 - Before calling either feature implemented: define shared contracts under locks, run generator/self-check/NavReport,
   then test calls/activation from both sides, obstruction, riders, death/disconnect, crowd behavior and performance.
   Existing traversal remains available; this addendum does not claim generated parts or working remotes exist yet.

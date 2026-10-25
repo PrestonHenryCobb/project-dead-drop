@@ -173,8 +173,10 @@ expose extra enemy positions or keep a floor badge after its underlying marker e
 **Owner approved now:** a small original set of prop-triggered secret exits inside restricted rooms, with activation
 requiring inside-room position, proximity, facing and clear line of sight; also add working glass elevators to the map
 plan now. See MAP_BRIEF_REPLAN's traversal expansion. Claude owns map/server travel and validation; Codex owns prompts,
-floor selection/status graphics after real contracts exist. Floor stops follow actual map bands. Open passage direction
-and secret-activation/elevator Cover behavior have pending selectable follow-ups. Do not copy the reference map.
+floor selection/status graphics after real contracts exist. Floor stops follow actual map bands. Owner confirmed open
+exits allow anyone through in either direction, with inside-only activation. Activation is Discreet using existing
+witness rules. Elevator riding preserves Cover; destination rooms keep normal clearance rules. No pending owner
+decision remains on those three points. Do not copy the reference map.
 
 Step 18 owns
 Intel/economy interactions and Agent Tag rescue pricing still needs the owner. Step 21 owns persistence, shop, Stocks
