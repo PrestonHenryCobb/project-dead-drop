@@ -22,7 +22,18 @@ end
 local ok, failure = pcall(function()
 	local margin = 1 - GameConfig.Combat.Presentation.ScreenMarginFraction
 	local epsilon = GameConfig.Combat.Feedback.ShotVisualMinStuds
-	for _, id in { "GuiseSMG", "GuisePistol", "FeintPistol", "ReticleCarbine" } do
+	for _, id in
+		{
+			"GuiseSMG",
+			"GuisePistol",
+			"FeintPistol",
+			"ReticleCarbine",
+			"ParapetHeavySMG",
+			"ReticlePistol",
+			"SutureShotgun",
+			"SutureDualPistols",
+		}
+	do
 		local def = WeaponDefs.get(id)
 		check(def ~= nil, `Missing definition {id}`)
 		local model = ViewModel.new(def)

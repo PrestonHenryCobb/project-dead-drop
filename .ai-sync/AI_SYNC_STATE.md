@@ -30,8 +30,7 @@ Times are local, `YYYY-MM-DD HH:MM`.
 
 | File | Locked by | Since | Ticket |
 |---|---|---|---|
-| `src/shared/Defs/WeaponDefs.luau`, `src/client/Combat/ViewModel.luau` | CODEX | 2026-10-24 21:01 | 8.5b, 8.5d, 8.5e |
-| `src/client/Controllers/WeaponController.luau`, `WeaponVisualController.luau`, `tools/CheckClientCombat.luau` | CODEX | 2026-10-24 21:01 | 8.5e |
+| (none) | | | |
 
 ## Shared-file rules (`Remotes`, `Types`, `Enums`, `GameConfig`)
 - Lock the file for the few minutes of the edit, not for the whole ticket.

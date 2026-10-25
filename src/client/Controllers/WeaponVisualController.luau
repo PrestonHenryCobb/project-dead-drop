@@ -83,7 +83,8 @@ local function render()
 		if visible and hand and hand:IsA("BasePart") then
 			visible = (hand.Position - camera.CFrame.Position).Magnitude <= config.CullStuds
 			if visible then
-				visual:placeAtRightHand(hand.CFrame)
+				local left = model:FindFirstChild("LeftHand")
+				visual:placeAtRightHand(hand.CFrame, if left and left:IsA("BasePart") then left.CFrame else nil)
 			end
 		end
 		visual:setVisible(visible == true)

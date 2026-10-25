@@ -122,6 +122,100 @@ local defs: { WeaponDef } = {
 	},
 }
 
+-- Ticket 8.5: these firearms use completed server firing-path rules. Weapons needing missing melee/projectile/status
+-- effects are deliberately not registered. The default loadout remains GuiseSMG.
+local function addFirearm(def: WeaponDef)
+	table.insert(defs, def)
+end
+
+local librarySounds: Types.WeaponSounds = {
+	Fire = "rbxassetid://124763531446154",
+	Reload = "rbxassetid://5652257395",
+	Empty = "rbxassetid://114980515844355",
+}
+
+addFirearm({
+	Id = "ParapetHeavySMG",
+	Name = "Heavy SMG",
+	Agent = "Parapet",
+	Automatic = true,
+	Damage = 10,
+	HeadshotMult = GameConfig.Combat.HeadshotMult,
+	RPM = 750,
+	MagSize = 40,
+	ReserveAmmo = 80,
+	ReloadSeconds = 2.6,
+	Falloff = { StartStuds = 20, EndStuds = 45, MinMult = 0.55 },
+	Quiet = false,
+	SpinUp = { StartRPM = 500, Seconds = 1 },
+	PostMeleeFireDelay = 0.25,
+	Spread = { Hip = 3.6, Aim = 0.9, PerShot = 0.3, MaxExtra = 3.5, RecoverPerSecond = 7, MoveMult = 1.5 },
+	Recoil = { PitchPerShot = 0.8, YawPerShot = 0.2, RecoverRate = 2.5, ViewKick = 0.08 },
+	AimZoom = 0.88,
+	Sounds = librarySounds,
+})
+addFirearm({
+	Id = "ReticlePistol",
+	Name = "Marksman Pistol",
+	Agent = "Reticle",
+	Automatic = false,
+	Damage = 40,
+	HeadshotMult = GameConfig.Combat.MarksmanHeadshotMult,
+	RPM = 150,
+	MagSize = 7,
+	ReserveAmmo = 14,
+	ReloadSeconds = 1.8,
+	Falloff = nil,
+	Quiet = false,
+	Pierce = { Count = 1, DamageMult = 0.6 },
+	PostMeleeFireDelay = 0.65,
+	Spread = { Hip = 3, Aim = 0.2, PerShot = 0.65, MaxExtra = 2.5, RecoverPerSecond = 6, MoveMult = 1.5 },
+	Recoil = { PitchPerShot = 1.6, YawPerShot = 0.12, RecoverRate = 3, ViewKick = 0.1 },
+	AimZoom = 0.85,
+	Sounds = librarySounds,
+})
+addFirearm({
+	Id = "SutureShotgun",
+	Name = "Medic Shotgun",
+	Agent = "Suture",
+	Automatic = false,
+	Damage = 10,
+	HeadshotMult = GameConfig.Combat.HeadshotMult,
+	RPM = 90,
+	Pellets = 6,
+	MagSize = 8,
+	ReserveAmmo = 16,
+	ReloadSeconds = 2.6,
+	Falloff = { StartStuds = 8, EndStuds = 25, MinMult = 0.3 },
+	Quiet = false,
+	PostMeleeFireDelay = 0.65,
+	Spread = { Hip = 6, Aim = 4, PerShot = 0.7, MaxExtra = 2, RecoverPerSecond = 6, MoveMult = 1.3 },
+	Recoil = { PitchPerShot = 2.2, YawPerShot = 0.2, RecoverRate = 3, ViewKick = 0.14 },
+	AimZoom = 0.9,
+	FlashSize = Vector3.new(0.45, 0.45, 0.9),
+	Sounds = librarySounds,
+})
+addFirearm({
+	Id = "SutureDualPistols",
+	Name = "Dual Machine Pistols",
+	Agent = "Suture",
+	Automatic = true,
+	Damage = 6,
+	HeadshotMult = GameConfig.Combat.HeadshotMult,
+	RPM = 1100,
+	AimedRPM = 550,
+	MagSize = 40,
+	ReserveAmmo = 80,
+	ReloadSeconds = 2.4,
+	Falloff = { StartStuds = 20, EndStuds = 45, MinMult = 0.5 },
+	Quiet = false,
+	PostMeleeFireDelay = 0.15,
+	Spread = { Hip = 6, Aim = 0.65, PerShot = 0.3, MaxExtra = 3, RecoverPerSecond = 8, MoveMult = 1.5 },
+	Recoil = { PitchPerShot = 0.4, YawPerShot = 0.2, RecoverRate = 3.5, ViewKick = 0.045 },
+	AimZoom = 0.9,
+	Sounds = librarySounds,
+})
+
 local byId: { [string]: WeaponDef } = {}
 for _, def in defs do
 	assert(not byId[def.Id], `Duplicate weapon {def.Id}`)

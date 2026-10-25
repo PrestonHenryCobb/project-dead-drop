@@ -79,6 +79,12 @@ In this order; each depends on the one before. Decisions: `IDEAS_2026-10-24.md` 
 | 9d | Agent Tag drop and Rescue (spec 14.2): needs supply caches (Step 18) and a cost, since Funds were removed (SPEC-QUESTION). Not started. | CLAUDE_CODE | BLOCKED |
 
 ## Future client review
+<!-- Additional completed firing paths (Codex): ParapetHeavySMG (500->750 spin-up, 20–45 falloff),
+ReticlePistol (40 damage, 2x head, one-person pierce at 60%), SutureShotgun (six 10-damage pellets),
+SutureDualPistols (1100 hip / 550 aimed, real two-hand grips, alternating muzzles; aim hides the left gun).
+Each has a shaped native model and the decided ammo/reload stats. Default remains GuiseSMG; selection is Step 10.
+Shared verified sound assets are reused pending audio tuning. CheckClientCombat covers all eight registered models.
+Studio visual/gameplay checks remain required. Do not mark the entire agent ticket DONE: other weapons/effects remain. -->
 <!-- 8.5a/8.5f client update: GuisePistol and FeintPistol definitions and shaped models are ready for review.
 Owner delegated Feint stats: 20 damage, semi 320 RPM, 12/24 ammo, 1.5 s reload, 35–85 stud falloff to 65%,
 0.25 s post-melee delay, Quiet/HearStuds=12/SoundOffset=8–15. Guise keeps 22 damage and AmbushMult=1.5.

@@ -196,7 +196,7 @@ local function fireOnce(camera: Camera, root: BasePart, now: number)
 		if viewModel then
 			ShotVisuals.fire(
 				def,
-				viewModel:getMuzzlePosition(),
+				viewModel:getMuzzlePosition(def.AimedRPM ~= nil and not aiming and mag % 2 == 0),
 				point or (camera.CFrame.Position + direction * combat.MaxShotStuds),
 				index == 1
 			)

@@ -32,7 +32,7 @@ export type Input = {
 local config = GameConfig.Combat.ViewModel
 local presentation = GameConfig.Combat.Presentation
 local SIGNS = { -1, 1 }
-type DrawPart = { part: BasePart, offset: CFrame, size: Vector3 }
+type DrawPart = { part: BasePart, offset: CFrame, size: Vector3, left: boolean }
 
 local ViewModel = {}
 ViewModel.__index = ViewModel
@@ -52,6 +52,10 @@ export type ViewModel = typeof(setmetatable(
 		visible: boolean,
 		muzzle: Attachment,
 		muzzleOffset: Vector3,
+		leftMuzzle: Attachment?,
+		leftMuzzleOffset: Vector3,
+		singleAkimbo: boolean,
+		aimShiftX: number,
 		parts: { DrawPart },
 		corners: { Vector3 },
 		tuck: number,
@@ -196,9 +200,99 @@ local function buildPistol(model: Model, suppressed: boolean): (CFrame, CFrame)
 	return CFrame.new(0.01, -0.32, 0.25), CFrame.new(-0.15, -0.3, 0.18)
 end
 
+local function buildHeavySmg(model: Model): (CFrame, CFrame)
+	local right, left = buildSuppressedSmg(model)
+	local barrel = model:FindFirstChild("Suppressor") :: Part
+	barrel.Name = "HeavyBarrel"
+	barrel.Size = Vector3.new(0.7, 0.24, 0.24)
+	barrel:SetAttribute("Offset", CFrame.new(0, 0.04, -1.65) * CFrame.Angles(0, math.pi / 2, 0))(
+		barrel:FindFirstChild("Muzzle") :: Attachment
+	).Position =
+		Vector3.new(barrel.Size.X / 2, 0, 0)
+	local magazine = model:FindFirstChild("Magazine") :: Part
+	magazine.Size = Vector3.new(0.3, 0.9, 0.4)
+	return right, left
+end
+
+local function buildMarksmanPistol(model: Model): (CFrame, CFrame)
+	local right, left = buildPistol(model, false)
+	local barrel = model:FindFirstChild("ShroudedBarrel") :: Part
+	barrel.Size = Vector3.new(0.9, 0.2, 0.2)
+	barrel:SetAttribute("Offset", CFrame.new(0, 0.15, -0.95) * CFrame.Angles(0, math.pi / 2, 0))(
+		barrel:FindFirstChild("Muzzle") :: Attachment
+	).Position =
+		Vector3.new(barrel.Size.X / 2, 0, 0)
+	addPart(model, "OpticBase", Vector3.new(0.22, 0.09, 0.3), CFrame.new(0, 0.33, 0.05), config.AccentColor)
+	addPart(model, "Optic", Vector3.new(0.16, 0.16, 0.2), CFrame.new(0, 0.43, 0.05), config.GunColor)
+	return right, left
+end
+
+local function buildMedicShotgun(model: Model): (CFrame, CFrame)
+	local body, accent = config.GunColor, config.AccentColor
+	addPart(model, "Receiver", Vector3.new(0.4, 0.48, 1.25), CFrame.identity, body)
+	addPart(model, "ForeEnd", Vector3.new(0.34, 0.32, 0.9), CFrame.new(0, -0.08, -1.0), accent)
+	addPart(model, "Stock", Vector3.new(0.25, 0.35, 0.95), CFrame.new(0, -0.08, 1.05), body)
+	addPart(model, "Butt", Vector3.new(0.33, 0.58, 0.15), CFrame.new(0, -0.12, 1.55), accent)
+	addPart(
+		model,
+		"Grip",
+		Vector3.new(0.28, 0.62, 0.3),
+		CFrame.new(0, -0.4, 0.45) * CFrame.Angles(math.rad(-18), 0, 0),
+		body
+	)
+	local barrel = addPart(
+		model,
+		"Barrel",
+		Vector3.new(1.3, 0.24, 0.24),
+		CFrame.new(0, 0.1, -1.5) * CFrame.Angles(0, math.pi / 2, 0),
+		body
+	)
+	barrel.Shape = Enum.PartType.Cylinder
+	local tube = addPart(
+		model,
+		"MagazineTube",
+		Vector3.new(1.1, 0.19, 0.19),
+		CFrame.new(0, -0.15, -1.25) * CFrame.Angles(0, math.pi / 2, 0),
+		accent
+	)
+	tube.Shape = Enum.PartType.Cylinder
+	local muzzle = Instance.new("Attachment")
+	muzzle.Name = "Muzzle"
+	muzzle.Position = Vector3.new(barrel.Size.X / 2, 0, 0)
+	muzzle.Parent = barrel
+	return CFrame.new(0.02, -0.4, 0.45), CFrame.new(-0.03, -0.22, -1.0)
+end
+
+local function buildDualPistols(model: Model): (CFrame, CFrame)
+	local right = buildPistol(model, false)
+	local leftModel = Instance.new("Model")
+	local left = buildPistol(leftModel, false)
+	local separation = 0.35 -- model geometry: spacing between the two receivers
+	for _, part in model:GetChildren() do
+		if part:IsA("BasePart") then
+			part:SetAttribute("Offset", CFrame.new(separation, 0, 0) * (part:GetAttribute("Offset") :: CFrame))
+		end
+	end
+	for _, part in leftModel:GetChildren() do
+		if part:IsA("BasePart") then
+			part.Name = "Left" .. part.Name
+			part:SetAttribute("Offset", CFrame.new(-separation, 0, 0) * (part:GetAttribute("Offset") :: CFrame))
+			part.Parent = model
+		end
+	end
+	leftModel:Destroy()
+	local leftMuzzle = (model:FindFirstChild("LeftShroudedBarrel") :: Part):FindFirstChild("Muzzle") :: Attachment
+	leftMuzzle.Name = "LeftMuzzle"
+	return CFrame.new(separation, 0, 0) * right, CFrame.new(-separation, 0, 0) * left
+end
+
 local builders: { [string]: (Model) -> (CFrame, CFrame) } = {
 	GuiseSMG = buildSuppressedSmg,
 	ReticleCarbine = buildFoldingCarbine,
+	ParapetHeavySMG = buildHeavySmg,
+	ReticlePistol = buildMarksmanPistol,
+	SutureShotgun = buildMedicShotgun,
+	SutureDualPistols = buildDualPistols,
 	GuisePistol = function(model)
 		return buildPistol(model, true)
 	end,
@@ -219,7 +313,10 @@ function ViewModel.new(def: WeaponDef): ViewModel
 	for _, child in model:GetChildren() do
 		if child:IsA("BasePart") then
 			local offset = child:GetAttribute("Offset") :: CFrame
-			table.insert(parts, { part = child, offset = offset, size = child.Size })
+			table.insert(
+				parts,
+				{ part = child, offset = offset, size = child.Size, left = string.sub(child.Name, 1, 4) == "Left" }
+			)
 			-- Frame the gun itself; sleeves may extend behind the camera like real first-person arms.
 			if not string.find(child.Name, "Sleeve") then
 				for _, x in SIGNS do
@@ -250,6 +347,8 @@ function ViewModel.new(def: WeaponDef): ViewModel
 		end
 	end
 	local muzzle = model:FindFirstChild("Muzzle", true) :: Attachment
+	local leftMuzzle = model:FindFirstChild("LeftMuzzle", true) :: Attachment?
+	local receiver = model:FindFirstChild("Receiver") :: Part
 	model.PrimaryPart = model:FindFirstChild("Receiver") :: Part
 	model.Parent = workspace.CurrentCamera
 	return setmetatable({
@@ -266,6 +365,10 @@ function ViewModel.new(def: WeaponDef): ViewModel
 		visible = true,
 		muzzle = muzzle,
 		muzzleOffset = muzzle.Position,
+		leftMuzzle = leftMuzzle,
+		leftMuzzleOffset = if leftMuzzle then leftMuzzle.Position else Vector3.zero,
+		singleAkimbo = false,
+		aimShiftX = (receiver:GetAttribute("Offset") :: CFrame).Position.X,
 		parts = parts,
 		corners = corners,
 		tuck = 0,
@@ -273,7 +376,10 @@ function ViewModel.new(def: WeaponDef): ViewModel
 	}, ViewModel)
 end
 
-function ViewModel.getMuzzlePosition(self: ViewModel): Vector3
+function ViewModel.getMuzzlePosition(self: ViewModel, useLeft: boolean?): Vector3
+	if useLeft and self.leftMuzzle then
+		return self.leftMuzzle.WorldPosition
+	end
 	return self.muzzle.WorldPosition
 end
 
@@ -282,11 +388,12 @@ function ViewModel.isFireBlocked(_self: ViewModel, camera: Camera): boolean
 end
 
 -- Third-person display reuses the same geometry, but is parented in a separate client-only folder.
-function ViewModel.placeAtRightHand(self: ViewModel, hand: CFrame)
+function ViewModel.placeAtRightHand(self: ViewModel, hand: CFrame, leftHand: CFrame?)
 	local origin = hand * self.rightGrip:Inverse()
 	for _, entry in self.parts do
 		entry.part.Size = entry.size
-		entry.part.CFrame = origin * entry.offset
+		local frame = if entry.left and leftHand then leftHand * self.leftGrip:Inverse() else origin
+		entry.part.CFrame = frame * entry.offset
 	end
 end
 
@@ -296,7 +403,7 @@ function ViewModel.getHandTargets(self: ViewModel): (CFrame?, CFrame?)
 	end
 	local right = CFrame.new(self.rightGrip.Position * self.drawScale) * self.rightGrip.Rotation
 	local left = CFrame.new(self.leftGrip.Position * self.drawScale) * self.leftGrip.Rotation
-	return self.drawFrame * right, self.drawFrame * left
+	return self.drawFrame * right, if self.singleAkimbo then nil else self.drawFrame * left
 end
 
 function ViewModel.setVisible(self: ViewModel, visible: boolean)
@@ -358,8 +465,10 @@ function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: In
 	local rotation = presentation.TuckRotation * self.tuck
 	local tuck = CFrame.new(presentation.TuckPosition * self.tuck)
 		* CFrame.Angles(math.rad(rotation.X), math.rad(rotation.Y), math.rad(rotation.Z))
+	self.singleAkimbo = self.leftMuzzle ~= nil and input.pose == "Aim"
+	local center = if self.singleAkimbo then CFrame.new(-self.aimShiftX, 0, 0) else CFrame.identity
 	local relativeTarget = WeaponPlacement.fit(
-		poseCFrame(input.pose) * offset * tuck,
+		center * poseCFrame(input.pose) * offset * tuck,
 		self.corners,
 		camera.FieldOfView,
 		camera.ViewportSize
@@ -394,8 +503,12 @@ function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: In
 	for _, entry in self.parts do
 		entry.part.Size = entry.size * self.drawScale
 		entry.part.CFrame = drawFrame * (CFrame.new(entry.offset.Position * self.drawScale) * entry.offset.Rotation)
+		entry.part.Transparency = if entry.left and self.singleAkimbo then 1 else 0
 	end
 	self.muzzle.Position = self.muzzleOffset * self.drawScale
+	if self.leftMuzzle then
+		self.leftMuzzle.Position = self.leftMuzzleOffset * self.drawScale
+	end
 end
 
 function ViewModel.destroy(self: ViewModel)
