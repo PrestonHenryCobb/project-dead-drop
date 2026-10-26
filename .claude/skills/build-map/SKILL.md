@@ -5,6 +5,8 @@ description: Design and build a new Cover Story map (or rework The Gala) with th
 
 # Build a Cover Story map
 
+**Current map (2026-10-25):** the Gala re-layout. Its layout is `Relayout.luau`, GENERATED from `tools/relayout-plan-data.cjs` by `node tools/relayout-layout.cjs` (then `stylua` on it): change the plan or that script, never the output. `Build.run()` builds it; `Build.run({ layout = "old" })` builds the original `Layout.luau`; `Build.run({ dryRun = true })` runs only the door, window and stair checks (a second, no geometry). `node tools/relayout-plan.cjs` checks and draws the plan (SVGs in docs/plans/relayout).
+
 A map is **data** (`Layout.luau`) turned into geometry, zones, doors, NPC nodes and props by a **generator**
 (`Build.luau`). Both live in `src/server/Tools/Gala/` and sync into Studio through Rojo. To make a new map, copy that
 folder (for example `Tools/<MapName>/`), write a new Layout, and run its Build. Reuse Build.luau as it is where you can.

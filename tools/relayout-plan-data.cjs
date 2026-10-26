@@ -18,7 +18,7 @@ const FOOT = {
 	G: [{ tower: "main", rect: r4([-140, -170, 140, 150]) }, { tower: "wing", rect: r4([160, -85, 280, 125]) }],
 	M: [{ tower: "main", rect: r4([-140, -170, 140, 150]) }, { tower: "wing", rect: r4([160, -85, 280, 125]) }],
 	T: [{ tower: "main", rect: r4([-125, -155, 125, 135]) }, { tower: "wing", rect: r4([160, -85, 280, 125]) }],
-	R: [{ tower: "main", rect: r4([-90, -120, 90, 100]) }, { tower: "wing", rect: r4([205, -85, 280, 125]) }],
+	R: [{ tower: "main", rect: r4([-90, -120, 90, 100]) }, { tower: "main", rect: r4([-125, 40, -90, 100]) }, { tower: "wing", rect: r4([205, -85, 280, 125]) }],
 };
 const VOIDS = [
 	{ levels: ["G", "M", "T", "R"], rect: r4([-38, -40, 38, 52]), name: "Atrium void (landmark): open from the ground to a roof skylight" },
@@ -114,8 +114,8 @@ room("T", "t_vaultb_ante", "Vault B display hall", 2, "IN", [-30, -100, 30, -60]
 room("T", "t_vaultb", "Vault B (art vault)", 3, "IN", [-30, -120, 30, -100], { vault: "B", note: "terminal" });
 room("T", "t_great", "Penthouse great room (void railing)", 3, "IN", [-60, -60, 60, 70], { holes: [[-38, -40, 38, 52]], w: 22 });
 room("T", "t_gallery", "Private gallery", 3, "IN", [-60, 70, 60, 100]);
-room("T", "t_panic", "Panic room", 3, "IN", [-85, 38, -65, 62], { nested: true });
-room("T", "t_office", "Executive office", 3, "IN", [65, 38, 85, 62], { nested: true });
+room("T", "t_panic", "Panic room", 3, "IN", [-90, 38, -70, 62], { nested: true });
+room("T", "t_office", "Executive office", 3, "IN", [70, 38, 90, 62], { nested: true });
 // wing top floor: suites and the setback terrace (the mezzanine roof)
 room("T", "wt_terrace", "Suite terrace", 0, "OUT", [160, -85, 205, 125], { tower: "wing" });
 room("T", "wt_arcade", "Suite arcade", 0, "IN", [221, -85, 264, 125], { tower: "wing" });
@@ -132,6 +132,7 @@ room("R", "r_summit", "Summit lobby (elevator, Executive stair)", 3, "IN", [-45,
 room("R", "r_vaulte_ante", "Vault E observatory hall", 2, "IN", [50, 50, 90, 75], { vault: "E" });
 room("R", "r_vaulte", "Vault E (observatory vault)", 3, "IN", [50, 75, 90, 100], { vault: "E", note: "terminal" });
 room("R", "r_plant", "Rooftop plant room", 1, "IN", [55, -115, 90, -85]);
+room("R", "r_deck_w", "Roof stair deck (over the west lawn)", 0, "OUT", [-125, 40, -90, 100], { note: "added for the public roof stair: T is wider than R, so no public T room lies under the roof; the deck stands on posts over the lawn" });
 room("R", "wr_garden", "Wing roof garden", 0, "OUT", [205, -85, 280, 125], { tower: "wing", holes: [[205, -85, 231, -15]] });
 room("R", "wr_plant", "Wing plant room", 1, "IN", [205, -85, 231, -15], W);
 room("S", "s_sanctum", "THE SANCTUM", 4, "IN", [-35, -115, 35, -70], { vault: "S", note: "package" });
@@ -168,7 +169,7 @@ dr("g_ring_s", "g_library", 14); dr("g_ring_s", "g_lounge", 14);
 dr("wg_casino", "wg_entry", 40, { arch: true }); dr("wg_casino", "wg_cage", 12, { gate: 1 }); dr("wg_casino", "wg_highroller", 14, { gate: 3 }); dr("wg_cage", "wg_highroller", 8, { gate: 3 });
 // -- mezzanine
 dr("m_balcony", "m_gallery", 24, { arch: true }); dr("m_balcony", "m_ball_gal", 20, { arch: true }); dr("m_balcony", "m_bridge_hall", 24, { arch: true }); dr("m_balcony", "m_bar_loft", 20, { arch: true });
-dr("m_balcony", "m_hub", 12, { gate: 2 }); dr("m_balcony", "m_offices", 10, { gate: 1 }); dr("m_balcony", "m_catering", 10, { gate: 1 });
+dr("m_balcony", "m_hub", 12, { gate: 2 }); dr("m_hub", "m_records", 8, { gate: 3, edge: "s" }); dr("m_balcony", "m_offices", 10, { gate: 1 }); dr("m_balcony", "m_catering", 10, { gate: 1 });
 dr("m_balcony", "m_stairhall", 40, { arch: true }); dr("m_balcony", "m_wine", 14); dr("m_balcony", "m_cigar", 14);
 dr("m_gallery", "m_offices", 10, { gate: 1 }); dr("m_ball_gal", "m_catering", 10, { gate: 1 }); dr("m_gallery", "m_wine", 14); dr("m_bar_loft", "m_cigar", 14);
 dr("m_hub", "m_offices", 8, { gate: 2 }); dr("m_hub", "m_catering", 8, { gate: 2 });
@@ -193,6 +194,7 @@ dr("wt_arcade", "wt_exec", 8, { gate: 3 }); dr("wt_suite4", "wt_suite5", 8); dr(
 dr("r_deck", "r_plant", 8, { gate: 1, edge: "w" }); dr("r_deck", "r_summit", 12, { gate: 3, edge: "s" });
 dr("r_deck", "r_vaulte_ante", 8, { gate: 2, edge: "w" }); dr("r_deck", "r_vaulte_ante", 8, { gate: 2, edge: "n" }); dr("r_vaulte_ante", "r_vaulte", 8, { vault: true });
 dr("wr_garden", "wr_plant", 8, { gate: 1, edge: "s" });
+dr("r_deck", "r_deck_w", 35, { arch: true });
 dr("s_foyer", "s_sanctum", 10, { vault: true, cost: 10, note: "front Package door: hack for 10 intel, or the Tier 4 keycard" });
 dr("s_ter_w", "s_sanctum", 10, { vault: true, keycardOnly: true, note: "back Package door: the Tier 4 keycard only" });
 dr("s_foyer", "s_ter_w", 8, { gate: 4 }); dr("s_foyer", "s_ter_e", 8, { gate: 4 }); // the terraces are Tier 4; their doors to the foyer cost 6
@@ -255,7 +257,7 @@ const ziplines = [
 ];
 // 6 vent pairs, one into each vault wing and the security hub, each from a room outside the wing
 const vents = [
-	{ id: "vent_a", from: "b_stores_w1", to: "b_vaulta" }, { id: "vent_b", from: "t_ter_n", to: "t_vaultb" },
+	{ id: "vent_a", from: "b_stores_w2", to: "b_vaulta" }, { id: "vent_b", from: "t_ter_n", to: "t_vaultb" },
 	{ id: "vent_c", from: "g_pantry", to: "g_vaultc" }, { id: "vent_d", from: "wb_linen", to: "wb_vaultd" },
 	{ id: "vent_e", from: "r_deck", to: "r_vaulte" }, { id: "vent_hub", from: "m_catering", to: "m_hub" },
 ];
@@ -284,7 +286,7 @@ const tier4Npcs = [
 const doorCosts = { Staff: 3, Security: 6, Executive: 8, "Vault core doors": 8, "Tier 4 stair head": 8, "Tier 4 elevator arrival": 8, "Tier 4 terrace doors": 6, "Package doors": 10, "Keycard printer (20 s, single-use card)": 10 };
 const sanctum = { level: "S", room: "s_sanctum", x: 0, z: -92 };
 const extraction = [
-	{ id: "Helipad", level: "R", x: -70, z: 45 }, { id: "SkyDeck", level: "D", x: 255, z: -50 }, { id: "TerraceLawn", level: "T", x: -108, z: 20 },
+	{ id: "Helipad", level: "R", x: -70, z: 20 }, { id: "SkyDeck", level: "D", x: 255, z: -50 }, { id: "TerraceLawn", level: "T", x: -108, z: 20 },
 ];
 const insertion = [
 	{ id: 1, level: "G", x: -45, z: 138 }, { id: 2, level: "G", x: 0, z: 92 }, { id: 3, level: "G", x: 45, z: 138 },

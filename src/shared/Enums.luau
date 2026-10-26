@@ -44,6 +44,7 @@ local Enums = {
 		Staff = 1,
 		Security = 2,
 		Executive = 3,
+		Sanctum = 4, -- Tier 4, above Executive: The Sanctum's foyer, Package room and terraces (relayout-1)
 	},
 
 	-- Spec 4.3: the Activity attribute on NPCNode parts.
@@ -93,6 +94,17 @@ local Enums = {
 		-- Map re-plan stage 3: a lit sign. Text1/Color1/Normal1 (and Text2/Color2/Normal2 for a sign read from both sides)
 		-- say what each side reads; SignController floats that text toward a nearby camera.
 		Sign = "Sign",
+		-- Gala re-layout (relayout-1): the five vault terminal spots (three are active a match), the five keycard printer
+		-- spots (one is active), prop-triggered secret exits, glass elevators, the Package doors and the service ladders.
+		VaultTerminalSpot = "VaultTerminalSpot", -- VaultId; the terminal itself is made at match start
+		KeycardPrinterSpot = "KeycardPrinterSpot", -- PrinterId, Cost, Seconds; the printer is made at match start
+		SecretExit = "SecretExit", -- the panel that opens; ExitId
+		SecretExitTrigger = "SecretExitTrigger", -- the prop inside that opens it; ExitId
+		ElevatorCab = "ElevatorCab", -- ShaftId, Stops ("G:0,M:24,T:48"), Locked
+		ElevatorDoor = "ElevatorDoor", -- ShaftId, Level, Tier, HackCost
+		ElevatorCall = "ElevatorCall", -- ShaftId, Level
+		PackageDoor = "PackageDoor", -- Side ("Front" or "Back"), HackCost, KeycardOnly
+		ServiceLadder = "ServiceLadder", -- a Cover-breaking ladder up the crown
 	},
 
 	-- Spec 5.3, 6.7, 5.4: the code-built animations NPCs (and later the Blend wheel) play.

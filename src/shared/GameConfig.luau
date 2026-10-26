@@ -139,10 +139,29 @@ local GameConfig = {
 			[1] = Color3.fromRGB(60, 175, 90), -- Staff: green, matching the green ties and lapels on the navy suits
 			[2] = Color3.fromRGB(105, 45, 160), -- Security: dark purple, matching the black suits with purple trim
 			[3] = Color3.fromRGB(225, 190, 95), -- Executive: gold, matching the cream suits with gold trim
+			[4] = Color3.fromRGB(150, 28, 52), -- Tier 4, The Sanctum (relayout-1): deep crimson; its NPCs wear red and gold
 		},
 		VaultColor = Color3.fromRGB(205, 45, 45), -- vault doors, vault-wing trim and the vault strongroom lights
 		-- How many pips a tier door's handles carry (Public doors have plain handles).
-		TierPips = { [0] = 0, [1] = 1, [2] = 2, [3] = 3 },
+		TierPips = { [0] = 0, [1] = 1, [2] = 2, [3] = 3, [4] = 4 },
+	},
+
+	-- Gala re-layout (relayout-1, docs/MAP_PLAN_RELAYOUT.md): what hacking a door costs in intel. By clearance tier, then by
+	-- the special doors. An Executive disguise or a Tier 4 keycard opens a door free; the cost is for anyone else.
+	Doors = {
+		HackCost = {
+			[1] = 3, -- Staff
+			[2] = 6, -- Security
+			[3] = 8, -- Executive
+			VaultCore = 8, -- the door into each vault core (an Executive door)
+			Tier4Terrace = 6, -- the Sanctum terraces' doors to the foyer
+			Tier4StairHead = 8, -- the door at the head of the Executive stair
+			Tier4ElevatorArrival = 8, -- the Sanctum elevator's arrival
+			PackageDoor = 10, -- the Package room's front door (the back door takes the keycard only)
+		},
+		-- The Tier 4 keycard (single use) is printed at one of the printer spots; none is marked.
+		KeycardPrinter = { Cost = 10, Seconds = 20, ActiveSpots = 1 },
+		Elevators = { MinTier = 1 }, -- Staff and above ride the glass elevators free; a Guest must hack the door or tailgate
 	},
 
 	-- Spec 4.3 / 4.4: what the map must contain (used by map validation).
@@ -172,6 +191,7 @@ local GameConfig = {
 		MinEntrancesPerRestrictedZone = 2,
 		MinExtractionPathDistanceFromVault = 120,
 		MinVaultRoutesOut = 3,
+		MinVaultSpacing = 100, -- relayout-1: the five vault terminals are at least this far apart
 		MaxLongSightLines = 3, -- sight lines over 150 studs
 		LongSightLineStuds = 150,
 		MinIntelPerTierOnActivation = 2,

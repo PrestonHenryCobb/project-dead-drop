@@ -21,8 +21,8 @@
 <rect x="1067.4" y="238.0" width="41.6" height="182.0" fill="#e3b23c" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
 <rect x="1067.4" y="420.0" width="41.6" height="182.0" fill="#e8e6dc" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
 <rect x="1067.4" y="602.0" width="41.6" height="182.0" fill="#e8e6dc" stroke="#111" fill-opacity="0.85" stroke-width="1.4"/>
-<rect x="160.0" y="557.8" width="52.0" height="62.4" fill="#e3b23c" stroke="#111" fill-opacity="0.95" stroke-width="1.4"/>
-<rect x="550.0" y="557.8" width="52.0" height="62.4" fill="#e3b23c" stroke="#111" fill-opacity="0.95" stroke-width="1.4"/>
+<rect x="147.0" y="557.8" width="52.0" height="62.4" fill="#e3b23c" stroke="#111" fill-opacity="0.95" stroke-width="1.4"/>
+<rect x="563.0" y="557.8" width="52.0" height="62.4" fill="#e3b23c" stroke="#111" fill-opacity="0.95" stroke-width="1.4"/>
 <rect x="282.2" y="355.0" width="197.6" height="239.2" fill="#0b2b4a" stroke="#5aa0e0" stroke-dasharray="4 3" stroke-width="2"/>
 <text x="381.0" y="101.5" text-anchor="middle" font-size="12" fill="#111">Upper terrace north</text>
 <text x="381.0" y="764.5" text-anchor="middle" font-size="12" fill="#111">Upper terrace south</text>
@@ -36,8 +36,8 @@
 <text x="381.0" y="173.0" text-anchor="middle" font-size="12" fill="#fff">Vault B (art vault)</text>
 <text x="381.0" y="318.6" text-anchor="middle" font-size="12" fill="#111">Penthouse great room (void railing)</text>
 <text x="381.0" y="680.0" text-anchor="middle" font-size="12" fill="#111">Private gallery</text>
-<text x="186.0" y="589.0" text-anchor="middle" font-size="8" fill="#111">Panic room</text>
-<text x="576.0" y="589.0" text-anchor="middle" font-size="8" fill="#111">Executive office</text>
+<text x="173.0" y="589.0" text-anchor="middle" font-size="8" fill="#111">Panic room</text>
+<text x="589.0" y="589.0" text-anchor="middle" font-size="8" fill="#111">Executive office</text>
 <text x="855.5" y="511.0" text-anchor="middle" font-size="12" fill="#111">Suite terrace</text>
 <text x="1011.5" y="511.0" text-anchor="middle" font-size="12" fill="#111">Suite arcade</text>
 <text x="934.8" y="329.0" text-anchor="middle" font-size="8" fill="#111">Skyline suite</text>
@@ -68,8 +68,8 @@
 <rect x="222.9" y="669.6" width="4.2" height="20.8" fill="#e3a400" stroke="#000" stroke-width="0.7"/>
 <rect x="534.9" y="669.6" width="4.2" height="20.8" fill="#e3a400" stroke="#000" stroke-width="0.7"/>
 <rect x="370.6" y="196.9" width="20.8" height="4.2" fill="#ff2d2d" stroke="#000" stroke-width="0.7"/>
-<rect x="209.9" y="578.6" width="4.2" height="20.8" fill="#e3a400" stroke="#000" stroke-width="0.7"/>
-<rect x="547.9" y="578.6" width="4.2" height="20.8" fill="#e3a400" stroke="#000" stroke-width="0.7"/>
+<rect x="196.9" y="578.6" width="4.2" height="20.8" fill="#e3a400" stroke="#000" stroke-width="0.7"/>
+<rect x="560.9" y="578.6" width="4.2" height="20.8" fill="#e3a400" stroke="#000" stroke-width="0.7"/>
 <rect x="911.9" y="316.0" width="4.2" height="26.0" fill="#fff" stroke="#000" stroke-width="0.7"/>
 <rect x="911.9" y="498.0" width="4.2" height="26.0" fill="#fff" stroke="#000" stroke-width="0.7"/>
 <rect x="911.9" y="680.0" width="4.2" height="26.0" fill="#fff" stroke="#000" stroke-width="0.7"/>
@@ -106,8 +106,8 @@
 <text x="381.0" y="177.0" text-anchor="middle" font-size="15" fill="#fff" font-weight="900">&#9635;</text><text x="381.0" y="190.0" text-anchor="middle" font-size="9" fill="#fff" font-weight="700">terminal B</text>
 <circle cx="100.2" cy="511.0" r="9" fill="#18c26b" stroke="#fff" stroke-width="2"/><text x="100.2" y="498.0" text-anchor="middle" font-size="10" fill="#18c26b" font-weight="700">EXTRACT TerraceLawn</text>
 <circle cx="391.4" cy="183.4" r="3.5" fill="#e83fb0" stroke="#fff"/>
-<circle cx="196.4" cy="599.4" r="3.5" fill="#e83fb0" stroke="#fff"/>
-<circle cx="586.4" cy="599.4" r="3.5" fill="#e83fb0" stroke="#fff"/>
+<circle cx="183.4" cy="599.4" r="3.5" fill="#e83fb0" stroke="#fff"/>
+<circle cx="599.4" cy="599.4" r="3.5" fill="#e83fb0" stroke="#fff"/>
 <rect x="368.0" y="160.0" width="18" height="18" fill="#f08a24" fill-opacity="0.35" stroke="#f08a24"/>
 <rect x="16" y="875" width="14" height="14" fill="#e8e6dc" stroke="#fff"/><text x="36" y="886" fill="#ddd" font-size="12">Public</text>
 <rect x="176" y="875" width="14" height="14" fill="#6fbf73" stroke="#fff"/><text x="196" y="886" fill="#ddd" font-size="12">Staff</text>

@@ -143,3 +143,32 @@ elevators with Staff NPCs riding them, and the sky deck stays far. Still open:
 - **Printing noise:** you gave 20 seconds but not how loud. I assumed loud (it breaks Cover, like opening a supply cache).
 - **The 5 vault rooms' look:** the old themes (bank, art, cold storage, counting room) carry over; Vault E is new
   (an observatory with a glass dome). Anything else for E?
+
+## 10. Phase 1 as built (2026-10-25)
+The generator now builds this plan (`Relayout.luau`, made by `node tools/relayout-layout.cjs` then `stylua`, from the plan data;
+placed positions are in [layout-report.md](plans/relayout/layout-report.md)). Fresh-clone rebuild: **0 problems**, 132 rooms
+(17 are elevator shaft pieces), 182 doors, 28 stairs and ramps, 5 shafts, 6 vents, 8 secret exits, 2 ladders, about 10,400 parts.
+Where building it forced a change to the plan:
+- **The crown is at 96, not 84**, the same level as the wing's sky deck (one level, `S`). At 84 the summit lobby under it would
+  have been 10 studs high and its Tier 4 doors (13 studs) would not fit.
+- **A new room, `r_deck_w` (a roof stair deck on posts over the west lawn).** The roof is smaller than the top floor, so no public
+  room lies under it: the plan's public roof stair could not arrive anywhere. The deck sits over the lawn's south end, clear of
+  the Terrace Lawn pad.
+- **Elevators are real shafts**, a glass tube (a nested room on every level it passes, no floor but the bottom one), so each had
+  to be moved to a place that is the right room on every floor it serves: E1 gallery hall, E2 atrium east side, E3 casino, E4
+  hotel entrance, E5 the Sanctum (T great room, R summit lobby, S foyer). The old "atrium west" and "wing" pairs became E1 to E4.
+  The cab is built and waits at the bottom stop; **moving it is not built** (ElevatorService belongs with Phase 2, which needs it
+  for the Staff NPCs and the Curator).
+- **Stairs were placed by search** inside the rooms the plan names (escalators stand in the atrium beside the fountain, not in
+  the 14-stud colonnade; terrace stairs rise from the galleries below; the wing's Staff stair rises from the linen store to the
+  cage). The Sanctum's Executive stair arrives in a small walled **stair-head room** in the foyer, whose door is the "stair head"
+  Tier 4 door (8).
+- **Door costs** come from `GameConfig.Doors.HackCost` (Staff 3, Security 6, Executive 8, vault cores 8, Tier 4 terrace 6, stair
+  head 8, elevator arrival 8, Package front 10). Doors carry a `HackCost` attribute; no service reads it yet.
+- **The five vault terminals and the five printer spots are markers only** (a dais per vault; invisible printer spots): the
+  terminal and the printer are made at match start. **Secret exits** are a panel in the wall and a lever inside the room.
+- **Kept from the old map:** the window-washer gondola (top floor, from the Gala's east terrace to the wing's suite terrace), which
+  the plan did not mention. **Dropped:** the six keycard shortcut doors (spec 4.3), replaced by the Tier 4 keycard: confirm.
+- The helipad moved 25 studs north (z 20) so it is 120 studs from Vault A. The insertion spacing check is now per floor.
+- Counts now: 36 intel stations (was 48), 6 supply caches, 12 cameras, 6 restrooms with health stations, 8 ammo caches, 20 food
+  spots, 12 safes, 2 laser grids (was 4).

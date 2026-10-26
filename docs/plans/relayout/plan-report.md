@@ -100,6 +100,7 @@ Checks: **all pass**
 | R | Vault E observatory hall (`r_vaulte_ante`) | 2 | IN | 1000 | 25 | vault E |
 | R | Vault E (observatory vault) (`r_vaulte`) | 3 | IN | 1000 | 25 | vault E; terminal |
 | R | Rooftop plant room (`r_plant`) | 1 | IN | 1050 | 30 |  |
+| R | Roof stair deck (over the west lawn) (`r_deck_w`) | 0 | OUT | 2100 | 35 | added for the public roof stair: T is wider than R, so no public T room lies under the roof; the deck stands on posts over the lawn |
 | R | Wing roof garden (`wr_garden`) | 0 | OUT | 13930 | 75 |  |
 | R | Wing plant room (`wr_plant`) | 1 | IN | 1820 | 26 |  |
 | S | THE SANCTUM (`s_sanctum`) | 4 | IN | 3150 | 45 | vault S; package |
@@ -156,11 +157,11 @@ Checks: **all pass**
 ## Reachability from the grand lobby, by clearance cap (doors and stairs, Sanctum elevator unlocked)
 | Cap | Rooms reached | Not reached |
 |---|---|---|
-| 0 | 44 | none |
-| 1 | 67 | none |
-| 2 | 85 | none |
-| 3 | 97 | none |
-| 4 | 101 | none |
+| 0 | 45 | none |
+| 1 | 68 | none |
+| 2 | 86 | none |
+| 3 | 99 | none |
+| 4 | 103 | none |
 
 ## Independent routes in, counted from all 12 insertion points
 A vault is measured at its antechamber on foot (doors and stairs) and at its core with vents and secret exits; the Sanctum is measured at its foyer, with the elevator unlocked and the zipline.
@@ -197,20 +198,20 @@ Keycard printer candidates (5, one active each match): P1 r_plant, P2 r_vaulte_a
 ## NPC capacity (estimate, comfortable densities: hubs 1 per 35 studs², public 70, corridors 90, outdoors 60, Staff 130, Security 180, Executive 220)
 | Tier | Floor area (studs²) | Comfortable NPCs |
 |---|---|---|
-| Public | 258710 | 5149 |
+| Public | 260810 | 5184 |
 | Staff | 109694 | 844 |
 | Security | 70254 | 390 |
 | Executive | 34734 | 111 |
 | Tier 4 (2 NPCs) | 5850 | 6 |
-| **All** | 479242 | **6500** |
+| **All** | 481342 | **6535** |
 
 ### Load at each crowd size (60% Guests, 20% Staff, 12.5% Security, 7.5% Executive)
 | NPCs | Guests vs public capacity | Staff | Security | Executive |
 |---|---|---|---|---|
-| 200 | 120 / 5149 (2%) | 40 / 844 (5%) | 25 / 390 (6%) | 15 / 111 (14%) |
-| 300 | 180 / 5149 (3%) | 60 / 844 (7%) | 38 / 390 (10%) | 23 / 111 (20%) |
-| 400 | 240 / 5149 (5%) | 80 / 844 (9%) | 50 / 390 (13%) | 30 / 111 (27%) |
-| 500 | 300 / 5149 (6%) | 100 / 844 (12%) | 63 / 390 (16%) | 38 / 111 (34%) |
+| 200 | 120 / 5184 (2%) | 40 / 844 (5%) | 25 / 390 (6%) | 15 / 111 (14%) |
+| 300 | 180 / 5184 (3%) | 60 / 844 (7%) | 38 / 390 (10%) | 23 / 111 (20%) |
+| 400 | 240 / 5184 (5%) | 80 / 844 (9%) | 50 / 390 (13%) | 30 / 111 (27%) |
+| 500 | 300 / 5184 (6%) | 100 / 844 (12%) | 63 / 390 (16%) | 38 / 111 (34%) |
 
 ### Hub density (Guests per 100 studs² at each crowd size; comfortable is 2.9)
 | Hub | Area | 200 | 300 | 400 | 500 |
@@ -228,15 +229,16 @@ Keycard printer candidates (5, one active each match): P1 r_plant, P2 r_vaulte_a
 | skybar | 7800 | 0.11 | 0.16 | 0.22 | 0.27 |
 
 ### Flow
-A lane takes 3.5 studs and passes 2.5 NPCs a second (10 studs/s, 4 studs apart). Average public portal is 20.3 studs wide (5 lanes, 12.5/s); the 56 public portals together pass 765 NPCs a second.
+A lane takes 3.5 studs and passes 2.5 NPCs a second (10 studs/s, 4 studs apart). Average public portal is 20.5 studs wide (5 lanes, 12.5/s); the 57 public portals together pass 790 NPCs a second.
 | NPCs | Trips started per second | Portal crossings per second (about 5 per trip) | Share of total portal capacity |
 |---|---|---|---|
-| 200 | 5.4 | 27 | 4% |
+| 200 | 5.4 | 27 | 3% |
 | 300 | 8.1 | 40.5 | 5% |
 | 400 | 10.8 | 54.1 | 7% |
 | 500 | 13.5 | 67.6 | 9% |
 
 ## Dead ends (rooms with one way in or out, by door or stair)
+- Roof stair deck (over the west lawn) (`r_deck_w`, tier 0)
 - Sky deck (extraction) (`wd_skydeck`, tier 0)
 
 ## Vertical links NPCs can use (stairs and ramps; people per second each way)

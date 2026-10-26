@@ -44,9 +44,15 @@ export type Room = {
 	glass: boolean?, -- its walls facing a garden are glass above a low sill
 	height: number?, -- an indoor room's wall height when it is lower than a full storey (a bridge)
 	noNodes: boolean?, -- no NPC nodes (a vault strongroom: NPCs never stop at the vault)
-	theme: string?, -- a vault's look: "bank", "gallery", "cold" or "counting"
+	theme: string?, -- a vault's look: "bank", "gallery", "cold", "counting" or "observatory"
 	round: number?, -- its corners are rounded off with curved walls of this radius (corners with a doorway near stay square)
 	style: string?, -- its wing theme when the default (Build.luau styleOf) is not right: deco, casino, mediterranean, ...
+	-- Gala re-layout (Relayout.luau):
+	shaft: string?, -- a piece of a glass elevator shaft (Shaft.id): no floor, glass walls, a door onto its parent where it stops
+	stop: boolean?, -- the cab stops on this level (a shaft piece)
+	posts: boolean?, -- a deck held up on posts standing on the floor below (the sky deck, the roof stair deck)
+	vault: string?, -- the vault this room belongs to (A to E)
+	hub: string?, -- the crowd hub it is part of
 }
 
 export type Door = {
@@ -60,6 +66,12 @@ export type Door = {
 	laser: boolean?, -- a laser grid across this doorway (spec 18.2)
 	arch: boolean?, -- an open doorway with a round arch over it
 	line: number?, -- the wall's own coordinate (z for a wall along x), when the two rooms share more than one wall
+	-- Gala re-layout: what hacking this door costs comes from GameConfig.Doors.HackCost, by gate tier and these roles.
+	core: boolean?, -- the door into a vault core (an Executive door)
+	role: string?, -- "terrace" (a Sanctum terrace door) or "stairhead" (the door at the head of the Executive stair)
+	package: string?, -- "front" or "back": a door into the Package room
+	keycardOnly: boolean?, -- opens with a Tier 4 keycard and nothing else (the back Package door)
+	elevator: string?, -- a shaft door: Shaft.id
 }
 
 -- A window in the wall two rooms share (MAP_BRIEF_REPLAN stage 2):
@@ -95,7 +107,7 @@ export type CurvedStair = {
 }
 
 -- An open shaft through a floor, railed round; `round` rounds its corners off with curved railings and floor.
-export type Void = { level: string, rect: Rect, round: number? }
+export type Void = { level: string, rect: Rect, round: number?, railed: boolean? } -- railed: a railing, not a wall, even beside an indoor room
 
 export type Ramp = {
 	from: string, -- the lower level
@@ -104,9 +116,20 @@ export type Ramp = {
 	z: number, -- start z (lower end) for a ramp climbing along z, or centre line for one along x
 	dir: string, -- "+z", "-z", "+x" or "-x": the way it climbs
 	turn: boolean?, -- a switchback: it climbs half way, turns at a landing and climbs back to arrive beside where it began
+	width: number?, -- one flight's width when it is not the standard 6 (a grand stair is 24, an escalator ramp 12)
+	id: string?,
+	kind: string?, -- "Grand stair", "Escalator ramp", "Switchback stair", "Staff stair", "Guard stair", "Roof stair", "Executive stair"
+	tier: number?, -- who the stair is for (0 public, 1 Staff, 2 Security, 4 Tier 4)
 }
 
-export type Marker = { id: string, level: string, x: number, z: number }
+export type Marker = { id: string, level: string, x: number, z: number, room: string? }
+
+-- Gala re-layout: a secret exit is a panel in the wall two rooms share, opened by a prop inside `a` (the restricted room).
+export type SecretExit = { id: string, a: string, b: string, level: string, line: number, at: number, width: number }
+-- A glass elevator: its rooms are the Room pieces with this `shaft` id, one per level it passes. Locked until the match unlocks it.
+export type Shaft = { id: string, name: string, tier: number, locked: boolean? }
+-- A service ladder from `level` up to the outdoor room `room` on `to`, at (x, z) beside the wall; `edge` is the terrace edge line.
+export type Ladder = { id: string, level: string, to: string, x: number, z: number, room: string, edge: number }
 
 -- Things that are not rooms: water, garden islands, bridges, a skylight, a statue, lanterns, a pavilion, and a truss
 -- (the steel under a skybridge, the service tunnel or a cantilevered deck).
