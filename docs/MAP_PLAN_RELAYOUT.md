@@ -104,6 +104,13 @@ all over the 120 minimum. **Extraction sites:** Helipad (roof west deck), Sky De
 - **Tier 4 NPCs:** the Warden (summit lobby, foyer, terraces) and the Curator (penthouse, private gallery, summit lobby,
   roof deck).
 
+- **Looks and rules:** both red and gold; the Warden 125% tall and 105% wide. Both are extra to the crowd, the Curator can ride
+  the elevators, and downing either raises the alarm by 2 and exposes the shooter.
+- **Second links added:** the City suite (door to the Moon suite), the sky deck (a second stair from the roof garden) and
+  the Sanctum east terrace (a ladder from the roof deck). The Sanctum terraces' doors to the foyer are Tier 4 doors (6).
+- **NPCs wake up:** every downed or executed NPC stands up slowly 60 seconds after going down and goes back to its routine,
+  with no replacement. A rising body is always an NPC (accepted).
+
 ## 7. NPC capacity: what the plan says about 200 to 500 NPCs
 All figures are estimates until measured in Studio (generated in `plan-report.md`).
 - **Space is not the limit.** The plan has about 479,000 studs² of floor. Comfortable capacity is about 6,500 NPCs (plus the two Tier 4 NPCs), and a
@@ -134,8 +141,5 @@ Settled by the second and third rounds (see the brief): the Sanctum is Tier 4 wi
 intel, door costs 3 / 6 / 8 / 10, two Package doors (front hack or keycard, back keycard only), Staff-and-above
 elevators with Staff NPCs riding them, and the sky deck stays far. Still open:
 - **Printing noise:** you gave 20 seconds but not how loud. I assumed loud (it breaks Cover, like opening a supply cache).
-- **Single-entrance rooms** (a hotel suite, the sky deck, two Sanctum landings reached only through the foyer). Tell me if
-  any should get a second door.
-- **The Warden and Curator look:** a distinct suit (black with red, and white with gold). Tell me a look you prefer.
 - **The 5 vault rooms' look:** the old themes (bank, art, cold storage, counting room) carry over; Vault E is new
   (an observatory with a glass dome). Anything else for E?

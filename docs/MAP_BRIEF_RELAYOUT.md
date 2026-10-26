@@ -75,6 +75,11 @@ rework makes the layout the source of truth instead.
 | Keycard behaviour | **Single use**: it is spent on the first Tier 4 door it opens; another door needs another print (another 10 intel). |
 | Printing | **20 seconds** at the printer. (Noise level not stated: assumed loud, like opening a supply cache, so it breaks Cover; to confirm.) |
 | Vault core doors | The five vault cores' doors are **Executive doors (8 intel)**: an Executive disguise opens them free, anyone else hacks them, and the vent and secret exit are the other ways in. |
+| Tier 4 NPC looks | Both wear **red and gold trim**, easy to spot from the front and behind; the **Warden is bigger: 125% tall and 105% wide** (a player who scans the Warden copies the size, so a disguised player looks the same). The size check on outfits gets an exception for Tier 4. |
+| Tier 4 NPCs: counting and elevators | Both are **extra** (in addition to the 200+ crowd). The **Curator can ride** the Staff-and-above elevators between floors. |
+| Downing a Tier 4 NPC | **Raises the alarm by 2 and exposes the shooter**, on top of the normal rules. |
+| NPCs wake up | **Every downed or executed NPC stands up slowly 60 seconds after it went down** and returns to its routine, instead of fading and being replaced. This keeps the crowd from thinning. Known trade-off (accepted): a body that stands up is always an NPC, because a player's body fades. |
+| Single-entrance rooms | The City suite gets a door to the next suite; the sky deck gets a second stair from the roof garden; the Sanctum east terrace gets a ladder from the roof deck. The Sanctum terraces' doors to the foyer are Tier 4 doors (cost 6). |
 | Sky deck | Stays the **far** extraction (about 887 studs of walking from the Sanctum): the long, risky way out. |
 | Package room routes | "Several routes" means the Sanctum area (three routes into the foyer) and **two doors** into the Package room itself. |
 

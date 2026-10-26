@@ -188,14 +188,14 @@ dr("t_gallery", "t_west", 8, { gate: 3 }); dr("t_gallery", "t_east", 8, { gate: 
 dr("t_west", "t_panic", 8, { gate: 3, edge: "e" }); dr("t_east", "t_office", 8, { gate: 3, edge: "w" });
 dr("wt_terrace", "wt_suite1", 10); dr("wt_terrace", "wt_suite2", 10); dr("wt_terrace", "wt_suite3", 10);
 for (const s of ["wt_suite1", "wt_suite2", "wt_suite3"]) dr("wt_arcade", s, 8);
-dr("wt_arcade", "wt_exec", 8, { gate: 3 }); dr("wt_exec", "wt_suite5", 8, { gate: 3 }); dr("wt_arcade", "wt_suite5", 8); dr("wt_arcade", "wt_suite4", 8);
+dr("wt_arcade", "wt_exec", 8, { gate: 3 }); dr("wt_suite4", "wt_suite5", 8); dr("wt_exec", "wt_suite5", 8, { gate: 3 }); dr("wt_arcade", "wt_suite5", 8); dr("wt_arcade", "wt_suite4", 8);
 // -- roof and crown
 dr("r_deck", "r_plant", 8, { gate: 1, edge: "w" }); dr("r_deck", "r_summit", 12, { gate: 3, edge: "s" });
 dr("r_deck", "r_vaulte_ante", 8, { gate: 2, edge: "w" }); dr("r_deck", "r_vaulte_ante", 8, { gate: 2, edge: "n" }); dr("r_vaulte_ante", "r_vaulte", 8, { vault: true });
 dr("wr_garden", "wr_plant", 8, { gate: 1, edge: "s" });
 dr("s_foyer", "s_sanctum", 10, { vault: true, cost: 10, note: "front Package door: hack for 10 intel, or the Tier 4 keycard" });
 dr("s_ter_w", "s_sanctum", 10, { vault: true, keycardOnly: true, note: "back Package door: the Tier 4 keycard only" });
-dr("s_foyer", "s_ter_w", 8, { arch: true }); dr("s_foyer", "s_ter_e", 8, { arch: true });
+dr("s_foyer", "s_ter_w", 8, { gate: 4 }); dr("s_foyer", "s_ter_e", 8, { gate: 4 }); // the terraces are Tier 4; their doors to the foyer cost 6
 
 // ===================== VERTICAL CONNECTORS =====================
 // id, kind, from (level, rect inside a room there), to (level, landing point inside a room there), width, notes
@@ -241,10 +241,12 @@ vc("wing_grand_stair", "Grand stair", "G", [176, 40, 200, 90], "M", [180, 10], 2
 vc("wing_stair_m_t", "Switchback stair", "M", [162, 95, 174, 125], "T", [182, 100], 12, 0, { note: "sky bar to the suite terrace" });
 vc("wing_stair_t_r", "Roof stair", "T", [235, 20, 247, 50], "R", [250, 45], 12, 0, { note: "suite arcade to the roof garden" });
 vc("wing_deck_stair", "Stair", "R", [236, -20, 248, -2], "D", [250, -40], 6, 0, { note: "roof garden to the sky deck (extraction)" });
+vc("wing_deck_stair_2", "Stair", "R", [262, -60, 274, -30], "D", [268, -50], 6, 0, { note: "a second stair from the roof garden to the sky deck, so the extraction deck is not a dead end" });
 // The Sanctum: three routes in (locked until all 3 terminals are hacked, except the stair door which is a clearance door)
 vc("sanctum_elevator", "Sanctum elevator", "T", [46, -58, 58, -46], "R", [40, -90], 12, 3, { note: "penthouse great room up to the summit lobby; only runs once all 3 terminals are hacked", locked: true });
 vc("sanctum_stair", "Executive stair", "R", [-25, -75, -13, -55], "S", [-20, -60], 6, 4, { note: "summit lobby up to the Sanctum foyer; a Tier 4 clearance door at the head of the stair (hack 10, keycard, or a warden or curator disguise)" });
 vc("sanctum_lift_top", "Sanctum elevator (upper)", "R", [30, -95, 42, -83], "S", [30, -60], 6, 4, { note: "second leg of the elevator, to the foyer (Tier 4 door on arrival)", locked: true });
+vc("summit_ladder_e", "Service ladder", "R", [47, -80, 58, -68], "S", [40, -75], 6, 0, { note: "up the crown's east wall from the roof deck to the east terrace (the zipline landing): Cover-breaking, trespass on arrival" });
 vc("summit_ladder", "Service ladder", "R", [-60, -110, -48, -98], "S", [-40, -100], 6, 0, { note: "up the crown's west wall from the roof deck to the west terrace: Cover-breaking, trespass on arrival, and the only way to the back Package door" });
 // Tunnel, bridge and exposed links are rooms (m_bridge, b_tunnel); ziplines below.
 const ziplines = [
@@ -276,8 +278,8 @@ const printers = [
 	{ id: "P5", level: "T", room: "t_guard_ne", x: 45, z: -90 },
 ];
 const tier4Npcs = [
-	{ role: "Warden", rooms: ["s_foyer", "s_ter_w", "s_ter_e", "r_summit"], note: "stays on the summit" },
-	{ role: "Curator", rooms: ["t_great", "t_gallery", "r_summit", "r_deck"], note: "walks the penthouse, the roof and the summit lobby" },
+	{ role: "Warden", rooms: ["s_foyer", "s_ter_w", "s_ter_e", "r_summit"], note: "stays on the summit; red and gold, 125% tall and 105% wide", rides: false },
+	{ role: "Curator", rooms: ["t_great", "t_gallery", "r_summit", "r_deck"], note: "walks the penthouse, the roof and the summit lobby, and rides the Staff-and-above elevators; red and gold", rides: true },
 ];
 const doorCosts = { Staff: 3, Security: 6, Executive: 8, "Vault core doors": 8, "Tier 4 stair head": 8, "Tier 4 elevator arrival": 8, "Tier 4 terrace doors": 6, "Package doors": 10, "Keycard printer (20 s, single-use card)": 10 };
 const sanctum = { level: "S", room: "s_sanctum", x: 0, z: -92 };

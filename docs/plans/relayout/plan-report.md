@@ -146,9 +146,11 @@ Checks: **all pass**
 | wing_stair_m_t | Switchback stair | M (wm_bar) | T (wt_terrace) | 12 | 0 | sky bar to the suite terrace |
 | wing_stair_t_r | Roof stair | T (wt_arcade) | R (wr_garden) | 12 | 0 | suite arcade to the roof garden |
 | wing_deck_stair | Stair | R (wr_garden) | D (wd_skydeck) | 6 | 0 | roof garden to the sky deck (extraction) |
+| wing_deck_stair_2 | Stair | R (wr_garden) | D (wd_skydeck) | 6 | 0 | a second stair from the roof garden to the sky deck, so the extraction deck is not a dead end |
 | sanctum_elevator | Sanctum elevator | T (t_great) | R (r_summit) | 12 | 3 | penthouse great room up to the summit lobby; only runs once all 3 terminals are hacked Locked until all 3 terminals are hacked. |
 | sanctum_stair | Executive stair | R (r_summit) | S (s_foyer) | 6 | 4 | summit lobby up to the Sanctum foyer; a Tier 4 clearance door at the head of the stair (hack 10, keycard, or a warden or curator disguise) |
 | sanctum_lift_top | Sanctum elevator (upper) | R (r_summit) | S (s_foyer) | 6 | 4 | second leg of the elevator, to the foyer (Tier 4 door on arrival) Locked until all 3 terminals are hacked. |
+| summit_ladder_e | Service ladder | R (r_deck) | S (s_ter_e) | 6 | 0 | up the crown's east wall from the roof deck to the east terrace (the zipline landing): Cover-breaking, trespass on arrival |
 | summit_ladder | Service ladder | R (r_deck) | S (s_ter_w) | 6 | 0 | up the crown's west wall from the roof deck to the west terrace: Cover-breaking, trespass on arrival, and the only way to the back Package door |
 
 ## Reachability from the grand lobby, by clearance cap (doors and stairs, Sanctum elevator unlocked)
@@ -169,8 +171,8 @@ A vault is measured at its antechamber on foot (doors and stairs) and at its cor
 | Vault C | 2 | 3 |
 | Vault D | 3 | 3 |
 | Vault E | 2 | 3 |
-| The Sanctum foyer | 3 | 4 |
-| The Package room | 3 | 2 |
+| The Sanctum foyer | 4 | 4 |
+| The Package room | 4 | 2 |
 
 ## Door costs (intel) and the Tier 4 content
 | Door | Cost |
@@ -185,7 +187,7 @@ A vault is measured at its antechamber on foot (doors and stairs) and at its cor
 | Package doors | 10 |
 | Keycard printer (20 s, single-use card) | 10 |
 
-Keycard printer candidates (5, one active each match): P1 r_plant, P2 r_vaulte_ante, P3 r_summit, P4 t_gallery, P5 t_guard_ne. Tier 4 NPCs: Warden (stays on the summit); Curator (walks the penthouse, the roof and the summit lobby).
+Keycard printer candidates (5, one active each match): P1 r_plant, P2 r_vaulte_ante, P3 r_summit, P4 t_gallery, P5 t_guard_ne. Tier 4 NPCs: Warden (stays on the summit; red and gold, 125% tall and 105% wide); Curator (walks the penthouse, the roof and the summit lobby, and rides the Staff-and-above elevators; red and gold).
 
 ## Spacing
 - Vault pairs (3D studs): A-B 226, A-C 298, A-D 301, A-E 148, B-C 128, B-D 257, B-E 211, C-D 180, C-E 257, D-E 220
@@ -226,7 +228,7 @@ Keycard printer candidates (5, one active each match): P1 r_plant, P2 r_vaulte_a
 | skybar | 7800 | 0.11 | 0.16 | 0.22 | 0.27 |
 
 ### Flow
-A lane takes 3.5 studs and passes 2.5 NPCs a second (10 studs/s, 4 studs apart). Average public portal is 20.5 studs wide (5 lanes, 12.5/s); the 55 public portals together pass 760 NPCs a second.
+A lane takes 3.5 studs and passes 2.5 NPCs a second (10 studs/s, 4 studs apart). Average public portal is 20.3 studs wide (5 lanes, 12.5/s); the 56 public portals together pass 765 NPCs a second.
 | NPCs | Trips started per second | Portal crossings per second (about 5 per trip) | Share of total portal capacity |
 |---|---|---|---|
 | 200 | 5.4 | 27 | 4% |
@@ -235,8 +237,6 @@ A lane takes 3.5 studs and passes 2.5 NPCs a second (10 studs/s, 4 studs apart).
 | 500 | 13.5 | 67.6 | 9% |
 
 ## Dead ends (rooms with one way in or out, by door or stair)
-- City suite (`wt_suite4`, tier 0)
-- Sanctum terrace east (zipline landing) (`s_ter_e`, tier 4)
 - Sky deck (extraction) (`wd_skydeck`, tier 0)
 
 ## Vertical links NPCs can use (stairs and ramps; people per second each way)
@@ -246,7 +246,7 @@ A lane takes 3.5 studs and passes 2.5 NPCs a second (10 studs/s, 4 studs apart).
 | M to T | 4 | 22.5 | 0 | 2.5 | 0 |
 | T to R | 5 | 15 | 5 | 2.5 | 0 |
 | B to G | 5 | 0 | 7.5 | 5 | 0 |
-| R to D | 1 | 2.5 | 0 | 0 | 0 |
-| R to S | 2 | 2.5 | 0 | 0 | 0 |
+| R to D | 2 | 5 | 0 | 0 | 0 |
+| R to S | 3 | 5 | 0 | 0 | 0 |
 
 At 400 NPCs about a quarter of the 10.8 trips a second change level, about 2.7 a second, spread over every link above.
