@@ -64,26 +64,28 @@ function view.Mount(stage, navigator)
 	local session = Kit.session(stage, "THE MINT / STOCK CERTIFICATES", navigator)
 	cleanup:Add(session.destroy)
 	local rail = Kit.scroll(session.Body, "TreasuryRail", UDim2.new(), UDim2.fromScale(0.4, 1))
-	local left = Kit.panel(rail, "Treasury", UDim2.new(), UDim2.new(1, -14, 0, 540))
-	Kit.text(left, "YOUR STOCKS", 0, 42, true)
-	local balance = Kit.text(left, "Loading verified balance…", 58, 50, true)
-	Kit.text(
+	local left = Kit.flowPanel(rail, "Treasury")
+	Kit.flowText(left, "TreasuryTitle", "YOUR STOCKS", 1, true)
+	local balance = Kit.flowText(left, "VerifiedBalance", "Loading verified balance…", 2, true)
+	Kit.flowText(
 		left,
+		"TreasuryNotice",
 		"Stocks are the premium cosmetic currency. Roblox purchases are not connected yet. No certificates or prices have been published.",
-		130,
-		140
+		3
 	)
-	Kit.button(left, "PURCHASES UNAVAILABLE", 300, nil, false, true)
-	Kit.button(left, "BACK TO BLACK MARKET", 380, function()
+	Kit.button(left, "PURCHASES UNAVAILABLE", 0, nil, false, true).Instance.LayoutOrder = 4
+	Kit.button(left, "BACK TO BLACK MARKET", 0, function()
 		navigator.navigateTo("BlackMarket")
-	end)
-	Kit.button(left, "INSPECT MINT POLICY", 450, function()
+	end).Instance.LayoutOrder =
+		5
+	Kit.button(left, "INSPECT MINT POLICY", 0, function()
 		view.OpenInspection(
 			session.Root,
 			"THE MINT",
 			"Stock packages are not published. No purchase or currency grant is available from this inspection."
 		)
-	end)
+	end).Instance.LayoutOrder =
+		6
 	Kit.documentArt(session.Body, "THE MINT\nSTOCKS", UDim2.fromScale(0.44, 0), UDim2.fromScale(0.56, 0.78))
 	session.watch(function(data: Types.MetaSnapshot)
 		balance.Text = tostring(data.Profile.Stocks) .. " STOCKS"

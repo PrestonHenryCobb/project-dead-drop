@@ -60,9 +60,47 @@ end
 
 function Kit.stack(parent: Instance)
 	local layout = Instance.new("UIListLayout")
-	layout.Padding = UDim.new(0, 12)
+	layout.Padding = UDim.new(0, config.GapPixels)
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = parent
+end
+
+-- Token-sized footer cues remain visible even when Roblox fades the scrollbar.
+function Kit.scrollRegion(
+	parent: Instance,
+	name: string,
+	position: UDim2,
+	size: UDim2,
+	caption: string
+): (ScrollingFrame, Frame)
+	local region = Kit.frame(parent, name .. "Region", position, size)
+	local cueHeight = config.ChipHeightPixels + config.GapPixels
+	local scroll = Kit.scroll(region, name, UDim2.new(), UDim2.new(1, 0, 1, -cueHeight))
+	local cue = Kit.text(region, caption, 0, cueHeight)
+	cue.Name = "ScrollCue"
+	cue.Position = UDim2.new(0, 0, 1, -cueHeight)
+	cue.Font = config.Fonts.Mono
+	cue.TextSize = config.TextSizes.Small
+	cue.TextColor3 = config.Colors.TextDim
+	return scroll, region
+end
+
+-- Content-measured panels avoid fixed-height overflow when labels wrap or button tokens change.
+function Kit.flowPanel(parent: Instance, name: string): Frame
+	local panel = Theme.infoPanel({ Name = name, Parent = parent })
+	panel.Size = UDim2.new(1, -config.PaddingPixels, 0, 0)
+	Kit.stack(panel)
+	return panel
+end
+
+function Kit.flowText(parent: Instance, name: string, value: string, order: number, large: boolean?): TextLabel
+	return Theme.label({
+		Name = name,
+		Text = value,
+		Parent = parent,
+		LayoutOrder = order,
+		Style = if large then "Display" else "Body",
+	})
 end
 
 function Kit.button(

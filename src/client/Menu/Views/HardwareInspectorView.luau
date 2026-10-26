@@ -5,6 +5,7 @@ local Types = require(Shared.Types)
 local Agents = require(Shared.Defs.AgentDefs)
 local Weapons = require(Shared.Defs.WeaponDefs)
 local Janitor = require(Shared.Util.Janitor)
+local config = require(Shared.GameConfig).Menu
 local Kit = require(script.Parent.Parent.Components.ViewKit)
 local Preview = require(script.Parent.Parent.Components.WeaponPreview)
 local cleanup = Janitor.new()
@@ -85,8 +86,11 @@ function view.Mount(stage, navigator, context)
 			end
 		end
 		local inspector = Kit.frame(root, "HardwareInspector", UDim2.fromScale(0.67, 0), UDim2.fromScale(0.33, 1))
-		local side = Kit.scroll(inspector, "Details", UDim2.new(), UDim2.new(1, 0, 1, -138))
-		local actions = Kit.frame(inspector, "Actions", UDim2.new(0, 0, 1, -130), UDim2.new(1, 0, 0, 130))
+		local actionHeight = config.PrimaryHeightPixels + config.GapPixels + config.SecondaryHeightPixels
+		local side =
+			Kit.scroll(inspector, "Details", UDim2.new(), UDim2.new(1, 0, 1, -(actionHeight + config.GapPixels)))
+		local actions =
+			Kit.frame(inspector, "Actions", UDim2.new(0, 0, 1, -actionHeight), UDim2.new(1, 0, 0, actionHeight))
 		Kit.text(side, selected.Name, 0, 44, true)
 		Kit.text(side, string.upper(selected.Agent) .. ` / W{selected.Slot} · {selected.Category}`, 50, 30)
 		local art = Kit.frame(side, "Turntable", UDim2.fromOffset(0, 84), UDim2.new(1, -14, 0, 132))
@@ -142,7 +146,7 @@ function view.Mount(stage, navigator, context)
 			allowed == true and not equipped,
 			true
 		)
-		Kit.button(actions, "BACK TO AGENT OVERVIEW", 78, function()
+		Kit.button(actions, "BACK TO AGENT OVERVIEW", config.PrimaryHeightPixels + config.GapPixels, function()
 			navigator.navigateTo("Agents", { AgentId = selected.Agent })
 		end)
 		Kit.text(side, "Earn Hardware through Agent Mastery. Weapon finishes are not yet published.", 412, 70)

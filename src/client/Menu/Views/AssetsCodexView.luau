@@ -26,7 +26,13 @@ function view.Mount(stage)
 	session.status("REFERENCE CODEX · SCROLL to browse six Assets. Find them during matches.")
 	local selected = 1
 	local rarity = 1
-	local cards = Kit.scroll(session.Body, "AssetCards", UDim2.new(), UDim2.fromScale(0.62, 1))
+	local cards = Kit.scrollRegion(
+		session.Body,
+		"AssetCards",
+		UDim2.new(),
+		UDim2.fromScale(0.62, 1),
+		"SCROLL / ALL SIX FIELD ASSETS"
+	)
 	local inspector = Kit.scroll(session.Body, "AssetInspector", UDim2.fromScale(0.65, 0), UDim2.fromScale(0.35, 1))
 	local inspect = Kit.panel(inspector, "AssetBriefing", UDim2.new(), UDim2.new(1, -14, 0, 570))
 	local title = Kit.text(inspect, "", 0, 70, true)

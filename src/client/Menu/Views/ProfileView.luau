@@ -20,11 +20,14 @@ function view.Mount(stage, navigator)
 	cleanup:Add(session.destroy)
 	session.watch(function(data: Types.MetaSnapshot)
 		content:Cleanup()
-		local root = Kit.scroll(session.Body, "Career", UDim2.new(), UDim2.new(1, 0, 1, -24))
-		local cue = Kit.text(session.Body, "SCROLL / CAREER & SIX OPERATIVE MASTERY RECORDS", 0, 24)
-		cue.Position = UDim2.new(0, 0, 1, -24)
-		content:Add(cue)
-		content:Add(root)
+		local root, region = Kit.scrollRegion(
+			session.Body,
+			"Career",
+			UDim2.new(),
+			UDim2.fromScale(1, 1),
+			"SCROLL / CAREER & SIX OPERATIVE MASTERY RECORDS"
+		)
+		content:Add(region)
 		Kit.text(root, Players.LocalPlayer.DisplayName, 0, 42, true)
 		Kit.text(root, `LEVEL {data.Profile.Level} · {data.Profile.Career.Matches} COMPLETED MATCHES`, 48, 30)
 		local stats = data.Profile.Career
