@@ -1,0 +1,100 @@
+<div id="cover-menu-review" class="viz-carousel" aria-label="Cover Story menu layouts">
+  <section data-variant="Field desk" aria-label="Field desk menu layout"><div class="cs-menu" data-layout="desk" aria-label="Field desk menu"></div></section>
+  <section data-variant="Agency rail" aria-label="Agency rail menu layout" hidden><div class="cs-menu" data-layout="rail" aria-label="Agency rail menu"></div></section>
+</div>
+<style>
+#cover-menu-review .cs-menu{--cs-paper:#f4efe6;--cs-ink:#1a1918;--cs-brass:#b88e44;--cs-charcoal:#19201f;--cs-muted:#625d54;--cs-line:#d7cbbb;--cs-gap:24px;background:var(--cs-paper);color:var(--cs-ink);font:400 14px/1.45 Arial,sans-serif;min-height:570px;display:grid;grid-template-columns:1fr;grid-template-rows:auto auto 1fr auto;border:1px solid var(--cs-brass);box-sizing:border-box}
+#cover-menu-review .cs-menu *{box-sizing:border-box}
+#cover-menu-review button{font:inherit;color:inherit;min-height:42px;background:transparent;border:1px solid var(--cs-line);padding:9px 14px;border-radius:0}
+#cover-menu-review button:disabled{opacity:.6}
+#cover-menu-review .cs-menu button[aria-selected="true"],#cover-menu-review .cs-menu button[aria-pressed="true"]{background:var(--cs-charcoal);color:var(--cs-paper);border-color:var(--cs-charcoal)}
+#cover-menu-review .cs-brand{letter-spacing:.18em;font-weight:500;font-size:19px}
+#cover-menu-review .cs-head{background:var(--cs-charcoal);color:var(--cs-paper);display:flex;align-items:center;gap:18px;justify-content:space-between;padding:22px 24px;flex-wrap:wrap}
+#cover-menu-review .cs-head button{border-color:var(--cs-brass);color:var(--cs-paper)}
+#cover-menu-review .cs-meta{color:var(--cs-brass);font-size:11px;letter-spacing:.14em;display:block;margin-top:4px}
+#cover-menu-review .cs-nav{display:flex;flex-wrap:wrap;gap:4px;padding:12px 24px;border-bottom:1px solid var(--cs-line)}
+#cover-menu-review .cs-nav button{border-color:transparent}
+#cover-menu-review .cs-content{padding:var(--cs-gap);min-width:0}
+#cover-menu-review h2{font-size:30px;line-height:1.1;font-weight:500;letter-spacing:-.025em;margin:8px 0 16px}
+#cover-menu-review h3{font-size:18px;font-weight:500;margin:0 0 8px}
+#cover-menu-review p{margin:8px 0;color:var(--cs-muted);max-width:44ch}
+#cover-menu-review .cs-eyebrow{font-size:11px;letter-spacing:.16em;color:var(--cs-muted);text-transform:uppercase}
+#cover-menu-review .cs-hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(180px,.8fr);gap:30px;align-items:center;min-height:302px}
+#cover-menu-review .cs-mark{height:244px;display:grid;place-content:center;text-align:center;background:var(--cs-charcoal);color:var(--cs-paper);position:relative;isolation:isolate;overflow:hidden;border-bottom:4px solid var(--cs-brass)}
+#cover-menu-review .cs-mark:before{content:"";position:absolute;inset:22px;border:1px solid var(--cs-brass);border-radius:50% 50% 0 0;z-index:-1}
+#cover-menu-review .cs-monogram{letter-spacing:.16em;font-size:48px;font-weight:500}
+#cover-menu-review .cs-mark small{color:var(--cs-brass);letter-spacing:.16em}
+#cover-menu-review .cs-modes{display:flex;gap:8px;margin:24px 0 18px;flex-wrap:wrap}
+#cover-menu-review .cs-primary{background:var(--cs-brass);color:var(--cs-ink);border-color:var(--cs-brass);font-weight:500}
+#cover-menu-review .cs-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:22px 0}
+#cover-menu-review .cs-agent{text-align:left;display:grid;gap:10px;min-height:88px;padding:14px}
+#cover-menu-review .cs-agent small{font-size:11px;letter-spacing:.08em}
+#cover-menu-review .cs-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#cover-menu-review .cs-token{padding:10px 0;border-top:2px solid var(--cs-brass);min-width:120px}
+#cover-menu-review .cs-token span{display:block;font-size:11px;color:var(--cs-muted);margin-top:4px}
+#cover-menu-review .cs-reference{border-left:3px solid var(--cs-brass);padding:10px 16px;margin-top:22px}
+#cover-menu-review .cs-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:16px 24px;border-top:1px solid var(--cs-line);font-size:11px;color:var(--cs-muted)}
+#cover-menu-review .cs-menu[data-layout="rail"]{grid-template-columns:160px minmax(0,1fr);grid-template-rows:auto 1fr auto}
+#cover-menu-review [data-layout="rail"] .cs-head{grid-column:1/-1}
+#cover-menu-review [data-layout="rail"] .cs-nav{display:flex;flex-direction:column;align-self:stretch;align-items:stretch;padding:18px 10px;border-right:1px solid var(--cs-line);border-bottom:0;gap:8px}
+#cover-menu-review [data-layout="rail"] .cs-nav button{text-align:left}
+#cover-menu-review [data-layout="rail"] .cs-content{padding:24px}
+#cover-menu-review [data-layout="rail"] .cs-foot{grid-column:1/-1}
+#cover-menu-review .cs-menu[data-density="compact"]{--cs-gap:18px}
+@media(max-width:680px){#cover-menu-review .cs-hero{grid-template-columns:1fr;gap:18px;min-height:0}#cover-menu-review .cs-mark{height:170px}#cover-menu-review .cs-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#cover-menu-review .cs-menu{min-height:760px}#cover-menu-review .cs-head{padding:18px;gap:12px}#cover-menu-review .cs-content{padding:18px}#cover-menu-review .cs-nav{padding:10px}#cover-menu-review .cs-menu[data-layout="rail"]{grid-template-columns:112px minmax(0,1fr)}#cover-menu-review [data-layout="rail"] .cs-content{padding:16px}#cover-menu-review [data-layout="rail"] .cs-grid{grid-template-columns:1fr}#cover-menu-review .cs-nav button{padding:8px;font-size:12px}}
+@media(max-width:400px){#cover-menu-review .cs-menu[data-layout="rail"]{grid-template-columns:1fr}#cover-menu-review [data-layout="rail"] .cs-nav{flex-direction:row;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--cs-line)}#cover-menu-review .cs-head .cs-brand{font-size:16px}#cover-menu-review .cs-mark{height:140px}}
+</style>
+<script>
+(() => {
+  const root=document.getElementById('cover-menu-review');
+  const tabs=['Play','Agents','Assets','Dossiers','Black Market','Profile'];
+  const agents=[['Guise','Deceiver','GU'],['Parapet','Enforcer','PA'],['Lattice','Specialist','LA'],['Reticle','Enforcer','RE'],['Suture','Specialist','SU'],['Feint','Deceiver','FE']];
+  const defaultState={tab:'Play',mode:'Duos',agent:'Guise'};
+  const saved=window.openai?.widgetState;
+  function sanitize(value){return {tab:tabs.includes(value?.tab)||value?.tab==='Mint'?value.tab:'Play',mode:['Solos','Duos'].includes(value?.mode)?value.mode:'Duos',agent:agents.some(a=>a[0]===value?.agent)?value.agent:'Guise'};}
+  const models=[];
+  function persist(state){window.openai?.setWidgetState?.({modelContent:{menu:state},privateContent:null}).catch(()=>{});}
+  root.querySelectorAll('.cs-menu').forEach((app,index)=>{
+    const state=sanitize(saved?.modelContent?.menu||saved?.menu||defaultState);
+    const design={density:'comfortable',accent:'#b88e44'};
+    const header=document.createElement('header');header.className='cs-head';
+    header.innerHTML='<div><span class="cs-brand">COVER STORY</span><span class="cs-meta">MENU DESIGN PREVIEW</span></div><button class="cursor-interaction" type="button" data-mint aria-label="Stocks balance: open the Mint">— STOCKS ↗</button>';
+    app.append(header);
+    const nav=document.createElement('nav');nav.className='cs-nav';nav.setAttribute('aria-label','Main menu');
+    tabs.forEach(tab=>{const b=document.createElement('button');b.type='button';b.className='cursor-interaction';b.textContent=tab;b.setAttribute('aria-controls',`cs-menu-content-${index}`);b.dataset.tab=tab;nav.append(b);});
+    app.append(nav);
+    const content=document.createElement('main');content.className='cs-content';content.id=`cs-menu-content-${index}`;content.setAttribute('aria-live','polite');app.append(content);
+    const footer=document.createElement('footer');footer.className='cs-foot';footer.innerHTML='<span>HARDWARE · TALENTS · INSTINCTS</span><span>NO ACCOUNT DATA</span>';app.append(footer);
+    function render(){
+      app.dataset.density=design.density;app.style.setProperty('--cs-brass',design.accent);
+      nav.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.tab===state.tab)));
+      const selected=agents.find(a=>a[0]===state.agent);
+      if(state.tab==='Play')content.innerHTML=`<div class="cs-hero"><div><span class="cs-eyebrow">Operation / Gala</span><h2>Blend in.<br>Leave with the Package.</h2><div class="cs-modes" aria-label="Match mode">${['Solos','Duos'].map(mode=>`<button type="button" class="cursor-interaction" data-mode="${mode}" aria-pressed="${state.mode===mode}">${mode}</button>`).join('')}</div><button type="button" class="cs-primary cursor-interaction" data-agents>Review loadout →</button><p>Full 30-second selection window before deployment.</p></div><div class="cs-mark" aria-label="${selected[0]}, selected agent"><small>${selected[1].toUpperCase()}</small><span class="cs-monogram">${selected[2]}</span><span>${selected[0].toUpperCase()}</span></div></div>`;
+      else if(state.tab==='Agents')content.innerHTML=`<span class="cs-eyebrow">Personnel / Loadout preview</span><h2>Choose your cover story.</h2><div class="cs-grid">${agents.map(a=>`<button type="button" class="cs-agent cursor-interaction" data-agent="${a[0]}" aria-pressed="${state.agent===a[0]}"><span>${a[0]}</span><small>${a[1]}</small></button>`).join('')}</div><div class="cs-reference"><h3>${selected[0]}</h3><div class="cs-row"><span>Hardware</span><span>Talents</span><span>Instincts</span></div><p>One agent per team. Ownership and unlocks come from your profile.</p></div>`;
+      else if(state.tab==='Assets')content.innerHTML='<span class="cs-eyebrow">Field reference</span><h2>Find your advantage in the match.</h2><p>Assets are collected from caches and tiered-room safes.</p><div class="cs-row" style="margin-top:28px"><div class="cs-token">Field Agent<span>Common</span></div><div class="cs-token">Infiltrator<span>Uncommon</span></div><div class="cs-token">Black Ops<span>Rare</span></div><div class="cs-token">Ghost<span>Rarest</span></div></div><div class="cs-reference">Match perks · No permanent combat-power purchases</div>';
+      else if(state.tab==='Dossiers')content.innerHTML='<span class="cs-eyebrow">Non-expiring progression</span><h2>Your next assignment stays open.</h2><p>Match progress goes directly into your selected Dossier.</p><div class="cs-row" style="margin-top:28px"><div class="cs-token">Free track<span>Earnable rewards</span></div><div class="cs-token">Premium track<span>Cosmetic rewards</span></div></div><div class="cs-reference">Attire · Finishes · Takedown cosmetics</div>';
+      else if(state.tab==='Black Market')content.innerHTML='<span class="cs-eyebrow">Cosmetic catalogue</span><h2>Make an entrance.</h2><div class="cs-row" style="margin-top:28px"><div class="cs-token">Attire<span>Agent looks</span></div><div class="cs-token">Finishes<span>Weapon appearances</span></div><div class="cs-token">Takedowns<span>Confirmed finishers</span></div></div><div class="cs-reference">Daily rotation · Weekly featured bundle</div><p>Cosmetics stay hidden under a disguise.</p>';
+      else if(state.tab==='Profile')content.innerHTML='<span class="cs-eyebrow">Agent record</span><h2>Your career in the field.</h2><div class="cs-row" style="margin-top:28px"><div class="cs-token">Mastery<span>Agent progression</span></div><div class="cs-token">Calling card<span>Your presentation</span></div></div><div class="cs-reference">Match history and earned progress appear here when profile data is connected.</div>';
+      else content.innerHTML='<span class="cs-eyebrow">The Mint / Stocks</span><h2>Press your next impression.</h2><p>Stocks are used for Black Market cosmetics.</p><div class="cs-reference">Balances and purchases require the profile and commerce services.</div><div class="cs-modes"><button type="button" class="cursor-interaction" data-market>Back to Black Market</button></div>';
+    }
+    app.addEventListener('click',event=>{
+      const button=event.target.closest('button');if(!button||!app.contains(button))return;
+      if(button.dataset.tab)state.tab=button.dataset.tab;
+      else if(button.hasAttribute('data-mint'))state.tab='Mint';
+      else if(button.hasAttribute('data-market'))state.tab='Black Market';
+      else if(button.hasAttribute('data-agents'))state.tab='Agents';
+      else if(button.dataset.mode)state.mode=button.dataset.mode;
+      else if(button.dataset.agent)state.agent=button.dataset.agent;
+      else return;
+      render();
+      if(button.dataset.agent)app.querySelector(`[data-agent="${state.agent}"]`)?.focus({preventScroll:true});
+      else if(button.dataset.mode)app.querySelector(`[data-mode="${state.mode}"]`)?.focus({preventScroll:true});
+      else if(button.hasAttribute('data-agents')||button.hasAttribute('data-market'))nav.querySelector(`[data-tab="${state.tab}"]`)?.focus({preventScroll:true});
+      persist(state);
+    });
+    render();models.push({state,render});
+    if(globalThis.Tweak){const tweak=new Tweak({container:app,onChange:render});tweak.addSelect(design,'density',{label:'Spacing',options:['comfortable','compact']});tweak.addColorPicker(design,'accent',{label:'Map accent',reference:'--cs-brass'});}
+  });
+  window.addEventListener('openai:set_globals',event=>{const value=event.detail?.globals?.widgetState;const next=sanitize(value?.modelContent?.menu||value?.menu||defaultState);models.forEach(model=>{Object.assign(model.state,next);model.render();});});
+})();
+</script>

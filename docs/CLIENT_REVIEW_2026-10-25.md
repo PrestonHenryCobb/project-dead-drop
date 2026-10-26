@@ -469,3 +469,20 @@ How to test in Studio:
 Validation: native Studio passed twelve pooled highlights, 100 repeated refreshes, expiry, stream-out, overflow without allocation, unchanged model children and complete reset. StyLua/Selene/Rojo passed. Live opposing-team visual/life-state integration remains owner acceptance; the native fixture tests the actual effect module, not controller network callbacks.
 Known gaps: existing AlwaysOnTop shimmer rendering is preserved, so this does not change server visibility policy. Pool overload may shorten the oldest effect; it cannot reveal another target. No server/Remotes changes.
 SPEC-QUESTIONs: none. Ready for: remaining map-independent client HUD/menu work; next main gameplay-plan step remains Step 9c spectating.
+
+## Main-menu design preview (19-menu-structure, 2026-10-25)
+
+What I built:
+- docs/mockups/main-menu-review.html: two original Field notes layouts, Field desk (top navigation) and Agency rail (side navigation), with the approved Play/Agents/Assets/Dossiers/Black Market/Profile sections and Stocks -> Mint route.
+- Local mode/agent selection and saved preview state work without any game/account/network changes. No balances, ownership, prices, matchmaking, unlocks or reward grants are fabricated. The full 30-second selection rule, match-found Assets and non-expiring direct-progress Dossiers remain represented.
+- tools/check-menu-preview.cjs: isolated headless browser interaction/layout checks; docs/mockups/main-menu-review-desktop.png records the desktop design. No user browser profile is used.
+
+How to review:
+1. Open the inline menu preview and compare Field desk with Agency rail using its layout picker.
+2. Open each of the six sections; select Solos/Duos and a different agent, then return to Play. Confirm selections persist in the preview and controls remain keyboard-accessible.
+3. Open Stocks -> Mint and return to Black Market. This is a layout preview; no purchase or account request occurs.
+4. Choose the navigation layout before the production Roblox menu is integrated. Existing combat HUD and live game behavior are unchanged.
+
+Validation: browser assertions passed six sections, two layouts and widths 1024/736/360/320, with no runtime errors or horizontal overflow. Agent selection retained keyboard focus; persisted state and host state updates passed. Desktop rendering inspected. No Studio map/test interruption.
+Known gaps: this is a design preview under docs, not a playable lobby or shop. Production integration still needs the real lobby/profile/progression/commerce contracts; account values deliberately remain absent. Agent monograms are design stand-ins, not final character portraits. Map art is untouched.
+SPEC-QUESTIONs: menu navigation layout needs owner selection (Field desk or Agency rail). Ready for: owner menu-layout review, then contract-backed Step 19 integration; main gameplay-plan next step remains Step 9c spectating.
