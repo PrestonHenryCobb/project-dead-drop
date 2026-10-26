@@ -104,7 +104,8 @@ local function outfit(
 	shirt: Color3,
 	longSleeves: boolean,
 	pants: Color3,
-	accessories: { AccessoryDef }
+	accessories: { AccessoryDef },
+	scale: { Height: number, Width: number, Depth: number, Head: number }?
 ): OutfitDef
 	return {
 		OutfitId = string.format("%s%02d", role, index + 1),
@@ -116,7 +117,7 @@ local function outfit(
 		Accessories = accessories,
 		Hair = { Style = pick(HAIR_STYLES, index, 3), Color = pick(HAIR_COLORS, index, 5) },
 		Face = "Default",
-		Scale = scaleFor(index),
+		Scale = scale or scaleFor(index),
 	}
 end
 
@@ -171,7 +172,31 @@ local builders: { [Role]: (number) -> OutfitDef } = {
 			{ Kind = "LapelPin", Color = gold },
 		})
 	end,
+	-- The Tier 4 NPCs wear crimson with gold (one outfit each, so a scan copies exactly it).
+	Warden = function(index)
+		local crimson = tierColors[Enums.Tier.Sanctum]
+		local gold = tierColors[Enums.Tier.Executive]
+		return outfit("Warden", Enums.Tier.Sanctum, index, crimson, true, BLACK, {
+			{ Kind = "Tie", Color = gold },
+			{ Kind = "Lapels", Color = gold },
+			{ Kind = "LapelPin", Color = gold },
+			{ Kind = "Sunglasses", Color = BLACK },
+		}, rig.WardenScale)
+	end,
+	Curator = function(index)
+		local crimson = tierColors[Enums.Tier.Sanctum]
+		local gold = tierColors[Enums.Tier.Executive]
+		return outfit("Curator", Enums.Tier.Sanctum, index, BLACK, true, crimson, {
+			{ Kind = "Tie", Color = gold },
+			{ Kind = "Lapels", Color = crimson },
+			{ Kind = "PocketSquare", Color = gold },
+			{ Kind = "LapelPin", Color = gold },
+		})
+	end,
 }
+
+-- Roles with a single outfit (the Tier 4 NPCs); every other role has OUTFITS_PER_ROLE.
+local SINGLE_OUTFIT: { [string]: boolean } = { Warden = true, Curator = true }
 
 local byId: { [string]: OutfitDef } = {}
 local byRole: { [Role]: { OutfitDef } } = {}
@@ -179,20 +204,23 @@ local byRole: { [Role]: { OutfitDef } } = {}
 for role in Enums.Role do
 	local build = builders[role :: Role]
 	local list: { OutfitDef } = {}
-	for index = 0, OUTFITS_PER_ROLE - 1 do
+	local single = SINGLE_OUTFIT[role]
+	for index = 0, (if single then 1 else OUTFITS_PER_ROLE) - 1 do
 		local def = build(index)
 		assert(not byId[def.OutfitId], `Duplicate outfit id {def.OutfitId}`)
+		-- Tier 4 is the one exception to the size ranges (SPEC_CHANGES 8.2)
 		assert(
-			inRange(def.Scale.Height, rig.HeightScaleMin, rig.HeightScaleMax)
-				and inRange(def.Scale.Width, rig.WidthScaleMin, rig.WidthScaleMax)
-				and inRange(def.Scale.Depth, rig.WidthScaleMin, rig.WidthScaleMax),
+			def.Tier == Enums.Tier.Sanctum
+				or inRange(def.Scale.Height, rig.HeightScaleMin, rig.HeightScaleMax)
+					and inRange(def.Scale.Width, rig.WidthScaleMin, rig.WidthScaleMax)
+					and inRange(def.Scale.Depth, rig.WidthScaleMin, rig.WidthScaleMax),
 			"Outfit scale out of range"
 		)
 		byId[def.OutfitId] = def
 		table.insert(list, def)
 	end
 	assert(
-		#list >= GameConfig.NPC.MinOutfitsPerRole,
+		single or #list >= GameConfig.NPC.MinOutfitsPerRole,
 		`Role {role} needs at least {GameConfig.NPC.MinOutfitsPerRole} outfits`
 	)
 	byRole[role :: Role] = list

@@ -7,7 +7,7 @@ export type CoverState = "Covered" | "Suspicious" | "Exposed"
 
 export type Mode = "Squads" | "Duos" | "Solos"
 
-export type Role = "Guest" | "Staff" | "Security" | "Executive"
+export type Role = "Guest" | "Staff" | "Security" | "Executive" | "Warden" | "Curator"
 
 export type Tier = number -- 0 Public, 1 Staff, 2 Security, 3 Executive
 

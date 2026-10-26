@@ -243,10 +243,18 @@ local GameConfig = {
 			Executive = { [0] = 0.6, [1] = 0.3, [2] = 1, [3] = 4 },
 		},
 		-- Highest tier each role may stand in (it may also use tier 0).
-		RoleMaxTier = { Guest = 0, Staff = 1, Security = 2, Executive = 3 },
+		RoleMaxTier = { Guest = 0, Staff = 1, Security = 2, Executive = 3, Warden = 4, Curator = 4 },
+		-- The two Tier 4 NPCs (SPEC_CHANGES 2026-10-25): one each, on top of RoleCounts. Each stays in its Rooms (a room and
+		-- the rooms inside it) and rides only the glass elevators that are not locked, if Elevators is set.
+		Tier4 = {
+			Warden = { Rooms = { "s_foyer", "s_stairhead", "s_ter_w", "s_ter_e", "r_summit" }, Elevators = false },
+			Curator = { Rooms = { "t_great", "t_gallery", "r_summit", "r_deck" }, Elevators = true },
+			-- Downing one raises the alarm by this much (the alarm itself is a later step) and exposes the shooter.
+			DownedAlarmRaise = 2,
+		},
 		-- Walk speed per role, in studs/s. A disguised agent's speed is capped to their disguise's role (spec 6.8).
 		-- SPEC-QUESTION: the spec gives Guest 10 and Staff 12 only. Security and Executive use 10 until it says more.
-		WalkSpeed = { Guest = 10, Staff = 12, Security = 10, Executive = 10 },
+		WalkSpeed = { Guest = 10, Staff = 12, Security = 10, Executive = 10, Warden = 10, Curator = 10 },
 		MinOutfitsPerRole = 20,
 		MaxHP = 50,
 		ServerTickHz = 10, -- 25.4: server moves NPC roots along paths at 10 Hz, clients interpolate
@@ -1079,6 +1087,8 @@ local GameConfig = {
 		HeightScaleMax = 1.15,
 		WidthScaleMin = 0.8, -- width and depth share this range
 		WidthScaleMax = 0.9,
+		-- SPEC_CHANGES 8.2: the Warden (Tier 4) is the one exception to the ranges above; a scan copies it.
+		WardenScale = { Height = 1.25, Width = 1.05, Depth = 1.05, Head = 1 },
 		-- Spec 8.2: players and NPCs share one collision group. NPCs have an anchored root, so if characters
 		-- collided with each other a shove would move a player but not an NPC, which is a tell. Characters pass
 		-- through each other instead, and still collide with the map.

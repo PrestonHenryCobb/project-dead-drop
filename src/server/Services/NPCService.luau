@@ -151,6 +151,8 @@ local function overloaded(chain: { NavGraph.Edge }): boolean
 	return false
 end
 
+local putOffs = 0 -- trips put off because a door or stair on the way was full (reported with the tick cost)
+
 local function startTrip(npc: Npc, now: number, graph: NavGraph.Graph)
 	local destination, legs, chain = NavGraph.tripRoute(
 		graph,
@@ -159,13 +161,15 @@ local function startTrip(npc: Npc, now: number, graph: NavGraph.Graph)
 		config.MinTripStuds,
 		isFree(graph),
 		rng,
-		tierWeight(npc.role, graph)
+		if npc.limits then nil else tierWeight(npc.role, graph),
+		npc.limits
 	)
 	if not destination or not legs or not chain then
 		npc.idleUntil = now + config.ActivitySeconds.Min
 		return
 	end
 	if overloaded(chain) then
+		putOffs += 1
 		-- A door or stair on the way is full: wait a moment, then choose again.
 		npc.idleUntil = now + rng:NextNumber(config.Capacity.RetrySeconds.Min, config.Capacity.RetrySeconds.Max)
 		return
@@ -227,6 +231,9 @@ local function beginWait(npc: Npc, now: number)
 	npc.moveSpeed = 0
 	AnimationSync.set(npc, "")
 	ElevatorService.call(ride.shaft, ride.fromY)
+	if GameConfig.Debug.PrintEvents then
+		print(`[NPCService] {npc.role} {npc.id} waits for {ride.shaft} at {ride.fromY}, going to {ride.toY}`)
+	end
 end
 
 -- No cab came: go back to the node the trip began at and choose again.
@@ -249,6 +256,7 @@ local function revive(npc: Npc)
 		local offset = graph.feet[node] - npc.ground
 		if
 			graph.tiers[node] <= npc.maxTier
+			and (not npc.limits or not npc.limits.nodeOk or npc.limits.nodeOk(node))
 			and math.abs(offset.Y) < config.Graph.SupportWindow.Above
 			and #graph.edges[node] > 0
 		then
@@ -308,6 +316,9 @@ local function update(npc: Npc, dt: number, now: number, graph: NavGraph.Graph)
 			if ElevatorService.arrived(ride.shaft, npc) then
 				npc.riding = nil
 				npc.ground = ride.arrival
+				if GameConfig.Debug.PrintEvents then
+					print(`[NPCService] {npc.role} {npc.id} got out of {ride.shaft} at {ride.toY}`)
+				end
 				local points = table.clone(ride.exit)
 				local nextLeg = table.remove(npc.legs, 1) :: NavGraph.Leg
 				for index = 2, #nextLeg.points do
@@ -345,7 +356,13 @@ local function update(npc: Npc, dt: number, now: number, graph: NavGraph.Graph)
 end
 
 -- Builds an NPC of a role standing at a node.
-local function createNpc(role: Types.Role, node: number, graph: NavGraph.Graph, now: number): Npc
+local function createNpc(
+	role: Types.Role,
+	node: number,
+	graph: NavGraph.Graph,
+	now: number,
+	limits: NavGraph.Limits?
+): Npc
 	local maxTier = config.RoleMaxTier[role]
 	claim(node)
 	local ground = spreadAround(graph, node, maxTier)
@@ -360,6 +377,7 @@ local function createNpc(role: Types.Role, node: number, graph: NavGraph.Graph, 
 		role = role,
 		outfit = outfit,
 		maxTier = maxTier,
+		limits = limits,
 		hp = config.MaxHP,
 		baseSpeed = speed,
 		speed = speed,
@@ -411,6 +429,41 @@ local function freeNodes(graph: NavGraph.Graph, maxTier: number): { number }
 	return options
 end
 
+-- The Warden and the Curator (SPEC_CHANGES 2026-10-25): one each, in their own rooms only. A trip may go only through
+-- nodes of those rooms (and rooms inside them), and by the elevators the role may ride that are not locked.
+local function limitsFor(graph: NavGraph.Graph, role: "Warden" | "Curator"): NavGraph.Limits
+	local settings = config.Tier4[role]
+	local inRooms: { [string]: boolean } = {}
+	for _, room in settings.Rooms do
+		inRooms[room] = true
+	end
+	return {
+		nodeOk = function(node: number): boolean
+			return inRooms[graph.rooms[node]] == true
+		end,
+		shaftOk = function(shaft: string): boolean
+			return settings.Elevators and not ElevatorService.isLocked(shaft)
+		end,
+	}
+end
+
+local function spawnTier4(graph: NavGraph.Graph, now: number)
+	for _, role in { "Warden", "Curator" } :: { "Warden" | "Curator" } do
+		local limits = limitsFor(graph, role)
+		local options: { number } = {}
+		for node = 1, #graph.feet do
+			if (limits.nodeOk :: (number) -> boolean)(node) and #graph.edges[node] > 0 then
+				table.insert(options, node)
+			end
+		end
+		if #options == 0 then
+			warn(`[NPCService] No node in the rooms of the {role}; it is not spawned`)
+			continue
+		end
+		createNpc(role, options[rng:NextInteger(1, #options)], graph, now, limits)
+	end
+end
+
 local function spawnAll(graph: NavGraph.Graph)
 	local now = os.clock()
 	for role, count in config.RoleCounts do
@@ -420,9 +473,10 @@ local function spawnAll(graph: NavGraph.Graph)
 				warn(`[NPCService] No free node left for a {role} NPC`)
 				break
 			end
-			createNpc(role :: Types.Role, node, graph, now)
+			createNpc(role :: Types.Role, node, graph, now, nil)
 		end
 	end
+	spawnTier4(graph, now)
 end
 
 local witnessList: { CoverService.Witness } = {}
@@ -544,14 +598,31 @@ local function tick(dt: number)
 						awake += 1
 					end
 				end
+				for _, npc in npcs do
+					if npc.limits then
+						print(
+							string.format(
+								"[NPCService] %s %s: %s in %s at %.0f, %.0f, %.0f",
+								npc.role,
+								npc.id,
+								npc.state,
+								current.graph.rooms[npc.node],
+								npc.ground.X,
+								npc.ground.Y,
+								npc.ground.Z
+							)
+						)
+					end
+				end
 				print(
 					string.format(
-						"[NPCService] %d NPCs (%d awake): tick avg %.3f ms, max %.3f ms (%d ticks)",
+						"[NPCService] %d NPCs (%d awake): tick avg %.3f ms, max %.3f ms (%d ticks), %d trips put off",
 						#npcs,
 						awake,
 						tickTotal / tickCount,
 						tickMax,
-						tickCount
+						tickCount,
+						putOffs
 					)
 				)
 			end

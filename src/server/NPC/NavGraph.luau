@@ -51,6 +51,10 @@ export type Edge = {
 -- One stretch of a trip: points to walk, then (if it ends at an elevator) the ride to take.
 export type Leg = { points: { Vector3 }, ride: Ride? }
 
+-- Where a trip may go beyond the clearance: the Warden and the Curator stay in their own rooms and may ride only some
+-- shafts.
+export type Limits = { nodeOk: ((number) -> boolean)?, shaftOk: ((string) -> boolean)? }
+
 export type Graph = {
 	feet: { Vector3 }, -- ground position under each node
 	tiers: { number }, -- the stricter of the node's authored Tier and the zone it stands in
@@ -236,8 +240,17 @@ end
 
 -- Shortest walking distance from one node to every node it can reach, using only nodes and links whose tier is at
 -- most maxTier. A linear-scan Dijkstra: the graph has a few hundred nodes and searches are rare.
-local function search(graph: Graph, from: number, maxTier: number, rides: boolean, crowded: boolean): Search
+local function search(
+	graph: Graph,
+	from: number,
+	maxTier: number,
+	rides: boolean,
+	crowded: boolean,
+	limits: Limits?
+): Search
 	local count = #graph.feet
+	local nodeOk = if limits then limits.nodeOk else nil
+	local shaftOk = if limits then limits.shaftOk else nil
 	local found: Search = {
 		distance = table.create(count, math.huge),
 		via = table.create(count, false),
@@ -258,7 +271,14 @@ local function search(graph: Graph, from: number, maxTier: number, rides: boolea
 		end
 		done[current] = true
 		for _, edge in graph.edges[current] do
-			if edge.maxTier <= maxTier and graph.tiers[edge.to] <= maxTier and (rides or edge.ride == nil) then
+			local ride = edge.ride
+			if
+				edge.maxTier <= maxTier
+				and graph.tiers[edge.to] <= maxTier
+				and (rides or ride == nil)
+				and (not nodeOk or nodeOk(edge.to))
+				and (not ride or not shaftOk or shaftOk(ride.shaft))
+			then
 				local candidate = best + cost(edge, crowded)
 				if candidate < found.distance[edge.to] then
 					found.distance[edge.to] = candidate
@@ -376,9 +396,10 @@ function NavGraph.tripRoute(
 	minTrip: number,
 	isFree: (number) -> boolean,
 	rng: Random,
-	weightOf: ((number) -> number)?
+	weightOf: ((number) -> number)?,
+	limits: Limits?
 ): (number?, { Leg }?, { Edge }?)
-	local found = search(graph, from, maxTier, true, true)
+	local found = search(graph, from, maxTier, true, true, limits)
 	local destination = pick(graph, found, from, minTrip, isFree, rng, weightOf)
 	if not destination then
 		return nil, nil, nil

@@ -209,6 +209,12 @@ function ElevatorService.Start()
 	RunService.Heartbeat:Connect(step)
 end
 
+-- True while a shaft is locked (the Sanctum elevator until its terminals are hacked): no cab comes.
+function ElevatorService.isLocked(shaftId: string): boolean
+	local shaft = shafts[shaftId]
+	return shaft == nil or shaft.locked
+end
+
 function ElevatorService.call(shaftId: string, y: number)
 	local shaft = shafts[shaftId]
 	local stop = if shaft then stopAt(shaft, y) else nil

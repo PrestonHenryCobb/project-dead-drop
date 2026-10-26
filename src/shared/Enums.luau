@@ -36,6 +36,8 @@ local Enums = {
 		Staff = "Staff",
 		Security = "Security",
 		Executive = "Executive",
+		Warden = "Warden", -- Tier 4 (relayout-2): one NPC, stays in the Sanctum
+		Curator = "Curator", -- Tier 4 (relayout-2): one NPC, walks the penthouse galleries and the Sanctum's roof
 	},
 
 	-- Spec 4.2: clearance tiers. The Tier attribute on zones, nodes and outfits uses these numbers.

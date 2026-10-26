@@ -52,7 +52,7 @@ changes); build plan in `docs/BUILD_ORDER.md`.
   designing the new Talents and Instincts before Step 16 (brief Q8); confirming the proposed file ownership in `.ai-sync/AI_SYNC_STATE.md`.
 - **Two agents:** Claude Code and Codex share this folder. Codex reads `AGENTS.md`; both use `.ai-sync/` for locks and tickets.
 
-- **Gala re-layout (2026-10-25):** Phase 1 (the new layout, `Relayout.luau`, generated from the plan; self-check 0 problems) is built and waiting for the owner's review. Phase 2 (NPC rework) and the art re-pass wait for that review. See `docs/MAP_PLAN_RELAYOUT.md` section 10 and `.ai-sync/TASK_QUEUE.md`.
+- **Gala re-layout (2026-10-25):** Phase 1 (the new layout, `Relayout.luau`, generated from the plan; self-check 0 problems) is built and waiting for the owner's review. Phase 2 (NPC rework: authored routes, capacity, clusters, tiered updates, elevators, 60-second wake-up, the Warden and the Curator) is built and playtested in Studio (ticket `relayout-2`, READY_FOR_REVIEW); the art re-pass waits for the owner's approval of the layout. See `docs/MAP_PLAN_RELAYOUT.md` section 10 and `.ai-sync/TASK_QUEUE.md`.
 
 ## Names
 The six agents are **Guise, Parapet, Lattice, Reticle, Suture, Feint** (the spec file still has Vesper, Halden, Juno,
