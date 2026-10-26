@@ -3,14 +3,14 @@
 --
 -- NPCs are not killed outright. They go down under the same rules as a downed player (spec 14.1): they drag
 -- themselves away from the shot at Death.CrawlSpeed and bleed out after Downed.BleedOutSeconds, so a downed NPC and a
--- downed player look the same. A bled-out NPC lies still for CorpseSeconds, fades and is removed, and a replacement
--- of the same role appears ReplacementSeconds later at a node far from the body.
+-- downed player look the same. A bled-out NPC lies still until WakeUp.Seconds after it went down, then stands up slowly
+-- (the knockdown run backward) and goes back to its routine: nothing fades and nothing replaces it, so the crowd does not
+-- thin (relayout-2, owner decision 2026-10-25). A body that stands up is always an NPC, because a player's body fades.
 --
 -- Bodies, downed or bled out, are what other NPCs react to (spec 5.4), so this keeps a list of them for the
 -- reaction module. Downed and eliminated players are added too (DownedService), so NPCs react to any body alike.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 
 local GameConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("GameConfig"))
 local AnimationSync = require(script.Parent.AnimationSync)
@@ -42,7 +42,7 @@ local rayParams = RaycastParams.new()
 rayParams.CollisionGroup = GameConfig.Rig.CollisionGroup -- characters do not collide with each other, so rays skip them
 
 function Death.isDown(npc: Npc): boolean
-	return npc.state == "Downed" or npc.state == "Eliminated"
+	return npc.state == "Downed" or npc.state == "Eliminated" or npc.state == "Rising"
 end
 
 -- A short crawl directly away from where the shot came from (any direction if there was none), cut short by walls.
@@ -76,6 +76,7 @@ function Death.down(crowd: Crowd, npc: Npc, awayFrom: Vector3?, now: number)
 	npc.fall = Knockdown.classify(facing, npc.ground, awayFrom)
 	npc.posture = Knockdown.posture(npc.fall)
 	npc.yaw = Knockdown.lyingYaw(npc.fall, npc.yaw)
+	npc.downedAt = now
 	npc.knockUntil = now + GameConfig.Downed.Knockdown.Seconds
 	npc.state = "Downed"
 	npc.stateUntil = now + GameConfig.Downed.BleedOutSeconds
@@ -93,23 +94,6 @@ function Death.down(crowd: Crowd, npc: Npc, awayFrom: Vector3?, now: number)
 			return npc.ground
 		end,
 	})
-end
-
-local function fadeAndRemove(body: Body, hooks: Hooks)
-	local info = TweenInfo.new(config.Death.FadeSeconds)
-	for _, descendant in body.model:GetDescendants() do
-		if descendant:IsA("BasePart") then
-			TweenService:Create(descendant, info, { Transparency = 1 }):Play()
-		end
-	end
-	task.delay(config.Death.FadeSeconds, function()
-		local index = table.find(Death.bodies, body)
-		if index then
-			table.remove(Death.bodies, index)
-		end
-		hooks.remove(body.npc :: Npc)
-		body.model:Destroy()
-	end)
 end
 
 -- A downed or eliminated player's body (DownedService), so NPCs react to it as to any other.
@@ -133,8 +117,43 @@ function Death.execute(npc: Npc, now: number)
 	end
 end
 
--- Moves a downed NPC on: crawling while it has path left, then bleeding out.
+-- The NPC is on its feet again: its body is no longer a body, and the crowd gives it a node and a routine.
+local function stand(npc: Npc, now: number, hooks: Hooks)
+	for index, body in Death.bodies do
+		if body.npc == npc then
+			table.remove(Death.bodies, index)
+			break
+		end
+	end
+	npc.hp = config.MaxHP
+	npc.state = "Idle"
+	npc.offset = Vector3.zero
+	npc.path = nil
+	npc.moveSpeed = 0
+	npc.speed = npc.baseSpeed
+	npc.idleUntil = now
+	npc.reactedTo = {}
+	AnimationSync.set(npc, "")
+	hooks.revive(npc)
+end
+
+-- Moves a downed NPC on: crawling while it has path left, bleeding out, lying, then (WakeUp.Seconds after it went down)
+-- getting up and standing.
 function Death.update(npc: Npc, dt: number, now: number, hooks: Hooks)
+	if npc.state == "Rising" then
+		if now >= npc.stateUntil then
+			stand(npc, now, hooks)
+		end
+		return
+	end
+	if npc.state == "Eliminated" then
+		if now >= npc.downedAt + config.WakeUp.Seconds then
+			npc.state = "Rising"
+			npc.stateUntil = now + config.WakeUp.RiseSeconds
+			AnimationSync.set(npc, Knockdown.animation("Rise", npc.fall, npc.posture))
+		end
+		return
+	end
 	if npc.state ~= "Downed" then
 		return
 	end
@@ -152,14 +171,6 @@ function Death.update(npc: Npc, dt: number, now: number, hooks: Hooks)
 	npc.state = "Eliminated"
 	npc.path = nil
 	AnimationSync.set(npc, Knockdown.animation("Dead", npc.fall, npc.posture))
-	local role, position = npc.role, npc.ground
-	for _, body in Death.bodies do
-		if body.npc == npc then
-			task.delay(config.CorpseSeconds, fadeAndRemove, body, hooks)
-			break
-		end
-	end
-	task.delay(config.ReplacementSeconds, hooks.replace, role, position)
 end
 
 return Death

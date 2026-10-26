@@ -88,7 +88,7 @@ const EXTRA = [
 	["M", "m_restroom", "Gallery restrooms", 0, "indoor", [-125, -84, -105, -60], "m_gallery", {}],
 	["M", "wm_restroom", "Hotel restrooms", 0, "indoor", [260, 40, 280, 60], "wm_lobby", {}],
 	["T", "t_washroom", "Guard washroom", 2, "indoor", [70, 78, 90, 100], "t_east", {}],
-	["S", "s_stairhead", "Executive stair head", 4, "indoor", [-33, -70, -5, -50], "s_foyer", {}],
+	["S", "s_stairhead", "Executive stair head", 4, "indoor", [-40, -60, 5, -50], "s_foyer", {}],
 ];
 for (const [level, id, name, tier, kind, rect, parent, o] of EXTRA) addRoom({ id, level, name, tier, kind, rect: R(rect), parent, nested: true, ...o });
 
@@ -101,13 +101,12 @@ const PROPS = {
 	g_bar: ["bar", "tables"], g_dining: ["tables"], g_kitchen: ["islands"], g_pantry: ["islands"], g_library: ["tables"],
 	g_lobby: ["reception", "pillars"], g_lounge: ["tables"], wg_casino: ["pillars", "tables"], wg_entry: ["reception"], wg_cage: ["desks"],
 	wg_highroller: ["tables"], g_privdining: ["tables"],
-	m_balcony: ["planters"], m_gallery: ["partitions"], m_ball_gal: ["tables"], m_bridge_hall: ["planters"], m_bar_loft: ["tables"],
-	m_offices: ["desks"], m_hub: ["desks"], m_catering: ["desks"], m_wine: ["tables"], m_stairhall: ["planters"], m_cigar: ["tables"],
-	m_ter_n: ["planters"], m_ter_s: ["planters"], m_ter_w: ["planters"], m_ter_e: ["planters"],
+	m_gallery: ["partitions"], m_ball_gal: ["tables"], m_bar_loft: ["tables"],
+	m_offices: ["desks"], m_hub: ["desks"], m_catering: ["desks"], m_wine: ["tables"], m_cigar: ["tables"],
 	wm_lobby: ["reception"], wm_bar: ["bar", "tables"], wm_housekeeping: ["crates"],
 	t_ter_n: ["planters", "trees"], t_ter_s: ["planters", "trees"], t_ter_w: ["planters", "tables", "trees"], t_ter_e: ["planters", "tables", "trees"],
 	t_west: ["pillars"], t_east: ["pillars"], t_gallery: ["vitrines"], t_vaultb_ante: ["vitrines"],
-	wt_arcade: ["planters"], wt_suite1: ["tables"], wt_suite2: ["tables"], wt_suite3: ["tables"], wt_suite4: ["tables"], wt_suite5: ["tables"],
+	wt_suite1: ["tables"], wt_suite2: ["tables"], wt_suite3: ["tables"], wt_suite4: ["tables"], wt_suite5: ["tables"],
 	wt_terrace: ["trees", "planters", "tables"], r_deck: ["tables", "planters", "bar"], wr_garden: ["trees", "planters", "bar"], wd_skydeck: ["planters"],
 };
 const DENSITY = {
@@ -189,7 +188,7 @@ const COST = { 1: 3, 2: 6, 3: 8 }; // Staff, Security, Executive (the plan's doo
 // Doors the build moves off the middle of their wall so a stair can stand beside them: "a|b" (sorted) -> position along the wall.
 const DOOR_AT = { "m_hub|m_offices": -145, "wt_arcade|wt_suite1": -78, "wr_garden|wr_plant": -25, "m_hub|m_records": 15, "m_balcony|m_catering": 68, "s_foyer|s_sanctum": 4, "b_camera|b_gate": -145, "b_barracks|b_gate": -145, "g_kitchen|g_service_n": -50, "m_balcony|m_gallery": -45, "r_deck|r_summit": 8, "g_coat|g_concierge": -80, "g_coat|g_library": -80, "m_gallery|m_wine": -80 };
 // Which wall a door uses when two rooms share several: "a|b" (sorted) -> { axis, line }.
-const DOOR_PREF = { "r_deck|r_summit": { axis: "x", line: -50 } };
+const DOOR_PREF = { "r_deck|r_summit": { axis: "x", line: -50 }, "r_deck|r_plant": { axis: "z", line: 55 } };
 const doors = []; // { a, b, at, line, width, gate, arch, laser, core, cost, package, keycardOnly, level, axis, ... }
 const pendingDoors = [];
 function wantDoor(d) { pendingDoors.push(d); }
@@ -209,7 +208,7 @@ const EXTRA_DOORS = [
 	["g_restroom", "g_lobby", 6, { side: "n" }], ["g_staffwc", "g_pantry", 6, { side: "e" }], ["g_coldstore", "g_kitchen", 8, { side: "e" }],
 	["g_privdining", "g_dining", 10, { side: "e" }], ["g_stockroom", "g_bar", 8, { side: "w" }], ["g_humidor", "g_lounge", 8, { side: "w" }],
 	["wg_restroom", "wg_casino", 6, { side: "w" }], ["wg_cardroom", "wg_casino", 10, { side: "e" }], ["m_restroom", "m_gallery", 6, { side: "s" }],
-	["wm_restroom", "wm_lobby", 6, { side: "w" }], ["t_washroom", "t_east", 6, { side: "w" }], ["s_stairhead", "s_foyer", 6, { side: "e", gate: 4, role: "stairhead", at: -66 }],
+	["wm_restroom", "wm_lobby", 6, { side: "w" }], ["t_washroom", "t_east", 6, { side: "w" }], ["s_stairhead", "s_foyer", 6, { side: "e", gate: 4, role: "stairhead", at: -55 }],
 ];
 for (const [a, b, width, o] of EXTRA_DOORS) {
 	const tierA = room(a).tier, tierB = room(b).tier;
@@ -468,6 +467,49 @@ for (const d of doors) reserveDoorClear(d);
 function reserveDoorClear(d) { /* door clearances are read from `doors` directly by freeOf */ }
 for (const S of STAIRS) { flushPieces(); placeStair(S); }
 flushPieces();
+
+// ---------------------------------------------------------------- crowd clusters
+// Authored groups the crowd gathers in (the bar front, the dance floor, the tables, the roof party): the plan's hubs, as
+// places. Each is a 20 x 20 patch of free floor inside its room, nearest the hint; props keep off it; NPCs at it face `face`.
+const CLUSTER_RADIUS = 10;
+const CLUSTERS = [
+	{ id: "bar_front", room: "g_bar", hint: [107, 46], size: 12, activity: "Drink", face: [107, 32] },
+	{ id: "ballroom_floor", room: "g_ballroom", hint: [107, -30], size: 12, activity: "Talk", face: "centre" },
+	{ id: "ballroom_corner", room: "g_ballroom", hint: [125, -70], size: 8, activity: "Talk", face: "centre" },
+	{ id: "atrium_pond_w", room: "g_atrium", hint: [-36, 6], size: 10, activity: "Talk", face: [0, 6] },
+	{ id: "atrium_pond_e", room: "g_atrium", hint: [32, -40], size: 8, activity: "Talk", face: [0, 6] },
+	{ id: "gallery_w", room: "g_gallery", hint: [-110, -45], size: 8, activity: "Idle", face: "centre" },
+	{ id: "gallery_e", room: "g_gallery", hint: [-110, -5], size: 8, activity: "Idle", face: "centre" },
+	{ id: "lobby", room: "g_lobby", hint: [-35, 118], size: 8, activity: "Talk", face: "centre" },
+	{ id: "dining", room: "g_dining", hint: [-100, -125], size: 10, activity: "Talk", face: "centre" },
+	{ id: "casino_a", room: "wg_casino", hint: [200, 25], size: 12, activity: "Talk", face: "centre" },
+	{ id: "casino_b", room: "wg_casino", hint: [240, 55], size: 12, activity: "Talk", face: "centre" },
+	{ id: "casino_c", room: "wg_casino", hint: [200, 80], size: 10, activity: "Talk", face: "centre" },
+	{ id: "hotel_lobby", room: "wm_lobby", hint: [200, 20], size: 8, activity: "Talk", face: "centre" },
+	{ id: "sky_bar", room: "wm_bar", hint: [215, 95], size: 10, activity: "Drink", face: "centre" },
+	{ id: "roof_party_w", room: "r_deck", hint: [-66, -30], size: 12, activity: "Talk", face: "centre" },
+	{ id: "roof_party_s", room: "r_deck", hint: [-25, 70], size: 12, activity: "Drink", face: "centre" },
+	{ id: "roof_garden", room: "wr_garden", hint: [240, 60], size: 10, activity: "Talk", face: "centre" },
+	{ id: "balcony_w", room: "m_balcony", hint: [-55, -20], size: 8, activity: "Talk", face: "centre" },
+];
+const clustersOut = [];
+for (const C of CLUSTERS) {
+	const rm = room(C.room);
+	let best = null;
+	for (let x = rm.rect.x1; x <= rm.rect.x2; x += 1) for (let z = rm.rect.z1; z <= rm.rect.z2; z += 1) {
+		const box = { x1: x - CLUSTER_RADIUS, z1: z - CLUSTER_RADIUS, x2: x + CLUSTER_RADIUS, z2: z + CLUSTER_RADIUS };
+		const d = Math.hypot(x - C.hint[0], z - C.hint[1]);
+		if (best && d >= best.d) continue;
+		if (!insideOneRoom(rm.level, box, [C.room])) continue;
+		if (!freeOf(rm.level, box)) continue;
+		best = { x, z, d };
+	}
+	if (!best) { bad(`cluster ${C.id}: no 20 x 20 patch of free floor in ${C.room}`); continue; }
+	const box = { x1: best.x - CLUSTER_RADIUS, z1: best.z - CLUSTER_RADIUS, x2: best.x + CLUSTER_RADIUS, z2: best.z + CLUSTER_RADIUS };
+	reserve(rm.level, box, "cluster " + C.id);
+	const face = C.face === "centre" ? [best.x, best.z] : C.face;
+	clustersOut.push({ id: C.id, room: C.room, level: rm.level, x: best.x, z: best.z, size: C.size, activity: C.activity, faceX: face[0], faceZ: face[1] });
+}
 
 // ---------------------------------------------------------------- ladders, vents, secret exits, terminals, printers
 const ladders = [
@@ -760,6 +802,11 @@ push(`placeIntel(2, { ${PLACE.intel2.map(q).join(", ")} })`);
 push(`placeIntel(3, { ${PLACE.intel3.map(q).join(", ")} })`);
 for (const [k, kind] of [["health", "health"], ["ammo", "ammo"], ["food", "food"], ["safeStaff", "safe"], ["safeSec", "safe"], ["safeExec", "safe"], ["cache", "cache"], ["camera", "camera"]]) push(`place(${q(kind)}, { ${PLACE[k].map(q).join(", ")} })`);
 push("");
+push("-- Crowd clusters: authored groups at the hubs (id, room, centre, how many NPCs, what they do, what they face).");
+push("local clusters: { Layout.Cluster } = {");
+for (const c of clustersOut) push(`	{ id = ${q(c.id)}, room = ${q(c.room)}, level = ${q(c.level)}, x = ${c.x}, z = ${c.z}, size = ${c.size}, activity = ${q(c.activity)}, faceX = ${c.faceX}, faceZ = ${c.faceZ} },`);
+push("}");
+push("");
 push("local ziplines: { Layout.Zipline } = {");
 for (const z of ziplines) push(`\t{ id = ${q(z.id)}, top = { level = ${q(z.top.level)}, x = ${z.top.x}, z = ${z.top.z}, mast = ${z.top.mast} }, bottom = { level = ${q(z.bottom.level)}, x = ${z.bottom.x}, z = ${z.bottom.z}, mast = ${z.bottom.mast} } },`);
 push("}");
@@ -829,6 +876,7 @@ push("\tgondola = gondola,");
 push("\tnodes = nodes,");
 push("\tsignposts = signposts,");
 push("\tsecretExits = secretExits,");
+push("	clusters = clusters,");
 push("\tshafts = shafts,");
 push("\tladders = ladders,");
 push("\tcounts = counts,");

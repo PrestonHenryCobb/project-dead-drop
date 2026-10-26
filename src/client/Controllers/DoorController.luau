@@ -78,7 +78,7 @@ end
 function DoorController.Init() end
 
 function DoorController.Start()
-	for _, tagName in { Enums.Tag.ClearanceDoor, Enums.Tag.KeycardDoor } do
+	for _, tagName in { Enums.Tag.ClearanceDoor, Enums.Tag.KeycardDoor, Enums.Tag.ElevatorDoor, Enums.Tag.PackageDoor } do
 		for _, instance in CollectionService:GetTagged(tagName) do
 			add(instance)
 		end

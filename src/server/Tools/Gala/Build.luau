@@ -347,7 +347,11 @@ local function subtractIntervals(a: number, b: number, covered: { { number } }):
 	return free
 end
 
-function Build.run(options: { layout: string?, dryRun: boolean? }?)
+function Build.run(options: {
+	layout: string?,
+	dryRun: boolean?,
+	gridReport: { level: string, x1: number, z1: number, x2: number, z2: number }?,
+}?)
 	local dryRun = options ~= nil and options.dryRun == true
 	-- Both layouts are plain tables of the same shape (Layout.luau has the types); the original one lacks the re-layout's
 	-- extra lists, so those are read with a fallback below.
@@ -656,7 +660,6 @@ function Build.run(options: { layout: string?, dryRun: boolean? }?)
 	end
 
 	-- Doors --------------------------------------------------------------------------------------------------------------------
-	local doorPoints: { { level: string, x: number, z: number, nx: number, nz: number, a: Room, b: Room } } = {}
 	local reserved: { [string]: { Rect } } = {}
 	local doorClear: { [string]: { Rect } } = {} -- the floor in front of each doorway, which stairs must keep off
 	for _, name in allLevels do
@@ -664,7 +667,18 @@ function Build.run(options: { layout: string?, dryRun: boolean? }?)
 		doorClear[name] = {}
 	end
 	local doorsUnplaced = 0
-	local placedDoors: { { a: Room, b: Room, door: LayoutTypes.Door, level: string } } = {}
+	type PlacedDoor = {
+		a: Room,
+		b: Room,
+		door: LayoutTypes.Door,
+		level: string,
+		x: number,
+		z: number,
+		nx: number,
+		nz: number,
+		width: number,
+	}
+	local placedDoors: { PlacedDoor } = {}
 	local autoGates = 0
 	local doorsPerRoom: { [string]: number } = {}
 	for _, door in Layout.doors do
@@ -713,10 +727,10 @@ function Build.run(options: { layout: string?, dryRun: boolean? }?)
 		doorsPerRoom[rb.id] = (doorsPerRoom[rb.id] or 0) + 1
 		local x, z = if best.axis == "x" then center else best.line, if best.axis == "x" then best.line else center
 		local nx, nz = if best.axis == "x" then 0 else 1, if best.axis == "x" then 1 else 0
-		table.insert(placedDoors, { a = ra, b = rb, door = placed, level = best.level })
-		if not placed.elevator then -- NPCs do not path into a shaft (the cab is not a floor they can use yet)
-			table.insert(doorPoints, { level = best.level, x = x, z = z, nx = nx, nz = nz, a = ra, b = rb })
-		end
+		table.insert(
+			placedDoors,
+			{ a = ra, b = rb, door = placed, level = best.level, x = x, z = z, nx = nx, nz = nz, width = width }
+		)
 		local clear: Rect = {
 			x1 = x - (if best.axis == "x" then width / 2 + 2 else DOOR_CLEAR),
 			z1 = z - (if best.axis == "x" then DOOR_CLEAR else width / 2 + 2),
@@ -1048,6 +1062,14 @@ function Build.run(options: { layout: string?, dryRun: boolean? }?)
 	if dryRun then
 		root:Destroy()
 		return problems
+	end
+	-- A crowd cluster is kept clear of props, so a dozen NPCs can stand round it.
+	for _, cluster in Layout.clusters or {} do
+		local reach = GameConfig.NPC.Crowd.ClusterRadiusStuds + 1
+		table.insert(
+			reserved[cluster.level],
+			{ x1 = cluster.x - reach, z1 = cluster.z - reach, x2 = cluster.x + reach, z2 = cluster.z + reach }
+		)
 	end
 	for _, site in Layout.extraction do
 		local reach = if site.id == "Helipad" then 20 else PAD_RADIUS + 2
@@ -3571,10 +3593,11 @@ function Build.run(options: { layout: string?, dryRun: boolean? }?)
 			-- A zone reaches up to the next storey, so a gallery's zone stops under the floor above it.
 			local y = levels[levelName]
 			local height = (storeyAbove(y) or y + ZONE_H) - y
+			local pad = if piece.room.shaft then 0 else ZONE_PAD -- a glass shaft claims exactly its own floor
 			local volume = part(
 				zonesFolder,
 				`Zone_{levelName}_T{piece.room.tier}_{piece.room.id}`,
-				Vector3.new(r.x2 - r.x1 + ZONE_PAD * 2, height, r.z2 - r.z1 + ZONE_PAD * 2),
+				Vector3.new(r.x2 - r.x1 + pad * 2, height, r.z2 - r.z1 + pad * 2),
 				CFrame.new((r.x1 + r.x2) / 2, y + height / 2 - 1, (r.z1 + r.z2) / 2),
 				tierColor(piece.room.tier)
 			)
@@ -4471,7 +4494,20 @@ function Build.run(options: { layout: string?, dryRun: boolean? }?)
 	end
 
 	-- NPC nodes ------------------------------------------------------------------------------------------------------------------------------
-	type NodeSpec = { level: string, x: number, z: number, tier: number, activity: string, stairLink: string? }
+	type NodeSpec = {
+		level: string,
+		x: number,
+		z: number,
+		tier: number,
+		activity: string,
+		stairLink: string?,
+		room: string?,
+		cluster: string?, -- a crowd cluster's centre (Layout.clusters): many NPCs gather here
+		clusterSize: number?,
+		faceX: number?,
+		faceZ: number?,
+		removed: boolean?, -- stood in a pocket no body can walk out of: no node is made
+	}
 	local function blockedForNode(level: string, x: number, z: number): boolean
 		for _, r in rampFootprints[level] do
 			if x > r.x1 - 6 and x < r.x2 + 6 and z > r.z1 - 6 and z < r.z2 + 6 then
@@ -4507,6 +4543,15 @@ function Build.run(options: { layout: string?, dryRun: boolean? }?)
 		end
 		return false
 	end
+	-- A wide doorway is several lanes, each with its own node either side, so a crowd crosses it side by side.
+	local function laneOffsets(width: number): { number }
+		local lanes = math.max(1, math.floor(width / GameConfig.NPC.Routes.DoorLaneStuds))
+		local offsets: { number } = {}
+		for lane = 1, lanes do
+			table.insert(offsets, ((lane - 0.5) / lanes - 0.5) * width)
+		end
+		return offsets
+	end
 	local function buildNodes(spacingScale: number): { NodeSpec }
 		local list: { NodeSpec } = {}
 		local nodeRng = Random.new(11)
@@ -4538,6 +4583,7 @@ function Build.run(options: { layout: string?, dryRun: boolean? }?)
 									z = nz,
 									tier = room.tier,
 									activity = pool[nodeRng:NextInteger(1, #pool)],
+									room = room.id,
 								})
 								break
 							end
@@ -4555,21 +4601,33 @@ function Build.run(options: { layout: string?, dryRun: boolean? }?)
 				z = node.z,
 				tier = tierAtPoint(node.level, node.x, node.z),
 				activity = node.activity,
+				room = (pieceAt(node.level, node.x, node.z) or { room = { id = nil } }).room.id,
 			})
 		end
 		-- Every doorway gets a walking node on each side so routes connect through it.
-		for _, d in doorPoints do
-			for sign, room in { [-1] = d.a, [1] = d.b } do
-				local x, z = d.x + d.nx * sign * 5, d.z + d.nz * sign * 5
-				local dup = false
-				for _, n in list do
-					if n.level == d.level and math.abs(n.x - x) < 4 and math.abs(n.z - z) < 4 then
-						dup = true
-						break
+		for _, d in placedDoors do
+			for _, along in laneOffsets(d.width) do
+				for _, sign in { -1, 1 } do
+					local x, z = d.x + d.nz * along + d.nx * sign * 5, d.z + d.nx * along + d.nz * sign * 5
+					-- Which room this side is in is read from the floor plan, not from the order the door names its rooms.
+					local found = pieceAt(d.level, x, z)
+					local room = if found then found.room else if sign < 0 then d.a else d.b
+					if room.shaft then
+						continue -- the inside of a shaft has no node: the cab carries NPCs there (ElevatorService)
 					end
-				end
-				if not dup then
-					table.insert(list, { level = d.level, x = x, z = z, tier = room.tier, activity = "Walk" })
+					local dup = false
+					for _, n in list do
+						if n.level == d.level and math.abs(n.x - x) < 4 and math.abs(n.z - z) < 4 then
+							dup = true
+							break
+						end
+					end
+					if not dup then
+						table.insert(
+							list,
+							{ level = d.level, x = x, z = z, tier = room.tier, activity = "Walk", room = room.id }
+						)
+					end
 				end
 			end
 		end
@@ -4584,8 +4642,23 @@ function Build.run(options: { layout: string?, dryRun: boolean? }?)
 					tier = tierAtPoint(stairEnd.level, x, z),
 					activity = "Walk",
 					stairLink = `stair{stairIndex}`, -- NavGraph always links a stair's two ends
+					room = (pieceAt(stairEnd.level, x, z) or { room = { id = nil } }).room.id,
 				})
 			end
+		end
+		for _, cluster in Layout.clusters or {} do
+			table.insert(list, {
+				level = cluster.level,
+				x = cluster.x,
+				z = cluster.z,
+				tier = tierAtPoint(cluster.level, cluster.x, cluster.z),
+				activity = cluster.activity,
+				room = cluster.room,
+				cluster = cluster.id,
+				clusterSize = cluster.size,
+				faceX = cluster.faceX,
+				faceZ = cluster.faceZ,
+			})
 		end
 		for _, stairEnd in curvedEnds do
 			table.insert(list, {
@@ -4608,18 +4681,6 @@ function Build.run(options: { layout: string?, dryRun: boolean? }?)
 		scale *= 1.08
 		specs = buildNodes(scale)
 	end
-	for index, spec in specs do
-		local node = part(
-			nodesFolder,
-			`NPCNode{index}`,
-			Vector3.one,
-			CFrame.new(spec.x, levels[spec.level] + 1, spec.z),
-			Color3.fromRGB(255, 255, 0)
-		)
-		ghost(node)
-		tag(node, Tag.NPCNode, { Tier = spec.tier, Activity = spec.activity, StairLink = spec.stairLink })
-	end
-
 	-- The city round the Gala (City.luau): each tower stands on its own skyscraper.
 	local towers: { Rect } = {}
 	for _, outline in Layout.towers do
@@ -4696,6 +4757,989 @@ function Build.run(options: { layout: string?, dryRun: boolean? }?)
 	grade.Parent = Lighting
 
 	Art.apply(root)
+
+	-- Authored routes (relayout-2). Every link NPCs may walk is made here, from the layout, on the real floor, and stored on
+	-- the nodes (a Links attribute that NavGraph.build reads); nothing is discovered with PathfindingService at runtime.
+	-- A link is a straight walk inside a room or through a doorway (checked against the walls and props at body width, and
+	-- for floor under every stride), a stair (followed along its own treads), or an elevator ride (the walk to the cab and
+	-- from it; the cab does the rest). Each carries the highest tier it passes through and how many NPCs fit on it at
+	-- once. The self-check below fails the build if a stair's treads or a node's floor is not where the layout says.
+	local routeConfig = GameConfig.NPC.Routes
+	local floorParams = RaycastParams.new()
+	floorParams.FilterType = Enum.RaycastFilterType.Include
+	floorParams.FilterDescendantsInstances = { geometry }
+	floorParams.RespectCanCollide = true
+	local blockParams = RaycastParams.new()
+	blockParams.FilterType = Enum.RaycastFilterType.Include
+	blockParams.FilterDescendantsInstances = { geometry, propsFolder }
+	blockParams.RespectCanCollide = true
+	local function floorAt(x: number, y: number, z: number): number?
+		local hit = workspace:Raycast(
+			Vector3.new(x, y + routeConfig.ProbeUp, z),
+			Vector3.new(0, -(routeConfig.ProbeUp + routeConfig.ProbeDown), 0),
+			floorParams
+		)
+		return if hit then hit.Position.Y else nil
+	end
+	local function feetOf(index: number): Vector3
+		local spec = specs[index]
+		return Vector3.new(spec.x, levels[spec.level], spec.z)
+	end
+	type Route = { to: number, tier: number, capacity: number, kind: string, points: { Vector3 } }
+	local routesOf: { [number]: { Route } } = {}
+	local linked: { [string]: boolean } = {}
+	local routeCount, routeKinds = 0, { Walk = 0, Door = 0, Stair = 0, Elevator = 0 }
+	local nodesNoFloor, stairMismatch, doorsUnlinked = 0, 0, 0
+	local function capacityOf(width: number, length: number): number
+		local lanes = math.max(1, math.floor(width / routeConfig.LaneStuds))
+		return math.max(1, math.floor(lanes * length / routeConfig.HeadwayStuds))
+	end
+	local function lengthOf(points: { Vector3 }): number
+		local total = 0
+		for index = 2, #points do
+			total += (points[index] - points[index - 1]).Magnitude
+		end
+		return total
+	end
+	local function addRoute(a: number, b: number, kind: string, tier: number, points: { Vector3 }, capacity: number)
+		local lo, hi = math.min(a, b), math.max(a, b)
+		local key = `{lo}:{hi}`
+		if linked[key] then
+			return
+		end
+		linked[key] = true
+		if a > b then
+			local flipped = table.create(#points)
+			for index = #points, 1, -1 do
+				table.insert(flipped, points[index])
+			end
+			points = flipped
+		end
+		routesOf[lo] = routesOf[lo] or {}
+		table.insert(routesOf[lo], { to = hi, tier = tier, capacity = capacity, kind = kind, points = points })
+		routeCount += 1
+		routeKinds[string.match(kind, "^%a+") :: string] += 1
+	end
+	-- A straight stretch of floor between two points, or nil: walls and props in the way at body width, or no floor under a
+	-- stride. The points are on the floor; the result has one every SampleStuds.
+	local function stretch(pa: Vector3, pb: Vector3): { Vector3 }?
+		local flat = Vector3.new(pb.X - pa.X, 0, pb.Z - pa.Z)
+		local length = flat.Magnitude
+		if length < 0.5 then
+			return nil
+		end
+		local side = Vector3.new(-flat.Z, 0, flat.X).Unit
+		for _, offset in { 0, routeConfig.BodyRadius, -routeConfig.BodyRadius } do
+			if
+				workspace:Raycast(pa + side * offset + Vector3.new(0, routeConfig.ChestHeight, 0), flat, blockParams)
+			then
+				return nil
+			end
+		end
+		local samples = math.max(1, math.ceil(length / routeConfig.SampleStuds))
+		local points: { Vector3 } = {}
+		for sample = 0, samples do
+			local t = sample / samples
+			local expected = pa.Y + (pb.Y - pa.Y) * t
+			local x, z = pa.X + flat.X * t, pa.Z + flat.Z * t
+			local y = floorAt(x, expected, z)
+			if not y or math.abs(y - expected) > routeConfig.FloorTolerance then
+				return nil
+			end
+			table.insert(points, Vector3.new(x, y, z))
+		end
+		return points
+	end
+	-- The walk between two nodes on one floor: straight if it is clear, else round one bend to either side (a crate or a
+	-- table in the way), the bend tried nearer first.
+	local function walkPoints(a: number, b: number): { Vector3 }?
+		local pa, pb = feetOf(a), feetOf(b)
+		local direct = stretch(pa, pb)
+		if direct then
+			return direct
+		end
+		local flat = Vector3.new(pb.X - pa.X, 0, pb.Z - pa.Z)
+		if flat.Magnitude < 0.5 then
+			return nil
+		end
+		local side = Vector3.new(-flat.Z, 0, flat.X).Unit
+		local middle = (pa + pb) / 2
+		for _, bend in routeConfig.Bends do
+			for _, sign in { 1, -1 } do
+				local corner = middle + side * (bend * sign)
+				local corner2 = floorAt(corner.X, middle.Y, corner.Z)
+				if corner2 and math.abs(corner2 - middle.Y) <= routeConfig.FloorTolerance then
+					local cornerPoint = Vector3.new(corner.X, corner2, corner.Z)
+					local first, second = stretch(pa, cornerPoint), stretch(cornerPoint, pb)
+					if first and second then
+						table.remove(second, 1)
+						for _, p in second do
+							table.insert(first, p)
+						end
+						return first
+					end
+				end
+			end
+		end
+		return nil
+	end
+	local function tierOfWalk(points: { Vector3 }, level: string, a: number, b: number): number
+		local tier = math.max(specs[a].tier, specs[b].tier)
+		for _, p in points do
+			tier = math.max(tier, tierAtPoint(level, p.X, p.Z))
+		end
+		return tier
+	end
+	local function nodeNear(level: string, x: number, z: number, roomId: string?): number?
+		local best, bestDistance = nil, routeConfig.DoorNodeStuds
+		for index, spec in specs do
+			if spec.level == level and not spec.removed and (roomId == nil or spec.room == roomId) then
+				local distance = math.sqrt((spec.x - x) ^ 2 + (spec.z - z) ^ 2)
+				if distance < bestDistance then
+					best, bestDistance = index, distance
+				end
+			end
+		end
+		return best
+	end
+	for index in specs do
+		if not floorAt(specs[index].x, levels[specs[index].level], specs[index].z) then
+			nodesNoFloor += 1
+			print(
+				`[Gala]      node {index} in {specs[index].room} ({specs[index].x}, {specs[index].z}) has no floor under it`
+			)
+		end
+	end
+
+	-- Every node walks to the nearest nodes on its floor, by the way a body really can go: each floor is laid out as a grid of
+	-- cells a body fits in (floor under it, no wall or prop in the way at body width, doorways closed off: doors have their
+	-- own routes above), and each node's neighbours are the nearest ones along open cells. The cell path is pulled straight
+	-- wherever a straight line is open, so the routes are as direct as the room allows.
+	local byLevel: { [string]: { number } } = {}
+	for index, spec in specs do
+		if not spec.removed then
+			byLevel[spec.level] = byLevel[spec.level] or {}
+			table.insert(byLevel[spec.level], index)
+		end
+	end
+	local gridStuds = routeConfig.GridStuds
+	local overlapParams = OverlapParams.new()
+	overlapParams.FilterType = Enum.RaycastFilterType.Include
+	overlapParams.FilterDescendantsInstances = { geometry, propsFolder }
+	overlapParams.RespectCanCollide = true
+	overlapParams.MaxParts = 1
+	local minX, minZ, maxX, maxZ = math.huge, math.huge, -math.huge, -math.huge
+	for _, outline in Layout.towers do
+		minX, minZ = math.min(minX, outline[1]), math.min(minZ, outline[2])
+		maxX, maxZ = math.max(maxX, outline[3]), math.max(maxZ, outline[4])
+	end
+	minX, minZ, maxX, maxZ = minX - 8, minZ - 8, maxX + 8, maxZ + 8
+	local columns, rows = math.ceil((maxX - minX) / gridStuds), math.ceil((maxZ - minZ) / gridStuds)
+	local bodyBox = Vector3.new(routeConfig.BodyRadius * 2, routeConfig.BodyHeight, routeConfig.BodyRadius * 2)
+	local function cellOf(x: number, z: number): (number, number)
+		return math.floor((x - minX) / gridStuds), math.floor((z - minZ) / gridStuds)
+	end
+	local function cellId(ix: number, iz: number): number
+		return iz * columns + ix + 1
+	end
+	local walkable: { [string]: { [number]: boolean } } = {}
+	local walkableCells = 0
+	for _, level in levelOrder do
+		local y = levels[level]
+		local open: { [number]: boolean } = {}
+		for ix = 0, columns - 1 do
+			for iz = 0, rows - 1 do
+				local cx, cz = minX + (ix + 0.5) * gridStuds, minZ + (iz + 0.5) * gridStuds
+				-- (a cell centre exactly on a seam between two pieces of a room counts as being in it)
+				local found = pieceAt(level, cx + 0.01, cz + 0.01)
+				if found and not found.room.shaft then
+					local surface = floorAt(cx, y, cz)
+					if
+						surface
+						and math.abs(surface - y) <= routeConfig.CellFloorTolerance
+						and #workspace:GetPartBoundsInBox(
+								CFrame.new(cx, y + routeConfig.BodyLift + routeConfig.BodyHeight / 2, cz),
+								bodyBox,
+								overlapParams
+							)
+							== 0
+					then
+						open[cellId(ix, iz)] = true
+						walkableCells += 1
+					end
+				end
+			end
+		end
+		walkable[level] = open
+		task.wait()
+	end
+	-- A doorway is closed to the grid: the cells in its opening and a stride either side join no room to its neighbour.
+	local closedByDoor: { [string]: { [number]: boolean } } = {}
+	for _, level in levelOrder do
+		closedByDoor[level] = {}
+	end
+	for _, d in placedDoors do
+		local open = walkable[d.level]
+		local along = if d.nx == 0 then 1 else 0 -- the wall runs along x when its normal is z
+		for step = -d.width / 2 - 1, d.width / 2 + 1, gridStuds / 2 do
+			for depth = -3, 3, gridStuds / 2 do
+				local x = d.x + (if along == 1 then step else depth)
+				local z = d.z + (if along == 1 then depth else step)
+				local ix, iz = cellOf(x, z)
+				open[cellId(ix, iz)] = nil
+				closedByDoor[d.level][cellId(ix, iz)] = true
+			end
+		end
+	end
+	-- Where each node stands on the grid. Every room has one main region of cells (the one most of its nodes are in); a node in
+	-- a pocket the props leave (a gap between a wall and a table) is moved to the nearest cell of the main region, or dropped.
+	local componentOf: { [string]: { [number]: number } } = {}
+	local componentSize: { [number]: number } = {}
+	local componentCount = 0
+	for level, open in walkable do
+		local label: { [number]: number } = {}
+		componentOf[level] = label
+		for start in open do
+			if label[start] then
+				continue
+			end
+			componentCount += 1
+			local size = 0
+			local stack = { start }
+			label[start] = componentCount
+			while #stack > 0 do
+				local id = table.remove(stack) :: number
+				size += 1
+				local ix, iz = (id - 1) % columns, (id - 1) // columns
+				for _, step in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
+					local nx, nz = ix + step[1], iz + step[2]
+					if nx >= 0 and nx < columns and nz >= 0 and nz < rows then
+						local nid = cellId(nx, nz)
+						if open[nid] and not label[nid] then
+							label[nid] = componentCount
+							table.insert(stack, nid)
+						end
+					end
+				end
+			end
+			componentSize[componentCount] = size
+		end
+	end
+	local function nearestCell(spec: NodeSpec, wanted: ((number) -> boolean)?, radius: number): number?
+		local open = walkable[spec.level]
+		local ix0, iz0 = cellOf(spec.x, spec.z)
+		local bestId, bestDistance = nil, math.huge
+		for dx = -radius, radius do
+			for dz = -radius, radius do
+				local id = cellId(ix0 + dx, iz0 + dz)
+				if open[id] and dx * dx + dz * dz < bestDistance and (wanted == nil or wanted(id)) then
+					bestId, bestDistance = id, dx * dx + dz * dz
+				end
+			end
+		end
+		return bestId
+	end
+	-- Build.run({ gridReport = { level = "T", x1 = 200, z1 = -90, x2 = 280, z2 = 0 } }) prints that part of a floor's grid: # a cell no
+	-- body fits in, . an open one, o a doorway closed to the grid, N a node.
+	local nodesAt: { [string]: { [number]: { number } } } = {}
+	local nodeCell: { [number]: number } = {}
+	local nodesRemoved = 0
+	local mainRegion: { [string]: number } = {} -- room -> its main component
+	do
+		local tally: { [string]: { [number]: number } } = {}
+		for index, spec in specs do
+			local id = nearestCell(spec, nil, 4)
+			if id then
+				nodeCell[index] = id
+				local counts = tally[spec.room or "?"] or {}
+				tally[spec.room or "?"] = counts
+				local component = componentOf[spec.level][id]
+				counts[component] = (counts[component] or 0) + 1
+			end
+		end
+		for room, counts in tally do
+			local best, bestCount = 0, 0
+			for component, count in counts do
+				if
+					count > bestCount or (count == bestCount and componentSize[component] > (componentSize[best] or 0))
+				then
+					best, bestCount = component, count
+				end
+			end
+			mainRegion[room] = best
+		end
+	end
+	for index, spec in specs do
+		local id = nodeCell[index]
+		local main = mainRegion[spec.room or "?"]
+		if spec.stairLink and id then
+			continue -- a stair's end stays where the stair is
+		end
+		if
+			not id
+			or (
+				componentOf[spec.level][id] ~= main
+				and componentSize[componentOf[spec.level][id]] < routeConfig.PocketCells
+			)
+		then
+			local moved = nearestCell(spec, function(candidate: number): boolean
+				return componentOf[spec.level][candidate] == main
+			end, 6)
+			if moved then
+				id = moved
+				local cid = id - 1
+				spec.x = minX + (cid % columns + 0.5) * gridStuds
+				spec.z = minZ + (cid // columns + 0.5) * gridStuds
+				nodeCell[index] = id
+			else
+				spec.removed = true
+				nodeCell[index] = nil
+				nodesRemoved += 1
+				continue
+			end
+		end
+	end
+	for index, spec in specs do
+		local id = nodeCell[index]
+		if id and not spec.removed then
+			nodesAt[spec.level] = nodesAt[spec.level] or {}
+			local list = nodesAt[spec.level][id] or {}
+			nodesAt[spec.level][id] = list
+			table.insert(list, index)
+		end
+	end
+	local nodesNoCell = nodesRemoved
+	if options and options.gridReport then
+		local report = options.gridReport
+		local open = walkable[report.level]
+		local nodeAtCell: { [number]: boolean } = {}
+		for index, id in nodeCell do
+			if specs[index].level == report.level and not specs[index].removed then
+				nodeAtCell[id] = true
+			end
+		end
+		for z = report.z1, report.z2, gridStuds do
+			local row: { string } = {}
+			for x = report.x1, report.x2, gridStuds do
+				local ix, iz = cellOf(x + gridStuds / 2, z + gridStuds / 2)
+				local id = cellId(ix, iz)
+				table.insert(
+					row,
+					if nodeAtCell[id]
+						then "N"
+						elseif closedByDoor[report.level][id] then "o"
+						elseif open[id] then "."
+						else "#"
+				)
+			end
+			print(`[Grid] {string.format("%4d", z)} {table.concat(row)}`)
+		end
+	end
+
+	-- Doorways first, so every doorway joins the two nodes beside it.
+	local elevatorDoors: { [string]: { { level: string, node: number, door: PlacedDoor, shaft: Room } } } = {}
+	for _, d in placedDoors do
+		local laneLinked = false -- a doorway is routed if any lane of it is
+		local laneProblem = ""
+		for _, along in if d.door.elevator then { 0 } else laneOffsets(d.width) do
+			-- The node on each side of this lane of the doorway, by which way along the wall's normal it lies.
+			local sideNodes: { [number]: number } = {}
+			local shaftSign = 0
+			for _, sign in { -1, 1 } do
+				local x, z = d.x + d.nz * along + d.nx * sign * 5, d.z + d.nx * along + d.nz * sign * 5
+				local found = pieceAt(d.level, x, z)
+				if found and found.room.shaft then
+					shaftSign = sign
+				else
+					local node = nodeNear(d.level, x, z, if found then found.room.id else nil)
+					if node then
+						sideNodes[sign] = node
+					end
+				end
+			end
+			if d.door.elevator then
+				local sign = -shaftSign
+				local shaftRoom = if d.a.shaft then d.a else d.b
+				if shaftSign ~= 0 and sideNodes[sign] then
+					local list = elevatorDoors[d.door.elevator] or {}
+					elevatorDoors[d.door.elevator] = list
+					table.insert(list, { level = d.level, node = sideNodes[sign], door = d, shaft = shaftRoom })
+				end
+			elseif sideNodes[-1] and sideNodes[1] and sideNodes[-1] ~= sideNodes[1] then
+				local points = walkPoints(sideNodes[-1], sideNodes[1])
+				if points then
+					local tier = math.max(tierOfWalk(points, d.level, sideNodes[-1], sideNodes[1]), d.door.gate or 0)
+					local lanes = #laneOffsets(d.width)
+					addRoute(
+						sideNodes[-1],
+						sideNodes[1],
+						"Door",
+						tier,
+						points,
+						capacityOf(d.width / lanes, lengthOf(points))
+					)
+					laneLinked = true
+				else
+					laneProblem = "the walk through it is blocked"
+				end
+			else
+				laneProblem = "no node beside it"
+			end
+		end
+		if not laneLinked and not d.door.elevator then
+			doorsUnlinked += 1
+			print(`[Gala]      doorway {d.a.id} / {d.b.id} at ({d.x}, {d.z}): {laneProblem}`)
+		end
+	end
+
+	-- Stairs: the foot and head nodes joined along the treads.
+	local stairNodes: { [string]: { number } } = {}
+	for index, spec in specs do
+		if spec.stairLink then
+			stairNodes[spec.stairLink] = stairNodes[spec.stairLink] or {}
+			table.insert(stairNodes[spec.stairLink], index)
+		end
+	end
+	for stairIndex, s in stairs do
+		local ends = stairNodes[`stair{stairIndex}`]
+		if not ends or #ends ~= 2 then
+			continue
+		end
+		local ramp = s.ramp
+		local dx, dz = dirVector(ramp.dir)
+		local px, pz = dz, -dx
+		local w, lane, d = stairWidth(ramp), laneOf(ramp), s.dims
+		local base = levels[ramp.from]
+		local function at(along: number, across: number, y: number): Vector3
+			return Vector3.new(ramp.x + dx * along + px * across, y, ramp.z + dz * along + pz * across)
+		end
+		local corners: { Vector3 }
+		if ramp.turn then
+			corners = {
+				at(0, -lane, base),
+				at(d.legRun, -lane, base + d.legRise),
+				at(d.legRun + LANDING / 2, 0, base + d.legRise),
+				at(d.legRun, lane, base + d.legRise),
+				at(0, lane, base + d.rise),
+			}
+		else
+			corners = { at(0, 0, base), at(d.run, 0, base + d.rise) }
+		end
+		local chain = { feetOf(ends[1]) }
+		for _, corner in corners do
+			table.insert(chain, corner)
+		end
+		table.insert(chain, feetOf(ends[2]))
+		local points: { Vector3 } = { chain[1] }
+		for index = 2, #chain do
+			local from, to = chain[index - 1], chain[index]
+			local samples = math.max(1, math.ceil((to - from).Magnitude / routeConfig.SampleStuds))
+			for sample = 1, samples do
+				table.insert(points, from:Lerp(to, sample / samples))
+			end
+		end
+		for _, p in points do
+			local y = floorAt(p.X, p.Y, p.Z)
+			if not y or math.abs(y - p.Y) > routeConfig.StairTolerance then
+				stairMismatch += 1
+				print(`[Gala]      stair {stairIndex} ({ramp.x}, {ramp.z}): no tread under ({p.X}, {p.Y}, {p.Z})`)
+				break
+			end
+		end
+		local tier = math.max(ramp.tier or 0, specs[ends[1]].tier, specs[ends[2]].tier)
+		addRoute(ends[1], ends[2], "Stair", tier, points, capacityOf(w, lengthOf(points)))
+	end
+
+	-- Elevators: from the walk-up node at one stop, through its door to the cab, then (the cab travels) out of the cab and
+	-- door at another stop to that stop's node. The kind names the shaft and how many points are walked before the ride.
+	for shaftId, list in elevatorDoors do
+		table.sort(list, function(p, q)
+			return levels[p.level] < levels[q.level]
+		end)
+		local function legTo(
+			entry: { level: string, node: number, door: PlacedDoor, shaft: Room },
+			out: boolean
+		): { Vector3 }
+			local r = toRect(entry.shaft.rect)
+			local y = levels[entry.level]
+			local cab = Vector3.new((r.x1 + r.x2) / 2, y, (r.z1 + r.z2) / 2)
+			local doorway = Vector3.new(entry.door.x, y, entry.door.z)
+			local outside = feetOf(entry.node)
+			return if out then { cab, doorway, outside } else { outside, doorway, cab }
+		end
+		for i = 1, #list do
+			for j = i + 1, #list do
+				local ride: { Vector3 } = legTo(list[i], false)
+				local arrive = legTo(list[j], true)
+				local points: { Vector3 } = ride
+				local rideAfter = #ride
+				for _, p in arrive do
+					table.insert(points, p)
+				end
+				local tier = math.max(
+					list[i].door.door.gate or 0,
+					list[j].door.door.gate or 0,
+					specs[list[i].node].tier,
+					specs[list[j].node].tier
+				)
+				addRoute(
+					list[i].node,
+					list[j].node,
+					`Elevator@{shaftId}@{rideAfter}`,
+					tier,
+					points,
+					routeConfig.CabCapacity
+				)
+			end
+		end
+	end
+
+	-- A binary heap of { cost, cell } for the searches.
+	local heap: { { number } } = {}
+	local function push(cost: number, id: number)
+		table.insert(heap, { cost, id })
+		local i = #heap
+		while i > 1 do
+			local parentIndex = i // 2
+			if heap[parentIndex][1] <= heap[i][1] then
+				break
+			end
+			heap[parentIndex], heap[i] = heap[i], heap[parentIndex]
+			i = parentIndex
+		end
+	end
+	local function pop(): { number }?
+		local top = heap[1]
+		if not top then
+			return nil
+		end
+		local last = table.remove(heap) :: { number }
+		if #heap > 0 then
+			heap[1] = last
+			local i = 1
+			while true do
+				local l, r, smallest = i * 2, i * 2 + 1, i
+				if l <= #heap and heap[l][1] < heap[smallest][1] then
+					smallest = l
+				end
+				if r <= #heap and heap[r][1] < heap[smallest][1] then
+					smallest = r
+				end
+				if smallest == i then
+					break
+				end
+				heap[smallest], heap[i] = heap[i], heap[smallest]
+				i = smallest
+			end
+		end
+		return top
+	end
+	local function lineOpen(open: { [number]: boolean }, ax: number, az: number, bx: number, bz: number): boolean
+		local length = math.sqrt((bx - ax) ^ 2 + (bz - az) ^ 2)
+		local steps = math.max(1, math.ceil(length / (gridStuds / 2)))
+		for step = 0, steps do
+			local t = step / steps
+			local ix, iz = cellOf(ax + (bx - ax) * t, az + (bz - az) * t)
+			if not open[cellId(ix, iz)] then
+				return false
+			end
+		end
+		return true
+	end
+	local cost: { [number]: number } = {}
+	local cameFrom: { [number]: number } = {}
+	local neighbourSteps = {
+		{ 1, 0, 1 },
+		{ -1, 0, 1 },
+		{ 0, 1, 1 },
+		{ 0, -1, 1 },
+		{ 1, 1, 1.4142 },
+		{ 1, -1, 1.4142 },
+		{ -1, 1, 1.4142 },
+		{ -1, -1, 1.4142 },
+	}
+	local reachCost = routeConfig.ReachStuds / gridStuds
+	for level, open in walkable do
+		for _, a in byLevel[level] or {} do
+			local start = nodeCell[a]
+			if not start then
+				continue
+			end
+			table.clear(cost)
+			table.clear(cameFrom)
+			table.clear(heap)
+			cost[start] = 0
+			push(0, start)
+			local found = 0
+			local settled: { [number]: boolean } = {}
+			while found < routeConfig.Neighbors do
+				local top = pop()
+				if not top then
+					break
+				end
+				local id, spent = top[2], top[1]
+				if settled[id] or spent > cost[id] or spent > reachCost then
+					if spent > reachCost then
+						break
+					end
+					continue
+				end
+				settled[id] = true
+				for _, b in (nodesAt[level] or {})[id] or {} do
+					if b ~= a then
+						found += 1
+						-- the cell path back to the start, pulled straight where it can be
+						local chain: { number } = { id }
+						local at = id
+						while at ~= start do
+							at = cameFrom[at]
+							table.insert(chain, at)
+						end
+						local pa, pb = feetOf(a), feetOf(b)
+						local vertices: { Vector3 } = { pa }
+						local cells: { Vector3 } = {}
+						for index = #chain, 1, -1 do
+							local cid = chain[index] - 1
+							cells[#cells + 1] = Vector3.new(
+								minX + (cid % columns + 0.5) * gridStuds,
+								pa.Y,
+								minZ + (cid // columns + 0.5) * gridStuds
+							)
+						end
+						local last = 1
+						while last < #cells do
+							local reach = last + 1
+							for candidate = #cells, last + 1, -1 do
+								if
+									lineOpen(open, cells[last].X, cells[last].Z, cells[candidate].X, cells[candidate].Z)
+								then
+									reach = candidate
+									break
+								end
+							end
+							table.insert(vertices, cells[reach])
+							last = reach
+						end
+						table.insert(vertices, pb)
+						local points: { Vector3 } = { vertices[1] }
+						for index = 2, #vertices do
+							local p0, p1 = vertices[index - 1], vertices[index]
+							local samples = math.max(1, math.ceil((p1 - p0).Magnitude / routeConfig.SampleStuds))
+							for sample = 1, samples do
+								table.insert(points, p0:Lerp(p1, sample / samples))
+							end
+						end
+						if not linked[`{math.min(a, b)}:{math.max(a, b)}`] then
+							addRoute(
+								a,
+								b,
+								"Walk",
+								tierOfWalk(points, level, a, b),
+								points,
+								capacityOf(routeConfig.WalkWidthStuds, lengthOf(points))
+							)
+						end
+					end
+				end
+				for _, step in neighbourSteps do
+					local ix, iz = (id - 1) % columns + step[1], (id - 1) // columns + step[2]
+					local nid = cellId(ix, iz)
+					if ix >= 0 and ix < columns and iz >= 0 and iz < rows and open[nid] then
+						-- no cutting a corner: both cells beside a diagonal step must be open too
+						if
+							step[1] == 0
+							or step[2] == 0
+							or (open[cellId(ix - step[1], iz)] and open[cellId(ix, iz - step[2])])
+						then
+							local candidate = spent + step[3]
+							if candidate < (cost[nid] or math.huge) then
+								cost[nid] = candidate
+								cameFrom[nid] = id
+								push(candidate, nid)
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	-- Nearest-neighbour links can leave a cluster of nodes apart from the rest. Join each separate group to the nearest node
+	-- outside it, over open cells, until the groups are one (or nothing more can be reached).
+	local function groups(): ({ [number]: number }, { [number]: { number } })
+		local parent: { [number]: number } = {}
+		for index in specs do
+			parent[index] = index
+		end
+		local function find(n: number): number
+			while parent[n] ~= n do
+				parent[n] = parent[parent[n]]
+				n = parent[n]
+			end
+			return n
+		end
+		for lo, list in routesOf do
+			for _, route in list do
+				parent[find(lo)] = find(route.to)
+			end
+		end
+		local of: { [number]: number } = {}
+		local members: { [number]: { number } } = {}
+		for index in specs do
+			local group = find(index)
+			of[index] = group
+			members[group] = members[group] or {}
+			table.insert(members[group], index)
+		end
+		return of, members
+	end
+	local joined = 0
+	for _ = 1, 8 do
+		local of, members = groups()
+		local largest, largestSize = 0, 0
+		for group, list in members do
+			if #list > largestSize then
+				largest, largestSize = group, #list
+			end
+		end
+		local added = 0
+		for group, list in members do
+			if group == largest then
+				continue
+			end
+			local best: { distance: number, a: number, b: number, chain: { number } }? = nil
+			for _, a in list do
+				local start = nodeCell[a]
+				local level = specs[a].level
+				local open = walkable[level]
+				if not start then
+					continue
+				end
+				table.clear(cost)
+				table.clear(cameFrom)
+				table.clear(heap)
+				cost[start] = 0
+				push(0, start)
+				local settled: { [number]: boolean } = {}
+				while true do
+					local top = pop()
+					if not top or (best and top[1] >= best.distance) or top[1] > routeConfig.JoinStuds / gridStuds then
+						break
+					end
+					local id, spent = top[2], top[1]
+					if settled[id] or spent > cost[id] then
+						continue
+					end
+					settled[id] = true
+					local hit: number? = nil
+					for _, b in (nodesAt[level] or {})[id] or {} do
+						if of[b] ~= group then
+							hit = b
+						end
+					end
+					if hit then
+						local chain: { number } = { id }
+						local at = id
+						while at ~= start do
+							at = cameFrom[at]
+							table.insert(chain, at)
+						end
+						best = { distance = spent, a = a, b = hit, chain = chain }
+						break
+					end
+					for _, step in neighbourSteps do
+						local ix, iz = (id - 1) % columns + step[1], (id - 1) // columns + step[2]
+						local nid = cellId(ix, iz)
+						if ix >= 0 and ix < columns and iz >= 0 and iz < rows and open[nid] then
+							if
+								step[1] == 0
+								or step[2] == 0
+								or (open[cellId(ix - step[1], iz)] and open[cellId(ix, iz - step[2])])
+							then
+								local candidate = spent + step[3]
+								if candidate < (cost[nid] or math.huge) then
+									cost[nid] = candidate
+									cameFrom[nid] = id
+									push(candidate, nid)
+								end
+							end
+						end
+					end
+				end
+			end
+			if best then
+				local level = specs[best.a].level
+				local cells: { Vector3 } = {}
+				local pa, pb = feetOf(best.a), feetOf(best.b)
+				for index = #best.chain, 1, -1 do
+					local cid = best.chain[index] - 1
+					table.insert(
+						cells,
+						Vector3.new(
+							minX + (cid % columns + 0.5) * gridStuds,
+							pa.Y,
+							minZ + (cid // columns + 0.5) * gridStuds
+						)
+					)
+				end
+				local vertices: { Vector3 } = { pa }
+				local last = 1
+				while last < #cells do
+					local reach = last + 1
+					for candidate = #cells, last + 1, -1 do
+						if
+							lineOpen(
+								walkable[level],
+								cells[last].X,
+								cells[last].Z,
+								cells[candidate].X,
+								cells[candidate].Z
+							)
+						then
+							reach = candidate
+							break
+						end
+					end
+					table.insert(vertices, cells[reach])
+					last = reach
+				end
+				table.insert(vertices, pb)
+				local points: { Vector3 } = { vertices[1] }
+				for index = 2, #vertices do
+					local p0, p1 = vertices[index - 1], vertices[index]
+					local samples = math.max(1, math.ceil((p1 - p0).Magnitude / routeConfig.SampleStuds))
+					for sample = 1, samples do
+						table.insert(points, p0:Lerp(p1, sample / samples))
+					end
+				end
+				addRoute(
+					best.a,
+					best.b,
+					"Walk",
+					tierOfWalk(points, level, best.a, best.b),
+					points,
+					capacityOf(routeConfig.WalkWidthStuds, lengthOf(points))
+				)
+				added += 1
+				joined += 1
+			end
+		end
+		if added == 0 then
+			break
+		end
+	end
+	do
+		local _, members = groups()
+		local largestSize = 0
+		for _, list in members do
+			largestSize = math.max(largestSize, #list)
+		end
+		for _, list in members do
+			if #list < largestSize then
+				local names: { string } = {}
+				for _, index in list do
+					table.insert(
+						names,
+						`{specs[index].room or "?"}({specs[index].x}, {specs[index].z}){if nodeCell[index]
+							then ""
+							else " NOCELL"}`
+					)
+				end
+				print(`[Gala]      separate group of {#list}: {table.concat(names, " ")}`)
+			end
+		end
+	end
+	print(
+		`[Gala]      routes: {walkableCells} open cells, {nodesNoCell} nodes where no body fits, {joined} separate groups joined`
+	)
+
+	local nodeParts: { [number]: Part } = {}
+	for index, spec in specs do
+		if spec.removed then
+			continue
+		end
+		local node = part(
+			nodesFolder,
+			`NPCNode{index}`,
+			Vector3.one,
+			CFrame.new(spec.x, levels[spec.level] + 1, spec.z),
+			Color3.fromRGB(255, 255, 0)
+		)
+		ghost(node)
+		tag(node, Tag.NPCNode, {
+			NodeId = index,
+			Tier = spec.tier,
+			Activity = spec.activity,
+			StairLink = spec.stairLink,
+			Room = spec.room,
+			Cluster = spec.cluster,
+			ClusterSize = spec.clusterSize,
+			FaceX = spec.faceX,
+			FaceZ = spec.faceZ,
+		})
+		nodeParts[index] = node
+	end
+
+	-- Written onto the lower node of each pair: "to:tier:capacity:kind:x,y,z;x,y,z", links joined by "|".
+	local function number1(n: number): string
+		return string.format("%.1f", n)
+	end
+	for index, list in routesOf do
+		local parts: { string } = {}
+		for _, route in list do
+			local coords: { string } = {}
+			for _, p in route.points do
+				table.insert(coords, `{number1(p.X)},{number1(p.Y)},{number1(p.Z)}`)
+			end
+			table.insert(parts, `{route.to}:{route.tier}:{route.capacity}:{route.kind}:{table.concat(coords, ";")}`)
+		end
+		nodeParts[index]:SetAttribute("Links", table.concat(parts, "|"))
+	end
+	-- Which nodes each clearance can reach (links whose tier is at most the cap): every node must be in the one big group.
+	local routesConnected = true
+	for cap = 0, 4 do
+		local parent: { [number]: number } = {}
+		local function find(n: number): number
+			while parent[n] ~= n do
+				parent[n] = parent[parent[n]]
+				n = parent[n]
+			end
+			return n
+		end
+		local members = 0
+		for index, spec in specs do
+			if spec.tier <= cap then
+				parent[index] = index
+				members += 1
+			end
+		end
+		for lo, list in routesOf do
+			for _, route in list do
+				if route.tier <= cap and parent[lo] and parent[route.to] then
+					parent[find(lo)] = find(route.to)
+				end
+			end
+		end
+		local sizes: { [number]: number } = {}
+		local largest = 0
+		for index in parent do
+			local group = find(index)
+			sizes[group] = (sizes[group] or 0) + 1
+			largest = math.max(largest, sizes[group])
+		end
+		local cut = members - largest
+		if cut > 0 then
+			routesConnected = false
+		end
+		print(`[Gala]      routes, clearance {cap}: {members} nodes, {cut} cut off from the main group`)
+	end
+	check(doorsUnlinked == 0, `Every doorway has an authored route through it ({doorsUnlinked} without)`)
+	print(`[Gala]      routes: {nodesRemoved} nodes dropped (they stood in a pocket no body can walk out of)`)
+	check(nodesNoFloor == 0, `Every NPC node has floor under it ({nodesNoFloor} without)`)
+	check(stairMismatch == 0, `Every stair route follows its treads ({stairMismatch} off)`)
+	check(
+		routesConnected,
+		`Every clearance reaches all its nodes by authored routes ({routeCount} routes: {routeKinds.Walk} walks, {routeKinds.Door} doorways, {routeKinds.Stair} stairs, {routeKinds.Elevator} elevator rides)`
+	)
 
 	-- Checks -----------------------------------------------------------------------------------------------------------------------------------
 	local function count(tagName: string): number

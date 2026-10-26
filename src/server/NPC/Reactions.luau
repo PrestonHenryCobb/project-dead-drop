@@ -40,10 +40,16 @@ local function distance(npc: Npc, position: Vector3): number
 end
 
 local function reacting(npc: Npc): boolean
-	return npc.state == "Cower" or npc.state == "Gasp" or npc.state == "BackAway" or npc.state == "Held"
+	return npc.state == "Cower"
+		or npc.state == "Gasp"
+		or npc.state == "BackAway"
+		or npc.state == "Held"
+		or npc.state == "Board"
+		or npc.state == "Ride" -- inside an elevator: nothing out here reaches it
 end
 
 local function beginCower(npc: Npc, threat: Vector3, now: number)
+	Movement.cancelRide(npc)
 	npc.state = "Cower"
 	npc.stateUntil = now + config.Panic.CowerSeconds
 	Movement.interrupt(npc)
@@ -70,6 +76,7 @@ local function beginFlee(crowd: Crowd, npc: Npc, now: number)
 end
 
 local function beginGasp(npc: Npc, bodyPosition: Vector3, now: number)
+	Movement.cancelRide(npc)
 	npc.state = "Gasp"
 	npc.stateUntil = now + config.Panic.GaspSeconds
 	Movement.interrupt(npc)
@@ -147,6 +154,7 @@ local function beginInvestigate(crowd: Crowd, npc: Npc, position: Vector3, now: 
 	if npc.state ~= "Return" then
 		npc.post = npc.node
 	end
+	Movement.cancelRide(npc)
 	crowd.release(npc.node)
 	crowd.claim(destination)
 	npc.node = destination

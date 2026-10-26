@@ -276,8 +276,7 @@ local GameConfig = {
 			UprightDot = 0.7,
 			Cooldown = { Min = 4, Max = 8 },
 		},
-		CorpseSeconds = 30,
-		ReplacementSeconds = 45,
+		CorpseSeconds = 30, -- a player's eliminated body lies this long before it fades (DownedService)
 		MobileRenderDistance = 120, -- 27 #27: NPC visuals beyond this are not shown on low-end mobile
 		Panic = {
 			GunfireRadius = 40,
@@ -333,7 +332,6 @@ local GameConfig = {
 		-- SPEC-QUESTION: nothing revives an NPC, since a revive only ever happening to NPCs would tell them from players.
 		Death = {
 			FadeSeconds = 1,
-			ReplacementMinStuds = 100, -- implementation tuning: "far-away node" means at least this far from the body
 			CrawlSpeed = 4, -- spec 14.1
 			CrawlStuds = 6, -- how far a downed NPC drags itself away from the shot before it stops
 			RootLiftStuds = 1.2, -- height of the lying body's centre above the floor
@@ -345,26 +343,76 @@ local GameConfig = {
 		},
 		SecurityKillAlarmRaise = 1,
 		-- Implementation tuning for the node graph and crowd movement (not spec values).
+		-- How far above and below a point to look for floor when a body steps off the stored routes (R1-ground).
 		Graph = {
-			NeighborsPerNode = 6, -- each node tries to link to this many of its nearest nodes on the same level
-			CrossLevelNeighbors = 3, -- and to this many on the levels above and below (kept only if a ramp is close)
-			SameLevelStuds = 6, -- nodes whose heights differ by less than this are on the same level
-			MaxEdgeStuds = 90, -- nodes further apart than this are never linked directly
-			MaxDetourRatio = 2, -- a link is dropped if its walking path is this many times the straight distance
-			AgentRadius = 2,
-			AgentHeight = 5,
-			ConcurrentPaths = 24, -- paths computed at the same time while the graph builds
-			TierSampleStuds = 4, -- how often a link is sampled to find the highest tier it passes through
-			-- R1-ground: stored paths are resampled this often and each point set on the floor found within the window
-			-- (studs above and below the straight line between waypoints).
-			SupportSampleStuds = 1,
 			SupportWindow = { Above = 3, Below = 2 },
+		},
+		-- relayout-2: the authored routes Build.luau stores on the NPC nodes (replacing PathfindingService discovery).
+		Routes = {
+			ReachStuds = 80, -- a node walks to its nearest neighbours up to this far away (more than the widest node spacing)
+			Neighbors = 7, -- ... at most this many
+			FloorTolerance = 0.8, -- studs: floor under a stride may differ this much from the line between the two nodes
+			StairTolerance = 1.3, -- studs: a stair route may differ this much from the tread under it
+			SampleStuds = 2, -- a route has a point at least this often
+			BodyRadius = 0.8, -- the walk is checked for walls and props this far either side
+			ChestHeight = 2.5,
+			Bends = { 5, 10, 16 }, -- a doorway's walk blocked by a prop goes round a corner this far (studs) off its middle
+			DoorLaneStuds = 12, -- a doorway is one lane for each this much width
+			JoinStuds = 140, -- a separate group of nodes is joined to the nearest outside node within this walk
+			PocketCells = 80, -- a region of fewer cells than this (a gap between a wall and a table) is a pocket, not a place to stand
+			GridStuds = 2, -- the cells a floor is cut into to find where a body fits
+			BodyHeight = 3.6, -- the volume that must be free above a cell, from BodyLift up
+			BodyLift = 1.2,
+			CellFloorTolerance = 0.3,
+			ProbeUp = 2.5,
+			ProbeDown = 2.5,
+			LaneStuds = 3.5, -- one NPC's width in a queue
+			HeadwayStuds = 4, -- NPCs keep this far apart in a lane
+			WalkWidthStuds = 14, -- how wide an ordinary walk between nodes is taken to be
+			DoorNodeStuds = 9, -- a doorway's nodes are found this close to the point beside the door, in that room
+			CabCapacity = 4, -- NPCs one elevator carries at once
 		},
 		MinTripStuds = 30, -- an NPC's next destination is at least this far away
 		TripPreferStuds = 120, -- destinations this far (walking) are half as likely as near ones; keeps long trips rare
 		ArrivalSpread = 3, -- NPCs stand within this many studs of a node, so they don't stack on one point
 		ArrivalSpreadTries = 4, -- R2-tiers: random spots tried (on floor, in tier, wall-free) before using the node itself
 		NodeCapacity = 2, -- NPCs that may stand at or head to one node at once (a pair chatting at a spot)
+		-- relayout-2: how many NPCs the doors, stairs and lanes take. Each authored link carries its capacity (Build.luau,
+		-- from its width); a trip steers round a busy one and is put off while one on its route is overloaded.
+		Capacity = {
+			CongestionWeight = 1.5, -- a link at capacity costs this much more to walk (times its fill, up to twice)
+			OverloadFactor = 1.5, -- a trip waits while a link on its route holds this many times its capacity
+			RetrySeconds = { Min = 1, Max = 3 }, -- ... and tries again after this long
+			HoldMarginSeconds = 1, -- a trip keeps its room on a link this long after it should have passed
+		},
+		-- relayout-2: crowd clusters (Layout.clusters): authored groups at the bar, the dance floor, the tables, the roof party.
+		Crowd = {
+			ClusterWeight = 5, -- how much likelier a cluster is as a destination than an ordinary node
+			ClusterRadiusStuds = 9, -- NPCs at a cluster stand within this of its middle, facing it
+		},
+		-- relayout-2: who the server moves how often. By distance to the nearest player: near every tick, mid every
+		-- MidEvery-th, far every FarEvery-th; beyond FarStuds an NPC sleeps (nothing moves it until a player comes within
+		-- FarStuds, or something happens to it).
+		Update = {
+			NearStuds = 60,
+			MidStuds = 110,
+			FarStuds = 150,
+			MidEvery = 2,
+			FarEvery = 4,
+			PlayerCheckSeconds = 0.5, -- how often the nearest player to each NPC is looked for
+		},
+		-- relayout-2 (owner, 2026-10-25): every downed or executed NPC stands up slowly this long after it went down and
+		-- returns to its routine; nothing replaces it. A body that stands up is always an NPC (a player's body fades).
+		WakeUp = { Seconds = 60, RiseSeconds = 3.5 },
+		-- relayout-2: the glass elevators. Staff and above ride them; an NPC waits beside the door for a cab.
+		Elevator = {
+			SpeedStuds = 16,
+			DwellSeconds = 3, -- doors stay open this long at each stop
+			DoorSeconds = 0.4,
+			WaitGiveUpSeconds = 40, -- an NPC waits this long for a cab, then picks another trip
+			WaitCostStuds = 60, -- how much walking an elevator wait is worth when a trip is planned
+			RiderSpreadStuds = 2.2, -- riders stand this far from the cab's middle
+		},
 		SeparationMaxOffset = 1.25, -- how far separation may push an NPC off its path
 		SeparationStrength = 4,
 		SeparationDecayPerSecond = 2,

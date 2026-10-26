@@ -1,45 +1,69 @@
 --!strict
--- The NPC node graph (spec 5.2, 25.4). Built once at map load; never touched by PathfindingService afterwards.
+-- The NPC node graph (spec 5.2, 25.4), read from the map. The map generator (Tools/Gala/Build.luau) authors every link
+-- from the layout: where nodes are, which pairs join, the polyline between them on the real floor, the highest clearance
+-- tier it passes through, and how many NPCs fit on it at once. Nothing is discovered at runtime and PathfindingService is
+-- never used: a route can only follow what the generator verified against the geometry.
 --
--- Each NPCNode is linked to its nearest neighbours. For every link the walking path is computed once with
--- PathfindingService and stored as a list of points, together with the highest clearance tier the path passes
--- through, so an NPC never cuts through a zone its role may not enter. The stored points are resampled about once a stud
--- and each is set on the real floor under it (R1-ground): PathfindingService's waypoints are sparse, and the straight
--- line between two of them cuts through the air above stair treads. At runtime routes are found by a shortest-path
--- search over this graph and simply follow the stored points.
+-- Each NPCNode part carries NodeId, Tier, Activity and (for crowd clusters) Cluster, ClusterSize, FaceX, FaceZ, and a
+-- Links attribute naming its links to higher-numbered nodes: "to:tier:capacity:kind:x,y,z;x,y,z", joined by "|". The kind
+-- is Walk, Door, Stair, or Elevator@shaft@n (the first n points reach the cab, the rest leave it).
 --
---   local graph = NavGraph.build(nodeParts, ZoneService.tierAt)   -- yields while paths are computed
+--   local graph = NavGraph.load(nodeParts, ZoneService.tierAt)
 --   local destination, points = NavGraph.route(graph, fromNode, maxTier, minTripStuds, isFree, rng, weightOf?)
+--   local destination, legs, links = NavGraph.tripRoute(graph, fromNode, maxTier, minTripStuds, isFree, rng, weightOf?)
 --   local destination, points = NavGraph.fleeRoute(graph, fromNode, maxTier, threatPosition)
 --   local points = NavGraph.routeTo(graph, fromNode, maxTier, destinationNode)
 --   local destination, points = NavGraph.routeNear(graph, fromNode, maxTier, position)
+--
+-- Reaction routes (flee, investigate, return) never use an elevator; an ordinary trip (tripRoute) may.
 
-local PathfindingService = game:GetService("PathfindingService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Weighted = require(Shared:WaitForChild("Util"):WaitForChild("Weighted"))
 
+-- How many NPCs are on a link now, shared by its two directions.
+export type LinkState = { load: number, capacity: number }
+
+-- What a trip does at an elevator: wait beside the door, walk in, ride, walk out.
+export type Ride = {
+	shaft: string,
+	wait: Vector3, -- beside the door, where an NPC waits for the cab
+	board: { Vector3 }, -- the doorway and the cab, from the waiting spot
+	cab: Vector3, -- where the NPC stands in the cab at the first stop
+	arrival: Vector3, -- ... and at the second
+	exit: { Vector3 }, -- the doorway and the waiting spot beyond it
+	fromY: number,
+	toY: number,
+}
+
 export type Edge = {
 	to: number,
 	length: number,
 	points: { Vector3 },
 	maxTier: number,
+	kind: string, -- "Walk", "Door", "Stair" or "Elevator"
+	state: LinkState,
+	ride: Ride?,
 }
+
+-- One stretch of a trip: points to walk, then (if it ends at an elevator) the ride to take.
+export type Leg = { points: { Vector3 }, ride: Ride? }
 
 export type Graph = {
 	feet: { Vector3 }, -- ground position under each node
 	tiers: { number }, -- the stricter of the node's authored Tier and the zone it stands in
 	tierAt: (Vector3) -> number, -- ZoneService.tierAt, kept for checks made at runtime (NavGraph.standable)
 	activities: { string },
+	rooms: { string }, -- the room each node is in ("" if the map did not say)
+	clusters: { [number]: { size: number, face: Vector3? } }, -- crowd clusters by node
 	edges: { { Edge } },
 	linkCount: number,
 }
 
 local NavGraph = {}
 
-local GROUND_PROBE = Vector3.new(0, -8, 0)
 local TIER_PROBE_LIFT = Vector3.new(0, 2, 0) -- sample tiers at body height, not at the floor surface
 
 -- Rays in the character group meet only the walkable map: not characters, invisible zone volumes or other triggers.
@@ -47,31 +71,13 @@ local floorParams = RaycastParams.new()
 floorParams.CollisionGroup = GameConfig.Rig.CollisionGroup
 floorParams.RespectCanCollide = true
 
-local function groundBelow(position: Vector3): Vector3
-	local result = workspace:Raycast(position, GROUND_PROBE, floorParams)
-	return if result then result.Position else position
-end
-
--- A walking path resampled every SupportSampleStuds, each point moved onto the floor found within SupportWindow of the
--- straight line (so a tread under a stair line is found, but a hole is never followed down). A point with no floor in
--- the window keeps the line's height.
-local function onFloor(points: { Vector3 }): { Vector3 }
-	local config = GameConfig.NPC.Graph
-	local window = config.SupportWindow
-	local probe = Vector3.new(0, -(window.Above + window.Below), 0)
-	local function supported(point: Vector3): Vector3
-		local hit = workspace:Raycast(point + Vector3.new(0, window.Above, 0), probe, floorParams)
-		return if hit then Vector3.new(point.X, hit.Position.Y, point.Z) else point
+local function parsePoints(text: string): { Vector3 }
+	local points: { Vector3 } = {}
+	for _, triple in string.split(text, ";") do
+		local x, y, z = string.match(triple, "^(%-?[%d%.]+),(%-?[%d%.]+),(%-?[%d%.]+)$")
+		table.insert(points, Vector3.new(tonumber(x) :: number, tonumber(y) :: number, tonumber(z) :: number))
 	end
-	local out: { Vector3 } = { supported(points[1]) }
-	for index = 2, #points do
-		local a, b = points[index - 1], points[index]
-		local samples = math.max(1, math.ceil((b - a).Magnitude / config.SupportSampleStuds))
-		for sample = 1, samples do
-			table.insert(out, supported(a:Lerp(b, sample / samples)))
-		end
-	end
-	return out
+	return points
 end
 
 local function pathLength(points: { Vector3 }): number
@@ -82,19 +88,6 @@ local function pathLength(points: { Vector3 }): number
 	return total
 end
 
-local function maxTierAlong(points: { Vector3 }, tierAt: (Vector3) -> number): number
-	local step = GameConfig.NPC.Graph.TierSampleStuds
-	local highest = tierAt(points[1] + TIER_PROBE_LIFT)
-	for index = 2, #points do
-		local a, b = points[index - 1], points[index]
-		local samples = math.max(1, math.ceil((b - a).Magnitude / step))
-		for sample = 1, samples do
-			highest = math.max(highest, tierAt(a:Lerp(b, sample / samples) + TIER_PROBE_LIFT))
-		end
-	end
-	return highest
-end
-
 local function reversed(points: { Vector3 }): { Vector3 }
 	local out = table.create(#points)
 	for index = #points, 1, -1 do
@@ -103,125 +96,97 @@ local function reversed(points: { Vector3 }): { Vector3 }
 	return out
 end
 
-function NavGraph.build(nodes: { BasePart }, tierAt: (Vector3) -> number): Graph
-	local config = GameConfig.NPC.Graph
-	local graph: Graph = { feet = {}, tiers = {}, tierAt = tierAt, activities = {}, edges = {}, linkCount = 0 }
-	for index, node in nodes do
-		graph.feet[index] = groundBelow(node.Position)
-		-- R2-tiers: a node is only as open as both its authored tier and the zone volume it actually stands in.
+-- The ride at an elevator link: its points are the walk to the cab (the first `before`), then the walk away from it.
+local function rideOf(shaft: string, before: number, points: { Vector3 }): Ride
+	local count = #points
+	return {
+		shaft = shaft,
+		wait = points[before - 2],
+		board = { points[before - 1], points[before] },
+		cab = points[before],
+		arrival = points[before + 1],
+		exit = { points[before + 2], points[count] },
+		fromY = points[before].Y,
+		toY = points[before + 1].Y,
+	}
+end
+
+function NavGraph.load(nodes: { BasePart }, tierAt: (Vector3) -> number): Graph
+	local graph: Graph = {
+		feet = {},
+		tiers = {},
+		tierAt = tierAt,
+		activities = {},
+		rooms = {},
+		clusters = {},
+		edges = {},
+		linkCount = 0,
+	}
+	-- Nodes are numbered by the generator (NodeId, with gaps where a node was dropped); the graph numbers them densely.
+	local ordered = table.clone(nodes)
+	table.sort(ordered, function(a, b)
+		return (a:GetAttribute("NodeId") :: number) < (b:GetAttribute("NodeId") :: number)
+	end)
+	local indexOfId: { [number]: number } = {}
+	for index, node in ordered do
+		indexOfId[node:GetAttribute("NodeId") :: number] = index
+		graph.feet[index] = node.Position - Vector3.new(0, 1, 0)
 		local authored = (node:GetAttribute("Tier") :: number?) or 0
 		graph.tiers[index] = math.max(authored, tierAt(graph.feet[index] + TIER_PROBE_LIFT))
 		graph.activities[index] = (node:GetAttribute("Activity") :: string?) or "Idle"
+		graph.rooms[index] = (node:GetAttribute("Room") :: string?) or ""
 		graph.edges[index] = {}
+		local clusterSize = node:GetAttribute("ClusterSize")
+		if type(clusterSize) == "number" then
+			local faceX, faceZ = node:GetAttribute("FaceX"), node:GetAttribute("FaceZ")
+			graph.clusters[index] = {
+				size = clusterSize,
+				face = if type(faceX) == "number" and type(faceZ) == "number"
+					then Vector3.new(faceX, graph.feet[index].Y, faceZ)
+					else nil,
+			}
+		end
 	end
 
-	-- Candidate links, each pair once: a node's nearest neighbours on its own level, plus a few on other levels.
-	-- The closest node in 3D is often straight above or below, which is a long walk via a ramp; those links only
-	-- survive the detour check when a ramp really is nearby, which is exactly how floors get connected.
-	local pairs: { { number } } = {}
-	local seen: { [string]: boolean } = {}
-	local function addNearest(a: number, near: { { index: number, distance: number } }, count: number)
-		table.sort(near, function(p, q)
-			return p.distance < q.distance
-		end)
-		for rank = 1, math.min(count, #near) do
-			local b = near[rank].index
-			local key = if a < b then `{a}:{b}` else `{b}:{a}`
-			if not seen[key] then
-				seen[key] = true
-				table.insert(pairs, { a, b })
+	for index, node in ordered do
+		local links = node:GetAttribute("Links")
+		if type(links) ~= "string" or links == "" then
+			continue
+		end
+		for _, entry in string.split(links, "|") do
+			local to, tier, capacity, kind, text = string.match(entry, "^(%d+):(%d+):(%d+):([^:]+):(.*)$")
+			local other = indexOfId[tonumber(to) :: number]
+			if not other then
+				continue
 			end
+			local points = parsePoints(text :: string)
+			local length = pathLength(points)
+			local shaft, before = string.match(kind :: string, "^Elevator@(%w+)@(%d+)$")
+			local state: LinkState = { load = 0, capacity = tonumber(capacity) :: number }
+			local forward: Edge = {
+				to = other,
+				length = length,
+				points = points,
+				maxTier = tonumber(tier) :: number,
+				kind = if shaft then "Elevator" else kind :: string,
+				state = state,
+				ride = if shaft then rideOf(shaft, tonumber(before) :: number, points) else nil,
+			}
+			local backPoints = reversed(points)
+			local back: Edge = {
+				to = index,
+				length = length,
+				points = backPoints,
+				maxTier = forward.maxTier,
+				kind = forward.kind,
+				state = state,
+				ride = if shaft then rideOf(shaft, tonumber(before) :: number, backPoints) else nil,
+			}
+			table.insert(graph.edges[index], forward)
+			table.insert(graph.edges[other], back)
+			graph.linkCount += 1
 		end
 	end
-	-- The two ends of each stair (nodes sharing a StairLink attribute) are always linked, and exempt from the detour
-	-- check: a switchback arrives right above where it starts, and a long flight's top is rarely among the nearest
-	-- nodes, but the stair is exactly the route between them.
-	local stairPairs: { [string]: boolean } = {}
-	local stairEnds: { [string]: { number } } = {}
-	for index, node in nodes do
-		local stairLink = node:GetAttribute("StairLink")
-		if type(stairLink) == "string" then
-			stairEnds[stairLink] = stairEnds[stairLink] or {}
-			table.insert(stairEnds[stairLink], index)
-		end
-	end
-	for _, ends in stairEnds do
-		if #ends == 2 then
-			local a, b = math.min(ends[1], ends[2]), math.max(ends[1], ends[2])
-			seen[`{a}:{b}`] = true
-			stairPairs[`{a}:{b}`] = true
-			table.insert(pairs, { a, b })
-		end
-	end
-	for a = 1, #nodes do
-		local sameLevel: { { index: number, distance: number } } = {}
-		local otherLevel: { { index: number, distance: number } } = {}
-		for b = 1, #nodes do
-			if a ~= b then
-				local distance = (graph.feet[a] - graph.feet[b]).Magnitude
-				if distance <= config.MaxEdgeStuds then
-					local rise = math.abs(graph.feet[a].Y - graph.feet[b].Y)
-					table.insert(
-						if rise < config.SameLevelStuds then sameLevel else otherLevel,
-						{ index = b, distance = distance }
-					)
-				end
-			end
-		end
-		addNearest(a, sameLevel, config.NeighborsPerNode)
-		addNearest(a, otherLevel, config.CrossLevelNeighbors)
-	end
-
-	local function link(a: number, b: number)
-		local path = PathfindingService:CreatePath({
-			AgentRadius = config.AgentRadius,
-			AgentHeight = config.AgentHeight,
-			AgentCanJump = false,
-			AgentCanClimb = false,
-		})
-		local ok = pcall(function()
-			path:ComputeAsync(graph.feet[a], graph.feet[b])
-		end)
-		if not ok or path.Status ~= Enum.PathStatus.Success then
-			return
-		end
-		local waypoints: { Vector3 } = {}
-		for _, waypoint in path:GetWaypoints() do
-			table.insert(waypoints, waypoint.Position)
-		end
-		if #waypoints < 2 then
-			return
-		end
-		local points = onFloor(waypoints)
-		local length = pathLength(points)
-		local isStair = stairPairs[if a < b then `{a}:{b}` else `{b}:{a}`] == true
-		if not isStair and length > (graph.feet[a] - graph.feet[b]).Magnitude * config.MaxDetourRatio then
-			return
-		end
-		local maxTier = maxTierAlong(points, tierAt)
-		table.insert(graph.edges[a], { to = b, length = length, points = points, maxTier = maxTier })
-		table.insert(graph.edges[b], { to = a, length = length, points = reversed(points), maxTier = maxTier })
-		graph.linkCount += 1
-	end
-
-	-- Paths are computed a few at a time; ComputeAsync yields, so this spreads the work over several frames.
-	local running = 0
-	local finished = Instance.new("BindableEvent")
-	for _, pair in pairs do
-		if running >= config.ConcurrentPaths then
-			finished.Event:Wait()
-		end
-		running += 1
-		task.spawn(function()
-			link(pair[1], pair[2])
-			running -= 1
-			finished:Fire()
-		end)
-	end
-	while running > 0 do
-		finished.Event:Wait()
-	end
-	finished:Destroy()
 	return graph
 end
 
@@ -229,8 +194,7 @@ end
 -- floor under `to` near `from`'s height, and no higher tier than maxTier there. Returns the supported point, or nil.
 -- Used for the few moves that leave the stored paths: standing spread round a node, backing away, a downed crawl.
 function NavGraph.standable(graph: Graph, from: Vector3, to: Vector3, maxTier: number): Vector3?
-	local config = GameConfig.NPC.Graph
-	local window = config.SupportWindow
+	local window = GameConfig.NPC.Graph.SupportWindow
 	local chest = TIER_PROBE_LIFT
 	local flat = Vector3.new(to.X - from.X, 0, to.Z - from.Z)
 	if flat.Magnitude > 1e-3 and workspace:Raycast(from + chest, flat, floorParams) then
@@ -257,9 +221,22 @@ type Search = {
 	cameFrom: { number },
 }
 
+-- What walking a link costs: its length, and more as it fills (an NPC avoids a doorway or stair that is already busy),
+-- and a fixed wait for an elevator.
+local function cost(edge: Edge, crowded: boolean): number
+	local total = edge.length
+	if crowded then
+		total *= 1 + GameConfig.NPC.Capacity.CongestionWeight * math.min(edge.state.load / edge.state.capacity, 2)
+	end
+	if edge.kind == "Elevator" then
+		total += GameConfig.NPC.Elevator.WaitCostStuds
+	end
+	return total
+end
+
 -- Shortest walking distance from one node to every node it can reach, using only nodes and links whose tier is at
 -- most maxTier. A linear-scan Dijkstra: the graph has a few hundred nodes and searches are rare.
-local function search(graph: Graph, from: number, maxTier: number): Search
+local function search(graph: Graph, from: number, maxTier: number, rides: boolean, crowded: boolean): Search
 	local count = #graph.feet
 	local found: Search = {
 		distance = table.create(count, math.huge),
@@ -281,8 +258,8 @@ local function search(graph: Graph, from: number, maxTier: number): Search
 		end
 		done[current] = true
 		for _, edge in graph.edges[current] do
-			if edge.maxTier <= maxTier and graph.tiers[edge.to] <= maxTier then
-				local candidate = best + edge.length
+			if edge.maxTier <= maxTier and graph.tiers[edge.to] <= maxTier and (rides or edge.ride == nil) then
+				local candidate = best + cost(edge, crowded)
 				if candidate < found.distance[edge.to] then
 					found.distance[edge.to] = candidate
 					found.via[edge.to] = edge
@@ -294,14 +271,18 @@ local function search(graph: Graph, from: number, maxTier: number): Search
 	return found
 end
 
--- The points to walk from one node to a node the search reached.
-local function pointsTo(found: Search, from: number, destination: number): { Vector3 }
+local function chainTo(found: Search, from: number, destination: number): { Edge }
 	local chain: { Edge } = {}
 	local node = destination
 	while node ~= from do
 		table.insert(chain, 1, found.via[node] :: Edge)
 		node = found.cameFrom[node]
 	end
+	return chain
+end
+
+-- The points to walk along a chain of links (no rides: reaction routes never use an elevator).
+local function pointsOf(chain: { Edge }): { Vector3 }
 	local points: { Vector3 } = {}
 	for edgeIndex, edge in chain do
 		for pointIndex, point in edge.points do
@@ -313,19 +294,41 @@ local function pointsTo(found: Search, from: number, destination: number): { Vec
 	return points
 end
 
--- Picks a random reachable, free node at least minTrip studs of walking away, favouring nearer ones (a node twice
--- GameConfig.NPC.TripPreferStuds away is a fifth as likely as a near one), so the crowd mills about where it is and only
--- sometimes crosses the map. Returns the node and the points to walk, or nil if nothing qualifies.
-function NavGraph.route(
+-- The legs of a trip: walk to an elevator's waiting spot, ride, walk on. A trip with no elevator is one leg.
+local function legsOf(chain: { Edge }): { Leg }
+	local legs: { Leg } = {}
+	local current: { Vector3 } = {}
+	for _, edge in chain do
+		local ride = edge.ride
+		if ride then
+			-- the walk to the waiting spot is the link's first point
+			if #current == 0 then
+				table.insert(current, edge.points[1])
+			end
+			table.insert(legs, { points = current, ride = ride })
+			current = { ride.exit[2] }
+		else
+			for pointIndex, point in edge.points do
+				if #current > 0 and pointIndex == 1 then
+					continue
+				end
+				table.insert(current, point)
+			end
+		end
+	end
+	table.insert(legs, { points = current, ride = nil })
+	return legs
+end
+
+local function pick(
 	graph: Graph,
+	found: Search,
 	from: number,
-	maxTier: number,
 	minTrip: number,
 	isFree: (number) -> boolean,
 	rng: Random,
 	weightOf: ((number) -> number)?
-): (number?, { Vector3 }?)
-	local found = search(graph, from, maxTier)
+): number?
 	local options: { number } = {}
 	for index = 1, #graph.feet do
 		if
@@ -338,28 +341,64 @@ function NavGraph.route(
 		end
 	end
 	local prefer = GameConfig.NPC.TripPreferStuds
-	local destination = Weighted.pick(options, function(index: number): number
+	return Weighted.pick(options, function(index: number): number
 		local nearness = 1 / (1 + (found.distance[index] / prefer) ^ 2)
 		return nearness * (if weightOf then weightOf(index) else 1)
 	end, rng)
+end
+
+-- Picks a random reachable, free node at least minTrip studs of walking away, favouring nearer ones (a node twice
+-- GameConfig.NPC.TripPreferStuds away is a fifth as likely as a near one), so the crowd mills about where it is and only
+-- sometimes crosses the map. Returns the node and the points to walk, or nil if nothing qualifies. No elevators.
+function NavGraph.route(
+	graph: Graph,
+	from: number,
+	maxTier: number,
+	minTrip: number,
+	isFree: (number) -> boolean,
+	rng: Random,
+	weightOf: ((number) -> number)?
+): (number?, { Vector3 }?)
+	local found = search(graph, from, maxTier, false, false)
+	local destination = pick(graph, found, from, minTrip, isFree, rng, weightOf)
 	if not destination then
 		return nil, nil
 	end
-	return destination, pointsTo(found, from, destination)
+	return destination, pointsOf(chainTo(found, from, destination))
+end
+
+-- An ordinary trip: like route, but it may ride an elevator and it steers clear of busy links. Returns the node, the
+-- legs of the trip and the links it uses (for reserving their room).
+function NavGraph.tripRoute(
+	graph: Graph,
+	from: number,
+	maxTier: number,
+	minTrip: number,
+	isFree: (number) -> boolean,
+	rng: Random,
+	weightOf: ((number) -> number)?
+): (number?, { Leg }?, { Edge }?)
+	local found = search(graph, from, maxTier, true, true)
+	local destination = pick(graph, found, from, minTrip, isFree, rng, weightOf)
+	if not destination then
+		return nil, nil, nil
+	end
+	local chain = chainTo(found, from, destination)
+	return destination, legsOf(chain), chain
 end
 
 -- The route to a given node. Returns nil if it cannot be reached within maxTier.
 function NavGraph.routeTo(graph: Graph, from: number, maxTier: number, destination: number): { Vector3 }?
-	local found = search(graph, from, maxTier)
+	local found = search(graph, from, maxTier, false, false)
 	if destination == from or found.distance[destination] == math.huge then
 		return nil
 	end
-	return pointsTo(found, from, destination)
+	return pointsOf(chainTo(found, from, destination))
 end
 
 -- The route to the reachable node nearest a position (3D distance), for an NPC going to look at something.
 function NavGraph.routeNear(graph: Graph, from: number, maxTier: number, position: Vector3): (number?, { Vector3 }?)
-	local found = search(graph, from, maxTier)
+	local found = search(graph, from, maxTier, false, false)
 	local best, bestDistance = nil, math.huge
 	for index = 1, #graph.feet do
 		if found.distance[index] < math.huge then
@@ -375,13 +414,13 @@ function NavGraph.routeNear(graph: Graph, from: number, maxTier: number, positio
 	if best == from then
 		return best, {}
 	end
-	return best, pointsTo(found, from, best)
+	return best, pointsOf(chainTo(found, from, best))
 end
 
 -- The route for an NPC running from a threat (spec 5.4): the farthest node from `awayFrom` that is on the same tier
 -- as the node it starts at and reachable within maxTier. Returns nil if there is none.
 function NavGraph.fleeRoute(graph: Graph, from: number, maxTier: number, awayFrom: Vector3): (number?, { Vector3 }?)
-	local found = search(graph, from, maxTier)
+	local found = search(graph, from, maxTier, false, false)
 	local best, bestDistance = nil, -1
 	for index = 1, #graph.feet do
 		if index ~= from and found.distance[index] < math.huge and graph.tiers[index] == graph.tiers[from] then
@@ -394,7 +433,7 @@ function NavGraph.fleeRoute(graph: Graph, from: number, maxTier: number, awayFro
 	if not best then
 		return nil, nil
 	end
-	return best, pointsTo(found, from, best)
+	return best, pointsOf(chainTo(found, from, best))
 end
 
 return NavGraph

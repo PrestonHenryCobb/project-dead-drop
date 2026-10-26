@@ -233,7 +233,7 @@ room(
 	0,
 	IN,
 	{ -74, -84, 74, 74 },
-	{ density = 1.2, props = { "planters" }, glass = true, hub = "balcony" }
+	{ density = 1.2, glass = true, hub = "balcony" }
 )
 room(
 	"m_gallery",
@@ -253,27 +253,19 @@ room(
 	{ 74, -84, 125, -20 },
 	{ density = 1.2, props = { "tables" }, glass = true }
 )
-room("m_bridge_hall", "M", "Skybridge hall", 0, IN, { 74, -20, 125, 40 }, { props = { "planters" }, glass = true })
+room("m_bridge_hall", "M", "Skybridge hall", 0, IN, { 74, -20, 125, 40 }, { glass = true })
 room("m_bar_loft", "M", "Bar loft", 0, IN, { 74, 40, 125, 74 }, { props = { "tables" }, glass = true })
 room("m_offices", "M", "Staff offices", 1, IN, { -125, -155, -40, -84 }, { props = { "desks" } })
 room("m_hub", "M", "Security hub", 2, IN, { -40, -155, 40, -84 }, { props = { "desks" } })
 room("m_records", "M", "Executive records", 3, IN, { 10, -155, 40, -120 }, { parent = "m_hub" })
 room("m_catering", "M", "Catering offices", 1, IN, { 40, -155, 125, -84 }, { props = { "desks" } })
 room("m_wine", "M", "Wine terrace lounge", 0, IN, { -125, 74, -45, 135 }, { props = { "tables" }, glass = true })
-room(
-	"m_stairhall",
-	"M",
-	"Grand stair hall",
-	0,
-	IN,
-	{ -45, 74, 45, 135 },
-	{ density = 1.2, props = { "planters" }, glass = true }
-)
+room("m_stairhall", "M", "Grand stair hall", 0, IN, { -45, 74, 45, 135 }, { density = 1.2, glass = true })
 room("m_cigar", "M", "Cigar terrace lounge", 0, IN, { 45, 74, 125, 135 }, { props = { "tables" }, glass = true })
-room("m_ter_n", "M", "Terrace north", 0, OUT, { -140, -170, 140, -155 }, { props = { "planters" } })
-room("m_ter_s", "M", "Terrace south", 0, OUT, { -140, 135, 140, 150 }, { props = { "planters" } })
-room("m_ter_w", "M", "Terrace west", 0, OUT, { -140, -155, -125, 135 }, { props = { "planters" } })
-room("m_ter_e", "M", "Terrace east", 0, OUT, { 125, -155, 140, 135 }, { props = { "planters" } })
+room("m_ter_n", "M", "Terrace north", 0, OUT, { -140, -170, 140, -155 })
+room("m_ter_s", "M", "Terrace south", 0, OUT, { -140, 135, 140, 150 })
+room("m_ter_w", "M", "Terrace west", 0, OUT, { -140, -155, -125, 135 })
+room("m_ter_e", "M", "Terrace east", 0, OUT, { 125, -155, 140, 135 })
 room(
 	"m_bridge",
 	"M",
@@ -397,7 +389,7 @@ room(
 	{ 160, -85, 205, 125 },
 	{ density = 1, props = { "trees", "planters", "tables" } }
 )
-room("wt_arcade", "T", "Suite arcade", 0, IN, { 221, -85, 264, 125 }, { props = { "planters" }, glass = true })
+room("wt_arcade", "T", "Suite arcade", 0, IN, { 221, -85, 264, 125 }, { glass = true })
 room("wt_suite1", "T", "Skyline suite", 0, IN, { 205, -85, 221, -15 }, { props = { "tables" }, glass = true })
 room("wt_suite2", "T", "Corner suite", 0, IN, { 205, -15, 221, 55 }, { props = { "tables" }, glass = true })
 room("wt_suite3", "T", "Garden suite", 0, IN, { 205, 55, 221, 125 }, { props = { "tables" }, glass = true })
@@ -523,7 +515,7 @@ room(
 	{ 231, -85, 280, -15 },
 	{ props = { "planters" }, posts = true }
 )
-room("s_stairhead", "S", "Executive stair head", 4, IN, { -33, -70, -5, -50 }, { parent = "s_foyer", style = "crown" })
+room("s_stairhead", "S", "Executive stair head", 4, IN, { -40, -60, 5, -50 }, { parent = "s_foyer", style = "crown" })
 room(
 	"el_E5_S",
 	"S",
@@ -690,16 +682,16 @@ door("wt_suite4", "wt_suite5", 272, 8, { line = 55 })
 door("wt_exec", "wt_suite5", 272, 8, { line = -15, gate = 3 })
 door("wt_arcade", "wt_suite5", 20, 8, { line = 264 })
 door("wt_arcade", "wt_suite4", 90, 8, { line = 264 })
-door("r_deck", "r_plant", 72.5, 8, { line = -115, gate = 1 })
+door("r_deck", "r_plant", -100, 8, { line = 55, gate = 1 })
 door("r_deck", "r_summit", 8, 12, { line = -50, gate = 3 })
 door("r_deck", "r_vaulte_ante", 66.667, 8, { line = 50, gate = 2 })
 door("r_deck", "r_vaulte_ante", 78.333, 8, { line = 50, gate = 2 })
 door("r_vaulte_ante", "r_vaulte", 70, 8, { line = 75, gate = 3, core = true })
 door("wr_garden", "wr_plant", -25, 8, { line = 231, gate = 1 })
 door("r_deck", "r_deck_w", 70, 35, { line = -90, arch = true })
-door("s_foyer", "s_sanctum", 4, 10, { line = -70, gate = 4, package = "front" })
+door("s_foyer", "s_sanctum", -1, 10, { line = -70, gate = 4, package = "front" })
 door("s_ter_w", "s_sanctum", -92.5, 10, { line = -35, gate = 4, package = "back", keycardOnly = true })
-door("s_foyer", "s_ter_w", -40, 8, { line = -70, gate = 4, role = "terrace" })
+door("s_foyer", "s_ter_w", -43, 4, { line = -70, gate = 4, role = "terrace" })
 door("s_foyer", "s_ter_e", 40, 8, { line = -70, gate = 4, role = "terrace" })
 door("g_restroom", "g_lobby", 48, 6, { line = 130 })
 door("g_staffwc", "g_pantry", -161, 6, { line = 40 })
@@ -712,7 +704,7 @@ door("wg_cardroom", "wg_casino", 35, 10, { line = 190 })
 door("m_restroom", "m_gallery", -115, 6, { line = -60 })
 door("wm_restroom", "wm_lobby", 50, 6, { line = 260 })
 door("t_washroom", "t_east", 89, 6, { line = 70 })
-door("s_stairhead", "s_foyer", -66, 6, { line = -5, gate = 4, role = "stairhead" })
+door("s_stairhead", "s_foyer", -55, 6, { line = 5, gate = 4, role = "stairhead" })
 door("el_E1_G", "g_gallery", -81, 8, { line = -2, gate = 1, elevator = "E1" })
 door("el_E1_M", "m_gallery", -81, 8, { line = -14, gate = 1, elevator = "E1" })
 door("el_E1_T", "t_west", -81, 8, { line = -14, gate = 1, elevator = "E1" })
@@ -957,7 +949,7 @@ local ramps: { Layout.Ramp } = {
 		kind = "Staff stair",
 		from = "T",
 		to = "R",
-		x = 79,
+		x = 75,
 		z = -107,
 		dir = "+z",
 		turn = true,
@@ -1013,7 +1005,7 @@ local ramps: { Layout.Ramp } = {
 		kind = "Executive stair",
 		from = "R",
 		to = "S",
-		x = -12,
+		x = -9,
 		z = -60,
 		dir = "-x",
 		turn = true,
@@ -1159,6 +1151,208 @@ place("camera", {
 	"wm_housekeeping",
 	"b_spine",
 })
+
+-- Crowd clusters: authored groups at the hubs (id, room, centre, how many NPCs, what they do, what they face).
+local clusters: { Layout.Cluster } = {
+	{
+		id = "bar_front",
+		room = "g_bar",
+		level = "G",
+		x = 107,
+		z = 46,
+		size = 12,
+		activity = "Drink",
+		faceX = 107,
+		faceZ = 32,
+	},
+	{
+		id = "ballroom_floor",
+		room = "g_ballroom",
+		level = "G",
+		x = 107,
+		z = -30,
+		size = 12,
+		activity = "Talk",
+		faceX = 107,
+		faceZ = -30,
+	},
+	{
+		id = "ballroom_corner",
+		room = "g_ballroom",
+		level = "G",
+		x = 129,
+		z = -46,
+		size = 8,
+		activity = "Talk",
+		faceX = 129,
+		faceZ = -46,
+	},
+	{
+		id = "atrium_pond_w",
+		room = "g_atrium",
+		level = "G",
+		x = -36,
+		z = -22,
+		size = 10,
+		activity = "Talk",
+		faceX = 0,
+		faceZ = 6,
+	},
+	{
+		id = "atrium_pond_e",
+		room = "g_atrium",
+		level = "G",
+		x = 28,
+		z = -40,
+		size = 8,
+		activity = "Talk",
+		faceX = 0,
+		faceZ = 6,
+	},
+	{
+		id = "gallery_w",
+		room = "g_gallery",
+		level = "G",
+		x = -110,
+		z = -40,
+		size = 8,
+		activity = "Idle",
+		faceX = -110,
+		faceZ = -40,
+	},
+	{
+		id = "gallery_e",
+		room = "g_gallery",
+		level = "G",
+		x = -110,
+		z = -8,
+		size = 8,
+		activity = "Idle",
+		faceX = -110,
+		faceZ = -8,
+	},
+	{
+		id = "lobby",
+		room = "g_lobby",
+		level = "G",
+		x = -35,
+		z = 118,
+		size = 8,
+		activity = "Talk",
+		faceX = -35,
+		faceZ = 118,
+	},
+	{
+		id = "dining",
+		room = "g_dining",
+		level = "G",
+		x = -100,
+		z = -125,
+		size = 10,
+		activity = "Talk",
+		faceX = -100,
+		faceZ = -125,
+	},
+	{
+		id = "casino_a",
+		room = "wg_casino",
+		level = "G",
+		x = 200,
+		z = 17,
+		size = 12,
+		activity = "Talk",
+		faceX = 200,
+		faceZ = 17,
+	},
+	{
+		id = "casino_b",
+		room = "wg_casino",
+		level = "G",
+		x = 240,
+		z = 55,
+		size = 12,
+		activity = "Talk",
+		faceX = 240,
+		faceZ = 55,
+	},
+	{
+		id = "casino_c",
+		room = "wg_casino",
+		level = "G",
+		x = 186,
+		z = 77,
+		size = 10,
+		activity = "Talk",
+		faceX = 186,
+		faceZ = 77,
+	},
+	{
+		id = "hotel_lobby",
+		room = "wm_lobby",
+		level = "M",
+		x = 200,
+		z = 15,
+		size = 8,
+		activity = "Talk",
+		faceX = 200,
+		faceZ = 15,
+	},
+	{
+		id = "sky_bar",
+		room = "wm_bar",
+		level = "M",
+		x = 212,
+		z = 95,
+		size = 10,
+		activity = "Drink",
+		faceX = 212,
+		faceZ = 95,
+	},
+	{
+		id = "roof_party_w",
+		room = "r_deck",
+		level = "R",
+		x = -66,
+		z = -30,
+		size = 12,
+		activity = "Talk",
+		faceX = -66,
+		faceZ = -30,
+	},
+	{
+		id = "roof_party_s",
+		room = "r_deck",
+		level = "R",
+		x = -25,
+		z = 70,
+		size = 12,
+		activity = "Drink",
+		faceX = -25,
+		faceZ = 70,
+	},
+	{
+		id = "roof_garden",
+		room = "wr_garden",
+		level = "R",
+		x = 240,
+		z = 60,
+		size = 10,
+		activity = "Talk",
+		faceX = 240,
+		faceZ = 60,
+	},
+	{
+		id = "balcony_w",
+		room = "m_balcony",
+		level = "M",
+		x = -55,
+		z = -20,
+		size = 8,
+		activity = "Talk",
+		faceX = -55,
+		faceZ = -20,
+	},
+}
 
 local ziplines: { Layout.Zipline } = {
 	{
@@ -1306,6 +1500,7 @@ return {
 	nodes = nodes,
 	signposts = signposts,
 	secretExits = secretExits,
+	clusters = clusters,
 	shafts = shafts,
 	ladders = ladders,
 	counts = counts,

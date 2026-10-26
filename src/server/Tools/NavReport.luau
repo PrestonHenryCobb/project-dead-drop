@@ -1,7 +1,6 @@
 --!strict
--- A development check for the map (BUILD_ORDER Step 7B): builds the NPC graph exactly as NPCService does, then reports
--- what NPCs could never walk to. It must run inside a playtest (pathfinding needs the running world) from a game
--- Script, so it shares the running services; see the build-map skill:
+-- A development check for the map (BUILD_ORDER Step 7B): loads the NPC graph exactly as NPCService does, then reports
+-- what NPCs could never walk to. Run it in a playtest from a game Script (it needs ZoneService); see the build-map skill:
 --
 --     print(require(game.ServerScriptService.Server.Tools.NavReport).run())
 --
@@ -48,7 +47,7 @@ function NavReport.run(): string
 			table.insert(nodes, node)
 		end
 	end
-	local graph = NavGraph.build(nodes, ZoneService.tierAt)
+	local graph = NavGraph.load(nodes, ZoneService.tierAt)
 	local zones = CollectionService:GetTagged(Enums.Tag.ZoneVolume)
 	local lines = { `nodes {#nodes}, links {graph.linkCount}` }
 

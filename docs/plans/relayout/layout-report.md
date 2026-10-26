@@ -28,13 +28,13 @@ Checks on the placed layout: **all pass**
 | staff_g_m_s | Staff stair | G g_pantry | M m_catering | (60, -145) | +z switchback | 14 | 1 |
 | wing_staff_b_g | Staff stair | B wb_linen | G wg_cage | (172, -45) | +z switchback | 14 | 1 |
 | wing_staff_g_m | Staff stair | G wg_cage | M wm_housekeeping | (192, -60) | -x switchback | 14 | 1 |
-| plant_stair | Staff stair | T t_east | R r_plant | (79, -107) | +z switchback | 14 | 1 |
+| plant_stair | Staff stair | T t_east | R r_plant | (75, -107) | +z switchback | 14 | 1 |
 | wing_plant_stair | Staff stair | T wt_arcade | R wr_plant | (230, -41) | -z switchback | 14 | 1 |
 | guard_b_g | Guard stair | B b_gate | G g_kitchen | (0, -125) | +z switchback | 14 | 2 |
 | guard_m_t | Guard stair | M m_hub | T t_guard_nw | (-31, -94) | -z switchback | 14 | 2 |
 | wing_guard_stair | Guard stair | B wb_security | G wg_cage | (170, -70) | +x switchback | 14 | 2 |
 | guard_t_r | Guard stair | T t_east | R r_deck | (75, -5) | +z switchback | 14 | 2 |
-| sanctum_stair | Executive stair | R r_summit | S s_stairhead | (-12, -60) | -x switchback | 14 | 4 |
+| sanctum_stair | Executive stair | R r_summit | S s_stairhead | (-9, -60) | -x switchback | 14 | 4 |
 
 ## Elevator shafts
 | Shaft | Level | Room | In | Stop | Rect |

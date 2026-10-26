@@ -109,6 +109,12 @@ function Movement.interrupt(npc: Npc)
 	npc.path = nil
 end
 
+-- A reaction (cowering, gasping, going to look at a noise) ends any elevator trip the NPC was on.
+function Movement.cancelRide(npc: Npc)
+	npc.ride = nil
+	npc.legs = {}
+end
+
 -- A new route, preceded by whatever stored path an interruption left unfinished.
 function Movement.withResume(npc: Npc, points: { Vector3 }): { Vector3 }
 	local resume = npc.resume
@@ -174,7 +180,7 @@ end
 -- Writes the NPC's position and facing to its root, if they changed.
 function Movement.place(npc: Npc)
 	-- A downed NPC lies on its front or back with its head the way it is crawling (Util/Knockdown, as players do).
-	local lying = npc.state == "Downed" or npc.state == "Eliminated"
+	local lying = npc.state == "Downed" or npc.state == "Eliminated" or npc.state == "Rising"
 	local height = if lying then config.Death.RootLiftStuds else npc.rootHeight
 	local position = npc.ground + npc.offset + Vector3.new(0, height, 0)
 	local placed = npc.placed

@@ -582,7 +582,7 @@ local function findMeleeTarget(player: Player, root: BasePart, look: Vector3, ta
 			target.player ~= player
 			and not (target.player and TeamService.areTeammates(player, target.player))
 			and not (target.player and isDowned(target.player))
-			and not (target.npc and (target.npc.state == "Downed" or target.npc.state == "Eliminated"))
+			and not (target.npc and Death.isDown(target.npc))
 		then
 			local offset = target.rootPart.Position - root.Position
 			local flat = Vector3.new(offset.X, 0, offset.Z)

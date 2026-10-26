@@ -342,6 +342,7 @@ do
 	local knock = GameConfig.Downed.Knockdown
 	local rise = knock.RiseStuds -- a standing root's height above a lying one
 	local fallTime = knock.Seconds
+	local riseSeconds = GameConfig.NPC.WakeUp.RiseSeconds
 
 	-- The whole body, turned and raised from the lying root. Up for a prone root is its +Z; for a supine root, its -Z.
 	local function whole(rx: number, ry: number, up: number, supine: boolean): Joints
@@ -513,6 +514,19 @@ do
 			frame(0, supinePushRight, flatSupine),
 			frame(cycle / 2, supinePushLeft, flatSupine),
 			frame(cycle, supinePushRight, flatSupine)
+		),
+		-- Getting up (relayout-2: a downed NPC stands up WakeUp.Seconds after it went down): the knockdown run backward, from
+		-- lying to standing, ending in exactly the pose a standing body has on a lying root, so when the server stands the
+		-- root up nothing jumps.
+		RiseProne = once(
+			frame(0, proneRest, flat),
+			frame(riseSeconds * 0.55, bracing, whole(50, 0, rise * 0.6, false)),
+			frame(riseSeconds, standing, whole(90, 0, rise, false))
+		),
+		RiseSupine = once(
+			frame(0, supineRest, flatSupine),
+			frame(riseSeconds * 0.55, flailing, whole(-55, 0, rise * 0.6, true)),
+			frame(riseSeconds, standing, whole(-90, 0, rise, true))
 		),
 		-- A brief settle into stillness, then held (not a ragdoll).
 		DeadProne = looped(

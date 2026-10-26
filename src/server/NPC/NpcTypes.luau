@@ -9,7 +9,8 @@ local Types = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"
 -- Idle: standing at a node doing its activity. Walk: on a trip. Cower, Gasp: frozen reacting. BackAway: stepping away
 -- from a body. Flee: running from gunfire or an explosion. Investigate: a guard walking to, then waiting at, a noise.
 -- Return: that guard walking back to its post. Downed: at 0 HP, crawling and bleeding out. Eliminated: bled out, lying
--- still until it fades.
+-- still. Rising: getting up, WakeUp.Seconds after it went down. Wait, Board, Ride: an elevator trip (waiting beside the
+-- door for the cab, walking in, riding).
 export type NpcState =
 	"Idle"
 	| "Walk"
@@ -20,8 +21,12 @@ export type NpcState =
 	| "Investigate"
 	| "Return"
 	| "Held" -- grabbed in a takedown: stands still until it ends (R5-takedown)
+	| "Wait"
+	| "Board"
+	| "Ride"
 	| "Downed"
 	| "Eliminated"
+	| "Rising"
 
 export type Npc = {
 	id: string, -- the model's name; clients identify NPCs by it
@@ -49,6 +54,16 @@ export type Npc = {
 	fall: Knockdown.Fall, -- how it went down, once downed (R4-body-animation)
 	posture: Knockdown.Posture, -- lying on its front or back, once downed
 	knockUntil: number, -- the fall plays until then; the crawl starts after it
+	downedAt: number, -- when it last went down (it stands up WakeUp.Seconds later)
+	legs: { NavGraph.Leg }, -- the rest of a trip that rides an elevator: the legs after the one being walked
+	ride: NavGraph.Ride?, -- the elevator ride this walk ends at
+	riding: string?, -- the shaft whose cab the NPC is in
+	waitUntil: number, -- an NPC waiting for a cab gives up at this time
+	tripFrom: number, -- the node an elevator trip began at (it returns there if the cab never comes)
+	holds: { { state: NavGraph.LinkState, releaseAt: number } }, -- room reserved on the links a trip uses
+	tier: number, -- how often the server moves it: 1 near a player, 2 mid, 3 far, 0 asleep (Update)
+	phase: number, -- which ticks a mid or far NPC is moved on (0 to FarEvery - 1)
+	owed: number, -- seconds of movement it has not been given yet while it was skipped
 	placed: Vector3?, -- the root position last written, so unchanged NPCs are not rewritten every tick
 	placedYaw: number,
 	animation: string, -- what clients should play ("" means just walk or idle)
@@ -65,10 +80,9 @@ export type Crowd = {
 	release: (number) -> (),
 }
 
--- What the crowd lends to the reaction and death modules so they can finish an NPC's life.
+-- What the crowd lends to the death module so a downed NPC can get up again (relayout-2: nothing replaces it).
 export type Hooks = {
-	replace: (role: string, bodyPosition: Vector3) -> (), -- a replacement of this role is due
-	remove: (Npc) -> (), -- the NPC's body is gone; forget it
+	revive: (Npc) -> (), -- the NPC is on its feet: give it a node to stand at and a routine to return to
 }
 
 return {}

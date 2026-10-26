@@ -18,7 +18,7 @@ local GameConfig = require(script.Parent.Parent.GameConfig)
 
 export type Fall = "Forward" | "Backward" | "Left" | "Right"
 export type Posture = "Prone" | "Supine"
-export type Stage = "Knockdown" | "Down" | "Dead"
+export type Stage = "Knockdown" | "Down" | "Dead" | "Rise"
 
 local Knockdown = {}
 
@@ -63,12 +63,14 @@ function Knockdown.lyingCFrame(ground: Vector3, yaw: number, posture: Posture): 
 	return CFrame.new(ground + lift) * CFrame.Angles(0, yaw, 0) * CFrame.Angles(-math.pi / 2, 0, 0)
 end
 
--- The pose for a stage: the fall itself, then lying or crawling, then dead.
+-- The pose for a stage: the fall itself, then lying or crawling, then dead, then (an NPC, WakeUp.Seconds later) getting up.
 function Knockdown.animation(stage: Stage, fall: Fall, posture: Posture, moving: boolean?): string
 	if stage == "Knockdown" then
 		return "Knockdown" .. fall
 	elseif stage == "Dead" then
 		return "Dead" .. posture
+	elseif stage == "Rise" then
+		return "Rise" .. posture
 	end
 	return (if moving then "Crawl" else "Lie") .. posture
 end

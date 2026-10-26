@@ -126,6 +126,18 @@ export type Marker = { id: string, level: string, x: number, z: number, room: st
 
 -- Gala re-layout: a secret exit is a panel in the wall two rooms share, opened by a prop inside `a` (the restricted room).
 export type SecretExit = { id: string, a: string, b: string, level: string, line: number, at: number, width: number }
+-- A crowd cluster (relayout-2): an authored group of NPCs at a hub, standing within ClusterRadiusStuds of (x, z) facing (faceX, faceZ).
+export type Cluster = {
+	id: string,
+	room: string,
+	level: string,
+	x: number,
+	z: number,
+	size: number,
+	activity: string,
+	faceX: number,
+	faceZ: number,
+}
 -- A glass elevator: its rooms are the Room pieces with this `shaft` id, one per level it passes. Locked until the match unlocks it.
 export type Shaft = { id: string, name: string, tier: number, locked: boolean? }
 -- A service ladder from `level` up to the outdoor room `room` on `to`, at (x, z) beside the wall; `edge` is the terrace edge line.
