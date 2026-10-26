@@ -164,6 +164,7 @@ local function makeButton(props: ButtonProps, style: ButtonStyle): Button
 	local button = Instance.new("TextButton")
 	button.Name = props.Name
 	button.Text = props.Text
+	button.TextWrapped = true
 	button.Font = config.Fonts.Bold
 	button.TextSize = style.TextSize
 	button.TextColor3 = style.TextColor
@@ -208,6 +209,8 @@ local function makeButton(props: ButtonProps, style: ButtonStyle): Button
 		button.Active = enabled
 		button.Selectable = enabled
 		button.BackgroundTransparency = if enabled then 0 else config.DisabledTransparency
+		button.BackgroundColor3 = if selected then colors.EmeraldDeep else style.Fill
+		border.Thickness = if selected then config.FocusPixels else style.StrokeThickness
 		button.TextTransparency = if enabled then 0 else config.DisabledTransparency
 		border.Transparency = if enabled then 0 else config.DisabledTransparency
 		setProperty(border, { Color = restingStroke() })

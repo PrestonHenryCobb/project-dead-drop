@@ -13,7 +13,8 @@ function view.Mount(stage, navigator)
 	local session = Kit.session(stage, "BLACK MARKET / COSMETICS ONLY", navigator)
 	cleanup:Add(session.destroy)
 	Kit.documentArt(session.Body, "THE NEXT\nCOLLECTION", UDim2.new(), UDim2.fromScale(0.62, 0.72))
-	local panel = Kit.panel(session.Body, "MarketStatus", UDim2.fromScale(0.65, 0), UDim2.fromScale(0.35, 1))
+	local rail = Kit.scroll(session.Body, "MarketRail", UDim2.fromScale(0.65, 0), UDim2.fromScale(0.35, 1))
+	local panel = Kit.panel(rail, "MarketStatus", UDim2.new(), UDim2.new(1, -14, 0, 500))
 	Kit.text(panel, "NO OFFERS ISSUED", 0, 80, true)
 	Kit.text(
 		panel,

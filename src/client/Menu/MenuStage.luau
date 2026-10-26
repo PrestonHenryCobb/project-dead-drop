@@ -25,6 +25,7 @@ local UiAccessibility = require(Shared:WaitForChild("Util"):WaitForChild("UiAcce
 local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"))
 local ViewModel = require(script.Parent.Parent:WaitForChild("Combat"):WaitForChild("ViewModel"))
 
+local GalaSet = require(script.Parent.Components.GalaSet)
 local config = GameConfig.Menu.Stage
 local panInfo = TweenInfo.new(GameConfig.Menu.CameraPanSeconds, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 
@@ -192,6 +193,7 @@ function MenuStage.new(): MenuStage
 	janitor:Add(folder)
 	local origin = CFrame.new(config.Origin)
 	buildRoom(folder, origin)
+	GalaSet.build(folder, origin)
 	local self = setmetatable({
 		janitor = janitor,
 		folder = folder,

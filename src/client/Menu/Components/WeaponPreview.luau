@@ -7,6 +7,7 @@ local UserInputService = game:GetService("UserInputService")
 local Types = require(ReplicatedStorage.Shared.Types)
 local ViewModel = require(script.Parent.Parent.Parent.Combat.ViewModel)
 local Kit = require(script.Parent.ViewKit)
+local Art = require(script.Parent.DecoArt)
 local Preview = {}
 
 function Preview.mount(parent: Instance, def: Types.WeaponDef, janitor: any, interactive: boolean?)
@@ -19,6 +20,7 @@ function Preview.mount(parent: Instance, def: Types.WeaponDef, janitor: any, int
 	viewport.LightColor = Color3.fromRGB(255, 239, 205)
 	viewport.LightDirection = Vector3.new(-1, -1, -1)
 	viewport.Parent = parent
+	Art.trim(viewport)
 	local world = Instance.new("WorldModel")
 	world.Parent = viewport
 	local weapon = ViewModel.new(def)

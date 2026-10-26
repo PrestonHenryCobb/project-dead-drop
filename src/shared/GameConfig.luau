@@ -176,7 +176,7 @@ local GameConfig = {
 			Body = Enum.Font.GothamMedium,
 			Mono = Enum.Font.RobotoMono, -- timers, stats, key hints
 		},
-		TextSizes = { Display = 28, Title = 20, Button = 17, Body = 15, Small = 13, Chip = 12 },
+		TextSizes = { Display = 28, Title = 20, Button = 17, Body = 17, Small = 14, Chip = 12 },
 		SurfaceTransparency = 0.1,
 		InfoPanelTransparency = 0.12,
 		CornerPixels = 4,
@@ -194,6 +194,8 @@ local GameConfig = {
 		HoverSeconds = 0.16,
 		ScreenFadeSeconds = 0.22,
 		CameraPanSeconds = 0.55,
+		-- Ticket menu-art-pass: native illustration readability and explicit scroll affordance.
+		Art = { BodyTextPixels = 17, ScrollbarPixels = 8 },
 		-- Ticket menu-shell: the frame every screen sits in, and the two lobby screens' columns.
 		HeaderPixels = 68,
 		FooterPixels = 44,
@@ -212,6 +214,13 @@ local GameConfig = {
 		-- The 3D stage behind the menu: a small walnut-and-brass mezzanine built on the client only, far from the map.
 		Stage = {
 			Origin = Vector3.new(0, 1600, 2600),
+			-- Ticket menu-art-pass: original Gala set dressing, no additional lights or shadows.
+			Art = {
+				Glass = Color3.fromHex("8EAFA9"),
+				MarbleDark = Color3.fromHex("403B37"),
+				GlassReflectance = 0.12,
+				ChandelierHeight = 13,
+			},
 			RoomSize = Vector3.new(44, 22, 34),
 			Walnut = Color3.fromHex("3B2418"),
 			Floor = Color3.fromHex("D9D2C3"),

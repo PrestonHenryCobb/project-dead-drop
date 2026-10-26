@@ -30,17 +30,19 @@ function view.OpenInspection(parent: Frame, title: string, description: string, 
 	panel.SelectionBehaviorDown = Enum.SelectionBehavior.Stop
 	panel.SelectionBehaviorLeft = Enum.SelectionBehavior.Stop
 	panel.SelectionBehaviorRight = Enum.SelectionBehavior.Stop
-	Kit.text(panel, title, 0, 80, true)
-	Kit.text(panel, description, 100, 180)
+	local body = Kit.scroll(panel, "InspectionBody", UDim2.new(), UDim2.new(1, 0, 1, -58))
+	Kit.text(body, title, 0, 80, true)
+	Kit.text(body, description, 100, 180)
 	local function close()
 		modalCleanup:Cleanup()
 		if previous and previous.Parent then
 			GuiService.SelectedObject = previous
 		end
 	end
-	local button = Kit.button(panel, "CLOSE INSPECTION", 300, close)
+	local button = Kit.button(panel, "CLOSE INSPECTION", 0, close)
+	button.Instance.Position = UDim2.new(0, 0, 1, -46)
 	if confirm then
-		Kit.button(panel, "CONFIRM", 360, function()
+		Kit.button(body, "CONFIRM", 300, function()
 			close()
 			confirm()
 		end, true, true)
@@ -61,7 +63,8 @@ function view.Mount(stage, navigator)
 	view.Unmount()
 	local session = Kit.session(stage, "THE MINT / STOCK CERTIFICATES", navigator)
 	cleanup:Add(session.destroy)
-	local left = Kit.panel(session.Body, "Treasury", UDim2.new(), UDim2.fromScale(0.4, 1))
+	local rail = Kit.scroll(session.Body, "TreasuryRail", UDim2.new(), UDim2.fromScale(0.4, 1))
+	local left = Kit.panel(rail, "Treasury", UDim2.new(), UDim2.new(1, -14, 0, 540))
 	Kit.text(left, "YOUR STOCKS", 0, 42, true)
 	local balance = Kit.text(left, "Loading verified balance…", 58, 50, true)
 	Kit.text(

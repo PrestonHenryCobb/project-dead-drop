@@ -16,6 +16,7 @@ local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"
 local Menu = script.Parent.Parent
 local LobbyState = require(Menu:WaitForChild("LobbyState"))
 local MenuTheme = require(Menu:WaitForChild("MenuTheme"))
+local Art = require(Menu.Components.DecoArt)
 local RemoteController = require(Menu.Parent:WaitForChild("Controllers"):WaitForChild("RemoteController"))
 
 local config = GameConfig.Menu
@@ -63,11 +64,32 @@ local function buildLeft(
 	onRetry: () -> ()
 )
 	local briefing = panel(rail, "Briefing", 1, "Brass")
-	MenuTheme.label({ Name = "Kicker", Text = "OPERATION", Style = "Kicker", Parent = briefing, LayoutOrder = 1 })
-	MenuTheme.label({ Name = "Title", Text = "THE GALA", Style = "Display", Parent = briefing, LayoutOrder = 2 })
+	local paperGradient = briefing:FindFirstChildOfClass("UIGradient")
+	if paperGradient then
+		paperGradient.Enabled = false
+	end
+	briefing.BackgroundColor3 = colors.Text
+	briefing.BackgroundTransparency = 0
+	MenuTheme.label({
+		Name = "Kicker",
+		Text = "COVER STORY / OPERATION",
+		Style = "Kicker",
+		Color = colors.TextOnBright,
+		Parent = briefing,
+		LayoutOrder = 1,
+	})
+	MenuTheme.label({
+		Name = "Title",
+		Text = "THE GALA",
+		Style = "Display",
+		Color = colors.TextOnBright,
+		Parent = briefing,
+		LayoutOrder = 2,
+	})
 	MenuTheme.label({
 		Name = "Body",
-		Text = "Blend into the crowd in disguise, gather intel to open the vault, take the Package and extract.",
+		Text = "Blend into the crowd. Open the vault. Take the Package. Leave no trace.",
+		Color = colors.TextOnBright,
 		Parent = briefing,
 		LayoutOrder = 3,
 	})
@@ -251,7 +273,14 @@ local function buildRight(rail: ScrollingFrame)
 		})
 	end
 
-	local note = panel(rail, "FieldBriefing", 2, "Focus")
+	local artwork = Instance.new("Frame")
+	artwork.Name = "OperationInsignia"
+	artwork.Size = UDim2.new(1, 0, 0, 156)
+	artwork.BackgroundTransparency = 1
+	artwork.LayoutOrder = 2
+	artwork.Parent = rail
+	Art.plate(artwork, "COVERT / THE GALA", UDim2.new(), UDim2.fromScale(1, 1), "Asset")
+	local note = panel(rail, "FieldBriefing", 3, "Focus")
 	MenuTheme.label({ Name = "Kicker", Text = "FIELD BRIEFING", Style = "Kicker", Parent = note, LayoutOrder = 1 })
 	MenuTheme.label({
 		Name = "Body",

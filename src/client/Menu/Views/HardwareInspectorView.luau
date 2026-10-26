@@ -87,9 +87,9 @@ function view.Mount(stage, navigator, context)
 		local inspector = Kit.frame(root, "HardwareInspector", UDim2.fromScale(0.67, 0), UDim2.fromScale(0.33, 1))
 		local side = Kit.scroll(inspector, "Details", UDim2.new(), UDim2.new(1, 0, 1, -138))
 		local actions = Kit.frame(inspector, "Actions", UDim2.new(0, 0, 1, -130), UDim2.new(1, 0, 0, 130))
-		Kit.text(side, selected.Name, 0, 68, true)
-		Kit.text(side, string.upper(selected.Agent) .. ` / W{selected.Slot} · {selected.Category}`, 74, 40)
-		local art = Kit.frame(side, "Turntable", UDim2.fromOffset(0, 120), UDim2.new(1, 0, 0, 190))
+		Kit.text(side, selected.Name, 0, 44, true)
+		Kit.text(side, string.upper(selected.Agent) .. ` / W{selected.Slot} · {selected.Category}`, 50, 30)
+		local art = Kit.frame(side, "Turntable", UDim2.fromOffset(0, 84), UDim2.new(1, -14, 0, 132))
 		if selected.Def then
 			local turntable = Preview.mount(art, selected.Def, content, true)
 			for i, label in { "LEFT", "ZOOM", "RIGHT" } do
@@ -98,7 +98,7 @@ function view.Mount(stage, navigator, context)
 					Text = label,
 					Parent = side,
 					Size = UDim2.new(1 / 3, -6, 0, 46),
-					Position = UDim2.new((i - 1) / 3, 0, 0, 320),
+					Position = UDim2.new((i - 1) / 3, 0, 0, 224),
 					OnActivated = function()
 						if i == 2 then
 							turntable.zoom()
@@ -109,17 +109,18 @@ function view.Mount(stage, navigator, context)
 				})
 			end
 			local def = selected.Def
-			Kit.text(
+			local stats = Kit.text(
 				side,
-				`{def.Damage} DMG · {def.HeadshotMult}x HEADSHOT\n{def.RPM} RPM · {def.MagSize}/{def.ReserveAmmo} AMMO\n{def.ReloadSeconds}s RELOAD · {def.AimZoom}x FOV\n{if def.Quiet
+				`{def.Damage} DMG · {def.HeadshotMult}x HEAD · {def.RPM} RPM\n{def.MagSize}/{def.ReserveAmmo} AMMO · {def.ReloadSeconds}s RELOAD\n{def.AimZoom}x FOV · {if def.Quiet
 					then "SUPPRESSED"
 					else "UNSUPPRESSED"}`,
-				382,
-				112
+				276,
+				60
 			)
+			stats.Name = "HardwareStats"
 		else
 			Kit.documentArt(art, "IN\nDEVELOPMENT", UDim2.new(), UDim2.fromScale(1, 1))
-			Kit.text(side, "This weapon is not playable yet. No invented stats or unlock grants.", 382, 100)
+			Kit.text(side, "This weapon is not playable yet. No invented stats or unlock grants.", 282, 100)
 		end
 		local mastery = if data then data.Profile.Mastery[selected.Agent] else nil
 		local allowed = data
@@ -144,7 +145,7 @@ function view.Mount(stage, navigator, context)
 		Kit.button(actions, "BACK TO AGENT OVERVIEW", 78, function()
 			navigator.navigateTo("Agents", { AgentId = selected.Agent })
 		end)
-		Kit.text(side, "Earn Hardware through Agent Mastery. Weapon finishes are not yet published.", 506, 70)
+		Kit.text(side, "Earn Hardware through Agent Mastery. Weapon finishes are not yet published.", 412, 70)
 		restoreFocus(root)
 	end
 	draw()

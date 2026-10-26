@@ -8,6 +8,7 @@ local GameConfig = require(Shared.GameConfig)
 local Janitor = require(Shared.Util.Janitor)
 local Kit = require(script.Parent.Parent.Components.ViewKit)
 local Preview = require(script.Parent.Parent.Components.WeaponPreview)
+local Art = require(script.Parent.Parent.Components.DecoArt)
 local cleanup = Janitor.new()
 local content = Janitor.new()
 local view = { Tab = "Agents" } :: Types.MenuView
@@ -55,6 +56,8 @@ function view.Mount(stage, navigator, context)
 		local allowed = owned and selected.Def ~= nil and level >= selected.UnlockMasteryLevel
 		local left = Kit.scroll(area, "Roster", UDim2.new(), UDim2.new(0.24, -12, 1, 0))
 		Kit.text(left, string.upper(agentId), 0, 42, true)
+		local insignia = Kit.frame(left, "OperativeCredential", UDim2.new(1, -64, 0, 0), UDim2.fromOffset(56, 56))
+		Art.insignia(insignia, "Asset")
 		Kit.text(left, agent.Epithet .. "\n" .. agent.Class .. " / " .. agent.Role, 50, 76)
 		for index, id in Agents.order do
 			local entry = assert(Agents.get(id))

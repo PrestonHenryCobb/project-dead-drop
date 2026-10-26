@@ -7,6 +7,7 @@ local Janitor = require(Shared.Util.Janitor)
 local Types = require(Shared.Types)
 local Theme = require(script.Parent.Parent.MenuTheme)
 local config = require(Shared.GameConfig).Menu
+local Art = require(script.Parent.DecoArt)
 local Remote = require(script.Parent.Parent.Parent.Controllers.RemoteController)
 local Kit = {}
 Kit.Theme = Theme
@@ -28,7 +29,7 @@ function Kit.text(parent: Instance, value: string, y: number, height: number, la
 	label.Position = UDim2.fromOffset(0, y)
 	label.Size = UDim2.new(1, 0, 0, height)
 	label.Font = if large then Theme.Fonts.Bold else Theme.Fonts.Body
-	label.TextSize = if large then Theme.TextSizes.Display else Theme.TextSizes.Body
+	label.TextSize = if large then Theme.TextSizes.Display else config.Art.BodyTextPixels
 	label.TextColor3 = Theme.Colors.Text
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.TextYAlignment = Enum.TextYAlignment.Top
@@ -47,7 +48,11 @@ function Kit.scroll(parent: Instance, name: string, position: UDim2, size: UDim2
 	frame.Size = size
 	frame.CanvasSize = UDim2.new()
 	frame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-	frame.ScrollBarThickness = 4
+	frame.ScrollBarThickness = config.Art.ScrollbarPixels
+	frame.ScrollingDirection = Enum.ScrollingDirection.Y
+	frame.VerticalScrollBarInset = Enum.ScrollBarInset.Always
+	frame.ClipsDescendants = true
+	frame.ScrollBarImageTransparency = 0
 	frame.ScrollBarImageColor3 = Theme.Colors.Brass
 	frame.Parent = parent
 	return frame
@@ -82,25 +87,18 @@ function Kit.button(
 end
 
 function Kit.panel(parent: Instance, name: string, position: UDim2, size: UDim2): Frame
-	return Theme.infoPanel({ Name = name, Parent = parent, Position = position, Size = size })
+	local panel = Theme.infoPanel({ Name = name, Parent = parent, Position = position, Size = size })
+	Art.trim(panel)
+	return panel
 end
 
--- A native Deco dossier illustration. No external upload or fake reward is needed for empty catalogues.
+-- Original illustrated plate: separate ivory title band keeps contrast independent of the engraving.
 function Kit.documentArt(parent: Instance, title: string, position: UDim2, size: UDim2)
-	local art = Kit.frame(parent, "DossierIllustration", position, size)
-	art.BackgroundTransparency = 0
-	art.BackgroundColor3 = Theme.Colors.Walnut
-	for i = 1, 7 do
-		local line = Kit.frame(art, "BrassInlay", UDim2.fromScale(0.12 + i * 0.04, 0.12), UDim2.fromScale(0.004, 0.7))
-		line.Rotation = 28
-		line.BackgroundTransparency = 0
-		line.BackgroundColor3 = Theme.Colors.Brass
-	end
-	local paper = Kit.panel(art, "IvoryFolio", UDim2.fromScale(0.4, 0.2), UDim2.fromScale(0.49, 0.62))
-	paper.BackgroundColor3 = Theme.Colors.Text
-	paper.BackgroundTransparency = 0
-	local label = Kit.text(paper, title, 0, 90, true)
-	label.TextColor3 = Theme.Colors.TextOnBright
+	local kind = if string.find(title, "MINT")
+		then "Mint"
+		elseif string.find(title, "COLLECTION") then "Market"
+		else "Archive"
+	return Art.plate(parent, title, position, size, kind)
 end
 
 -- Preserve controller focus when a profile push or selection rebuilds a view.

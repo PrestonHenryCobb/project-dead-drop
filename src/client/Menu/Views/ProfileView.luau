@@ -20,7 +20,10 @@ function view.Mount(stage, navigator)
 	cleanup:Add(session.destroy)
 	session.watch(function(data: Types.MetaSnapshot)
 		content:Cleanup()
-		local root = Kit.scroll(session.Body, "Career", UDim2.new(), UDim2.fromScale(1, 1))
+		local root = Kit.scroll(session.Body, "Career", UDim2.new(), UDim2.new(1, 0, 1, -24))
+		local cue = Kit.text(session.Body, "SCROLL / CAREER & SIX OPERATIVE MASTERY RECORDS", 0, 24)
+		cue.Position = UDim2.new(0, 0, 1, -24)
+		content:Add(cue)
 		content:Add(root)
 		Kit.text(root, Players.LocalPlayer.DisplayName, 0, 42, true)
 		Kit.text(root, `LEVEL {data.Profile.Level} · {data.Profile.Career.Matches} COMPLETED MATCHES`, 48, 30)
@@ -42,7 +45,7 @@ function view.Mount(stage, navigator)
 			Kit.text(card, value[2], 48, 50, true)
 		end
 		Kit.text(root, `SILENT TAKEDOWNS / {stats.Takedowns}`, 236, 36)
-		Kit.text(root, "OPERATIVE MASTERY", 290, 42, true)
+		Kit.text(root, "OPERATIVE MASTERY / SCROLL TO BROWSE", 290, 42, true)
 		for index, id in Agents.order do
 			local mastery = data.Profile.Mastery[id]
 			local panel = Kit.panel(
