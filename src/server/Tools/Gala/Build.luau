@@ -4644,7 +4644,7 @@ function Build.run(options: { layout: string?, dryRun: boolean? }?)
 	spawn.Parent = objects
 
 	-- Night outside, with a warm dusk-like glow inside (STYLE_QUESTIONS: night with nice ambient light). The art pass refines it.
-	Lighting.ClockTime = 20.5
+	Lighting.ClockTime = GameConfig.Art.Lighting.ClockTime
 	Lighting.Ambient = GameConfig.Art.Lighting.Ambient
 	Lighting.OutdoorAmbient = GameConfig.Art.Lighting.OutdoorAmbient
 	Lighting.ColorShift_Top = GameConfig.Art.Lighting.Top
@@ -4675,12 +4675,12 @@ function Build.run(options: { layout: string?, dryRun: boolean? }?)
 	end
 	local atmosphere = Instance.new("Atmosphere")
 	atmosphere.Name = "GalaAtmosphere"
-	atmosphere.Density = 0.22
+	atmosphere.Density = GameConfig.Art.Lighting.AtmosphereDensity
 	atmosphere.Offset = 0.3
-	atmosphere.Color = Color3.fromRGB(150, 90, 85)
-	atmosphere.Decay = Color3.fromRGB(22, 26, 62)
-	atmosphere.Glare = 0
-	atmosphere.Haze = 1.1
+	atmosphere.Color = GameConfig.Art.Lighting.AtmosphereColor
+	atmosphere.Decay = GameConfig.Art.Lighting.AtmosphereDecay
+	atmosphere.Glare = 0.15
+	atmosphere.Haze = GameConfig.Art.Lighting.AtmosphereHaze
 	atmosphere.Parent = Lighting
 	local bloom = Instance.new("BloomEffect")
 	bloom.Name = "GalaBloom"
