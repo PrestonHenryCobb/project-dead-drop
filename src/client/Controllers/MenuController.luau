@@ -144,6 +144,9 @@ end
 
 local function mount(tab: string, view: MenuView, context: { [string]: any }?)
 	unmountCurrent()
+	if stage then
+		stage:hideOperative() -- shown again only if this screen calls focusAgent
+	end
 	local target = screen :: Frame
 	current = { tab = tab, view = view }
 	view.Mount(target, navigator, context)
@@ -345,14 +348,14 @@ local function buildHeader(parent: Frame): Frame
 	tabs.AutomaticSize = Enum.AutomaticSize.X
 	tabs.Parent = bar
 	local tabLayout = MenuTheme.stack(tabs, true)
-	tabLayout.Padding = UDim.new(0, config.GapPixels / 2)
+	tabLayout.Padding = UDim.new(0, config.TabGapPixels)
 	tabLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 	local function bumper(name: string, order: number, step: number)
 		MenuTheme.secondaryButton({
 			Name = name,
 			Text = name,
 			Parent = tabs,
-			Size = UDim2.fromOffset(config.SecondaryHeightPixels, config.ChipHeightPixels + 8),
+			Size = UDim2.fromOffset(config.BumperWidthPixels, config.ChipHeightPixels + 8),
 			LayoutOrder = order,
 			OnActivated = function()
 				cycleTab(step)

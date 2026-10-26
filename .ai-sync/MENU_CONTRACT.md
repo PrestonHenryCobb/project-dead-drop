@@ -34,6 +34,11 @@ opened from the Stocks balance once a view with `Tab = "Mint"` exists.
   gives the standard side columns with margins and scrolling.
 - A `UIGradient` on a button tints its text too; MenuTheme buttons use a flat fill for that reason.
 
+- The stage operative is hidden whenever a screen is mounted and shown only if that screen calls `navigator.focusAgent`
+  (Play, Agents and agent select do). Other screens get the empty room behind them.
+- Layout is judged at 1280x720: the header fits there only because tab width, bumper width and gaps are in
+  `GameConfig.Menu`; keep new header content inside them.
+
 ## Where the handoffs were corrected
 - **Weapons are the decided 18** (`docs/STEP8_QUESTIONS.md` "Answers", with Feint's silent pistol replacing the heavy
   revolver), not the handoff's table ("Concierge Breach Shotgun", "Imperial Marksman Rifle" and so on are not ours).

@@ -293,6 +293,10 @@ function render()
 			Alignment = Enum.TextXAlignment.Center,
 		})
 		plate.TextSize = config.TextSizes.Body
+		-- Over the carpet gold text washes out, so the plate gets its own dark backing.
+		plate.TextColor3 = colors.Text
+		plate.BackgroundColor3 = colors.Canvas
+		plate.BackgroundTransparency = 0.35
 		content:Add(plate)
 	end
 end

@@ -199,7 +199,9 @@ local GameConfig = {
 		-- Ticket menu-shell: the frame every screen sits in, and the two lobby screens' columns.
 		HeaderPixels = 68,
 		FooterPixels = 44,
-		TabWidthPixels = 128,
+		TabWidthPixels = 104, -- six tabs and two bumpers must fit between the title and the balances at 1280 wide
+		BumperWidthPixels = 40,
+		TabGapPixels = 4,
 		GapPixels = 12,
 		LeftRailPixels = 420,
 		RightRailPixels = 340,
@@ -228,7 +230,7 @@ local GameConfig = {
 			-- Camera framings, as an eye offset and a look-at offset from the operative's feet.
 			Cameras = {
 				Play = { Eye = Vector3.new(5.5, 4.4, -16), Focus = Vector3.new(4.2, 3, 0) }, -- operative right of centre
-				Agents = { Eye = Vector3.new(0, 4, -14), Focus = Vector3.new(0, 3, 0) },
+				Agents = { Eye = Vector3.new(0, 3.2, -17), Focus = Vector3.new(0, 0.6, 0) }, -- the whole body, above the mastery panel
 				PreDeploy = { Eye = Vector3.new(0.4, 3.8, -13), Focus = Vector3.new(0.4, 3.2, 0) },
 			},
 		},

@@ -8,6 +8,7 @@
 --
 --   local stage = MenuStage.new()
 --   stage:show("Guise", "GuiseSMG")
+--   stage:hideOperative()          -- for screens that do not show the operative
 --   stage:frame("Play")            -- "Play" | "Agents" | "PreDeploy"; snaps when Reduce Motion is on
 --   stage:destroy()                -- removes everything and hands the camera back
 
@@ -254,6 +255,12 @@ function MenuStage.show(self: MenuStage, agentId: string, hardwareId: string?)
 		)
 		self.weapon = weapon
 	end
+end
+
+-- Takes the operative off the stage (a screen with no use for them); show() puts them back.
+function MenuStage.hideOperative(self: MenuStage)
+	self.shown = nil
+	clearOperative(self)
 end
 
 function MenuStage.frame(self: MenuStage, framing: Framing)
