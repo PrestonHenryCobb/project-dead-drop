@@ -61,7 +61,6 @@ local RAISE_AFTER_FIRE_SECONDS = 1 -- the gun stays up this long after a shot, u
 local EMPTY_CLICK_GAP = 0.3
 local MAX_SHOTS_PER_FRAME = 3
 local FOV_TOLERANCE = 0.01 -- degrees: the camera stores its field of view at lower precision than a number
-local AIM_BLEND_RATE = 14
 local FIRE_NOISE_PITCH = 0.04 -- shots vary a little in pitch so a burst is not a machine
 
 local def: Types.WeaponDef = WeaponDefs.get(combat.DefaultWeapon) :: Types.WeaponDef
@@ -275,7 +274,9 @@ local function step(dt: number)
 		cancelLocalMelee()
 	end
 
-	aimBlend += ((if aiming then 1 else 0) - aimBlend) * math.min(AIM_BLEND_RATE * dt, 1)
+	local visual = WeaponDefs.Visuals[def.Id]
+	local aimRate = (visual and visual.AimBlendRate) or combat.Handling.AimBlendRate
+	aimBlend += ((if aiming then 1 else 0) - aimBlend) * math.min(aimRate * dt, 1)
 	if aimBlend < 0.001 then
 		aimBlend = 0
 	end
@@ -314,7 +315,6 @@ local function step(dt: number)
 		end
 	end
 
-	local visual = WeaponDefs.Visuals[def.Id]
 	local aimedFov = WeaponAim.fov(baseFov, def.AimZoom, if visual then visual.Magnification else nil)
 	appliedFov = baseFov + (aimedFov - baseFov) * aimBlend
 	camera.FieldOfView = appliedFov

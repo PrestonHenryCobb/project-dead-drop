@@ -238,6 +238,28 @@ addFirearm({
 	Sounds = librarySounds,
 })
 
+-- Ticket 8.5c-pdw: revised approved stats; no projectile/status rule is needed for this firearm.
+addFirearm({
+	Id = "LatticePDW",
+	Name = "Compact PDW",
+	Agent = "Lattice",
+	Automatic = true,
+	Damage = 7,
+	HeadshotMult = GameConfig.Combat.HeadshotMult,
+	RPM = 950,
+	MagSize = 45,
+	ReserveAmmo = 90,
+	ReloadSeconds = 2,
+	Falloff = { StartStuds = 25, EndStuds = 55, MinMult = 0.55 },
+	Quiet = false,
+	-- SPEC-QUESTION: initial fast-handling recoil, spread and post-melee recovery tuning for playtests.
+	PostMeleeFireDelay = 0.15,
+	Spread = { Hip = 4.5, Aim = 0.6, PerShot = 0.22, MaxExtra = 3, RecoverPerSecond = 9, MoveMult = 1.2 },
+	Recoil = { PitchPerShot = 0.4, YawPerShot = 0.1, RecoverRate = 4, ViewKick = 0.045 },
+	AimZoom = 0.9,
+	Sounds = librarySounds,
+})
+
 local byId: { [string]: WeaponDef } = {}
 for _, def in defs do
 	assert(not byId[def.Id], `Duplicate weapon {def.Id}`)
@@ -251,9 +273,14 @@ type WeaponVisual = {
 	BoltCycleSeconds: number?,
 	BoltTravelStuds: number?,
 	DualSeparationStuds: number?,
+	AimBlendRate: number?,
+	PoseSpeed: number?,
 	Poses: { [string]: { Position: Vector3, Rotation: Vector3 } }?,
 }
 local visuals: { [string]: WeaponVisual } = {
+	-- Ticket 8.5c-pdw: fastest normal automatic handling. Preserve the carbine's exceptional near-zero draw.
+	LatticePDW = { AimBlendRate = 24, PoseSpeed = 24 },
+	ReticleCarbine = { PoseSpeed = 36 },
 	ReticleDMR = { Magnification = 3, BoltCycleSeconds = 0.65, BoltTravelStuds = 0.32 },
 	-- Ticket R8-pistol-pose: centre the pair, not the right-hand gun, in the ready view.
 	SutureDualPistols = {

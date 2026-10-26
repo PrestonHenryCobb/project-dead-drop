@@ -564,6 +564,8 @@ local GameConfig = {
 	Combat = {
 		-- Ticket 8B.4: fire/aim, reload and melee share the same input precedence.
 		InputPriority = 3000,
+		-- Ticket 8.5c-pdw: shared default aim response; exceptional handling stays in WeaponDefs.Visuals.
+		Handling = { AimBlendRate = 14 },
 		-- Ticket 8B.8: recognise the visible True Form look, never a player/agent attribute or roster.
 		ThirdPersonWeapon = { ScanSeconds = 0.25, CullStuds = 140 },
 		-- Ticket 8.15: cosmetic first-person arms are independent of the real avatar's movement-facing body.

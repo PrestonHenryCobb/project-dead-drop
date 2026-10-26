@@ -375,7 +375,36 @@ local function buildDualPistols(model: Model): (CFrame, CFrame)
 	return CFrame.new(separation, 0, 0) * right, CFrame.new(-separation, 0, 0) * left
 end
 
+-- Original compact bullpup silhouette: short barrel, rear magazine and shallow stock.
+local function buildCompactPdw(model: Model): (CFrame, CFrame)
+	local body, accent = config.GunColor, config.AccentColor
+	addPart(model, "Receiver", Vector3.new(0.38, 0.4, 1.0), CFrame.identity, body)
+	addPart(model, "TopRail", Vector3.new(0.16, 0.08, 0.85), CFrame.new(0, 0.24, -0.03), body)
+	addPart(model, "FrontSight", Vector3.new(0.07, 0.1, 0.12), CFrame.new(0, 0.31, -0.4), accent)
+	addPart(model, "RearSight", Vector3.new(0.12, 0.1, 0.1), CFrame.new(0, 0.31, 0.32), accent)
+	addPart(model, "Handguard", Vector3.new(0.32, 0.3, 0.48), CFrame.new(0, -0.04, -0.57), body)
+	addPart(model, "Stock", Vector3.new(0.28, 0.36, 0.48), CFrame.new(0, -0.04, 0.7), accent)
+	addPart(model, "Butt", Vector3.new(0.32, 0.42, 0.1), CFrame.new(0, -0.04, 0.96), body)
+	addPart(model, "Magazine", Vector3.new(0.23, 0.62, 0.25), CFrame.new(0, -0.35, 0.38), body)
+	addPart(model, "Grip", Vector3.new(0.25, 0.5, 0.23), CFrame.new(0, -0.34, 0.02), body)
+	addPart(model, "TriggerGuard", Vector3.new(0.13, 0.1, 0.28), CFrame.new(0, -0.24, -0.2), accent)
+	local barrel = addPart(
+		model,
+		"Barrel",
+		Vector3.new(0.42, 0.17, 0.17),
+		CFrame.new(0, 0.02, -0.97) * CFrame.Angles(0, math.pi / 2, 0),
+		body
+	)
+	barrel.Shape = Enum.PartType.Cylinder
+	local muzzle = Instance.new("Attachment")
+	muzzle.Name = "Muzzle"
+	muzzle.Position = Vector3.new(barrel.Size.X / 2, 0, 0)
+	muzzle.Parent = barrel
+	return CFrame.new(0.01, -0.34, 0.02), CFrame.new(-0.03, -0.18, -0.58)
+end
+
 local builders: { [string]: (Model) -> (CFrame, CFrame) } = {
+	LatticePDW = buildCompactPdw,
 	GuiseSMG = buildSuppressedSmg,
 	ReticleCarbine = buildFoldingCarbine,
 	ReticleDMR = buildDmr,
@@ -533,6 +562,7 @@ end
 
 function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: Input)
 	local cameraCFrame = camera.CFrame
+	local visual = WeaponDefs.Visuals[self.def.Id]
 
 	-- Lag behind the view turning: how far the camera turned since last frame, as a rate.
 	local last = self.lastCamera
@@ -581,7 +611,8 @@ function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: In
 		camera.FieldOfView,
 		camera.ViewportSize
 	)
-	local settle = 1 - math.exp(-config.PoseSpeed * dt)
+	local poseSpeed = (visual and visual.PoseSpeed) or config.PoseSpeed
+	local settle = 1 - math.exp(-poseSpeed * dt)
 	if self.current == CFrame.identity then
 		self.current = relativeTarget
 	else
@@ -610,7 +641,6 @@ function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: In
 	self.drawScale = math.min(scale, self.drawScale + (presentation.ViewDepthScale - self.drawScale) * blend)
 	local drawFrame = cameraCFrame * (CFrame.new(relative.Position * self.drawScale) * relative.Rotation)
 	self.drawFrame = drawFrame
-	local visual = WeaponDefs.Visuals[self.def.Id]
 	local boltTravel = 0
 	if visual and visual.BoltCycleSeconds and visual.BoltTravelStuds then
 		local boltProgress = math.clamp((os.clock() - self.boltAt) / visual.BoltCycleSeconds, 0, 1)
