@@ -87,6 +87,8 @@ local config = GameConfig.Combat
 local states: { [Player]: State } = {}
 -- Ticket studio-test-loadout: private server selections, retained through respawn, never character metadata.
 local testWeapons: { [Player]: string } = {}
+-- Ticket menu-services: the Hardware each player deployed with (LobbyService); used for every spawn after it.
+local loadoutWeapons: { [Player]: string } = {}
 local sampleAccumulator = 0
 local takedownAccumulator = 0
 local downedHooks: DownedHooks? = nil
@@ -761,9 +763,8 @@ local function onCharacterAdded(player: Player, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 	local root = character:WaitForChild("HumanoidRootPart") :: BasePart
 	character:WaitForChild("Head")
-	local def = WeaponDefs.get(
-		if RunService:IsStudio() then testWeapons[player] or config.DefaultWeapon else config.DefaultWeapon
-	)
+	local deployed = loadoutWeapons[player] or config.DefaultWeapon
+	local def = WeaponDefs.get(if RunService:IsStudio() then testWeapons[player] or deployed else deployed)
 	assert(def, `Combat.DefaultWeapon {config.DefaultWeapon} is not a weapon`)
 	local state: State = {
 		weapon = def,
@@ -868,6 +869,14 @@ function CombatService.getTestWeaponId(player: Player): string?
 	return if state and not state.dead then state.weapon.Id else nil
 end
 
+-- Ticket menu-services: the weapon this player carries from their next spawn on. The caller has validated it
+-- (MetaProgressionService.validateLoadout). A Studio test selection made before deploying is dropped.
+function CombatService.setLoadoutWeapon(player: Player, weaponId: string)
+	assert(WeaponDefs.get(weaponId), `Loadout weapon {weaponId} is not a weapon`)
+	loadoutWeapons[player] = weaponId
+	testWeapons[player] = nil
+end
+
 function CombatService.setDownedHooks(hooks: DownedHooks)
 	downedHooks = hooks
 end
@@ -946,6 +955,7 @@ function CombatService.Start()
 		History.untrack(targetIdOf(player))
 		states[player] = nil
 		testWeapons[player] = nil
+		loadoutWeapons[player] = nil
 	end)
 
 	local sampleInterval = 1 / config.LagCompHistoryHz

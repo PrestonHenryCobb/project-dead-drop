@@ -278,8 +278,13 @@ export type MetaProfile = {
 	Career: CareerStats,
 }
 
--- GetPlayerMetaProfile's result and ProfileStateUpdated's payload.
-export type MetaSnapshot = { Profile: MetaProfile, Loadout: PlayerLoadout }
+-- The modes a player can queue for on this server. Until matchmaking (Step 22) a server plays one mode, so Available
+-- holds only that one; the menu shows the other as needing matchmaking.
+export type QueueInfo = { Mode: QueueMode, Available: { QueueMode } }
+
+-- GetPlayerMetaProfile's result and ProfileStateUpdated's payload. Loadout is nil until the player owns an agent
+-- (first launch: the free picks come first).
+export type MetaSnapshot = { Profile: MetaProfile, Loadout: PlayerLoadout?, Queue: QueueInfo }
 
 -- RequestEquipLoadout and RequestLockInPreDeploy send this; the server checks every field.
 export type LoadoutRequest = { AgentId: string, HardwareId: string }
@@ -308,6 +313,13 @@ export type PreDeployState = {
 export type MenuNavigator = {
 	navigateTo: (tab: MenuTab, context: { [string]: any }?) -> (),
 	back: () -> (),
+	canOpen: (tab: MenuTab) -> boolean, -- false while that screen is not built yet
+	-- The 3D stage behind the menu: show this agent holding this Hardware (nil: the agent's equipped or W1 item).
+	focusAgent: (agentId: AgentId, hardwareId: string?) -> (),
+	-- The latest profile and loadout from the server (nil until the first answer), and a listener for changes; the
+	-- returned function disconnects it, so call it from Unmount.
+	snapshot: () -> MetaSnapshot?,
+	onSnapshot: (listener: (MetaSnapshot) -> ()) -> () -> (),
 }
 
 export type MenuView = {

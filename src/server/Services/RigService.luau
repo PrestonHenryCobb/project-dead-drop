@@ -7,6 +7,8 @@
 --   * No nametags or health bars, and no chat bubbles. Character names are random so they don't reveal the user.
 --   * Every part of every character is in one collision group (GameConfig.Rig), including parts added later.
 --
+--   RigService.spawn(player)            spawns a player who has no character yet (after agent select)
+--
 --   RigService.createNpcRig(outfit, cframe) -> (Model, number)
 --     A dressed, anonymous rig in Workspace for an NPC (spec 25.4): no Humanoid, an AnimationController so clients
 --     can animate it, and an anchored HumanoidRootPart the server moves. The number is how high the root's centre
@@ -234,7 +236,20 @@ local function onPlayerAdded(player: Player)
 	player.CharacterAdded:Connect(function(character)
 		onCharacterAdded(player, character)
 	end)
-	task.spawn(player.LoadCharacter, player)
+	-- Ticket menu-shell: with the menu on join, the player spawns only when agent select ends (LobbyService).
+	if not GameConfig.Debug.MenuOnJoin then
+		task.spawn(player.LoadCharacter, player)
+	end
+end
+
+-- Ticket menu-services: puts a player who has no character into the match (LobbyService, at the end of agent select).
+function RigService.spawn(player: Player)
+	if not template then
+		templateReady.Event:Wait()
+	end
+	if player.Parent and not player.Character then
+		player:LoadCharacter()
+	end
 end
 
 function RigService.Init()

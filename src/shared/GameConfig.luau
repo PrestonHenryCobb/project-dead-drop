@@ -164,10 +164,7 @@ local GameConfig = {
 			Emerald = Color3.fromHex("149A74"),
 			EmeraldBright = Color3.fromHex("22D39F"),
 			EmeraldDeep = Color3.fromHex("0B3B2D"),
-			EmeraldGradientTop = Color3.fromHex("16A87E"),
-			EmeraldGradientBottom = Color3.fromHex("0D6B50"),
-			SlateGradientTop = Color3.fromHex("272D38"),
-			SlateGradientBottom = Color3.fromHex("1B2028"),
+			Slate = Color3.fromHex("272D38"), -- secondary button fill
 			Brass = Color3.fromHex("D4A856"),
 			BrassBright = Color3.fromHex("F3C978"),
 			Burgundy = Color3.fromHex("7A1C30"),
@@ -199,6 +196,42 @@ local GameConfig = {
 		HoverSeconds = 0.16,
 		ScreenFadeSeconds = 0.22,
 		CameraPanSeconds = 0.55,
+		-- Ticket menu-shell: the frame every screen sits in, and the two lobby screens' columns.
+		HeaderPixels = 68,
+		FooterPixels = 44,
+		TabWidthPixels = 128,
+		GapPixels = 12,
+		LeftRailPixels = 420,
+		RightRailPixels = 340,
+		RosterCardPixels = 92,
+		DisplayOrder = 50,
+		MinScale = 0.5, -- the menu shrinks below the 1280 x 720 reference on smaller windows, down to this
+		ProfileAttempts = 5, -- asks for the profile this many times on join before giving up
+		ProfileRetrySeconds = 1,
+		DeployRetrySeconds = 3, -- Deploy is offered again if agent select has not started by then
+		-- The 3D stage behind the menu: a small walnut-and-brass mezzanine built on the client only, far from the map.
+		Stage = {
+			Origin = Vector3.new(0, 1600, 2600),
+			RoomSize = Vector3.new(44, 22, 34),
+			Walnut = Color3.fromHex("3B2418"),
+			Floor = Color3.fromHex("D9D2C3"),
+			Carpet = Color3.fromHex("5A1626"),
+			Brass = Color3.fromHex("C9A04F"),
+			LampColor = Color3.fromHex("FFD9A0"),
+			LampBrightness = 0.6, -- the map's Future lighting and bloom wash the room out above about 1
+			LampRange = 20,
+			RimColor = Color3.fromHex("38E8FC"),
+			RimBrightness = 0.5,
+			RigTurnDegrees = -18, -- the operative stands angled toward the camera
+			FieldOfView = 45,
+			DefaultFieldOfView = 70, -- what the game camera returns to after deploy (Roblox's default)
+			-- Camera framings, as an eye offset and a look-at offset from the operative's feet.
+			Cameras = {
+				Play = { Eye = Vector3.new(5.5, 4.4, -16), Focus = Vector3.new(4.2, 3, 0) }, -- operative right of centre
+				Agents = { Eye = Vector3.new(0, 4, -14), Focus = Vector3.new(0, 3, 0) },
+				PreDeploy = { Eye = Vector3.new(0.4, 3.8, -13), Focus = Vector3.new(0.4, 3.2, 0) },
+			},
+		},
 	},
 
 	-- Spec 4.2: clearance zones.
@@ -1239,6 +1272,10 @@ local GameConfig = {
 		PrintEvents = true, -- cover, guards and doors print a line when they act (exposures, investigations, door holds)
 		AutoRespawn = true, -- RigService respawns a dead player (replaced by the match flow in Step 10)
 		AutoRespawnSeconds = 3,
+		-- Ticket menu-shell: open the menu on join and spawn only after agent select. false: spawn straight in, as before.
+		MenuOnJoin = true,
+		-- Studio only: the mastery level every agent starts at, so W2 and W3 can be tested before mastery XP exists.
+		StudioMasteryLevel = 1,
 		-- The mode a Studio test plays in until the lobby picks one (Step 10): a key of Modes. Teams fill in join order.
 		TestMode = "Duos",
 	},

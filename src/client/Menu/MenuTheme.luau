@@ -7,6 +7,9 @@
 --   button.SetEnabled(false)
 --   local panel = MenuTheme.infoPanel({ Name = "Briefing", Accent = "Brass", Parent = rail })
 --   MenuTheme.stateChip("Locked", "LOCKED · LVL 6").Parent = card
+--   MenuTheme.label({ Name = "Title", Text = "THE GALA", Style = "Title", Parent = panel })
+--   MenuTheme.stack(panel)                      -- children top to bottom in LayoutOrder
+--   local left = MenuTheme.rail(stage, "Left", "Left", 420)   -- a scrolling column down one side
 --
 -- Every interactive component shows hover, pressed, selected, disabled and a cyan controller/keyboard focus ring, and
 -- states are always spelled out in text as well as colour. Connections belong to the instances they are made on, so
@@ -145,18 +148,10 @@ local function stroke(parent: Instance, color: Color3, thickness: number): UIStr
 	return uiStroke
 end
 
-local function gradient(parent: Instance, top: Color3, bottom: Color3)
-	local uiGradient = Instance.new("UIGradient")
-	uiGradient.Color = ColorSequence.new(top, bottom)
-	uiGradient.Rotation = 90
-	uiGradient.Parent = parent
-end
-
 -- The shared body of the two button styles.
 type ButtonStyle = {
 	Height: number,
-	Top: Color3,
-	Bottom: Color3,
+	Fill: Color3,
 	Stroke: Color3,
 	StrokeHover: Color3,
 	StrokeSelected: Color3,
@@ -173,7 +168,8 @@ local function makeButton(props: ButtonProps, style: ButtonStyle): Button
 	button.TextSize = style.TextSize
 	button.TextColor3 = style.TextColor
 	button.AutoButtonColor = false
-	button.BackgroundColor3 = Color3.new(1, 1, 1) -- the gradient supplies the colour
+	-- A flat fill: a UIGradient on a button would tint its own text as well.
+	button.BackgroundColor3 = style.Fill
 	button.BorderSizePixel = 0
 	button.Size = props.Size or UDim2.new(1, 0, 0, style.Height)
 	button.Position = props.Position or UDim2.new()
@@ -181,7 +177,6 @@ local function makeButton(props: ButtonProps, style: ButtonStyle): Button
 	button.LayoutOrder = props.LayoutOrder or 0
 	button.SelectionImageObject = noSelectionImage
 	corner(button)
-	gradient(button, style.Top, style.Bottom)
 	local border = stroke(button, style.Stroke, style.StrokeThickness)
 
 	local scale = Instance.new("UIScale")
@@ -270,8 +265,7 @@ end
 function MenuTheme.primaryButton(props: ButtonProps): Button
 	return makeButton(props, {
 		Height = config.PrimaryHeightPixels,
-		Top = colors.EmeraldGradientTop,
-		Bottom = colors.EmeraldGradientBottom,
+		Fill = colors.Emerald,
 		Stroke = colors.EmeraldBright,
 		StrokeHover = colors.Text,
 		StrokeSelected = colors.Text,
@@ -285,8 +279,7 @@ end
 function MenuTheme.secondaryButton(props: ButtonProps): Button
 	return makeButton(props, {
 		Height = config.SecondaryHeightPixels,
-		Top = colors.SlateGradientTop,
-		Bottom = colors.SlateGradientBottom,
+		Fill = colors.Slate,
 		Stroke = colors.Brass,
 		StrokeHover = colors.BrassBright,
 		StrokeSelected = colors.EmeraldBright,
@@ -315,11 +308,24 @@ function MenuTheme.infoPanel(props: PanelProps): Frame
 	corner(panel)
 	stroke(panel, colors.Border, config.StrokePixels)
 
-	local bar = Instance.new("Frame")
-	bar.Name = "AccentBar"
-	bar.BackgroundColor3 = accentColors[props.Accent or "Brass"]
-	bar.BorderSizePixel = 0
-	bar.Parent = panel
+	-- The accent bar is a hard edge in the background gradient, not a child frame, so a layout the caller adds to the
+	-- panel never treats it as a row. The edge is kept AccentBarPixels wide as the panel resizes.
+	panel.BackgroundColor3 = Color3.new(1, 1, 1)
+	local accent = accentColors[props.Accent or "Brass"]
+	local fill = Instance.new("UIGradient")
+	fill.Parent = panel
+	local function fitBar()
+		local width = math.max(panel.AbsoluteSize.X, config.AccentBarPixels * 2)
+		local edge = math.clamp(config.AccentBarPixels / width, 0.001, 0.5)
+		fill.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, accent),
+			ColorSequenceKeypoint.new(edge, accent),
+			ColorSequenceKeypoint.new(math.min(edge + 0.0005, 0.999), colors.InfoPanel),
+			ColorSequenceKeypoint.new(1, colors.InfoPanel),
+		})
+	end
+	panel:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitBar)
+	fitBar()
 
 	local padding = Instance.new("UIPadding")
 	local pad = UDim.new(0, config.PaddingPixels)
@@ -328,12 +334,91 @@ function MenuTheme.infoPanel(props: PanelProps): Frame
 	padding.PaddingRight = pad
 	padding.PaddingLeft = UDim.new(0, config.AccentBarPixels + config.PaddingPixels)
 	padding.Parent = panel
-	-- The bar ignores padding by sitting at a negative offset.
-	bar.Position = UDim2.new(0, -(config.AccentBarPixels + config.PaddingPixels), 0, -config.PaddingPixels)
-	bar.Size = UDim2.new(0, config.AccentBarPixels, 1, config.PaddingPixels * 2)
 
 	panel.Parent = props.Parent
 	return panel
+end
+
+export type LabelProps = {
+	Name: string,
+	Text: string,
+	Parent: Instance?,
+	Style: ("Display" | "Title" | "Body" | "Small" | "Mono" | "Kicker")?, -- default Body
+	Color: Color3?, -- default Text (TextDim for Small, Brass for Kicker)
+	Size: UDim2?, -- defaults to full width, height following the text
+	Position: UDim2?,
+	AnchorPoint: Vector2?,
+	LayoutOrder: number?,
+	Alignment: Enum.TextXAlignment?, -- default Left
+}
+
+local labelStyles = {
+	Display = { Font = config.Fonts.Display, Size = config.TextSizes.Display, Color = colors.Text },
+	Title = { Font = config.Fonts.Bold, Size = config.TextSizes.Title, Color = colors.Text },
+	Body = { Font = config.Fonts.Body, Size = config.TextSizes.Body, Color = colors.Text },
+	Small = { Font = config.Fonts.Body, Size = config.TextSizes.Small, Color = colors.TextDim },
+	Mono = { Font = config.Fonts.Mono, Size = config.TextSizes.Body, Color = colors.Text },
+	Kicker = { Font = config.Fonts.Mono, Size = config.TextSizes.Chip, Color = colors.Brass }, -- small caps line over a title
+}
+
+-- Text in one of the menu's styles. Wraps, and grows to fit unless a Size is given.
+function MenuTheme.label(props: LabelProps): TextLabel
+	local style = labelStyles[props.Style or "Body"]
+	local text = Instance.new("TextLabel")
+	text.Name = props.Name
+	text.Text = props.Text
+	text.Font = style.Font
+	text.TextSize = style.Size
+	text.TextColor3 = props.Color or style.Color
+	text.TextWrapped = true
+	text.TextXAlignment = props.Alignment or Enum.TextXAlignment.Left
+	text.BackgroundTransparency = 1
+	text.Position = props.Position or UDim2.new()
+	text.AnchorPoint = props.AnchorPoint or Vector2.zero
+	text.LayoutOrder = props.LayoutOrder or 0
+	if props.Size then
+		text.Size = props.Size
+	else
+		text.Size = UDim2.fromScale(1, 0)
+		text.AutomaticSize = Enum.AutomaticSize.Y
+	end
+	text.Parent = props.Parent
+	return text
+end
+
+-- Stacks a container's children top to bottom (or left to right) in LayoutOrder, GapPixels apart.
+function MenuTheme.stack(container: GuiObject, horizontal: boolean?): UIListLayout
+	local layout = Instance.new("UIListLayout")
+	layout.FillDirection = if horizontal then Enum.FillDirection.Horizontal else Enum.FillDirection.Vertical
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Padding = UDim.new(0, config.GapPixels)
+	layout.Parent = container
+	return layout
+end
+
+-- A scrolling column down one side of a screen (or the middle, with Side "Center" and a width), stacking its children.
+-- Put content straight into the returned frame.
+function MenuTheme.rail(parent: Instance, name: string, side: "Left" | "Right", width: number): ScrollingFrame
+	local rail = Instance.new("ScrollingFrame")
+	rail.Name = name
+	rail.BackgroundTransparency = 1
+	rail.BorderSizePixel = 0
+	rail.ScrollBarThickness = config.StrokePixels * 3
+	rail.ScrollBarImageColor3 = colors.Brass
+	rail.CanvasSize = UDim2.new()
+	rail.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	rail.ScrollingDirection = Enum.ScrollingDirection.Y
+	rail.AnchorPoint = Vector2.new(if side == "Left" then 0 else 1, 0)
+	rail.Position = if side == "Left"
+		then UDim2.fromOffset(config.GapPixels * 2, config.GapPixels * 2)
+		else UDim2.new(1, -config.GapPixels * 2, 0, config.GapPixels * 2)
+	rail.Size = UDim2.new(0, width, 1, -config.GapPixels * 4)
+	MenuTheme.stack(rail)
+	local padding = Instance.new("UIPadding")
+	padding.PaddingRight = UDim.new(0, config.StrokePixels * 4) -- room for the scroll bar
+	padding.Parent = rail
+	rail.Parent = parent
+	return rail
 end
 
 -- A compact badge for an item's state. Label overrides the standard word, for example "LOCKED · LVL 6".
