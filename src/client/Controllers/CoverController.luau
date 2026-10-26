@@ -1,6 +1,6 @@
 --!strict
 -- The player's own cover on screen (spec 7, 21): a meter at the bottom, a restricted-area warning, a "cover available"
--- prompt, the loud flash, text and vignette when exposed, pings for enemies exposed nearby, and a debug panel (state,
+-- prompt, brief peripheral Cover-break geometry, authorized nearby exposure pings, and a debug panel (state,
 -- suspicion, zone, witnesses, alarm) that stays until the real HUD in Step 19.
 --
 -- The server owns every number here and sends only this player's own state. Nothing is predicted.
@@ -17,6 +17,7 @@ local HudTheme = require(Shared:WaitForChild("Util"):WaitForChild("HudTheme"))
 local UiAccessibility = require(Shared.Util.UiAccessibility)
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local RemoteController = require(script.Parent.RemoteController)
+local CoverBreakFx = require(script.Parent.Parent.Combat.CoverBreakFx)
 
 type Ping = { position: Vector3, expires: number, label: TextLabel }
 
@@ -39,8 +40,8 @@ local meterFill: Frame? = nil
 local warning: TextLabel? = nil
 local prompt: TextLabel? = nil
 local exposedText: TextLabel? = nil
-local flash: Frame? = nil
-local vignette: HudKit.EdgeGlow? = nil
+local exposedRoot: Frame? = nil
+local breakFx: CoverBreakFx.Effect? = nil
 
 local coverState: Types.CoverState = "Covered"
 local canRecover = false
@@ -52,7 +53,6 @@ local trespass: Types.TrespassInfo = { Restricted = false, ZoneTier = 0, Clearan
 local alarm = 0
 
 local exposedAt = -math.huge
-local pingFlashAt = -math.huge
 local pings: { Ping } = {}
 
 local function build()
@@ -60,16 +60,11 @@ local function build()
 	janitor:Add(screen)
 	gui = screen
 
-	local flashFrame = Instance.new("Frame")
-	flashFrame.Name = "Flash"
-	flashFrame.Size = UDim2.fromScale(1, 1)
-	flashFrame.BackgroundColor3 = ui.CoverColors.Exposed
-	flashFrame.BackgroundTransparency = 1
-	flashFrame.BorderSizePixel = 0
-	flashFrame.Parent = screen
-	flash = flashFrame
-
-	vignette = HudKit.edgeGlow(screen, ui.CoverColors.Exposed)
+	local effect = CoverBreakFx.new(screen)
+	breakFx = effect
+	janitor:Add(function()
+		effect:destroy()
+	end)
 
 	local debugPanel = HudKit.text(screen, "Debug", UDim2.new(0, 16, 0, 16), Vector2.zero, UDim2.fromOffset(300, 120))
 	debugPanel.TextXAlignment = Enum.TextXAlignment.Left
@@ -180,11 +175,20 @@ local function build()
 		corner.Parent = text
 	end
 
-	local bigText =
-		HudKit.text(screen, "Exposed", UDim2.fromScale(0.5, 0.3), Vector2.new(0.5, 0.5), UDim2.fromOffset(600, 80))
+	local exposedPanel = HudKit.panel(
+		screen,
+		"ExposureNotice",
+		UDim2.new(0.5, 0, 0, graphics.MarginPixels),
+		Vector2.new(0.5, 0),
+		UDim2.fromOffset(ui.CoverBreak.BannerWidthPixels, ui.CoverBreak.BannerHeightPixels)
+	)
+	local noticeRoot = exposedPanel.Parent :: Frame
+	noticeRoot.Visible = false
+	exposedRoot = noticeRoot
+	local bigText = HudKit.text(exposedPanel, "Exposed", UDim2.fromScale(0, 0), Vector2.zero, UDim2.fromScale(1, 1))
 	bigText.Text = "EXPOSED"
 	bigText.TextColor3 = ui.CoverColors.Exposed
-	bigText.TextSize = ui.TextSize + 32
+	bigText.TextSize = ui.TextSize
 	bigText.Visible = false
 	exposedText = bigText
 end
@@ -246,31 +250,16 @@ local function refreshText(now: number)
 	end
 end
 
--- The exposed effects fade on a timeline from the moment of exposure (STYLE_QUESTIONS C2).
+-- Cosmetic feedback uses only the confirmed owner transition; nearby pings keep their original permissions.
 local function updateEffects(now: number)
-	local flashFrame, glow, text = flash, vignette, exposedText
-	if not (flashFrame and glow and text) then
+	local effect, root, text = breakFx, exposedRoot, exposedText
+	if not (effect and root and text) then
 		return
 	end
 	local age = now - exposedAt
-	if UiAccessibility.reducedMotion() then
-		flashFrame.BackgroundTransparency = 1
-		glow.setAll(1)
-		text.Visible = age < ui.ExposedTextSeconds
-		return
-	end
-	local flashAlpha = 1
-	if age < ui.ExposedFlashSeconds then
-		flashAlpha = ui.ExposedFlashTransparency + (1 - ui.ExposedFlashTransparency) * (age / ui.ExposedFlashSeconds)
-	end
-	local pingAge = now - pingFlashAt
-	if pingAge < ui.ExposedFlashSeconds then
-		local pingAlpha = ui.PingFlashTransparency + (1 - ui.PingFlashTransparency) * (pingAge / ui.ExposedFlashSeconds)
-		flashAlpha = math.min(flashAlpha, pingAlpha)
-	end
-	flashFrame.BackgroundTransparency = flashAlpha
-	glow.setAll(if age < ui.ExposedVignetteSeconds then 0.2 + 0.8 * (age / ui.ExposedVignetteSeconds) else 1)
-	text.Visible = age < ui.ExposedTextSeconds
+	effect:update(now, UiAccessibility.reducedMotion() or not alive)
+	root.Visible = alive and age >= 0 and age < ui.ExposedTextSeconds
+	text.Visible = root.Visible
 end
 
 -- A "!" where an enemy within range was exposed (spec 7.2), kept at the screen edge when it is off screen.
@@ -309,11 +298,22 @@ function CoverController.Init() end
 
 function CoverController.Start()
 	build()
+	local function clearExposure()
+		exposedAt = -math.huge
+		if breakFx then
+			breakFx:reset()
+		end
+		if exposedRoot then
+			exposedRoot.Visible = false
+		end
+	end
 	janitor:Add(RemoteController.connect("Downed", function()
 		alive = false
+		clearExposure()
 	end))
 	janitor:Add(RemoteController.connect("Eliminated", function()
 		alive = false
+		clearExposure()
 	end))
 	janitor:Add(RemoteController.connect("Revived", function()
 		alive = true
@@ -323,6 +323,9 @@ function CoverController.Start()
 		local now = os.clock()
 		if info.State == "Exposed" and coverState ~= "Exposed" then
 			exposedAt = now
+			if breakFx then
+				breakFx:trigger(now)
+			end
 		end
 		coverState = info.State
 		canRecover = info.CanRecover
@@ -350,13 +353,13 @@ function CoverController.Start()
 		label.TextColor3 = ui.CoverColors.Exposed
 		label.TextSize = ui.TextSize + 24
 		table.insert(pings, { position = info.Position, expires = os.clock() + info.Seconds, label = label })
-		pingFlashAt = os.clock() -- a fainter version of the flash you get when you are exposed yourself
 	end))
 
 	-- A new body is Covered; the server sends the state again, but do not show the last life's.
 	janitor:Add(localPlayer.CharacterAdded:Connect(function()
 		alive = true
 		coverState = "Covered"
+		clearExposure()
 		canRecover = false
 		suspicion = { Value = 0, Security = 0, Npc = 0, Camera = 0 }
 	end))

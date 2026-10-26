@@ -117,7 +117,7 @@ setting Combat.DefaultWeapon in Studio only before Play. No new selection UI or 
 | 10-selection-window | Final owner correction: always allow full 30-second selection, no early all-ready deploy; permit loadout revisions before cutoff under team-agent rules and server validation. Mastery 1–10 displays existing roughly ten-match unlock pace, not extra grind. | CODEX UI + CLAUDE_CODE server | Agent-select/mastery contracts | TODO |
 | 19-vertical-markers | Use actual generated-map named floor bands; arrows for different floors rather than 10-stud same-room height changes. Preserve existing marker visibility/range/lifetime permissions, with no extra enemy detection. | CODEX with CLAUDE_CODE floor-data support | Authored floor definitions and authorized marker data | TODO |
 | 19-traversal-warnings | Clear Cover-break badge for vents, ziplines and moving gondola, with no extra confirmation press; preserve actual Cover rules. | CODEX | Existing traversal prompt integration | READY_FOR_REVIEW |
-| 19-coverbreak-feedback | Original cosmetic Cover-break feedback against existing authorized exposure events; no shield/HP, character-attached identity effects or expanded enemy visibility. | CODEX | Authorized event data / VFX review | TODO |
+| 19-coverbreak-feedback | Original cosmetic Cover-break feedback against existing authorized exposure events; no shield/HP, character-attached identity effects or expanded enemy visibility. | CODEX | Authorized event data / VFX review | IN_PROGRESS (CODEX) |
 | 19-client-preview | Two HUD design directions in docs/mockups/combat-hud-review.html: Field notes and Control strip. Preview only; no unbuilt gameplay UI added to src. See .ai-sync/CODEX_CLIENT_HANDOFF.md for commits, API integration, exact Studio checks and remaining server-effect handoffs. | CODEX | Owner design review; gameplay contracts for later features | READY_FOR_REVIEW |
 
 ## Owner-approved traversal additions (planned)
@@ -152,6 +152,14 @@ Owner requested this area split while Claude was unavailable. Full source eviden
 | gala-art-direction | Owner-authorized Direction 1 Gala art, parchment HUD, material import pack, weapons and shared disguise parity; preserve tier colors with cyan accents. | CODEX | Art refs + 2026-10-25 owner direction; docs/GALA_ART_REVIEW.md | READY_FOR_REVIEW (sculptures and verified PBR bindings installed; loading/visual review below) |
 | gala-sculptures | Finish owner-approved original sculpted Gala geometry, shared disguises and asset integration; commit completed work. | CODEX | Original geometry baked; two-client probes passed; docs/GALA_ART_REVIEW.md | READY_FOR_REVIEW |
 | gala-material-install | Bind owner-uploaded Gala Image IDs, preserve them through generation, install six variants and verify loading/replication in Studio. | CODEX | Owner manual upload complete; docs/GALA_ART_REVIEW.md | READY_FOR_REVIEW (installed; one image awaiting Roblox delivery) |
+
+## Gala re-layout (owner-approved plan, 2026-10-25; docs/MAP_PLAN_RELAYOUT.md)
+
+| Id | Ticket | Owner | Needs | Status |
+|---|---|---|---|---|
+| relayout-1 | Phase 1, the new layout: `Relayout.luau` (generated from the plan by `tools/relayout-layout.cjs`) for the generator, `Build.luau` adapted (per-stair widths, glass elevator shafts, service ladders, Tier 4, terminals, printer spots, secret exits, Package doors, door costs, sky deck on posts), self-check extended, rebuilt in Studio edit mode to 0 problems, screenshots. The old `Layout.luau` stays working until the new one passes. | CLAUDE_CODE | Plan approved | IN_PROGRESS (CLAUDE_CODE) |
+| relayout-2 | Phase 2, NPC rework: authored lane routes from the layout, capacity-aware doors and stairs, crowd clusters, tiered updates, 60-second wake-up, Staff NPCs on the elevators, the Warden and Curator; measure at 200, 300, 400 NPCs. Starts only after the owner reviews Phase 1. | CLAUDE_CODE | relayout-1 reviewed | BLOCKED |
+| relayout-art | **For Codex, after the owner approves the new layout:** re-apply the art pass (sculptures, chandeliers, settees, materials, lights) to the rebuilt Gala. The layout moves every room, so the old placements no longer fit. Do not start before the owner says the layout is approved. | CODEX | relayout-1 approved by the owner | BLOCKED |
 
 ## Waiting on the owner
 

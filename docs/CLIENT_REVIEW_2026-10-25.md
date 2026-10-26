@@ -411,3 +411,22 @@ How to test in Studio:
 Validation: native Studio passed 12,312 frustum assertions across three FOVs/four aspect ratios/all three poses, plus actual update checks for symmetric ready muzzles, separate carry, both hand targets and hidden aimed left gun/hand. StyLua, Selene and Rojo build passed.
 Known gaps: the two-wrist carry is procedural pose blending, not an uploaded mocap animation. Exact arm comfort/framing while walking remains visual acceptance. Very narrow views still invoke the existing safety fit. No damage, input, reload timing or server rules changed.
 SPEC-QUESTIONs: none added; pose positions are initial cosmetic tuning. Ready for: remaining map-independent combat/HUD review; next main gameplay-plan step remains Step 9c spectating.
+## Map-independent Cover-break feedback (19-coverbreak-feedback, 2026-10-25)
+
+What I built:
+- client/Combat/CoverBreakFx: eight prebuilt peripheral geometric fragments, 0.2-second fade and a fully clear central aiming region. No camera shake, world effect or character attachment. Repeated events reuse the same GUI objects.
+- CoverController: triggers this effect only on the existing confirmed owner transition into Exposed. Replaces the large text/full-screen flash with a small shadowed, themed top notice; nearby ExposedPing markers retain their existing event data/positions/lifetimes and no longer flash the full screen. Downing, elimination and respawn clear stale feedback. Existing Cover state and timers remain visible.
+- GameConfig UI.CoverBreak: effect geometry/timing and banner dimensions. Removed four obsolete full-screen exposure-flash/vignette fields; shared-contract review is requested for this replacement. No server/Remotes changes.
+- tools/check-cover-break-fx.cjs: actual-source construction/timing/reset tests with narrow GUI dependency fixtures.
+- tools/CheckCoverBreakFx.luau: invisible native Edit fixture for real GUI descendants, 100 repeated pulses, Reduce Motion and teardown.
+
+How to test in Studio when Claude's map session is free:
+1. Stop, sync Rojo, Play with one player. Break Cover with the existing Q input or an action that exposes you. Expect a short red geometric pulse near the screen corners and a compact EXPOSED notice at the top. The crosshair/centre must remain clear, with no full-screen wash.
+2. Remaining Exposed must not continuously retrigger the pulse. Recover Cover and expose again to verify a fresh pulse. Repeat after respawn; no old notice/pulse should carry over. Downing/elimination immediately clears it.
+3. Enable Roblox Reduce Motion and repeat. The geometric pulse should be absent; the short notice and persistent authoritative Cover state/timers remain readable. Reload/recoil/damage rules are unchanged.
+4. Test > Clients 2 > Start (four clients for enemy teams under current Duos defaults). Authorized exposure pings should retain their existing positions/expiry; no new enemy detection or character-visible effect is added. Compare 1280x720 and a larger viewport; the notice follows the existing map skin/scaling.
+5. Optional non-world Edit check: paste tools/CheckCoverBreakFx.luau. Expect COVER_BREAK_NATIVE_PASS and no retained fixture GUI/modules. This does not start Play or rebuild the map.
+
+Validation: actual-source timeline/construction checks passed, including eight fragments, 100 pulses with no new GUI objects, Reduce Motion, expiration, reset and destroy. Full-source StyLua/Selene and Rojo build passed. Native GUI and gameplay acceptance are intentionally pending while Claude uses Studio for the map rebuild; the supplied check is not claimed as run.
+Known gaps: geometric pulse is generic owner exposure feedback because the owner event contains no attack/source direction; no direction is invented. Existing authorized nearby ! markers remain their current design. Full-crowd movement and map lighting are separate tickets. No cosmetic shield grants health/protection.
+SPEC-QUESTIONs: none; 0.2 seconds is within the approved visual direction. Ready for: remaining map-independent HUD/menu and camera-comfort work; next main gameplay-plan step remains Step 9c spectating.
