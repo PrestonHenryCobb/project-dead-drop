@@ -10,11 +10,14 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Aim = require(Shared:WaitForChild("Util"):WaitForChild("Aim"))
 local HudKit = require(Shared:WaitForChild("Util"):WaitForChild("HudKit"))
+local Janitor = require(Shared.Util.Janitor)
+local AgentSenseFx = require(script.Parent.Parent.Combat.AgentSenseFx)
 local RemoteController = require(script.Parent.RemoteController)
 
 local AgentSenseController = {}
@@ -24,21 +27,16 @@ local ui = GameConfig.UI
 local reportedTarget: string? = nil
 local nearExposed: { Vector3 } = {}
 local glow: HudKit.EdgeGlow? = nil
+local effects: AgentSenseFx.Effect? = nil
+local janitor = Janitor.new()
+local active = true
 
 local function shimmer(id: string, seconds: number)
 	local model = workspace:FindFirstChild(id)
-	if not model then
+	if not model or not model:IsA("Model") or not effects then
 		return
 	end
-	local outline = Instance.new("Highlight")
-	outline.FillTransparency = 1
-	outline.OutlineColor = ui.TextColor
-	outline.OutlineTransparency = 0.3
-	outline.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-	outline.Parent = model
-	task.delay(seconds, function()
-		outline:Destroy()
-	end)
+	effects:show(model, seconds, os.clock())
 end
 
 -- Which side of the screen a world position is on, or nil if the player is already looking at it.
@@ -61,20 +59,58 @@ function AgentSenseController.Init() end
 
 function AgentSenseController.Start()
 	local screen = HudKit.screen("AgentSenseHud")
+	janitor:Add(screen)
+	local pool = AgentSenseFx.new()
+	effects = pool
+	janitor:Add(function()
+		pool:destroy()
+	end)
 	glow = HudKit.edgeGlow(screen, ui.CoverColors.Exposed)
 
-	RemoteController.connect(
-		"AgentSense",
-		function(info: { Kind: string, Id: string?, Seconds: number?, Positions: { Vector3 }? })
-			if info.Kind == "Shimmer" and info.Id then
-				shimmer(info.Id, info.Seconds or GameConfig.Cover.AgentSenseShimmerSeconds)
-			elseif info.Kind == "Near" then
-				nearExposed = info.Positions or {}
+	janitor:Add(
+		RemoteController.connect(
+			"AgentSense",
+			function(info: { Kind: string, Id: string?, Seconds: number?, Positions: { Vector3 }? })
+				if not active then
+					return
+				end
+				if info.Kind == "Shimmer" and info.Id then
+					shimmer(info.Id, info.Seconds or GameConfig.Cover.AgentSenseShimmerSeconds)
+				elseif info.Kind == "Near" then
+					nearExposed = info.Positions or {}
+				end
 			end
-		end
+		)
 	)
+	local function reset()
+		reportedTarget = nil
+		table.clear(nearExposed)
+		pool:reset()
+		if glow then
+			glow.setAll(1)
+		end
+	end
+	janitor:Add(RemoteController.connect("Downed", function()
+		active = false
+		reset()
+	end))
+	janitor:Add(RemoteController.connect("Eliminated", function()
+		active = false
+		reset()
+	end))
+	janitor:Add(RemoteController.connect("Revived", function()
+		active = true
+	end))
+	janitor:Add(Players.LocalPlayer.CharacterAdded:Connect(function()
+		active = true
+		reset()
+	end))
 
-	RunService.RenderStepped:Connect(function()
+	janitor:Add(RunService.RenderStepped:Connect(function()
+		pool:update(os.clock())
+		if not active then
+			return
+		end
 		-- Tell the server what we are looking at, whenever it changes.
 		local target = Aim.characterName(GameConfig.Cover.AgentSenseRange)
 		if target ~= reportedTarget then
@@ -94,7 +130,10 @@ function AgentSenseController.Start()
 				edge.setSide(side, ui.SenseGlowTransparency)
 			end
 		end
-	end)
+	end))
+	janitor:Add(script.Destroying:Connect(function()
+		janitor:Destroy()
+	end))
 end
 
 return AgentSenseController

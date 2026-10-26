@@ -450,3 +450,22 @@ How to test in Studio:
 Validation: native Studio passed all ten F8 choices, approved stats, 7,992 frustum checks, 100 model updates without new instances, both hand targets, fast-response values and matching 950-RPM cadence. Actual-source selector/production guards and 25 optical assertions passed; both multiplayer clients passed all weapon selection/reload cancellation/respawn independence checks. StyLua/Selene/Rojo passed before Claude's concurrent route work; only our named files/hunks are included.
 Known gaps: reused verified library audio is not a bespoke PDW sound. Other-player exposed held-gun models remain the existing default-model limitation. Lattice's tracker burst rifle/taser and agent abilities are not granted by this weapon-kit selector.
 SPEC-QUESTION: initial handling/recoil/recovery tuning is marked in WeaponDefs. The overlapping fastest-draw wording is interpreted as PDW being fastest among normal automatics, while retaining the carbine's exceptional near-zero draw; aim-in is PDW's fastest response. Ready for: remaining client combat/HUD work; main gameplay-plan next step remains Step 9c spectating.
+
+## Agent Sense effect lifecycle (19-agent-sense-lifecycle, 2026-10-25)
+
+What I built:
+- AgentSenseFx: twelve prebuilt Highlights in one client-only workspace folder; Adornee references the authorized model while no effect is parented onto it. Repeated events refresh the same slot; expiration/stream-out/reset clear its reference. Overflow reuses the oldest slot without allocating.
+- AgentSenseController: Janitor cleanup for GUI, pool, remote and render connections. Clears feedback and stops requests while downed/eliminated, resumes on revival, and resets on respawn. Existing server authorization, range, one-second default lifetime, outline appearance and depth mode remain unchanged.
+- GameConfig UI.SenseShimmer: fixed pool budget and outline transparency in a short ticket section.
+- CheckAgentSenseFx: native empty-model fixtures for refresh, expiry, removal, overflow, reset and unchanged model children.
+
+How to test in Studio:
+1. Test > Clients 4 > Start under current Duos defaults. Put opposing-team players within six studs and look directly at the other character. Expect the same server-authorized one-second outline as before; looking at NPCs must not invent player information.
+2. Reacquire a valid opponent repeatedly. Expect a clean refreshed shimmer without duplicate outlines or an old delayed callback removing the new effect early.
+3. On the observing client, inspect Workspace.LocalSenseEffects: its Highlight count stays at twelve. The observed character must have no Highlight child added by Agent Sense. Moving/streaming a target away must release stale adornment references; timed expiry must disable the slot.
+4. Down/eliminate the observer: Agent Sense outlines/glow clear and no local sense requests continue. Revive/respawn and reacquire an eligible opponent to verify recovery.
+5. Optional Studio Edit check: paste tools/CheckAgentSenseFx.luau. Expect AGENT_SENSE_FX_NATIVE_PASS; all empty models and pooled fixtures clean up. No real character or map content is edited.
+
+Validation: native Studio passed twelve pooled highlights, 100 repeated refreshes, expiry, stream-out, overflow without allocation, unchanged model children and complete reset. StyLua/Selene/Rojo passed. Live opposing-team visual/life-state integration remains owner acceptance; the native fixture tests the actual effect module, not controller network callbacks.
+Known gaps: existing AlwaysOnTop shimmer rendering is preserved, so this does not change server visibility policy. Pool overload may shorten the oldest effect; it cannot reveal another target. No server/Remotes changes.
+SPEC-QUESTIONs: none. Ready for: remaining map-independent client HUD/menu work; next main gameplay-plan step remains Step 9c spectating.

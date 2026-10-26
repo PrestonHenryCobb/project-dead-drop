@@ -120,6 +120,7 @@ setting Combat.DefaultWeapon in Studio only before Play. No new selection UI or 
 | 19-traversal-warnings | Clear Cover-break badge for vents, ziplines and moving gondola, with no extra confirmation press; preserve actual Cover rules. | CODEX | Existing traversal prompt integration | READY_FOR_REVIEW |
 | 19-coverbreak-feedback | Prebuilt 0.2-second peripheral exposure geometry and compact themed notice; preserves authorized pings and respects Reduce Motion. Source tests and native Studio GUI checks passed: 17 prebuilt descendants, 100 pulses, reduced motion and teardown. Gameplay visual acceptance remains; docs/CLIENT_REVIEW_2026-10-25.md. | CODEX | Studio acceptance; shared replacement of obsolete flash fields for review | READY_FOR_REVIEW |
 | 19-client-preview | Two HUD design directions in docs/mockups/combat-hud-review.html: Field notes and Control strip. Preview only; no unbuilt gameplay UI added to src. See .ai-sync/CODEX_CLIENT_HANDOFF.md for commits, API integration, exact Studio checks and remaining server-effect handoffs. | CODEX | Owner design review; gameplay contracts for later features | READY_FOR_REVIEW |
+| 19-agent-sense-lifecycle | Fixed client-only Highlight pool, no effects on character models; expiry/stream-out/respawn cleanup and downed-state cancellation. Native pool/parity tests and StyLua/Selene/Rojo pass. Existing server-authorized shimmer policy preserved. | CODEX | Opposing-team visual acceptance; docs/CLIENT_REVIEW_2026-10-25.md | READY_FOR_REVIEW |
 
 ## Owner-approved traversal additions (planned)
 

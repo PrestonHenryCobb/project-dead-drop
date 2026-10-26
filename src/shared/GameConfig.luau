@@ -978,6 +978,8 @@ local GameConfig = {
 			BannerHeightPixels = 36,
 		},
 		SenseGlowTransparency = 0.85, -- the very faint edge glow for an exposed enemy close by (STEP7 G2)
+		-- Ticket 19-agent-sense-lifecycle: fixed local highlight budget; no instances on character models.
+		SenseShimmer = { PoolSize = 12, OutlineTransparency = 0.3 },
 		SenseLookCosine = 0.85, -- looking within about 30 degrees of someone counts as looking at them
 		MeterWidthPixels = 220,
 		MeterHeightPixels = 8,
