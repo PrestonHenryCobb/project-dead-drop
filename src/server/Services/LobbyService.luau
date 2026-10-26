@@ -88,20 +88,43 @@ local function startingPick(selection: Selection, player: Player): Pick
 	return { loadout = loadout, lockedIn = false }
 end
 
--- At the cutoff: the locked pick, else the starting pick if still free, else the first owned agent no teammate locked
--- (with its W1).
--- SPEC-QUESTION: if every agent a player owns is locked by teammates, they keep their equipped loadout, duplicating an
+-- At the cutoff every member gets an agent no teammate has: locked picks first (the server never lets two lock the same
+-- agent), then the rest in join order, each keeping their own pick if it is still free, else the first agent they own
+-- that is free (with its W1, which every agent has built and open from mastery 1).
+-- SPEC-QUESTION: if every agent a player owns is taken by teammates, they keep their equipped loadout, duplicating an
 -- agent, rather than being left out of the match; with 3 starter agents and at most 2 per team this cannot happen yet.
-local function finalLoadout(selection: Selection, player: Player, pick: Pick): Types.PlayerLoadout?
-	if pick.loadout and (pick.lockedIn or not lockedBy(selection, pick.loadout.AgentId, player)) then
-		return pick.loadout
+local function resolveLoadouts(selection: Selection): { [Player]: Types.PlayerLoadout }
+	local order: { Player } = {}
+	for member in selection.picks do
+		table.insert(order, member)
 	end
-	for _, agentId in MetaProgressionService.ownedAgents(player) do
-		if not lockedBy(selection, agentId, player) then
-			return { AgentId = agentId, HardwareId = WeaponDefs.getForAgent(agentId)[1].Id }
+	table.sort(order, function(a: Player, b: Player)
+		local aLocked, bLocked = selection.picks[a].lockedIn, selection.picks[b].lockedIn
+		if aLocked ~= bLocked then
+			return aLocked
+		end
+		return a.UserId < b.UserId
+	end)
+	local taken: { [string]: boolean } = {}
+	local result: { [Player]: Types.PlayerLoadout } = {}
+	for _, member in order do
+		local loadout = selection.picks[member].loadout
+		if not loadout or taken[loadout.AgentId] then
+			loadout = nil
+			for _, agentId in MetaProgressionService.ownedAgents(member) do
+				if not taken[agentId] then
+					loadout = { AgentId = agentId, HardwareId = WeaponDefs.getForAgent(agentId)[1].Id }
+					break
+				end
+			end
+		end
+		loadout = loadout or MetaProgressionService.getLoadout(member)
+		if loadout then
+			taken[loadout.AgentId] = true
+			result[member] = loadout
 		end
 	end
-	return MetaProgressionService.getLoadout(player)
+	return result
 end
 
 local function finish(selection: Selection)
@@ -110,8 +133,9 @@ local function finish(selection: Selection)
 	end
 	selections[selection.teamId] = nil
 	broadcast(selection, false)
-	for member, pick in selection.picks do
-		local loadout = finalLoadout(selection, member, pick)
+	local final = resolveLoadouts(selection)
+	for member in selection.picks do
+		local loadout = final[member]
 		if loadout then
 			MetaProgressionService.setLoadout(member, loadout)
 			CombatService.setLoadoutWeapon(member, loadout.HardwareId)

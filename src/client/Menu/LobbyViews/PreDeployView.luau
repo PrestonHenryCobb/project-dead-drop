@@ -312,6 +312,16 @@ function render()
 		draftAgent = (mine and mine.AgentId) or (loadout and loadout.AgentId)
 		draftHardware = (mine and mine.HardwareId) or (loadout and loadout.HardwareId)
 	end
+	-- A teammate locking in the agent being looked at takes it: move on to the first agent still free.
+	if draftAgent and takenByTeammate(state, draftAgent) then
+		draftAgent, draftHardware = nil, nil
+		for _, agentId in AgentDefs.order do
+			if snapshot and snapshot.Profile.OwnedAgents[agentId] and not takenByTeammate(state, agentId) then
+				draftAgent = agentId
+				break
+			end
+		end
+	end
 	if draftAgent then
 		draftHardware = usableHardware(snapshot, draftAgent, draftHardware)
 		navigator.focusAgent(draftAgent :: Types.AgentId, draftHardware)
