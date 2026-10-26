@@ -154,6 +154,64 @@ local Enums = {
 		Funds = "Funds",
 		MedKit = "MedKit",
 	},
+
+	-- Ticket menu-phase0: the menu, agents and progression (SPEC_CHANGES 2026-10-25, META_DRAFT, AGENTS_DRAFT).
+	-- The six main tabs, plus the two screens reached from them: Hardware (from Agents) and the Mint (from Stocks).
+	MenuTab = {
+		Play = "Play",
+		Agents = "Agents",
+		Assets = "Assets",
+		Dossiers = "Dossiers",
+		BlackMarket = "BlackMarket",
+		Profile = "Profile",
+		Hardware = "Hardware",
+		Mint = "Mint",
+	},
+
+	AgentId = {
+		Guise = "Guise",
+		Parapet = "Parapet",
+		Lattice = "Lattice",
+		Reticle = "Reticle",
+		Suture = "Suture",
+		Feint = "Feint",
+	},
+
+	-- META_DRAFT: three classes of two agents.
+	AgentClass = {
+		Deceiver = "Deceiver",
+		Enforcer = "Enforcer",
+		Specialist = "Specialist",
+	},
+
+	-- SPEC_CHANGES 15/16: an agent's three Hardware slots. GameConfig.Mastery.HardwareUnlockLevels says when each opens.
+	HardwareSlot = {
+		W1 = 1,
+		W2 = 2,
+		W3 = 3,
+	},
+
+	-- SPEC_CHANGES 15.10: Asset rarities, lowest first. Display names ("Field Agent", "Black Ops") belong to the UI.
+	AssetRarity = {
+		FieldAgent = "FieldAgent",
+		Infiltrator = "Infiltrator",
+		BlackOps = "BlackOps",
+		Ghost = "Ghost",
+	},
+
+	-- META_DRAFT: a Dossier's free and premium tracks.
+	DossierTrack = {
+		Free = "Free",
+		Premium = "Premium",
+	},
+
+	-- What the menu shows on an item card; always drawn with text as well as colour.
+	ItemState = {
+		Equipped = "Equipped",
+		Owned = "Owned",
+		Available = "Available",
+		Locked = "Locked",
+	},
 }
 
 return DeepFreeze(Enums)

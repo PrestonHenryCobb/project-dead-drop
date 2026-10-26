@@ -135,6 +135,72 @@ local GameConfig = {
 		},
 	},
 
+	-- Ticket menu-phase0: agent mastery (SPEC_CHANGES 2026-10-25: levels 1 to 10 over about ten matches with an agent).
+	Mastery = {
+		MaxLevel = 10,
+		-- The mastery level that opens each Hardware slot, W1 to W3. IDEAS brief Q8: the second item after about two matches.
+		-- SPEC-QUESTION: W3 at level 6 is from the menu handoff; the decided pace only says "everything in about ten matches".
+		HardwareUnlockLevels = { 1, 3, 6 },
+	},
+
+	-- Ticket menu-phase0: first launch (META_DRAFT, SPEC_CHANGES 15.9/20): one free agent from each class.
+	Meta = {
+		StarterAgentsPerClass = 1,
+	},
+
+	-- Ticket menu-phase0: the menu's look (client/Menu/MenuTheme.luau builds every shared component from these).
+	-- Dark charcoal surfaces, ivory text, emerald for the main action, brass trim, burgundy for locked/danger and a cyan
+	-- controller focus ring. Sizes are pixels at the 1280 x 720 reference (GameConfig.UI.PanelScale).
+	Menu = {
+		Colors = {
+			Canvas = Color3.fromHex("0E1014"),
+			Surface = Color3.fromHex("161920"),
+			SurfaceRaised = Color3.fromHex("1F242D"),
+			InfoPanel = Color3.fromHex("12151C"),
+			Walnut = Color3.fromHex("261914"),
+			Text = Color3.fromHex("F5F0E6"),
+			TextDim = Color3.fromHex("B8B0A0"),
+			TextOnBright = Color3.fromHex("14161A"),
+			Emerald = Color3.fromHex("149A74"),
+			EmeraldBright = Color3.fromHex("22D39F"),
+			EmeraldDeep = Color3.fromHex("0B3B2D"),
+			EmeraldGradientTop = Color3.fromHex("16A87E"),
+			EmeraldGradientBottom = Color3.fromHex("0D6B50"),
+			SlateGradientTop = Color3.fromHex("272D38"),
+			SlateGradientBottom = Color3.fromHex("1B2028"),
+			Brass = Color3.fromHex("D4A856"),
+			BrassBright = Color3.fromHex("F3C978"),
+			Burgundy = Color3.fromHex("7A1C30"),
+			BurgundyBright = Color3.fromHex("B82947"),
+			Focus = Color3.fromHex("38E8FC"),
+			Border = Color3.fromHex("3A4150"),
+		},
+		Fonts = {
+			Display = Enum.Font.Antique, -- short section headers only
+			Bold = Enum.Font.GothamBold, -- buttons, tabs, titles
+			Body = Enum.Font.GothamMedium,
+			Mono = Enum.Font.RobotoMono, -- timers, stats, key hints
+		},
+		TextSizes = { Display = 28, Title = 20, Button = 17, Body = 15, Small = 13, Chip = 12 },
+		SurfaceTransparency = 0.1,
+		InfoPanelTransparency = 0.12,
+		CornerPixels = 4,
+		StrokePixels = 1,
+		TrimPixels = 1.5,
+		AccentBarPixels = 3,
+		FocusPixels = 2,
+		PaddingPixels = 12,
+		PrimaryHeightPixels = 64,
+		SecondaryHeightPixels = 46,
+		ChipHeightPixels = 22,
+		ChipPaddingPixels = 8,
+		PressScale = 0.97,
+		DisabledTransparency = 0.55,
+		HoverSeconds = 0.16,
+		ScreenFadeSeconds = 0.22,
+		CameraPanSeconds = 0.55,
+	},
+
 	-- Spec 4.2: clearance zones.
 	Zones = {
 		CheckInterval = 0.25, -- server samples each player's tier at 4 Hz
@@ -1186,6 +1252,17 @@ local GameConfig = {
 			-- Fastest weapon fires 900 rpm (15/s); 30/s leaves room for jitter. The server also checks fire rate itself.
 			FireRequest = { PerSecond = 30, Burst = 30 },
 			RequestCrawl = { PerSecond = 15, Burst = 15 }, -- sent at Downed.CrawlRequestHz
+			-- Ticket menu-phase0: menu requests are button presses; a burst covers fast tab and card switching.
+			GetPlayerMetaProfile = { PerSecond = 1, Burst = 3 },
+			RequestEquipLoadout = { PerSecond = 3, Burst = 6 },
+			RequestClaimStarterAgent = { PerSecond = 1, Burst = 3 },
+			RequestClaimDossierTier = { PerSecond = 2, Burst = 5 },
+			RequestSelectActiveDossier = { PerSecond = 1, Burst = 3 },
+			RequestBlackMarketPurchase = { PerSecond = 1, Burst = 2 },
+			RequestMintStrikeStocks = { PerSecond = 1, Burst = 2 },
+			RequestQueueMode = { PerSecond = 2, Burst = 4 },
+			RequestStartPreDeploy = { PerSecond = 1, Burst = 2 },
+			RequestLockInPreDeploy = { PerSecond = 3, Burst = 6 },
 		},
 	},
 }

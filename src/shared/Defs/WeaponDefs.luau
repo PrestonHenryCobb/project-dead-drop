@@ -7,8 +7,11 @@
 --
 --   WeaponDefs.byId["GuiseSMG"] -> WeaponDef
 --   WeaponDefs.get(id) -> WeaponDef?
+--   WeaponDefs.getForAgent("Guise") -> { AgentHardware } in slot order W1, W2, W3 (Def is nil until a weapon is built)
+--   WeaponDefs.isValidForAgent("Guise", "GuiseSMG") -> true: the weapon is this agent's and is built
 
 local Shared = script.Parent.Parent
+local AgentDefs = require(Shared.Defs.AgentDefs)
 local DeepFreeze = require(Shared.Util.DeepFreeze)
 local GameConfig = require(Shared.GameConfig)
 local Types = require(Shared.Types)
@@ -265,7 +268,29 @@ for _, def in defs do
 	assert(not byId[def.Id], `Duplicate weapon {def.Id}`)
 	assert(def.ReserveAmmo >= 0 and def.MagSize > 0 and def.RPM > 0, `Weapon {def.Id} has impossible ammo or rate`)
 	byId[def.Id] = def
+	-- Ticket menu-phase0: every playable weapon is one of its agent's three Hardware items (AgentDefs).
+	assert(AgentDefs.hardwareOwner[def.Id] == def.Agent, `Weapon {def.Id} is not in {def.Agent}'s Hardware`)
 end
+
+-- Ticket menu-phase0: each agent's Hardware with its slot, unlock level and firing record, built once.
+local hardwareByAgent: { [string]: { Types.AgentHardware } } = {}
+for _, agentId in AgentDefs.order do
+	local agent = AgentDefs.byId[agentId]
+	local list: { Types.AgentHardware } = {}
+	for slot, item in agent.Hardware do
+		table.insert(list, {
+			Id = item.Id,
+			Agent = agentId,
+			Slot = slot,
+			UnlockMasteryLevel = GameConfig.Mastery.HardwareUnlockLevels[slot],
+			Name = item.Name,
+			Category = item.Category,
+			Def = byId[item.Id],
+		})
+	end
+	hardwareByAgent[agentId] = list
+end
+DeepFreeze(hardwareByAgent)
 
 -- Ticket 8.5d-dmr: presentation-only data; kept here alongside ShotDefaults, outside the authoritative WeaponDef.
 type WeaponVisual = {
@@ -314,6 +339,17 @@ local WeaponDefs = {
 
 function WeaponDefs.get(id: string): WeaponDef?
 	return byId[id]
+end
+
+-- An agent's three Hardware items in slot order; empty for an unknown agent.
+function WeaponDefs.getForAgent(agentId: string): { Types.AgentHardware }
+	return hardwareByAgent[agentId] or {}
+end
+
+-- True when the weapon is one of this agent's Hardware and is built. Mastery is checked by the caller, which knows the
+-- player's level (compare with the item's UnlockMasteryLevel).
+function WeaponDefs.isValidForAgent(agentId: string, weaponId: string): boolean
+	return AgentDefs.hardwareOwner[weaponId] == agentId and byId[weaponId] ~= nil
 end
 
 return DeepFreeze(WeaponDefs)

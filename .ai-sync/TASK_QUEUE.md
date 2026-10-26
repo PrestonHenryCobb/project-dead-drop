@@ -163,6 +163,17 @@ Owner requested this area split while Claude was unavailable. Full source eviden
 | relayout-2 | Phase 2, NPC rework: authored lane routes from the layout, capacity-aware doors and stairs, crowd clusters, tiered updates, 60-second wake-up, Staff NPCs on the elevators, the Warden and Curator; measure at 200, 300, 400 NPCs. **Built, playtested and measured in Studio (Warden and Curator included); see `.ai-sync/RELAYOUT_PHASE2_HANDOFF.md`.** | CLAUDE_CODE | relayout-1 reviewed | READY_FOR_REVIEW |
 | relayout-art | **For Codex, after the owner approves the new layout:** re-apply the art pass (sculptures, chandeliers, settees, materials, lights) to the rebuilt Gala. The layout moves every room, so the old placements no longer fit. Do not start before the owner says the layout is approved. | CODEX | relayout-1 approved by the owner | BLOCKED |
 
+## Menu suite (owner-started 2026-10-26 from the menu handoffs; contract notes in .ai-sync/MENU_CONTRACT.md)
+Pulls parts of Steps 10, 19, 21 and 22 forward at the owner's request. Repo decisions win over the handoff files where
+they differ (see MENU_CONTRACT.md "Where the handoffs were corrected").
+
+| Id | Ticket | Owner | Needs | Status |
+|---|---|---|---|---|
+| menu-phase0 | Shared contract: Enums (MenuTab, AgentId, AgentClass, HardwareSlot, AssetRarity, DossierTrack, ItemState), Types (agents, Hardware, loadout, meta profile, agent select, MenuView), GameConfig (Mastery, Meta, Menu, rate limits), Remotes (3 events each way plus 7 RemoteFunctions, RemoteService.onInvoke, RemoteController.invoke), new Defs/AgentDefs, WeaponDefs.getForAgent/isValidForAgent, client/Menu/MenuTheme. Lint clean; checked in Studio from a scratch copy of Shared (all modules require, 18 Hardware items in slot order, 10 built, validity checks, MenuTheme builders). A full Play boot waits for the Rojo plugin to reconnect. | CLAUDE_CODE | | READY_FOR_REVIEW |
+| menu-shell | MenuController (header, tabs, LB/RB, footer, focus, view mounting), MenuCameraController (stage room and rig), PlayLobbyView, PreDeployView. | CLAUDE_CODE | menu-phase0 | TODO |
+| menu-services | MetaProgressionService (profile in memory, starter picks, equip validation, Dossier claims, Studio-only Mint grant) and LobbyService (queue mode, 30 s agent select to the cutoff, no duplicate agent per team, server-validated picks). | CLAUDE_CODE | menu-phase0 | TODO |
+| menu-views | AgentsView, HardwareInspectorView, AssetsCodexView, DossiersView, BlackMarketView, ProfileView, MintModalView as MenuView modules in src/client/Menu/Views. Read MENU_CONTRACT.md first. | CODEX | menu-phase0 | TODO |
+
 ## Waiting on the owner
 
 All 35 prompt-review topics are answered or explicitly preserved. Owner priority: reported bugs first, then combat/

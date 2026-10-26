@@ -198,6 +198,124 @@ export type MeleeResult = "Downed" | "Eliminated" | "Hit"
 -- R5-takedown: sent only to a player who is being taken down, so their own character plays the struggle.
 export type TakedownVictimInfo = { Active: boolean, Seconds: number, StartedAt: number? }
 
+-- Ticket menu-phase0: agents, loadouts, agent select and the meta profile. Keep in step with Enums.
+export type AgentId = "Guise" | "Parapet" | "Lattice" | "Reticle" | "Suture" | "Feint"
+export type AgentClass = "Deceiver" | "Enforcer" | "Specialist"
+export type QueueMode = "Solos" | "Duos" -- the modes the menu queues for (SPEC_CHANGES: Duos and Solos)
+export type MenuTab = "Play" | "Agents" | "Assets" | "Dossiers" | "BlackMarket" | "Profile" | "Hardware" | "Mint"
+export type AssetRarity = "FieldAgent" | "Infiltrator" | "BlackOps" | "Ghost"
+export type DossierTrack = "Free" | "Premium"
+export type ItemState = "Equipped" | "Owned" | "Available" | "Locked"
+
+-- One of an agent's three Hardware items, in slot order (AgentDefs). Def is the weapon's firing record once it is built;
+-- nil means the weapon is designed (STEP8_QUESTIONS) but not playable yet, so it can be shown but never equipped.
+export type AgentHardware = {
+	Id: string,
+	Agent: AgentId,
+	Slot: number, -- 1, 2, 3 (Enums.HardwareSlot)
+	UnlockMasteryLevel: number, -- GameConfig.Mastery.HardwareUnlockLevels[Slot]
+	Name: string,
+	Category: string, -- what kind of weapon, for the menu ("SMG", "Pump shotgun", "Melee")
+	Def: WeaponDef?,
+}
+
+-- A Talent (ability, CooldownSeconds set) or an Instinct (passive, no cooldown). Text from AGENTS_DRAFT.
+export type AgentKitItem = {
+	Name: string,
+	Description: string,
+	CooldownSeconds: number?,
+}
+
+export type AgentHardwareEntry = { Id: string, Name: string, Category: string }
+
+export type AgentDef = {
+	Id: AgentId,
+	DisplayName: string,
+	Epithet: string, -- "the Chameleon"
+	Class: AgentClass,
+	Role: string, -- "Disguise master"
+	Hardware: { AgentHardwareEntry }, -- ordered W1, W2, W3; read it through WeaponDefs.getForAgent
+	-- SPEC_CHANGES 15/16: three of each per agent. Only the first of each is designed so far (the rest are Step 16).
+	Talents: { AgentKitItem },
+	Instincts: { AgentKitItem },
+}
+
+-- What a player takes into a match. Gadgets (Step 17) and cosmetics (Step 21) join this when their defs exist.
+export type PlayerLoadout = {
+	AgentId: AgentId,
+	HardwareId: string, -- must be one of AgentId's Hardware, built, and unlocked by mastery
+}
+
+export type AgentMastery = { Level: number, XP: number }
+
+export type DossierProgress = {
+	XP: number,
+	Premium: boolean,
+	Claimed: { number }, -- tier indices already claimed (a list, so it survives the trip over a remote)
+}
+
+-- Career numbers the Profile shows; all come from finished matches.
+export type CareerStats = {
+	Matches: number,
+	Extractions: number,
+	IntelGathered: number,
+	Eliminations: number,
+	Takedowns: number,
+	MatchesUncompromised: number, -- matches finished without ever being Exposed
+}
+
+-- A player's meta profile, sent only to that player. String keys throughout so every table crosses a remote intact.
+export type MetaProfile = {
+	Level: number,
+	Credits: number, -- earned in play
+	Stocks: number, -- premium, bought in the Mint
+	OwnedAgents: { [string]: boolean }, -- keyed by AgentId
+	StarterPicksLeft: { [string]: boolean }, -- keyed by AgentClass: classes whose free first-launch pick is still open
+	Mastery: { [string]: AgentMastery }, -- keyed by AgentId
+	OwnedCosmetics: { [string]: boolean },
+	ActiveDossierId: string?,
+	Dossiers: { [string]: DossierProgress },
+	Career: CareerStats,
+}
+
+-- GetPlayerMetaProfile's result and ProfileStateUpdated's payload.
+export type MetaSnapshot = { Profile: MetaProfile, Loadout: PlayerLoadout }
+
+-- RequestEquipLoadout and RequestLockInPreDeploy send this; the server checks every field.
+export type LoadoutRequest = { AgentId: string, HardwareId: string }
+
+-- Agent select (META_DRAFT: the full 30 seconds, picks revisable until the cutoff, no duplicate agent on a team).
+-- Sent only to the members of one team, so no rival learns a team's agents (CLAUDE.md rule 3).
+export type PreDeployMember = {
+	UserId: number,
+	DisplayName: string,
+	LockedIn: boolean,
+	AgentId: AgentId?,
+	HardwareId: string?,
+}
+
+export type PreDeployState = {
+	Active: boolean,
+	Mode: QueueMode,
+	EndsAt: number, -- server clock (workspace:GetServerTimeNow()); the client counts down to it
+	Members: { PreDeployMember },
+}
+
+-- Ticket menu-phase0: a menu screen. Views are plain modules in src/client/Menu/Views (not Controllers: the client boot
+-- requires every Controller). MenuController requires each one, mounts it into its stage frame when its tab opens and
+-- unmounts it when the tab closes; Unmount must destroy everything Mount made. Context carries deep-link data, for
+-- example { AgentId = "Guise" } when Play's "Customize loadout" opens Hardware.
+export type MenuNavigator = {
+	navigateTo: (tab: MenuTab, context: { [string]: any }?) -> (),
+	back: () -> (),
+}
+
+export type MenuView = {
+	Tab: MenuTab,
+	Mount: (stage: Frame, navigator: MenuNavigator, context: { [string]: any }?) -> (),
+	Unmount: () -> (),
+}
+
 -- Token-bucket limits for one client -> server remote (GameConfig.Network).
 export type RateLimit = {
 	PerSecond: number,

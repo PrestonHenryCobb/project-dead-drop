@@ -1,7 +1,8 @@
 --!strict
--- Creates every RemoteEvent from shared/Remotes at boot and is the only way the server talks over them.
+-- Creates every RemoteEvent and RemoteFunction from shared/Remotes at boot and is the only way the server talks over them.
 --
 --   RemoteService.onRequest("RequestScan", function(player, targetId) ... end)
+--   RemoteService.onInvoke("RequestEquipLoadout", function(player, request) return true end)
 --   RemoteService.fireClient("Notification", player, text)
 --
 -- Every client -> server remote is rate-limited here before a handler sees it. Handlers still have to validate
@@ -18,6 +19,7 @@ local Remotes = require(Shared:WaitForChild("Remotes"))
 local RemoteService = {}
 
 local events: { [string]: RemoteEvent } = {}
+local functions: { [string]: RemoteFunction } = {}
 local limiters: { [string]: RateLimiter.RateLimiter } = {}
 
 local function limitFor(name: string): { PerSecond: number, Burst: number }
@@ -50,6 +52,14 @@ function RemoteService.Init()
 		local limit = limitFor(name)
 		limiters[name] = RateLimiter.new(limit.PerSecond, limit.Burst)
 	end
+	for _, name in Remotes.ClientToServerFunctions do
+		local remote = Instance.new("RemoteFunction")
+		remote.Name = name
+		remote.Parent = folder
+		functions[name] = remote
+		local limit = limitFor(name)
+		limiters[name] = RateLimiter.new(limit.PerSecond, limit.Burst)
+	end
 
 	folder.Parent = ReplicatedStorage
 end
@@ -72,6 +82,19 @@ function RemoteService.onRequest(name: string, handler: (player: Player, ...any)
 		end
 		handler(player, ...)
 	end)
+end
+
+-- Sets the handler for a client -> server RemoteFunction; what it returns goes back to the caller. A call over the
+-- rate limit returns (false, "RateLimited") without reaching the handler.
+function RemoteService.onInvoke(name: string, handler: (player: Player, ...any) -> ...any)
+	assert(Remotes.isClientFunction(name), `{name} is not a client -> server function`)
+	local limiter = limiters[name]
+	functions[name].OnServerInvoke = function(player: Player, ...: any): ...any
+		if not limiter:Allow(player) then
+			return false, "RateLimited"
+		end
+		return handler(player, ...)
+	end
 end
 
 function RemoteService.fireClient(name: string, player: Player, ...: any)
