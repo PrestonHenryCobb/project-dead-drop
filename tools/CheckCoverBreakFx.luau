@@ -22,7 +22,7 @@ local ok, problem = pcall(function()
 		fx:update(index, false)
 		assert(fx.root.Visible)
 		for _, bar in fx.bars do
-			assert(bar.BackgroundTransparency == config.StartTransparency)
+			assert(math.abs(bar.BackgroundTransparency - config.StartTransparency) < 0.00001)
 		end
 		fx:update(index + config.Seconds / 2, true)
 		assert(not fx.root.Visible, "Reduced-motion geometry remained visible")
