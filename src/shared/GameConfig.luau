@@ -937,11 +937,17 @@ local GameConfig = {
 		},
 		WarningColor = Color3.fromRGB(245, 150, 40), -- the restricted-area warning
 		GlowPixels = 90, -- how far in from the screen edge an edge glow reaches
-		ExposedFlashSeconds = 0.18,
 		ExposedTextSeconds = 2,
-		ExposedVignetteSeconds = 0.22,
-		ExposedFlashTransparency = 0.5, -- the full-screen flash when you are exposed
-		PingFlashTransparency = 0.85, -- the fainter flash when an enemy within range is exposed
+		-- Ticket 19-coverbreak-feedback: brief, peripheral geometry replaces full-screen exposure flashes.
+		CoverBreak = {
+			Seconds = 0.2,
+			StartTransparency = 0.2,
+			EdgeInsetFraction = 0.16,
+			ArmPixels = 34,
+			StrokePixels = 3,
+			BannerWidthPixels = 172,
+			BannerHeightPixels = 36,
+		},
 		SenseGlowTransparency = 0.85, -- the very faint edge glow for an exposed enemy close by (STEP7 G2)
 		SenseLookCosine = 0.85, -- looking within about 30 degrees of someone counts as looking at them
 		MeterWidthPixels = 220,
