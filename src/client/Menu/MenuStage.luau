@@ -78,7 +78,7 @@ local function lamp(parent: Instance, position: Vector3, color: Color3, brightne
 	light.Color = color
 	light.Brightness = brightness
 	light.Range = range
-	light.Shadows = true
+	light.Shadows = config.LampShadows
 	light.Parent = holder
 end
 

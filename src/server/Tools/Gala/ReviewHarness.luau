@@ -33,11 +33,11 @@ local ok, problem = pcall(function()
     local common = outfits.byRole.Guest[1]
     local fixture = rigService.createNpcRig(common, CFrame.new(0,-100,0))
     for _, player in players:GetPlayers() do
-        waitFor(function() return player.Character ~= nil and player.Character:FindFirstChild("SculptedHead") ~= nil end)
+        waitFor(function() return player.Character ~= nil and player.Character:FindFirstChild("SculptedSuit") ~= nil end)
         local body = player.Character :: Model
         apply.apply(body, common)
         game:GetService("RunService").Heartbeat:Wait()
-        for _, name in {"SculptedHead", "SculptedSuit"} do
+        for _, name in {"SculptedSuit"} do
             local theirs = fixture:FindFirstChild(name) :: Model
             local ours = body:FindFirstChild(name) :: Model
             assert(theirs and ours, "Missing shared sculpture")
@@ -146,7 +146,7 @@ local ok, problem = pcall(function()
         local count = 0
         for _, body in workspace:GetChildren() do
             if body:IsA("Model") and body:FindFirstChild("HumanoidRootPart") then
-                assert(body:FindFirstChild("SculptedHead") and body:FindFirstChild("SculptedSuit"), "Client saw native-only disguise")
+                assert(body:FindFirstChild("SculptedSuit"), "Client saw native-only disguise")
                 count += 1
             end
         end

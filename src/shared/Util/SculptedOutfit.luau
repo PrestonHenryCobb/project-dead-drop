@@ -1,5 +1,6 @@
 --!strict
--- Ticket gala-sculptures: exactly the same baked face/tailoring on player disguises and NPC outfits.
+-- Ticket gala-sculptures: exactly the same baked tailoring on player disguises and NPC outfits. The head and face are
+-- never sculpted: every character keeps the regular Roblox head and its standard face (OutfitApplier).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameConfig = require(script.Parent.Parent.GameConfig)
 local Definitions = require(script.Parent.Parent.Defs.SculptureDefs)
@@ -10,11 +11,11 @@ local SculptedOutfit = {}
 
 function SculptedOutfit.available(): boolean
 	local assets = ReplicatedStorage:FindFirstChild(GameConfig.Art.Sculptures.AssetFolder)
-	return assets ~= nil and assets:FindFirstChild("Head") ~= nil and assets:FindFirstChild("Suit") ~= nil
+	return assets ~= nil and assets:FindFirstChild("Suit") ~= nil
 end
 
 function SculptedOutfit.strip(model: Model)
-	for _, name in { "Head", "Suit", "Lapels", "BowTie" } do
+	for _, name in { "Suit", "Lapels", "BowTie" } do
 		local visual = model:FindFirstChild("Sculpted" .. name)
 		if visual then
 			visual:Destroy()
@@ -70,29 +71,21 @@ function SculptedOutfit.apply(model: Model, outfit: Types.OutfitDef)
 	if not SculptedOutfit.available() then
 		return
 	end -- Native shared rig remains usable in an unbuilt source-only place.
-	local head, torso = model:FindFirstChild("Head"), model:FindFirstChild("UpperTorso")
-	if not (head and head:IsA("BasePart") and torso and torso:IsA("BasePart")) then
+	local torso = model:FindFirstChild("UpperTorso")
+	if not (torso and torso:IsA("BasePart")) then
 		return
 	end
 	local colors = {
-		Skin = outfit.BodyColors.Skin,
-		Ink = GameConfig.Art.Sculptures.FaceInk,
 		Cloth = outfit.Shirt.Color,
 		Ivory = GameConfig.Art.Materials.Ivory.Color,
 	}
-	attach(model, "Head", head, GameConfig.Art.Sculptures.HeadRatio, colors)
 	attach(model, "Suit", torso, Vector3.one, colors)
 	for _, detail in outfit.Accessories do
 		if detail.Kind == "Lapels" or detail.Kind == "BowTie" then
 			attach(model, detail.Kind, torso, Vector3.one, { Accent = detail.Color })
 		end
 	end
-	head.Transparency, torso.Transparency = 1, 1
-	for _, item in head:GetChildren() do
-		if item:IsA("Decal") then
-			item.Transparency = 1
-		end
-	end
+	torso.Transparency = 1
 end
 
 return SculptedOutfit

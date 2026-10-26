@@ -159,11 +159,9 @@ end
 function OutfitApplier.strip(model: Model)
 	SculptedOutfit.strip(model)
 	-- Restore native visual parts before fitting the next shared sculpture models.
-	for _, name in { "Head", "UpperTorso" } do
-		local body = model:FindFirstChild(name)
-		if body and body:IsA("BasePart") then
-			body.Transparency = 0
-		end
+	local torso = model:FindFirstChild("UpperTorso")
+	if torso and torso:IsA("BasePart") then
+		torso.Transparency = 0
 	end
 	for _, child in model:GetDescendants() do
 		for _, className in AVATAR_CLASSES do

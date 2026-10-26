@@ -52,8 +52,6 @@ local GameConfig = {
 		-- Ticket gala-sculptures: baked once in Studio; no runtime CSG or altered hitboxes.
 		Sculptures = {
 			AssetFolder = "GalaArtAssets",
-			HeadRatio = Vector3.new(0.8, 1.1, 1),
-			FaceInk = Color3.fromHex("262125"),
 			ChandelierScale = 0.85,
 			ChandelierDrop = 1.5,
 			SeatingInset = 9,
@@ -222,6 +220,9 @@ local GameConfig = {
 			LampColor = Color3.fromHex("FFD9A0"),
 			LampBrightness = 0.6, -- the map's Future lighting and bloom wash the room out above about 1
 			LampRange = 20,
+			-- Shadow-casting lights are the stage's one real cost under Future lighting (about 13 fps and a long first-frame
+			-- hitch measured with five of them); the room is small, so the menu goes without.
+			LampShadows = false,
 			RimColor = Color3.fromHex("38E8FC"),
 			RimBrightness = 0.5,
 			RigTurnDegrees = -18, -- the operative stands angled toward the camera
