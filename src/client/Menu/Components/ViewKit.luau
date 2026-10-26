@@ -6,6 +6,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Janitor = require(Shared.Util.Janitor)
 local Types = require(Shared.Types)
 local Theme = require(script.Parent.Parent.MenuTheme)
+local config = require(Shared.GameConfig).Menu
 local Remote = require(script.Parent.Parent.Parent.Controllers.RemoteController)
 local Kit = {}
 Kit.Theme = Theme
@@ -126,7 +127,9 @@ end
 
 function Kit.session(stage: Frame, title: string, navigator: Types.MenuNavigator?)
 	local janitor = Janitor.new()
-	local root = Kit.frame(stage, "CollectionView", UDim2.new(), UDim2.fromScale(1, 1))
+	local margin = config.GapPixels * 2
+	local root =
+		Kit.frame(stage, "CollectionView", UDim2.fromOffset(margin, margin), UDim2.new(1, -margin * 2, 1, -margin * 2))
 	janitor:Add(root)
 	Kit.text(root, title, 0, 42, true)
 	local body = Kit.frame(root, "Body", UDim2.fromOffset(0, 50), UDim2.new(1, 0, 1, -84))

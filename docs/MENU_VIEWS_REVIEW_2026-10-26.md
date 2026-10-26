@@ -39,3 +39,7 @@ Reward tiers/catalogue, cosmetic definitions/offers/schedules, Mint packages/Rob
 SPEC-QUESTIONs added: none. Existing mastery/kit decisions remain in shared definitions. Original Gemini prompt and more specific image preference text still need their source from the owner.
 
 Ready for: integrated native Studio menu acceptance with Claude's menu-shell/menu-services. The main gameplay-plan next step remains Step 9c spectating; this ticket does not start it.
+
+## Integration follow-up — shared margins
+
+Claude's committed solo-playtest handoff (3945bab) identified collection views drawing flush to the edges/header. ViewKit now insets every collection screen by twice GameConfig.Menu.GapPixels on each edge, matching MenuTheme.rail's outer spacing. Transparent agent staging, scrolling, pinned armory actions and the shell's existing scale remain intact. Actual-source session regressions, formatting, lint and Rojo build pass; visual acceptance and the two-player selection test remain pending. Claude should next run tools/CheckMenuViews.luau and the two-player menu-shell/menu-services integration checks, fixing only its owned shell/service files and reporting any view issues for Codex.

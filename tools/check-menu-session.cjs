@@ -13,6 +13,7 @@ local Janitor = require("./Janitor")
 local GuiService, Theme, Remote = e.GuiService, e.Theme, e.Remote
 local Instance, UDim2, Enum = e.Instance, e.UDim2, e.Enum
 local task = e.task
+local config = {GapPixels=12}
 `;
 fs.writeFileSync(path.join(directory,'Actual.luau'),prefix+source.slice(source.indexOf('local Kit = {}')));
 fs.copyFileSync(path.join(__dirname,'../src/shared/Util/Janitor.luau'),path.join(directory,'Janitor.luau'));
