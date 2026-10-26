@@ -172,7 +172,7 @@ they differ (see MENU_CONTRACT.md "Where the handoffs were corrected").
 | menu-phase0 | Shared contract: Enums (MenuTab, AgentId, AgentClass, HardwareSlot, AssetRarity, DossierTrack, ItemState), Types (agents, Hardware, loadout, meta profile, agent select, MenuView), GameConfig (Mastery, Meta, Menu, rate limits), Remotes (3 events each way plus 7 RemoteFunctions, RemoteService.onInvoke, RemoteController.invoke), new Defs/AgentDefs, WeaponDefs.getForAgent/isValidForAgent, client/Menu/MenuTheme. Lint clean; checked in Studio from a scratch copy of Shared (all modules require, 18 Hardware items in slot order, 10 built, validity checks, MenuTheme builders). A full Play boot waits for the Rojo plugin to reconnect. | CLAUDE_CODE | | READY_FOR_REVIEW |
 | menu-shell | MenuController (header, tabs, LB/RB, footer, focus, view mounting), MenuCameraController (stage room and rig), PlayLobbyView, PreDeployView. | CLAUDE_CODE | menu-phase0 | TODO |
 | menu-services | MetaProgressionService (profile in memory, starter picks, equip validation, Dossier claims, Studio-only Mint grant) and LobbyService (queue mode, 30 s agent select to the cutoff, no duplicate agent per team, server-validated picks). | CLAUDE_CODE | menu-phase0 | TODO |
-| menu-views | AgentsView, HardwareInspectorView, AssetsCodexView, DossiersView, BlackMarketView, ProfileView, MintModalView as MenuView modules in src/client/Menu/Views. Read MENU_CONTRACT.md first. | CODEX | menu-phase0 | TODO |
+| menu-views | AgentsView, HardwareInspectorView, AssetsCodexView, DossiersView, BlackMarketView, ProfileView, MintModalView as MenuView modules in src/client/Menu/Views. Read MENU_CONTRACT.md first. | CODEX | menu-phase0 | READY_FOR_REVIEW |
 
 ## Waiting on the owner
 
