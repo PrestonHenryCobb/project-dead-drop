@@ -23,6 +23,7 @@
 --   CoverService.onNpcKilled(player)                          a player killed an NPC (spec 5.5, 7.2 #11)
 --   CoverService.setWeaponDrawn(player, drawn)                the player is aiming their weapon (spec 7.3: 40 percent a second, doubled)
 --   CoverService.isExposed(player)
+--   CoverService.isCovered(player)         Covered, not Suspicious or Exposed
 --   CoverService.setSources(sources)                          NPCService tells us who can see, and where bodies are
 
 local Players = game:GetService("Players")
@@ -126,6 +127,12 @@ end
 function CoverService.isExposed(player: Player): boolean
 	local state = states[player]
 	return state ~= nil and state.cover == "Exposed"
+end
+
+-- Covered and no suspicion at all (Guise's ambush shot needs this; Suspicious does not count).
+function CoverService.isCovered(player: Player): boolean
+	local state = states[player]
+	return state ~= nil and state.cover == "Covered"
 end
 
 local function isLockedOut(state: State, now: number): boolean

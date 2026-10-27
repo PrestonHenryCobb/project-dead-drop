@@ -18,6 +18,11 @@
 --     player's Humanoid state is not reliable (it reports Landed while the character is still falling). Riding a
 --     zipline (root anchored) and crawling in a vent never count as a fall.
 --
+--   * Weapon effects (tickets 8.5a/b/e/f, contracts in .ai-sync/WEAPON_SERVER_CONTRACTS.md): a weapon with Melee uses its
+--     own V numbers (garrote, hammer shove); ReloadPerShell loads one round at a time and a shot interrupts it; a pull
+--     with SurvivesFullHealth or Stagger is tallied per target; Smoke leaves a cloud from the last rounds of a magazine;
+--     a Projectile weapon hands its throw to ProjectileService (flare, throwing knives).
+--
 -- DownedService handles 0 HP through hooks. Spec 13.6: the common damage path rejects teammates.
 
 local Players = game:GetService("Players")
@@ -45,6 +50,8 @@ type WeaponDef = Types.WeaponDef
 type Target = History.Target
 
 type Takedown = {
+	seconds: number, -- how long the hold takes with the weapon held
+	damage: number,
 	target: Target,
 	look: Vector3, -- camera heading validated at press; body locomotion-facing is not the first-person aim
 	startedAt: number,
@@ -75,6 +82,15 @@ type State = {
 	target: Target?, -- this player in History; untracked while downed so shots pass through (as for a downed NPC)
 }
 
+-- How ProjectileService takes a throw (set once at Start). canLaunch is asked before any round is spent.
+export type ProjectileHooks = {
+	canLaunch: (Player) -> boolean,
+	launch: (shooter: Player, def: WeaponDef, origin: Vector3, direction: Vector3) -> (),
+}
+
+-- One target's share of a pull that is tallied as a whole (pump shotgun).
+type Tally = { amount: number, head: boolean, pellets: number }
+
 -- How DownedService takes over at 0 HP (spec 14). Without them a player at 0 HP simply dies.
 export type DownedHooks = {
 	onZeroHealth: (Player, Vector3) -> (), -- the player reached 0 HP; `from` is where the damage came from
@@ -92,6 +108,7 @@ local loadoutWeapons: { [Player]: string } = {}
 local sampleAccumulator = 0
 local takedownAccumulator = 0
 local downedHooks: DownedHooks? = nil
+local projectileHooks: ProjectileHooks? = nil
 local glintAccumulator = 0
 local rng = Random.new()
 local sweep = 0
@@ -138,9 +155,13 @@ local function sendMelee(
 	result: Types.MeleeResult?
 )
 	local action = kind or "Takedown"
+	local state = states[player]
+	local melee = state and state.weapon.Melee
 	local info: Types.MeleeState = {
 		Kind = action,
-		Seconds = if action == "Charge" then config.Melee.FullChargeSeconds else config.Takedown.HoldSeconds,
+		Seconds = if action == "Charge"
+			then (melee and melee.ChargeSeconds) or config.Melee.FullChargeSeconds
+			else (melee and melee.TakedownSeconds) or config.Takedown.HoldSeconds,
 		Active = active,
 		StartedAt = startedAt,
 		Result = result,
@@ -303,8 +324,30 @@ local function finishReload(player: Player, state: State)
 	if state.reloadEndsAt == 0 then
 		return
 	end
+	local def = state.weapon
+	if def.ReloadPerShell then
+		-- One round at a time (pump shotgun): ReloadSeconds is the time for each, and another follows until full.
+		if state.reserve > 0 and state.mag < def.MagSize then
+			state.mag += 1
+			state.reserve -= 1
+		end
+		if state.reserve > 0 and state.mag < def.MagSize then
+			state.reloadEndsAt = os.clock() + def.ReloadSeconds
+			sendAmmo(player, state, def.ReloadSeconds)
+			local id = state.reloadId
+			task.delay(def.ReloadSeconds, function()
+				if states[player] == state and state.reloadId == id and not state.dead then
+					finishReload(player, state)
+				end
+			end)
+			return
+		end
+		state.reloadEndsAt = 0
+		sendAmmo(player, state, 0)
+		return
+	end
 	state.reloadEndsAt = 0
-	local take = math.min(state.weapon.MagSize - state.mag, state.reserve)
+	local take = math.min(def.MagSize - state.mag, state.reserve)
 	state.mag += take
 	state.reserve -= take
 	sendAmmo(player, state, 0)
@@ -367,8 +410,8 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 		return
 	end
 	local def = state.weapon
-	if weaponId ~= def.Id then
-		return
+	if weaponId ~= def.Id or def.Melee then
+		return -- a melee weapon (garrote, hammer) has nothing to fire
 	end
 	if state.takedown or state.chargeStartedAt then
 		sendAmmo(player, state, 0)
@@ -379,7 +422,19 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 		return
 	end
 	local now = os.clock()
-	if state.reloadEndsAt ~= 0 then
+	if state.reloadEndsAt ~= 0 and def.ReloadPerShell then
+		-- A shot interrupts a shell-by-shell reload and keeps the rounds already loaded; a shell that is due counts.
+		if now >= state.reloadEndsAt - config.FireRateToleranceSeconds then
+			finishReload(player, state)
+		end
+		if state.mag > 0 then
+			state.reloadId += 1
+			state.reloadEndsAt = 0
+			sendAmmo(player, state, 0)
+		else
+			return
+		end
+	elseif state.reloadEndsAt ~= 0 then
 		-- The client finishes its reload on its own clock and fires at once, which can arrive a moment before the
 		-- server's timer runs; within the fire-rate tolerance the reload is done, so that first shot is not lost.
 		if now < state.reloadEndsAt - config.FireRateToleranceSeconds then
@@ -401,6 +456,11 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 		sendAmmo(player, state, 0)
 		return
 	end
+	local hooks = projectileHooks
+	if def.Projectile and not (hooks and hooks.canLaunch(player)) then
+		sendAmmo(player, state, 0)
+		return
+	end
 
 	-- The shot must start where the shooter's head was when they fired (spec 13.3).
 	local serverNow = workspace:GetServerTimeNow()
@@ -419,17 +479,27 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 
 	state.nextFireAt = math.max(state.nextFireAt, now - config.FireRateToleranceSeconds)
 		+ FireRate.gapAfterShot(def, state.streak, now, state.aiming)
+	local magBeforeShot = state.mag -- the server's own count decides which rounds are smoke (Feint's SMG)
 	state.mag -= 1
-	-- Guise's pistol: a shot fired while still disguised is an ambush shot (STEP8 unique effects).
-	local ambush = if def.AmbushMult and not CoverService.isExposed(player) then def.AmbushMult else 1
+	-- Guise's pistol: the first shot fired while Covered is an ambush shot (STEP8 answers: Covered, not Suspicious).
+	local ambush = if def.AmbushMult and CoverService.isCovered(player) then def.AmbushMult else 1
 
 	-- Firing breaks Cover and starts the lockout (spec 7.2 #1, 7.6); NPCs hear it (spec 5.4).
 	CoverService.expose(player, "Fired")
 	CoverService.startLockout(player)
 	local hearStuds = def.HearStuds
 		or (if def.Quiet then GameConfig.Audio.SuppressedWeaponRadius else GameConfig.Audio.DefaultWeaponRadius)
+	local silent = hearStuds <= 0 -- throwing knives: no gunshot, so no NPC panic and nobody hears it
 	local soundOrigin = soundOriginOf(def, origin)
-	if now - state.lastReactAt >= config.GunfireReactSeconds then
+	if def.Projectile and hooks then
+		hooks.launch(player, def, origin, directions[1])
+		if not silent and now - state.lastReactAt >= config.GunfireReactSeconds then
+			state.lastReactAt = now
+			NPCService.gunshot(soundOrigin, hearStuds)
+		end
+		return
+	end
+	if not silent and now - state.lastReactAt >= config.GunfireReactSeconds then
 		state.lastReactAt = now
 		NPCService.gunshot(soundOrigin, hearStuds)
 	end
@@ -437,6 +507,10 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 	local pierce = def.Pierce
 	local maxHits = 1 + (if pierce then pierce.Count else 0)
 	local struckAnyone = false
+	local aggregate = def.SurvivesFullHealth or def.Stagger
+	local tallies: { [Target]: Tally } = {}
+	local tallyOrder: { Target } = {}
+	local smoke = def.Smoke
 	for _, ray in directions do
 		local hits, endPoint, hitWall = Ballistics.trace(player, origin, ray, timestamp, maxHits)
 		for index, hit in hits do
@@ -451,8 +525,28 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 				* falloffMult(def, hit.distance)
 				* ambush
 				* pierced
-			applyDamage(player, target, amount, head, origin)
+			if aggregate then
+				local tally = tallies[target]
+				if not tally then
+					tally = { amount = 0, head = false, pellets = 0 }
+					tallies[target] = tally
+					table.insert(tallyOrder, target)
+				end
+				tally.amount += amount
+				tally.head = tally.head or head
+				tally.pellets += 1
+			else
+				applyDamage(player, target, amount, head, origin)
+			end
 			struckAnyone = true
+		end
+		if smoke and magBeforeShot <= smoke.Rounds and (#hits > 0 or hitWall) then
+			local cloud: Types.SmokeCloudInfo = {
+				Position = endPoint,
+				Radius = smoke.Radius,
+				ExpiresAt = workspace:GetServerTimeNow() + smoke.Seconds,
+			}
+			RemoteService.fireAllClients("SmokeCloud", cloud)
 		end
 		if GameConfig.Debug.PrintShots then
 			local first = hits[1]
@@ -474,6 +568,38 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 					RemoteService.fireClient("ShotHeard", other, info)
 				end
 			end
+		end
+	end
+	for _, target in tallyOrder do
+		local tally = tallies[target]
+		local victim = target.player
+		local victimState = if victim then states[victim] else nil
+		local amount = tally.amount
+		-- Pump shotgun: an agent who starts the pull at full health keeps at least 1 HP, plates or none.
+		if def.SurvivesFullHealth and victimState and victimState.hp >= config.MaxHP then
+			amount = math.min(amount, victimState.armor + victimState.hp - 1)
+		end
+		local result = applyDamage(player, target, amount, tally.head, origin)
+		local stagger = def.Stagger
+		if
+			stagger
+			and result ~= nil
+			and victim
+			and victimState
+			and not victimState.dead
+			and not isDowned(victim)
+			and tally.pellets >= stagger.MinPellets
+			and (target.rootPart.Position - origin).Magnitude <= stagger.WithinStuds
+		then
+			DisguiseService.applySlow(victim, stagger.SlowMult, stagger.Seconds)
+			local status: Types.CombatStatusInfo = {
+				Kind = "Stagger",
+				Seconds = stagger.Seconds,
+				SlowMult = stagger.SlowMult,
+				AimBumpDegrees = stagger.AimBumpDegrees,
+				From = origin,
+			}
+			RemoteService.fireClient("CombatStatus", victim, status)
 		end
 	end
 	if struckAnyone then
@@ -574,9 +700,15 @@ local function facingOf(target: Target): Vector3
 end
 
 -- The nearest person within melee reach and inside the swing's arc, with nothing of the map between.
-local function findMeleeTarget(player: Player, root: BasePart, look: Vector3, takedownOnly: boolean): Target?
+local function findMeleeTarget(
+	player: Player,
+	root: BasePart,
+	look: Vector3,
+	takedownOnly: boolean,
+	swingReach: number?
+): Target?
 	local melee = config.Melee
-	local reach = melee.Range + melee.ReachSlackStuds
+	local reach = (swingReach or melee.Range) + melee.ReachSlackStuds
 	local best: Target? = nil
 	local bestDistance = math.huge
 	for _, target in History.targets do
@@ -601,6 +733,28 @@ local function findMeleeTarget(player: Player, root: BasePart, look: Vector3, ta
 		end
 	end
 	return best
+end
+
+-- The hammer's charged hit moves its target sideways, along the swinger's right (a flat horizontal swing). Walls stop
+-- the push; an open edge does not, so a target near one falls. A player's body belongs to their own client, so they are
+-- told and move themselves (CombatStatus "Shove"). SPEC-QUESTION: NPCs are not shoved yet (their position is driven by
+-- the crowd's route); only damage reaches them.
+local function shove(target: Target, look: Vector3, studs: number)
+	local victim = target.player
+	if not victim then
+		return
+	end
+	local direction = Vector3.new(-look.Z, 0, look.X)
+	local shoveConfig = config.Shove
+	local from = target.rootPart.Position + Vector3.new(0, shoveConfig.ProbeUpStuds, 0)
+	local wall = workspace:Raycast(from, direction * (studs + shoveConfig.WallClearanceStuds), mapParams)
+	local allowed = if wall then math.max(0, wall.Distance - shoveConfig.WallClearanceStuds) else studs
+	if allowed <= 0 then
+		return
+	end
+	local status: Types.CombatStatusInfo =
+		{ Kind = "Shove", Seconds = shoveConfig.Seconds, Direction = direction, Studs = allowed }
+	RemoteService.fireClient("CombatStatus", victim, status)
 end
 
 local function onMelee(player: Player, kind: unknown, lookArg: unknown)
@@ -647,16 +801,28 @@ local function onMelee(player: Player, kind: unknown, lookArg: unknown)
 			return
 		end
 		state.chargeStartedAt = nil
-		if now - state.lastMeleeAt < config.Melee.CooldownSeconds then
+		local weaponMelee = state.weapon.Melee
+		if
+			now - state.lastMeleeAt < (if weaponMelee then weaponMelee.SwingSeconds else config.Melee.CooldownSeconds)
+		then
 			sendMelee(player, false, "Charge")
 			return
 		end
 		state.lastMeleeAt = now
 		CoverService.expose(player, "Melee")
 		CoverService.startLockout(player)
-		local target = findMeleeTarget(player, root, look, false)
+		local charged = weaponMelee ~= nil
+			and weaponMelee.ChargeSeconds ~= nil
+			and now - began >= weaponMelee.ChargeSeconds
+		local target = findMeleeTarget(player, root, look, false, if weaponMelee then weaponMelee.SwingReach else nil)
 		if target then
-			applyDamage(player, target, MeleeRules.damage(now - began), false, root.Position)
+			local damage = if weaponMelee
+				then (if charged then weaponMelee.ChargeDamage or weaponMelee.SwingDamage else weaponMelee.SwingDamage)
+				else MeleeRules.damage(now - began)
+			local result = applyDamage(player, target, damage, false, root.Position)
+			if result == "Hit" and charged and weaponMelee and weaponMelee.ShoveStuds then
+				shove(target, look, weaponMelee.ShoveStuds)
+			end
 		end
 		sendMelee(player, false, "Strike")
 		return
@@ -664,7 +830,8 @@ local function onMelee(player: Player, kind: unknown, lookArg: unknown)
 	if state.takedown or state.chargeStartedAt then
 		return -- repeated presses never reset or accelerate a charge/hold
 	end
-	if now - state.lastMeleeAt < config.Melee.CooldownSeconds then
+	local weaponMelee = state.weapon.Melee
+	if now - state.lastMeleeAt < (if weaponMelee then weaponMelee.SwingSeconds else config.Melee.CooldownSeconds) then
 		sendMelee(player, false, "Charge")
 		return
 	end
@@ -672,7 +839,14 @@ local function onMelee(player: Player, kind: unknown, lookArg: unknown)
 	if target then
 		CoverService.expose(player, "Takedown")
 		CoverService.startLockout(player)
-		state.takedown = { target = target, look = look, startedAt = now, startPosition = target.rootPart.Position }
+		state.takedown = {
+			seconds = (weaponMelee and weaponMelee.TakedownSeconds) or config.Takedown.HoldSeconds,
+			damage = (weaponMelee and weaponMelee.TakedownDamage) or config.Takedown.Damage,
+			target = target,
+			look = look,
+			startedAt = now,
+			startPosition = target.rootPart.Position,
+		}
 		local startedAt = workspace:GetServerTimeNow()
 		holdVictim(target, true, startedAt)
 		sendMelee(player, true, "Takedown", startedAt)
@@ -713,12 +887,12 @@ local function checkTakedowns(now: number)
 				or state.lastDamagedAt > takedown.startedAt
 			then
 				cancelMelee(player, state)
-			elseif now - takedown.startedAt >= config.Takedown.HoldSeconds then
+			elseif now - takedown.startedAt >= takedown.seconds then
 				state.takedown = nil
 				state.lastMeleeAt = now
 				holdVictim(target, false)
 				-- R5-takedown: the server-confirmed result; only Downed or Eliminated may trigger a cosmetic finisher.
-				local result = applyDamage(player, target, config.Takedown.Damage, false, (root :: BasePart).Position)
+				local result = applyDamage(player, target, takedown.damage, false, (root :: BasePart).Position)
 				sendMelee(player, false, "Strike", nil, result)
 			end
 		end
@@ -879,6 +1053,75 @@ end
 
 function CombatService.setDownedHooks(hooks: DownedHooks)
 	downedHooks = hooks
+end
+
+-- ProjectileService registers itself here at Start (flares and throwing knives are launched by it).
+function CombatService.setProjectileHooks(hooks: ProjectileHooks)
+	projectileHooks = hooks
+end
+
+-- A projectile (or its splash) hit `target` for `amount`. The teammate guard, hitmarker and DamageTaken are the same as
+-- for a bullet. Returns what the hit did, or nil when a teammate was spared.
+function CombatService.damageTarget(
+	shooter: Player,
+	target: Target,
+	amount: number,
+	head: boolean,
+	from: Vector3
+): Types.MeleeResult?
+	local result = applyDamage(shooter, target, amount, head, from)
+	if result ~= nil then
+		CoverService.startLockout(shooter) -- dealing damage refreshes it (spec 7.6)
+	end
+	return result
+end
+
+-- Puts up to `count` rounds back into the magazine of a player who carries a Projectile weapon of this kind (picking up
+-- a landed knife; no reserve exists to refill from). Returns how many fitted.
+function CombatService.refillThrowable(player: Player, kind: string, count: number): number
+	local state = states[player]
+	local def = state and state.weapon
+	if not state or not def or state.dead or isDowned(player) or not def.Projectile or def.Projectile.Kind ~= kind then
+		return 0
+	end
+	local fits = math.clamp(def.MagSize - state.mag, 0, count)
+	if fits > 0 then
+		state.mag += fits
+		sendAmmo(player, state, 0)
+	end
+	return fits
+end
+
+-- Whether this player is holding a Projectile weapon of this kind and can use it now.
+function CombatService.canUseThrowable(player: Player, kind: string): boolean
+	local state = states[player]
+	local def = state and state.weapon
+	return state ~= nil
+		and def ~= nil
+		and not state.dead
+		and not isDowned(player)
+		and def.Projectile ~= nil
+		and def.Projectile.Kind == kind
+end
+
+-- Studio only (tools/CheckWeaponServerRules): carry a weapon that is not registered in WeaponDefs yet, with full ammo,
+-- so its server rules can be exercised before the client side exists. Not reachable from a client.
+function CombatService.testEquip(player: Player, def: WeaponDef): boolean
+	local state = states[player]
+	if not RunService:IsStudio() or not state or state.dead then
+		return false
+	end
+	cancelReload(player)
+	cancelMelee(player, state)
+	state.reloadId += 1
+	state.reloadEndsAt = 0
+	state.weapon = def
+	state.mag, state.reserve = def.MagSize, def.ReserveAmmo
+	state.nextFireAt, state.lastMeleeAt = 0, -math.huge
+	state.streak = FireRate.newStreak()
+	state.aiming = false
+	sendAmmo(player, state, 0)
+	return true
 end
 
 -- Whether shots and melee can find this player (false while downed, like a downed NPC).

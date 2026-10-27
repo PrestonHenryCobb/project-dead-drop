@@ -43,6 +43,12 @@ local Remotes = {
 		"InteractState", -- to the holder only: a hold-interaction (revive, execute, later intel and doors) began or ended
 		"TakedownVictim", -- to the target of a takedown only: the hold on them began or ended (R5-takedown)
 		"TeamRoster", -- to each member of a team only: who is on it (rule 3; spec 3.3 teammate markers build on it)
+		-- Tickets 8.5a/b/e/f (weapon server contracts, see .ai-sync/WEAPON_SERVER_CONTRACTS.md)
+		"ProjectileLaunched", -- a flare or knife is in flight (Types.ProjectileLaunchInfo)
+		"ProjectileImpact", -- it landed (Types.ProjectileImpactInfo)
+		"SmokeCloud", -- to everyone: a smoke cloud (Types.SmokeCloudInfo)
+		"TargetGlow", -- to Suture's team only: a flare-struck character glows (Types.TargetGlowInfo)
+		"CombatStatus", -- to the victim only: stagger or shove (Types.CombatStatusInfo)
 		-- Ticket 9c
 		"SpectateState", -- to a spectator only: who they watch, or the drone (Types.SpectateStateInfo)
 		"SpectatorChat", -- to spectators only: a filtered chat line (Types.SpectatorChatInfo)

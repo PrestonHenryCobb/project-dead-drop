@@ -158,7 +158,51 @@ export type WeaponDef = {
 	ScopeGlint: boolean?, -- while aiming, rival agents she can see within Combat.ScopeGlint.RangeStuds see a glint
 	HearStuds: number?, -- how far the shot is heard, instead of the Quiet or default radius
 	SoundOffset: NumberRange?, -- listeners hear the shot this many studs from the shooter, in a random direction
+	-- Tickets 8.5a/b/e/f (server handoffs). A weapon with Melee has no ammo and never fires: V uses these numbers.
+	Melee: WeaponMelee?,
+	Projectile: WeaponProjectile?, -- FireRequest throws or launches a server-simulated projectile instead of a ray
+	ReloadPerShell: boolean?, -- ReloadSeconds is per round; a shot keeps the rounds already loaded (pump shotgun)
+	SurvivesFullHealth: boolean?, -- one pull cannot take an agent who started it at full health below 1 HP
+	Stagger: WeaponStagger?,
+	Smoke: WeaponSmoke?,
 }
+
+-- V while this weapon is held (garrote, breaching hammer). Fields left nil use GameConfig.Combat.Melee and .Takedown.
+export type WeaponMelee = {
+	SwingDamage: number,
+	SwingSeconds: number, -- the earliest the next swing or takedown may start after one
+	SwingReach: number, -- studs, before GameConfig.Combat.Melee.ReachSlackStuds
+	ChargeSeconds: number?, -- holding V this long before release makes the swing a charged one
+	ChargeDamage: number?,
+	ShoveStuds: number?, -- a charged hit pushes its target this far sideways, along the swinger's right
+	TakedownSeconds: number?, -- the rear hold; nil: Combat.Takedown.HoldSeconds
+	TakedownDamage: number?, -- nil: Combat.Takedown.Damage
+}
+
+-- A server-simulated arcing projectile. Damage and HeadshotMult on the WeaponDef are the direct-hit numbers.
+export type WeaponProjectile = {
+	Kind: "Flare" | "Knife",
+	Speed: number, -- studs a second at launch, along the aim direction
+	Gravity: number, -- studs a second squared, downward (a knife's arc is shallow, a flare's pronounced)
+	MaxSeconds: number, -- in flight at most this long, then it lands where it is
+	SplashDamage: number?, -- Flare: others within SplashRadius of the landing point, with a clear line to it
+	SplashRadius: number?,
+	LightSeconds: number?, -- Flare: the landing point lights the area this long; no damage
+	GlowSeconds: number?, -- Flare: a direct-hit target glows for the shooter's team this long
+	PickupStuds: number?, -- Knife: how close an agent must be to pick up a landed one
+}
+
+-- A close-range hit with most pellets slows the target briefly and bumps their aim (pump shotgun).
+export type WeaponStagger = {
+	MinPellets: number,
+	WithinStuds: number, -- the target is no further than this from the shooter
+	SlowMult: number, -- walking speed multiplier
+	Seconds: number,
+	AimBumpDegrees: number, -- Studio tuning; drawn by the victim's client
+}
+
+-- The last Rounds rounds of a magazine leave a smoke cloud where they land (Feint's smoke SMG).
+export type WeaponSmoke = { Rounds: number, Radius: number, Seconds: number }
 
 export type WeaponBurst = { Count: number, DelaySeconds: number }
 export type WeaponSpinUp = { StartRPM: number, Seconds: number }
@@ -176,6 +220,49 @@ export type InteractStateInfo = { Kind: string, Seconds: number, Active: boolean
 export type DownedInfo = { BleedOutAt: number, Fall: string, Posture: string }
 -- Sent to a player who is eliminated. FromStanding: they went straight from their feet (Solos), so the fall plays first.
 export type EliminatedInfo = { Fall: string, Posture: string, FromStanding: boolean }
+
+-- Tickets 8.5a/b/e/f. A projectile is in flight (to the shooter and to players within Combat.Projectile.ViewStuds). The
+-- client draws it from Origin with Velocity under Gravity from StartedAt (server clock); Own is true for the shooter,
+-- who may already have predicted it.
+export type ProjectileLaunchInfo = {
+	Id: number,
+	Kind: string, -- "Flare" or "Knife"
+	Origin: Vector3,
+	Velocity: Vector3,
+	Gravity: number,
+	StartedAt: number,
+	Own: boolean,
+}
+
+-- The projectile ended. Reason: "Wall", "Agent", "Npc" or "Expired" (out of flight time). A flare sets LightUntil
+-- (server clock): the area at Position is lit until then. A knife that lands is a LandedKnife part in the world.
+export type ProjectileImpactInfo = {
+	Id: number,
+	Reason: string,
+	Position: Vector3,
+	Normal: Vector3?,
+	LightUntil: number?,
+}
+
+-- A smoke cloud (a radius around Position) until ExpiresAt on the server clock. Sent to everyone.
+export type SmokeCloudInfo = { Position: Vector3, Radius: number, ExpiresAt: number }
+
+-- To Suture's team only: the character TargetId (an NPC's model name, or "P" and a UserId, as History uses) glows
+-- until ExpiresAt. Drawn client-side with line of sight; it follows the character through disguise changes.
+export type TargetGlowInfo = { TargetId: string, ExpiresAt: number }
+
+-- To the victim only. "Stagger": walk at SlowMult for Seconds (the server already applies the slow) and bump the aim
+-- AimBumpDegrees, away from From. "Shove": move Studs along Direction over Seconds (the server cannot move a player's
+-- body; their client does it, and falls like any walk).
+export type CombatStatusInfo = {
+	Kind: string,
+	Seconds: number,
+	SlowMult: number?,
+	AimBumpDegrees: number?,
+	From: Vector3?,
+	Direction: Vector3?,
+	Studs: number?,
+}
 
 -- Ticket 9c: what a spectator is watching, sent to them alone. Mode: "Teammate", "Player", "Drone" or "None".
 -- DronePosition is set when the server puts the drone somewhere (its start, or a correction).

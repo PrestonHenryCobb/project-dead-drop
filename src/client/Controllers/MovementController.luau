@@ -6,6 +6,9 @@
 --
 -- Humanoid:Move walks at WalkSpeed times the length of the vector, so easing the vector eases the speed; the server's
 -- WalkSpeed (disguise role, sprint, crouch) still sets how fast "full" is.
+--
+-- A shove (the breaching hammer's charged hit, CombatStatus "Shove") is also carried out here: the server cannot move a
+-- player's body, so it names a direction and a distance and this client runs the character along it, for the time given.
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -14,6 +17,8 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local GameConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("GameConfig"))
+local Types = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Types"))
+local RemoteController = require(script.Parent.RemoteController)
 
 local MovementController = {}
 
@@ -24,6 +29,8 @@ local BIND_NAME = "CoverStoryMovement"
 
 local humanoid: Humanoid? = nil
 local moving = Vector3.zero -- the eased move vector, length 0 to 1
+local shoveVelocity = Vector3.zero -- flat studs a second while a shove runs
+local shoveUntil = 0 -- os.clock()
 
 local function anyDown(keys: { Enum.KeyCode }): boolean
 	for _, key in keys do
@@ -82,6 +89,18 @@ local function step(dt: number)
 	local maxStep = dt / seconds
 	moving = if change.Magnitude <= maxStep then target else moving + change.Unit * maxStep
 	body:Move(moving, false)
+	local root = body.RootPart
+	if root and os.clock() < shoveUntil then
+		local velocity = root.AssemblyLinearVelocity
+		root.AssemblyLinearVelocity = Vector3.new(shoveVelocity.X, velocity.Y, shoveVelocity.Z)
+	end
+end
+
+local function onStatus(info: Types.CombatStatusInfo)
+	if info.Kind == "Shove" and info.Direction and info.Studs and info.Seconds > 0 then
+		shoveVelocity = info.Direction * (info.Studs / info.Seconds)
+		shoveUntil = os.clock() + info.Seconds
+	end
 end
 
 local function onJump(_: string, state: Enum.UserInputState): Enum.ContextActionResult
@@ -104,6 +123,7 @@ function MovementController.Start()
 	if localPlayer.Character then
 		task.spawn(onCharacter, localPlayer.Character)
 	end
+	RemoteController.connect("CombatStatus", onStatus)
 	ContextActionService:BindAction("CoverStoryJump", onJump, false, controls.Jump, controls.JumpPad)
 	RunService:BindToRenderStep(BIND_NAME, Enum.RenderPriority.Input.Value, step)
 end

@@ -2,8 +2,9 @@
 -- Where one ray of a shot goes (spec 13.3). The map stops it; before that, every person whose rewound pose the ray
 -- crosses is a hit. Poses are rewound to the continuous moment the shooter's screen showed (History).
 --
---   Ballistics.trace(shooter, origin, direction, timestamp, maxHits) -> (hits, endPoint, hitWall)
+--   Ballistics.trace(shooter, origin, direction, timestamp, maxHits, limit?) -> (hits, endPoint, hitWall)
 --     hits: up to maxHits people the ray passes through, nearest first (more than one only for a piercing weapon).
+--     limit: stop the ray after this many studs (a projectile's step); default MaxShotStuds.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -28,11 +29,13 @@ function Ballistics.trace(
 	origin: Vector3,
 	direction: Vector3,
 	timestamp: number,
-	maxHits: number
+	maxHits: number,
+	limit: number?
 ): ({ Hit }, Vector3, boolean)
 	local serverNow = workspace:GetServerTimeNow()
-	local wall = workspace:Raycast(origin, direction * config.MaxShotStuds, mapParams)
-	local reach = if wall then wall.Distance else config.MaxShotStuds
+	local range = limit or config.MaxShotStuds
+	local wall = workspace:Raycast(origin, direction * range, mapParams)
+	local reach = if wall then wall.Distance else range
 	local cull = config.Hitbox.CullStuds
 	local hits: { Hit } = {}
 	for _, target in History.targets do

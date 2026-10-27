@@ -17,6 +17,7 @@
 -- copied (outfit, scale, face). Nothing is stored on the character: the state lives only here.
 --
 --   DisguiseService.spawn(player, character)   dresses a freshly spawned character in a random Guest insertion outfit
+--   DisguiseService.applySlow(player, mult, seconds)   walking speed times mult for a while (stagger)
 --   DisguiseService.setNpcLookup(function(id) -> NpcInfo?)   how scans find NPCs; NPCService provides it
 --   DisguiseService.setCoverHooks(hooks)       how CoverService limits scanning and re-covering
 
@@ -68,6 +69,9 @@ type State = {
 	swapEndsAt: number, -- when the disguise change in progress finishes; 0 when none is
 	sprinting: boolean,
 	crouching: boolean,
+	slowUntil: number, -- os.clock() until which walking is slowed (a pump shotgun stagger)
+	slowMult: number,
+	slowId: number, -- bumped by each slow, so an older one's expiry never ends a newer one
 }
 
 local DisguiseService = {}
@@ -157,12 +161,13 @@ end
 
 local function speedFor(state: State): number
 	local walk = if state.exposed then GameConfig.Speeds.ExposedWalk else GameConfig.NPC.WalkSpeed[state.worn.Role]
+	local slow = if os.clock() < state.slowUntil then state.slowMult else 1
 	if state.crouching then
-		return walk * GameConfig.Speeds.CrouchMult
+		return walk * GameConfig.Speeds.CrouchMult * slow
 	elseif state.sprinting then
-		return GameConfig.Speeds.Sprint
+		return GameConfig.Speeds.Sprint * slow
 	end
-	return walk
+	return walk * slow
 end
 
 local function sendUpdate(player: Player, state: State)
@@ -446,6 +451,27 @@ local function pickInsertion(player: Player): OutfitDef
 	return options[rng:NextInteger(1, #options)]
 end
 
+-- Walking speed is multiplied by `mult` for `seconds` (a stagger). The server owns WalkSpeed, so the slow cannot be
+-- ignored by the client. A newer slow replaces an older one.
+function DisguiseService.applySlow(player: Player, mult: number, seconds: number)
+	local state = states[player]
+	local humanoid = aliveRoot(player)
+	if not state or not humanoid then
+		return
+	end
+	state.slowId += 1
+	local id = state.slowId
+	state.slowUntil, state.slowMult = os.clock() + seconds, mult
+	humanoid.WalkSpeed = speedFor(state)
+	task.delay(seconds, function()
+		local current = states[player]
+		local nowHumanoid = aliveRoot(player)
+		if current == state and state.slowId == id and nowHumanoid then
+			nowHumanoid.WalkSpeed = speedFor(state)
+		end
+	end)
+end
+
 function DisguiseService.spawn(player: Player, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 	local insertion = pickInsertion(player)
@@ -460,6 +486,9 @@ function DisguiseService.spawn(player: Player, character: Model)
 		swapEndsAt = 0,
 		sprinting = false,
 		crouching = false,
+		slowUntil = 0,
+		slowMult = 1,
+		slowId = 0,
 	}
 	states[player] = state
 	OutfitApplier.apply(character, insertion)

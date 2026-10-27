@@ -811,6 +811,19 @@ local GameConfig = {
 		-- SPEC-QUESTION: "enemies she is scoping" would need her aim direction from the client; the server instead shows
 		-- the glint to every rival with a clear line to her, which needs nothing the client could misreport.
 		ScopeGlint = { RangeStuds = 200, CheckHz = 4, Seconds = 0.4 },
+		-- Tickets 8.5a/b/e/f: server-simulated projectiles (flares, throwing knives). Weapon-specific numbers sit in
+		-- each WeaponDef.Projectile; these are shared. SPEC-QUESTION: all are Studio tuning.
+		Projectile = {
+			ViewStuds = 160, -- players within this of a launch or landing are told (the shooter always is)
+			MaxPerPlayer = 6, -- projectiles in flight per player; further requests are refused
+			FloorProbeStuds = 10, -- how far below a point to look for the floor a landed knife rests on
+			LandedNormalOffset = 0.15, -- studs a landed knife sits off the wall it hit
+			KnifeSize = Vector3.new(0.12, 0.12, 1.1),
+			PickupHoldSeconds = 0.2,
+			PickupSlackStuds = 1.5, -- extra reach allowed for lag when a pickup is validated
+		},
+		-- The hammer's shove: how long the victim's client takes to travel the distance, and the free run it needs.
+		Shove = { Seconds = 0.25, ProbeUpStuds = 1.5, WallClearanceStuds = 1 },
 		MovingSpeedStuds = 2, -- a body faster than this counts as moving for spread
 		-- Hit boxes the server tests rewound shots against: a vertical cylinder from the feet to the head, and the head.
 		-- Step 8B.7: the body radius narrows with the slimmer bodies (from 1.25), still slightly generous.
