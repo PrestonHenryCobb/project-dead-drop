@@ -1182,6 +1182,39 @@ local GameConfig = {
 		StickDeadzone = 0.2,
 	},
 
+	-- Ticket 9c (SPEC_CHANGES 14.4): spectating. SPEC-QUESTION: the spec gives no drone speed or camera distance; these
+	-- are playtest values.
+	Spectate = {
+		TargetCheckSeconds = 0.5, -- how often the server re-checks that a watched player still lives
+		StreamSeconds = 0.5, -- how often the map is streamed around the spectator's view
+		DroneSendHz = 10, -- how often the drone sends its position
+		DroneSpeed = 35, -- studs a second
+		DroneBoost = 2.5, -- the speed multiplier while the boost key is held
+		DroneStepSlack = 1.25, -- the server accepts this much more than the top speed, for lag
+		DroneSnapStuds = 4, -- a drone further than this from where the server put it is moved back
+		DroneMarginStuds = 6, -- how far past a zone volume the drone may drift
+		DroneStartHeight = 8,
+		ChatMaxLength = 120,
+		ChatLines = 8, -- lines kept on screen
+		ChatFadeSeconds = 12, -- a line stays this long once it is no longer new
+		Camera = {
+			Distance = 9, -- studs behind the watched player
+			Height = 2.5, -- studs above their root
+			PitchLimitDegrees = 70,
+			DegreesPerPixel = 0.25,
+			WallPadding = 0.5, -- studs kept between the camera and a wall it would otherwise sit in
+		},
+		Keys = {
+			Next = Enum.UserInputType.MouseButton1,
+			Previous = Enum.UserInputType.MouseButton2,
+			Drone = Enum.KeyCode.F,
+			Chat = Enum.KeyCode.Return,
+			Up = Enum.KeyCode.Space,
+			Down = Enum.KeyCode.LeftControl,
+			Boost = Enum.KeyCode.LeftShift,
+		},
+	},
+
 	-- Spec 23: audio radii in studs.
 	Audio = {
 		ExposedStingRadius = 60,
@@ -1301,6 +1334,10 @@ local GameConfig = {
 			-- Fastest weapon fires 900 rpm (15/s); 30/s leaves room for jitter. The server also checks fire rate itself.
 			FireRequest = { PerSecond = 30, Burst = 30 },
 			RequestCrawl = { PerSecond = 15, Burst = 15 }, -- sent at Downed.CrawlRequestHz
+			-- Ticket 9c: switching view is a key press; the drone sends at Spectate.DroneSendHz; chat is slow on purpose.
+			RequestSpectate = { PerSecond = 4, Burst = 8 },
+			RequestDronePosition = { PerSecond = 15, Burst = 15 },
+			RequestSpectatorChat = { PerSecond = 1, Burst = 3 },
 			-- Ticket menu-phase0: menu requests are button presses; a burst covers fast tab and card switching.
 			GetPlayerMetaProfile = { PerSecond = 1, Burst = 3 },
 			RequestEquipLoadout = { PerSecond = 3, Burst = 6 },

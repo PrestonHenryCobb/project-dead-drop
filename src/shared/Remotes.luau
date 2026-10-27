@@ -43,6 +43,9 @@ local Remotes = {
 		"InteractState", -- to the holder only: a hold-interaction (revive, execute, later intel and doors) began or ended
 		"TakedownVictim", -- to the target of a takedown only: the hold on them began or ended (R5-takedown)
 		"TeamRoster", -- to each member of a team only: who is on it (rule 3; spec 3.3 teammate markers build on it)
+		-- Ticket 9c
+		"SpectateState", -- to a spectator only: who they watch, or the drone (Types.SpectateStateInfo)
+		"SpectatorChat", -- to spectators only: a filtered chat line (Types.SpectatorChatInfo)
 		-- Ticket menu-phase0
 		"PreDeployStateUpdated", -- to each member of a team only: agent select picks and the cutoff (Types.PreDeployState)
 		"ProfileStateUpdated", -- to the owner only: their profile and loadout changed (Types.MetaSnapshot)
@@ -70,6 +73,10 @@ local Remotes = {
 		"RequestSense", -- the character in the crosshair within Agent Sense range, or nil (spec 8.3)
 		"RequestDraw", -- aim (draw) the weapon on or off (spec 13.2)
 		"RequestCrawl", -- while downed: the way to crawl, a flat direction or zero (spec 14.1)
+		-- Ticket 9c
+		"RequestSpectate", -- "Next", "Previous" or "Drone"; only honoured for an eliminated player
+		"RequestDronePosition", -- the drone camera's wanted position; the server limits speed and clamps it
+		"RequestSpectatorChat", -- a chat line for the other spectators
 		-- Ticket menu-phase0
 		"RequestQueueMode", -- the mode to queue for (Types.QueueMode)
 		"RequestStartPreDeploy", -- start agent select for the player's party

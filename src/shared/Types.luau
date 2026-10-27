@@ -177,6 +177,13 @@ export type DownedInfo = { BleedOutAt: number, Fall: string, Posture: string }
 -- Sent to a player who is eliminated. FromStanding: they went straight from their feet (Solos), so the fall plays first.
 export type EliminatedInfo = { Fall: string, Posture: string, FromStanding: boolean }
 
+-- Ticket 9c: what a spectator is watching, sent to them alone. Mode: "Teammate", "Player", "Drone" or "None".
+-- DronePosition is set when the server puts the drone somewhere (its start, or a correction).
+export type SpectateStateInfo = { Mode: string, TargetUserId: number?, CanDrone: boolean, DronePosition: Vector3? }
+
+-- Ticket 9c: one spectator chat line, already filtered for its reader.
+export type SpectatorChatInfo = { Sender: string, Text: string }
+
 -- Step 9: a team's roster, sent only to its own members (CLAUDE.md rule 3).
 export type TeamRosterInfo = { TeamId: number, Members: { Player } }
 
