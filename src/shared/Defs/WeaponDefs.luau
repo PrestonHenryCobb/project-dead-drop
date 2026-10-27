@@ -303,12 +303,26 @@ type WeaponVisual = {
 	Poses: { [string]: { Position: Vector3, Rotation: Vector3 } }?,
 }
 local visuals: { [string]: WeaponVisual } = {
+	-- SPEC-QUESTION: initial heavy-SMG handling tune; slower than Guise's SMG, without changing spin-up cadence.
+	ParapetHeavySMG = { AimBlendRate = 10, PoseSpeed = 10 },
+	-- Ticket 8.5a: light suppressed handling; the pistol settles faster than the shouldered SMG.
+	-- SPEC-QUESTION: initial Guise draw/aim response is playtest tuning, below the PDW's fastest handling.
+	GuiseSMG = { AimBlendRate = 16, PoseSpeed = 16 },
+	GuisePistol = { AimBlendRate = 20, PoseSpeed = 20 },
+	-- Ticket 8.5f: compact misdirection pistol; retain the PDW's fastest normal handling.
+	-- SPEC-QUESTION: initial Feint draw/aim response needs Studio feel review.
+	FeintPistol = { AimBlendRate = 21, PoseSpeed = 21 },
 	-- Ticket 8.5c-pdw: fastest normal automatic handling. Preserve the carbine's exceptional near-zero draw.
 	LatticePDW = { AimBlendRate = 24, PoseSpeed = 24 },
 	ReticleCarbine = { PoseSpeed = 36 },
 	ReticleDMR = { Magnification = 3, BoltCycleSeconds = 0.65, BoltTravelStuds = 0.32 },
+	-- Ticket 8.5e: light pistols settle sooner than the shouldered shotgun; akimbo pose overrides stay intact.
+	-- SPEC-QUESTION: initial Suture draw/aim response needs Studio feel review.
+	SutureShotgun = { AimBlendRate = 12, PoseSpeed = 12 },
 	-- Ticket R8-pistol-pose: centre the pair, not the right-hand gun, in the ready view.
 	SutureDualPistols = {
+		AimBlendRate = 18,
+		PoseSpeed = 18,
 		DualSeparationStuds = 0.8,
 		Poses = {
 			Ready = { Position = Vector3.new(0, -0.95, -1.35), Rotation = Vector3.zero },

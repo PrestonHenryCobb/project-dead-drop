@@ -299,6 +299,18 @@ local function buildHeavySmg(model: Model): (CFrame, CFrame)
 	muzzle.Position = Vector3.new(barrel.Size.X / 2, 0, 0)
 	local magazine = model:FindFirstChild("Magazine") :: Part
 	magazine.Size = Vector3.new(0.3, 0.9, 0.4)
+	-- Ticket 8.5b: a reinforced receiver and vented barrel distinguish the heavier spin-up weapon.
+	addPart(model, "ReceiverBrace", Vector3.new(0.46, 0.16, 0.85), CFrame.new(0, 0.23, -0.15), config.GunColor)
+	addPart(model, "BarrelShroud", Vector3.new(0.4, 0.36, 0.65), CFrame.new(0, 0.04, -1.22), config.GunColor)
+	for index = 1, 3 do
+		addPart(
+			model,
+			"CoolingRib" .. index,
+			Vector3.new(0.44, 0.06, 0.07),
+			CFrame.new(0, 0.24, -0.94 - index * 0.15),
+			config.AccentColor
+		)
+	end
 	return right, left
 end
 
