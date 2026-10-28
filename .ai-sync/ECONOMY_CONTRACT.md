@@ -93,6 +93,27 @@ with `IntelService.spend(teamId, amount)`. Server-authoritative; the client only
   **For Codex (client):** no card indicator yet. There is no remote for it, only the Notification text "Tier 4 keycard printed";
   a HUD slot needs a `KeycardState` event, which Claude can add on request.
 
+- **Glass elevators for players and the elevator door hack (ticket 7B-glass-elevators, server and a bare client).**
+  `ElevatorService` now authorizes stops: a cab's doors open on arrival only if an NPC called it, a player whose clearance reaches the
+  stop's door `Tier` called it or rides to it, or the door was hacked; they stay open `NPC.Elevator.DwellSeconds`, and anyone may walk
+  in or out (tailgating). `ElevatorRideService`: hold kind `ElevatorCall` (0.3 s, quiet) on a call panel (`CallId` "E1:M"), and the
+  new remote `RequestElevatorFloor(level)` (rate 2/s) from a player standing in a cab (validated against the cab floor's bounds,
+  `Doors.Elevators`). Hold kind `ElevatorHack` (SecurityService, the same hack as a tier door: HackCost 3 at Staff stops, 8 at the Sanctum
+  arrival; Wired, Deep Pockets, Quick Hands, the Tier 4 keycard all apply) on a stop door (`DoorId` "L1"..) authorizes that stop and
+  calls the cab. The Sanctum elevator stays locked until the terminals are hacked, and no call or hack works while it is. The cab part
+  carries `State` (Idle/Moving/Open) and `Level` ("" while moving). Riders are carried by `PlatformController` (now also on
+  `ElevatorCab` floors); riding does not touch Cover. Client: `ElevatorController` (E in a cab goes to the next level up, wrapping) and
+  outlines in `SecurityInteractController`.
+  Tested solo in Studio as a Guest (clearance 0): the call brought the cab but the stop's doors stayed shut; a hack with no intel was
+  refused, with intel it cost 3 and the doors opened on arrival and closed again; in the cab, a request for level M carried the player
+  up with the cab (y 3.8 to 27.8). Not tested: a player with Staff clearance calling (doors open without a hack), a Tier 4 stop door
+  with a keycard, a second player tailgating, the Sanctum elevator, an NPC and a player sharing a cab.
+  SPEC-QUESTIONs: the call panel is public (anyone can call a cab; only the doors need clearance); a cab with a rider who got off
+  stays where it is until an NPC or player calls it, and NPC trips may take a cab a player is standing in (the player is carried).
+  **For Codex (client):** a real level selector (levels and current level from the cab part's `Stops`, `State`, `Level` attributes, sending
+  `RequestElevatorFloor`), and the HUD labels "Call elevator" / "Print keycard" in `SecurityHudController` (they are not in its `validLabels`
+  yet, so those holds show no progress bar), plus kind prompts for `ElevatorCall`, `ElevatorHack`, `KeycardPrinter`.
+
 ## Not built (Step 18 to do)
 - Asset UI (client, Codex): the four-slot loadout screen, an in-match strip from `AssetState`, safe colours from `Rarity` and
   `Opened`: ticket 18e-hud. SPEC-QUESTIONs: Field Medic does nothing for Health Stations (they heal to full); Duct Rat's "quiet"
@@ -100,6 +121,6 @@ with `IntelService.spend(teamId, amount)`. Server-authoritative; the client only
 - The shop screen (a menu over `ShopState` with buy buttons calling `RequestShopBuy`): ticket 18c-hud for Codex. Until it
   exists nobody can pick an item with a button.
 - 18d: Agent Tag drop, pickup and Rescue (10 intel) at a Supply Cache.
-- Elevator door hacks (`ElevatorDoor` HackCost): they need players to call and ride the cabs, which is ticket 7B-glass-elevators.
+- (Elevator door hacks and player riding: built 2026-10-28, see "Glass elevators" above.)
 - Asset safes (12) and Assets (per-match perks in four rarities): needs a design pass first.
 - Intel prices for these are all open: `Economy.Shop.Prices` still holds the old Funds numbers.

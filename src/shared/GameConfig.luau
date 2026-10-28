@@ -324,7 +324,21 @@ local GameConfig = {
 				UseSeconds = 1,
 			},
 		},
-		Elevators = { MinTier = 1 }, -- Staff and above ride the glass elevators free; a Guest must hack the door or tailgate
+		-- Staff and above ride the glass elevators free; a Guest must hack the door or tailgate. Ticket 7B-glass-elevators:
+		-- a call or a hack authorizes a stop for HackValidSeconds (an NPC call for NpcCallValidSeconds); the cab doors open on arrival
+		-- only for an authorized stop. A player is in the cab within CabSlackStuds of its floor and up to CabHeightStuds above it.
+		-- Asking for a level makes an open cab leave within DepartSeconds. The call panel is pressed (a quiet hold of CallSeconds)
+		-- within CallStuds; a hack of a stop door keeps the doors open Doors.HackOpenSeconds.
+		Elevators = {
+			MinTier = 1,
+			HackValidSeconds = 45,
+			NpcCallValidSeconds = 120,
+			CabHeightStuds = 10,
+			CabSlackStuds = 0.5,
+			DepartSeconds = 1,
+			CallStuds = 6,
+			CallSeconds = 0.3,
+		},
 	},
 
 	-- Spec 4.3 / 4.4: what the map must contain (used by map validation).
@@ -1443,6 +1457,7 @@ local GameConfig = {
 				CameraTerminal = true,
 				Lockpick = true,
 				DoorHack = true,
+				ElevatorHack = true,
 			},
 			TierDoorDiscount = 1, -- Wired: a tier door costs 1 less intel, never below 1
 			SparrowDrone = {
@@ -1677,6 +1692,7 @@ local GameConfig = {
 		QuickHandsKinds = {
 			Intel = true,
 			DoorHack = true,
+			ElevatorHack = true,
 			Camera = true,
 			Lockpick = true,
 			FuseBox = true,
@@ -1888,6 +1904,7 @@ local GameConfig = {
 			RequestAbility = { PerSecond = 2, Burst = 3 }, -- ticket 16: a key press; the server holds the cooldown
 			RequestSparrowMove = { PerSecond = 30, Burst = 30 }, -- ticket 16c: sent at Lattice.SparrowDrone.MoveHz
 			RequestAutoRecover = { PerSecond = 2, Burst = 3 }, -- a key press
+			RequestElevatorFloor = { PerSecond = 2, Burst = 4 }, -- ticket 7B-glass-elevators: a key press in the cab
 			RequestShopBuy = { PerSecond = 2, Burst = 4 }, -- ticket 18c: a button
 			RequestShopClose = { PerSecond = 2, Burst = 4 },
 			RequestGadget = { PerSecond = 6, Burst = 8 }, -- ticket 17: key presses (equip, deploy, alternate)

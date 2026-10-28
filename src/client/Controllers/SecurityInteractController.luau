@@ -131,6 +131,25 @@ local KINDS: { Kind } = {
 		end,
 	},
 	{
+		-- Ticket 7B-glass-elevators: a cab's call panel, and a shut stop door hacked open with intel.
+		tag = Enums.Tag.ElevatorCall,
+		kind = "ElevatorCall",
+		idAttribute = "CallId",
+		usable = function(part, from)
+			return (part:GetClosestPointOnSurface(from) - from).Magnitude <= GameConfig.Doors.Elevators.CallStuds
+		end,
+	},
+	{
+		tag = Enums.Tag.ElevatorDoor,
+		kind = "ElevatorHack",
+		idAttribute = "DoorId",
+		usable = function(part, from)
+			return part:GetAttribute("Open") ~= true
+				and type(part:GetAttribute("HackCost")) == "number"
+				and (part:GetClosestPointOnSurface(from) - from).Magnitude <= GameConfig.Doors.HackStuds
+		end,
+	},
+	{
 		-- The Tier 4 keycard printer (PrinterService makes one on a random spot each match).
 		tag = Enums.Tag.KeycardPrinter,
 		kind = "KeycardPrinter",

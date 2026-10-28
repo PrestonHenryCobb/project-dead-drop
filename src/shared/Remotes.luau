@@ -102,6 +102,8 @@ local Remotes = {
 		"RequestShopClose", -- leave the open shop
 		-- Ticket auto-recover
 		"RequestAutoRecover", -- turn the Auto re-cover option on or off (a boolean)
+		-- Ticket 7B-glass-elevators
+		"RequestElevatorFloor", -- the level name ("G", "M", ...) the player in a cab wants (a string)
 		-- Ticket 16c
 		"RequestSparrowMove", -- the way the drone should fly, a vector of up to length 1 in world space (zero to hover)
 		-- Ticket menu-phase0

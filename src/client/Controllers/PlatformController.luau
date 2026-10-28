@@ -1,7 +1,7 @@
 --!strict
--- Rides moving platforms (the gondola, BUILD_ORDER Step 7B pass 2b). The server moves the gondola; each client moves its
--- own character with it, since the client runs its character's physics: every frame, if the character stands on the
--- gondola's floor, it is shifted by however far the floor moved since the last frame.
+-- Rides moving platforms (the gondola, BUILD_ORDER Step 7B pass 2b, and the glass elevator cabs, ticket 7B-glass-elevators).
+-- The server moves the platform; each client moves its own character with it, since the client runs its character's physics:
+-- every frame, if the character stands on the platform's floor, it is shifted by however far the floor moved since the last frame.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -21,7 +21,11 @@ local lastPosition: Vector3? = nil
 local lastFloor: BasePart? = nil
 
 local function refreshFilter()
-	rayParams.FilterDescendantsInstances = CollectionService:GetTagged(Enums.Tag.Gondola)
+	local floors = CollectionService:GetTagged(Enums.Tag.Gondola)
+	for _, cab in CollectionService:GetTagged(Enums.Tag.ElevatorCab) do
+		table.insert(floors, cab)
+	end
+	rayParams.FilterDescendantsInstances = floors
 end
 
 function PlatformController.Init()
@@ -32,6 +36,8 @@ function PlatformController.Start()
 	-- The gondola streams in and out; keep the probe's list current.
 	CollectionService:GetInstanceAddedSignal(Enums.Tag.Gondola):Connect(refreshFilter)
 	CollectionService:GetInstanceRemovedSignal(Enums.Tag.Gondola):Connect(refreshFilter)
+	CollectionService:GetInstanceAddedSignal(Enums.Tag.ElevatorCab):Connect(refreshFilter)
+	CollectionService:GetInstanceRemovedSignal(Enums.Tag.ElevatorCab):Connect(refreshFilter)
 	RunService.PreSimulation:Connect(function()
 		local character = Players.LocalPlayer.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")

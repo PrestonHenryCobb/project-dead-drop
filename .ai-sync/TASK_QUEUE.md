@@ -154,7 +154,7 @@ setting Combat.DefaultWeapon in Studio only before Play. No new selection UI or 
 | Id | Ticket | Owner | Needs | Status |
 |---|---|---|---|---|
 | 7B-secret-exits | Small original set in restricted rooms. Inside/proximity/facing/LOS activation, revalidated by server; matching prompt. Once open anyone passes in either direction. Activation is Discreet under existing witness rules. | CLAUDE_CODE map/server + CODEX UI | Original map design/contracts | TODO |
-| 7B-glass-elevators | Working glass elevators using actual floor bands. Server travel/doors/passenger safety and client selector/status. Riding preserves Cover; destination clearance rules remain. | CLAUDE_CODE map/server + CODEX UI | Original map design/contracts | TODO |
+| 7B-glass-elevators | Working glass elevators using actual floor bands. Server travel/doors/passenger safety and client selector/status. Riding preserves Cover; destination clearance rules remain. | CLAUDE_CODE map/server + CODEX UI | Original map design/contracts | Server and bare client built 2026-10-28 (see ECONOMY_CONTRACT "Glass elevators"); level selector UI and HUD labels still for Codex. READY_FOR_REVIEW |
 
 ## Owner-reported bug assignments
 

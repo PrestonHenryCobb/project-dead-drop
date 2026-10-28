@@ -21,6 +21,7 @@ local CoverService = require(script.Parent.CoverService)
 local DoorService = require(script.Parent.DoorService)
 local DownedService = require(script.Parent.DownedService)
 local DroneService = require(script.Parent.DroneService)
+local ElevatorService = require(script.Parent.ElevatorService)
 local GuardService = require(script.Parent.GuardService)
 local InteractService = require(script.Parent.InteractService)
 local IntelService = require(script.Parent.IntelService)
@@ -78,10 +79,19 @@ end
 -- hack if witnessed; a drone or the Long Lens may do it from afar (ReachService).
 -- A Tier 4 keycard (PrinterService) opens a Tier 4 door, or the Package back door, in Doors.KeycardPrinter.Printer.UseSeconds for
 -- no intel and without breaking Cover; the card is spent. The back door opens for nothing else.
-local function beginDoorHack(player: Player, targetName: string): InteractService.Interaction?
+-- Ticket 7B-glass-elevators: an elevator stop door (kind "ElevatorHack") is hacked the same way; it opens the cab's doors at that
+-- stop (calling the cab if it is elsewhere). A Tier 4 stop door takes a Tier 4 keycard too.
+type HackTarget = {
+	lookup: (string) -> (BasePart?, number?), -- the shut door and its intel price
+	takesCard: (string) -> boolean,
+	open: (string, number) -> (),
+	stillShut: (string) -> boolean,
+}
+
+local function beginHack(player: Player, targetName: string, target: HackTarget): InteractService.Interaction?
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
-	local door, hackCost = DoorService.clearanceDoor(targetName)
+	local door, hackCost = target.lookup(targetName)
 	local teamId = TeamService.teamOf(player)
 	if
 		not (door and hackCost and teamId and root and root:IsA("BasePart"))
@@ -91,7 +101,7 @@ local function beginDoorHack(player: Player, targetName: string): InteractServic
 		return nil
 	end
 	local backDoor = door:GetAttribute("KeycardOnly") == true
-	local card = PrinterService.hasCard(player) and DoorService.takesTierCard(targetName)
+	local card = PrinterService.hasCard(player) and target.takesCard(targetName)
 	if backDoor and not card then
 		RemoteService.fireClient("Notification", player, "Needs a Tier 4 keycard")
 		return nil
@@ -127,17 +137,43 @@ local function beginDoorHack(player: Player, targetName: string): InteractServic
 			end
 			return not DownedService.isOut(player)
 				and inReach()
-				and DoorService.clearanceDoor(targetName) ~= nil
+				and target.stillShut(targetName)
 				and IntelService.balance(teamId) >= price
 				and (not card or PrinterService.hasCard(player))
 		end,
 		complete = function()
 			local paid = if card then PrinterService.useCard(player) else IntelService.spend(teamId, price)
 			if paid then
-				DoorService.openDoor(targetName, GameConfig.Doors.HackOpenSeconds)
+				target.open(targetName, GameConfig.Doors.HackOpenSeconds)
 			end
 		end,
 	}
+end
+
+local doorTarget: HackTarget = {
+	lookup = DoorService.clearanceDoor,
+	takesCard = DoorService.takesTierCard,
+	open = DoorService.openDoor,
+	stillShut = function(id)
+		return DoorService.clearanceDoor(id) ~= nil
+	end,
+}
+
+local elevatorTarget: HackTarget = {
+	lookup = ElevatorService.hackableDoor,
+	takesCard = ElevatorService.takesTierCard,
+	open = ElevatorService.hackOpen,
+	stillShut = function(id)
+		return ElevatorService.hackableDoor(id) ~= nil
+	end,
+}
+
+local function beginDoorHack(player: Player, targetName: string): InteractService.Interaction?
+	return beginHack(player, targetName, doorTarget)
+end
+
+local function beginElevatorHack(player: Player, targetName: string): InteractService.Interaction?
+	return beginHack(player, targetName, elevatorTarget)
 end
 
 function SecurityService.Init() end
@@ -157,6 +193,7 @@ function SecurityService.Start()
 	end)
 	InteractService.register("Lockpick", beginLockpick)
 	InteractService.register("DoorHack", beginDoorHack)
+	InteractService.register("ElevatorHack", beginElevatorHack)
 end
 
 return SecurityService
