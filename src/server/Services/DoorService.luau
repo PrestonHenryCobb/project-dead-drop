@@ -23,6 +23,7 @@
 --   DoorService.clearanceDoor(id) -> (BasePart?, number?)   a shut clearance door (SecurityId "D1", ...) and its intel HackCost
 --   DoorService.shutDoor(id) -> BasePart?   any shut keycard or clearance door (a keycard door is not shut while sealed)
 --   DoorService.openDoor(id, seconds)   opens a keycard or clearance door by its SecurityId and keeps it open that long
+--   DoorService.takesTierCard(id) -> boolean   a Tier 4 clearance door or the Package back door: a Tier 4 keycard opens it
 --   DoorService.holdNear(position, clearance, opensKeycardDoors)
 --     keeps open the doors close to the position that this clearance opens (NPCs open keycard doors too, players do not)
 
@@ -45,6 +46,7 @@ type Door = {
 	inside: Vector3?, -- flat unit direction from the doorway into the higher-tier side, if the zones say which
 	freeExit: boolean, -- an ordinary clearance door: anyone on its inside may leave
 	keycard: boolean, -- a keycard door (lockpicks, Lockdown seals)
+	keycardOnly: boolean, -- the Package back door: only a Tier 4 keycard opens it, no clearance and no NPC
 	openUntil: number, -- os.clock(): a lockpicked door stays open until then
 }
 
@@ -76,6 +78,7 @@ local function addDoor(instance: Instance, tagName: string)
 		inside = nil,
 		freeExit = false,
 		keycard = keycard,
+		keycardOnly = tagName == Enums.Tag.PackageDoor,
 		openUntil = 0,
 	}
 	table.insert(doors, door)
@@ -84,7 +87,7 @@ local function addDoor(instance: Instance, tagName: string)
 		local id = `K{nextKeycardId}`
 		instance:SetAttribute("SecurityId", id)
 		byId[id] = door
-	elseif door.tier then
+	elseif door.tier or door.keycardOnly then
 		nextTierId += 1
 		local id = `D{nextTierId}` -- ticket 18a: a clearance door can be hacked open with intel
 		instance:SetAttribute("SecurityId", id)
@@ -103,6 +106,12 @@ function DoorService.Init()
 	for _, tagName in { Enums.Tag.KeycardDoor, Enums.Tag.ClearanceDoor } do
 		for _, instance in CollectionService:GetTagged(tagName) do
 			addDoor(instance, tagName)
+		end
+	end
+	-- The Package front door is also a clearance door (added above); the back door is keycard only.
+	for _, instance in CollectionService:GetTagged(Enums.Tag.PackageDoor) do
+		if instance:GetAttribute("KeycardOnly") == true then
+			addDoor(instance, Enums.Tag.PackageDoor)
 		end
 	end
 end
@@ -139,7 +148,11 @@ end
 function DoorService.holdNear(position: Vector3, clearance: number, opensKeycardDoors: boolean)
 	local now = os.clock()
 	for _, door in doors do
-		if near(door, position) and (if door.tier then clearance >= door.tier else opensKeycardDoors) then
+		if
+			not door.keycardOnly
+			and near(door, position)
+			and (if door.tier then clearance >= door.tier else opensKeycardDoors)
+		then
 			hold(door, position, now)
 		end
 	end
@@ -150,7 +163,7 @@ end
 local function holdForPlayer(position: Vector3, clearance: number)
 	local now = os.clock()
 	for _, door in doors do
-		if near(door, position) then
+		if near(door, position) and not door.keycardOnly then
 			local authorized = door.tier ~= nil and clearance >= (door.tier :: number)
 			if authorized or (door.freeExit and isInside(door, position)) then
 				hold(door, position, now)
@@ -238,11 +251,17 @@ end
 -- Ticket 18a: the clearance door with that SecurityId if it is shut, and what hacking it costs in intel (its HackCost attribute).
 function DoorService.clearanceDoor(id: string): (BasePart?, number?)
 	local door = byId[id]
-	if door and door.tier and not door.open then
+	if door and (door.tier or door.keycardOnly) and not door.open then
 		local cost = door.part:GetAttribute("HackCost")
 		return door.part, if type(cost) == "number" then cost else nil
 	end
 	return nil, nil
+end
+
+-- A Tier 4 clearance door or the Package back door: the doors a Tier 4 keycard opens.
+function DoorService.takesTierCard(id: string): boolean
+	local door = byId[id]
+	return door ~= nil and (door.keycardOnly or door.tier == GameConfig.Doors.KeycardPrinter.Printer.DoorTier)
 end
 
 -- Opens a keycard or clearance door by its SecurityId and keeps it open that long.

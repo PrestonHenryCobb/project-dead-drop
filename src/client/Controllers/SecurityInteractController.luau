@@ -131,6 +131,27 @@ local KINDS: { Kind } = {
 		end,
 	},
 	{
+		-- The Tier 4 keycard printer (PrinterService makes one on a random spot each match).
+		tag = Enums.Tag.KeycardPrinter,
+		kind = "KeycardPrinter",
+		idAttribute = "PrinterId",
+		usable = function(part, from)
+			return (part:GetClosestPointOnSurface(from) - from).Magnitude
+				<= GameConfig.Doors.KeycardPrinter.Printer.InteractStuds
+		end,
+	},
+	{
+		-- The Package back door: opens only with a Tier 4 keycard (the server says "Needs a Tier 4 keycard" otherwise).
+		-- The front door carries this tag too, and the later kind wins for a part, so this entry stays above ClearanceDoor's.
+		tag = Enums.Tag.PackageDoor,
+		kind = "DoorHack",
+		usable = function(part, from)
+			return part:GetAttribute("KeycardOnly") == true
+				and part:GetAttribute("Open") == false
+				and (part.Position - from).Magnitude <= GameConfig.Doors.HackStuds
+		end,
+	},
+	{
 		-- Ticket 18a: a tier door shut in your face can be hacked open with the team's intel.
 		tag = Enums.Tag.ClearanceDoor,
 		kind = "DoorHack",

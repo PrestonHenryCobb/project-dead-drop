@@ -69,12 +69,29 @@ with `IntelService.spend(teamId, amount)`. Server-authoritative; the client only
   `setAssetLookup`); Quick Hands divides hold times by 1 + value for `Assets.QuickHandsKinds` (`AbilityService`); Deep Pockets in
   `AssetService.discounted` (cache shop, stations, tier doors after Wired, safes); Field Medic on Food Spots only; Duct Rat in
   `VentService` (`setAssets`; speed-up while in a duct, and from Black Ops no Cover break on entering).
-  Client: `SecurityInteractController` outlines an unopened safe. The map has no Field Agent safe (the 12 safes are Tier 1 x4, 2 x4,
-  3 x4), so the Field Agent slot has nothing to find until a Tier 0 safe exists.
+  Client: `SecurityInteractController` outlines an unopened safe. Gap-closing 2026-10-28: the map now has 16 safes, 4 of them Tier 0
+  (Field Agent: g_lounge, m_gallery, wm_lobby, t_ter_s; `Relayout.luau` and `tools/relayout-layout.cjs`), 4 each of Tiers 1 to 3.
+  Rebuilt in Studio: 0 problems, the four Tier 0 safes read Rarity FieldAgent. **The owner must save the place.**
   Tested solo in Studio: a four-Asset loadout validates and a repeat is refused; an Infiltrator safe cost 3 intel in 3 s and gave
   Quick Hands; a Black Ops safe then took 2.5 s (Quick Hands +20%) for 5 intel and gave Light Feet; a second Infiltrator safe was
   refused; elimination cleared all four slots; opened safes stay opened. Not tested: the Cover, price, food and vent effects
   (Light Feet, Steady Nerves, Deep Pockets, Field Medic, Duct Rat), the Ghost safe, two agents racing for one safe.
+
+- **Gap-closing 2026-10-28: Tier 4 keycard printer and the Package back door.** `PrinterService`: at Insertion one of the five
+  `KeycardPrinterSpot`s (`Doors.KeycardPrinter.ActiveSpots`) gets a printer part (tag `KeycardPrinter`, attribute `PrinterId`; nothing
+  else marks it). Hold kind `KeycardPrinter` (`Seconds` 20, reach `Printer.InteractStuds`, line of sight) costs the team `Cost` (10) intel
+  at the end and gives that agent one Tier 4 keycard; one at a time, lost on elimination and at a new match, suspicious if witnessed
+  (`noteHacking`). `DoorHack` (SecurityService): an agent with a card on a Tier 4 clearance door (`DoorService.takesTierCard`) or the
+  Package back door pays no intel, takes `Printer.UseSeconds` (1), does not break Cover, and the card is spent. The back door
+  (`PackageDoor` with `KeycardOnly`) is now registered by `DoorService` (SecurityId, `keycardOnly`): no clearance, NPC or free exit
+  opens it, and without a card the hold is refused ("Needs a Tier 4 keycard"). The Package front door was already a Tier 4 clearance
+  door with HackCost 10, so it hacks like any tier door. Client: `SecurityInteractController` outlines the printer and the back door.
+  Tested solo in Studio: no intel refused; 12 intel, 20 s hold, intel 12 to 2, card given; a second print refused; back door with the
+  card opened in 1 s and the card was spent; shut again; without a card refused and the door stayed shut with the agent beside it.
+  Not tested: a second team, the elimination loss, the front door with a card, a Tier 4 terrace door.
+  SPEC-QUESTIONs: the card is spent on the first Tier 4 door used (no choice to hack with intel instead); elimination loses the card.
+  **For Codex (client):** no card indicator yet. There is no remote for it, only the Notification text "Tier 4 keycard printed";
+  a HUD slot needs a `KeycardState` event, which Claude can add on request.
 
 ## Not built (Step 18 to do)
 - Asset UI (client, Codex): the four-slot loadout screen, an in-match strip from `AssetState`, safe colours from `Rarity` and
@@ -83,6 +100,6 @@ with `IntelService.spend(teamId, amount)`. Server-authoritative; the client only
 - The shop screen (a menu over `ShopState` with buy buttons calling `RequestShopBuy`): ticket 18c-hud for Codex. Until it
   exists nobody can pick an item with a button.
 - 18d: Agent Tag drop, pickup and Rescue (10 intel) at a Supply Cache.
-- Elevator door hacks (`ElevatorDoor` HackCost) and the Package front door (10 intel) for human players; Tier 4 keycard printer.
+- Elevator door hacks (`ElevatorDoor` HackCost): they need players to call and ride the cabs, which is ticket 7B-glass-elevators.
 - Asset safes (12) and Assets (per-match perks in four rarities): needs a design pass first.
 - Intel prices for these are all open: `Economy.Shop.Prices` still holds the old Funds numbers.

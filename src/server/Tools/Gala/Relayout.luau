@@ -1133,6 +1133,7 @@ place("food", {
 	"g_kitchen",
 	"g_kitchen",
 })
+place("safe", { "g_lounge", "m_gallery", "wm_lobby", "t_ter_s" })
 place("safe", { "g_coat", "m_catering", "wb_laundry", "wr_plant" })
 place("safe", { "b_barracks", "m_hub", "t_east", "wb_security" })
 place("safe", { "t_office", "t_panic", "wg_highroller", "wt_exec" })
@@ -1469,7 +1470,7 @@ local counts: { [string]: number } = {
 	HealthStation = 6,
 	AmmoCache = 8,
 	FoodSpot = 20,
-	AssetSafe = 12,
+	AssetSafe = 16,
 	SecretExit = 8,
 	KeycardPrinter = 5,
 	VaultTerminal = 5,

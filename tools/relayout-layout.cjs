@@ -789,7 +789,7 @@ const PLACE = {
 	health: ["g_restroom", "g_staffwc", "m_restroom", "t_washroom", "wm_restroom", "wg_restroom"],
 	ammo: ["g_service_n", "b_barracks", "m_hub", "b_gate", "t_west", "wg_cage", "wm_housekeeping", "wt_arcade"],
 	food: ["g_ballroom", "g_ballroom", "g_ballroom", "g_bar", "g_bar", "g_lounge", "g_dining", "g_dining", "wg_casino", "wg_casino", "wm_lobby", "wm_bar", "wr_garden", "wr_garden", "r_deck", "r_deck", "m_ball_gal", "m_cigar", "g_kitchen", "g_kitchen"],
-	safeStaff: ["g_coat", "m_catering", "wb_laundry", "wr_plant"], safeSec: ["b_barracks", "m_hub", "t_east", "wb_security"], safeExec: ["t_office", "t_panic", "wg_highroller", "wt_exec"],
+	safePublic: ["g_lounge", "m_gallery", "wm_lobby", "t_ter_s"], safeStaff: ["g_coat", "m_catering", "wb_laundry", "wr_plant"], safeSec: ["b_barracks", "m_hub", "t_east", "wb_security"], safeExec: ["t_office", "t_panic", "wg_highroller", "wt_exec"],
 	cache: ["g_gallery", "m_balcony", "t_ter_n", "wg_cage", "b_stores_w1", "wr_garden"],
 	camera: ["g_service_n", "g_kitchen", "m_hub", "m_offices", "b_gate", "b_muster", "t_west", "t_east", "wb_service", "wg_cage", "wm_housekeeping", "b_spine"],
 };
@@ -800,7 +800,7 @@ push(`placeIntel(0, { ${PLACE.intel0.map(q).join(", ")} })`);
 push(`placeIntel(1, { ${PLACE.intel1.map(q).join(", ")} })`);
 push(`placeIntel(2, { ${PLACE.intel2.map(q).join(", ")} })`);
 push(`placeIntel(3, { ${PLACE.intel3.map(q).join(", ")} })`);
-for (const [k, kind] of [["health", "health"], ["ammo", "ammo"], ["food", "food"], ["safeStaff", "safe"], ["safeSec", "safe"], ["safeExec", "safe"], ["cache", "cache"], ["camera", "camera"]]) push(`place(${q(kind)}, { ${PLACE[k].map(q).join(", ")} })`);
+for (const [k, kind] of [["health", "health"], ["ammo", "ammo"], ["food", "food"], ["safePublic", "safe"], ["safeStaff", "safe"], ["safeSec", "safe"], ["safeExec", "safe"], ["cache", "cache"], ["camera", "camera"]]) push(`place(${q(kind)}, { ${PLACE[k].map(q).join(", ")} })`);
 push("");
 push("-- Crowd clusters: authored groups at the hubs (id, room, centre, how many NPCs, what they do, what they face).");
 push("local clusters: { Layout.Cluster } = {");
@@ -847,7 +847,7 @@ push("");
 const counts = {
 	InsertionPoint: insertion.length, IntelSpawn: PLACE.intel0.length + PLACE.intel1.length + PLACE.intel2.length + PLACE.intel3.length, VaultSpawn: vaults.length, ExtractionSite: extraction.length,
 	SupplyCache: PLACE.cache.length, SecurityCamera: PLACE.camera.length, LaserGrid: doors.filter((d) => d.laser).length, KeycardDoor: 0, VentPairs: ventsOut.length, ZiplineAnchorPairs: ziplines.length,
-	HealthStation: PLACE.health.length, AmmoCache: PLACE.ammo.length, FoodSpot: PLACE.food.length, AssetSafe: PLACE.safeStaff.length + PLACE.safeSec.length + PLACE.safeExec.length,
+	HealthStation: PLACE.health.length, AmmoCache: PLACE.ammo.length, FoodSpot: PLACE.food.length, AssetSafe: PLACE.safePublic.length + PLACE.safeStaff.length + PLACE.safeSec.length + PLACE.safeExec.length,
 	SecretExit: secretOut.length, KeycardPrinter: printers.length, VaultTerminal: vaults.length, Elevator: shaftOut.length, Ladder: ladders.length,
 };
 push("-- What the self-check expects to find (Build.luau compares the built map with these).");

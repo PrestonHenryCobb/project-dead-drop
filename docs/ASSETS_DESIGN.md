@@ -19,7 +19,7 @@ menu's "equal footing" line still holds: everyone can bring the same four.
 
 ## Safes (owner)
 - A safe holds only the rarity of the **room it stands in**: a Public (Tier 0) room's safe is Field Agent, Staff (Tier 1)
-  Infiltrator, Security (Tier 2) Black Ops, Executive (Tier 3) Ghost. No odds, no rolls, no shifting. (There are 12 safes,
+  Infiltrator, Security (Tier 2) Black Ops, Executive (Tier 3) Ghost. No odds, no rolls, no shifting. (There are 16 safes: four per tier, Tier 0 added 2026-10-28;
   `AssetSafe`, each with a `Tier`; a safe in a higher tier than 3 counts as Ghost.)
 - **Safes cost intel to open** (owner). **PROPOSED:** 1 / 3 / 5 / 8 intel for Field Agent / Infiltrator / Black Ops / Ghost, a
   3 s hold near the safe, like a tier door; the team pays when the hold ends.

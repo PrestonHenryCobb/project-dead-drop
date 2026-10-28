@@ -307,7 +307,23 @@ local GameConfig = {
 		HackStuds = 8,
 		HackOpenSeconds = 4,
 		-- The Tier 4 keycard (single use) is printed at one of the printer spots; none is marked.
-		KeycardPrinter = { Cost = 10, Seconds = 20, ActiveSpots = 1 },
+		-- Gap-closing (2026-10-28): one printer is made at match start on a random spot. Holding Interact within InteractStuds for
+		-- Seconds costs the team Cost intel and gives that agent a Tier 4 keycard (one at a time, single use, lost on elimination).
+		-- With a card a hold on a Tier 4 door (DoorTier) or the Package back door takes UseSeconds, costs no intel and does not break
+		-- Cover; the card is spent. SPEC-QUESTION: the card is spent on the first Tier 4 door it is used at; no choice to hack instead.
+		KeycardPrinter = {
+			Cost = 10,
+			Seconds = 20,
+			ActiveSpots = 1,
+			Printer = {
+				InteractStuds = 6,
+				WallSlackStuds = 1.2,
+				Size = Vector3.new(2.4, 3.4, 1.6),
+				Color = Color3.fromRGB(80, 220, 235),
+				DoorTier = 4,
+				UseSeconds = 1,
+			},
+		},
 		Elevators = { MinTier = 1 }, -- Staff and above ride the glass elevators free; a Guest must hack the door or tailgate
 	},
 

@@ -108,6 +108,7 @@ local Enums = {
 		ElevatorDoor = "ElevatorDoor", -- ShaftId, Level, Tier, HackCost
 		ElevatorCall = "ElevatorCall", -- ShaftId, Level
 		AgentTag = "AgentTag", -- ticket 18d: the badge an eliminated agent drops (RescueService); TagId attribute
+		KeycardPrinter = "KeycardPrinter", -- gap-closing: the printer PrinterService makes on one spot at match start; PrinterId
 		PackageDoor = "PackageDoor", -- Side ("Front" or "Back"), HackCost, KeycardOnly
 		ServiceLadder = "ServiceLadder", -- a Cover-breaking ladder up the crown
 		-- Ticket 14: security objects the server makes at match start (SecurityId says which)

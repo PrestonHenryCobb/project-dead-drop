@@ -25,6 +25,7 @@ local GuardService = require(script.Parent.GuardService)
 local InteractService = require(script.Parent.InteractService)
 local IntelService = require(script.Parent.IntelService)
 local MatchService = require(script.Parent.MatchService)
+local PrinterService = require(script.Parent.PrinterService)
 local ReachService = require(script.Parent.ReachService)
 local RemoteService = require(script.Parent.RemoteService)
 local SupplyService = require(script.Parent.SupplyService)
@@ -75,6 +76,8 @@ end
 -- team HackCost intel (taken when the hack is done): Staff 3, Security 6, Executive 8 and more for the special doors. Lattice's
 -- Wired takes TierDoorDiscount off (never below 1). The door then stays open Doors.HackOpenSeconds. It is as suspicious as any
 -- hack if witnessed; a drone or the Long Lens may do it from afar (ReachService).
+-- A Tier 4 keycard (PrinterService) opens a Tier 4 door, or the Package back door, in Doors.KeycardPrinter.Printer.UseSeconds for
+-- no intel and without breaking Cover; the card is spent. The back door opens for nothing else.
 local function beginDoorHack(player: Player, targetName: string): InteractService.Interaction?
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -87,8 +90,18 @@ local function beginDoorHack(player: Player, targetName: string): InteractServic
 	then
 		return nil
 	end
-	local price =
-		AssetService.discounted(player, math.max(1, hackCost - (AbilityService.rulesOf(player).TierDoorDiscount or 0))) -- Wired, then Deep Pockets
+	local backDoor = door:GetAttribute("KeycardOnly") == true
+	local card = PrinterService.hasCard(player) and DoorService.takesTierCard(targetName)
+	if backDoor and not card then
+		RemoteService.fireClient("Notification", player, "Needs a Tier 4 keycard")
+		return nil
+	end
+	local price = if card
+		then 0
+		else AssetService.discounted(
+			player,
+			math.max(1, hackCost - (AbilityService.rulesOf(player).TierDoorDiscount or 0))
+		) -- Wired, then Deep Pockets
 	local function inReach(): boolean
 		local origin = ReachService.origin(player) or root.Position
 		return (door.Position - origin).Magnitude <= GameConfig.Doors.HackStuds
@@ -101,23 +114,26 @@ local function beginDoorHack(player: Player, targetName: string): InteractServic
 		return nil
 	end
 	local flying = DroneService.position(player) ~= nil
-	if not flying then
+	local quiet = flying or card
+	if not quiet then
 		CoverService.noteHacking(player)
 	end
 	return {
-		label = "Hack door",
-		seconds = GameConfig.Doors.HackSeconds,
+		label = if card then "Use keycard" else "Hack door",
+		seconds = if card then GameConfig.Doors.KeycardPrinter.Printer.UseSeconds else GameConfig.Doors.HackSeconds,
 		stillValid = function()
-			if not flying then
+			if not quiet then
 				CoverService.noteHacking(player)
 			end
 			return not DownedService.isOut(player)
 				and inReach()
 				and DoorService.clearanceDoor(targetName) ~= nil
 				and IntelService.balance(teamId) >= price
+				and (not card or PrinterService.hasCard(player))
 		end,
 		complete = function()
-			if IntelService.spend(teamId, price) then
+			local paid = if card then PrinterService.useCard(player) else IntelService.spend(teamId, price)
+			if paid then
 				DoorService.openDoor(targetName, GameConfig.Doors.HackOpenSeconds)
 			end
 		end,
