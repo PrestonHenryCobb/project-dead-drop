@@ -341,3 +341,12 @@ Same-storey height changes, unknown/ambiguous data and expired pulses never inve
 No server changes, character decoration or marker permission/range/lifetime changes. Source checks and Rojo pass;
 1,077 assertions across floor/data/weapon/match/objective/Package suites pass. Native visuals remain unverified.
 Full files/limits/acceptance: docs/FLOOR_MARKER_REVIEW_2026-10-28.md. Claude bot work is independent; no handoff needed.
+
+## Package input continuation (Codex 13b, 2026-10-28)
+
+READY_FOR_REVIEW: PackageController no longer captures E at unrelated extraction terminals, above/below the actual
+pad or for rejected same-team repeat calls. Objective E/X and held requests respect phase, local life state, text
+and window focus, extraction freeze and teardown. Server remains authoritative; no server/shared-contract edits.
+82 new actual-source input assertions pass; 1,159 total across input/data/weapons/match/objectives/Package/floors.
+StyLua, Selene and Rojo pass. Native input ordering/networking remains for Studio acceptance. No new SPEC-QUESTION.
+Files, later Studio checks and limits: docs/PACKAGE_INPUT_REVIEW_2026-10-28.md. Claude bot work needs no handoff.

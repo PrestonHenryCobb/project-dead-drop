@@ -16,11 +16,13 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
+local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local RemoteController = require(script.Parent.RemoteController)
 
 local PackageController = {}
@@ -43,6 +45,10 @@ local holding = false
 local bound = false
 local dropBound = false
 local elapsed = 0
+local phase: Types.Phase = "Lobby"
+local downed = false
+local eliminated = false
+local focused = true
 
 function PackageController.state(): Types.PackageStateInfo?
 	return packageState
@@ -63,6 +69,26 @@ local function flatDistance(a: Vector3, b: Vector3): number
 	return Vector3.new(offset.X, 0, offset.Z).Magnitude
 end
 
+local function usable(): boolean
+	local character = localPlayer.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	return (phase == "PackageHeist" or phase == "Overtime")
+		and not downed
+		and not eliminated
+		and focused
+		and UserInputService:GetFocusedTextBox() == nil
+		and humanoid ~= nil
+		and humanoid.Health > 0
+		and not (extractionState ~= nil and extractionState.State == "Extracted")
+end
+
+local function cancelHold()
+	if holding then
+		holding = false
+		RemoteController.fire("RequestInteractCancel")
+	end
+end
+
 local function choose(root: BasePart): Choice?
 	local carrying = packageState ~= nil and packageState.YouCarry
 	local extraction = extractionState
@@ -73,10 +99,13 @@ local function choose(root: BasePart): Choice?
 		and extraction.Position
 		and extraction.SiteId
 		and flatDistance(root.Position, extraction.Position) <= extractionConfig.ZoneSize / 2
+		and math.abs(root.Position.Y - extraction.Position.Y) <= extractionConfig.ZoneHeightStuds
 	then
 		return { kind = "ExtractionChannel", target = extraction.SiteId }
 	end
-	for _, terminal in CollectionService:GetTagged(Enums.Tag.ExtractionTerminal) do
+	local teamCarries = packageState ~= nil and (packageState.YouCarry or packageState.TeamCarries)
+	local canCall = teamCarries and (not extraction or extraction.State == "Idle" or not extraction.ByYourTeam)
+	for _, terminal in if canCall then CollectionService:GetTagged(Enums.Tag.ExtractionTerminal) else {} do
 		local siteId = terminal:GetAttribute("SiteId")
 		if
 			terminal:IsA("BasePart")
@@ -105,24 +134,24 @@ end
 
 local function onInteract(_: string, state: Enum.UserInputState): Enum.ContextActionResult
 	if state == Enum.UserInputState.Begin then
-		local picked = choice
+		local root = if usable() then rootOf(localPlayer) else nil
+		local picked = if root then choose(root) else nil
 		if picked then
 			holding = true
 			RemoteController.fire("RequestInteract", picked.kind, picked.target)
+			return Enum.ContextActionResult.Sink
 		end
-		return Enum.ContextActionResult.Sink
 	elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
 		if holding then
-			holding = false
-			RemoteController.fire("RequestInteractCancel")
+			cancelHold()
+			return Enum.ContextActionResult.Sink
 		end
-		return Enum.ContextActionResult.Sink
 	end
 	return Enum.ContextActionResult.Pass
 end
 
 local function onDrop(_: string, state: Enum.UserInputState): Enum.ContextActionResult
-	if state == Enum.UserInputState.Begin then
+	if state == Enum.UserInputState.Begin and usable() and packageState and packageState.YouCarry then
 		RemoteController.fire("RequestDropPackage")
 		return Enum.ContextActionResult.Sink
 	end
@@ -163,36 +192,80 @@ local function bindDrop(want: boolean)
 end
 
 local function refresh()
-	local root = rootOf(localPlayer)
+	local root = if usable() then rootOf(localPlayer) else nil
+	if not root then
+		cancelHold()
+	end
 	choice = if root then choose(root) else nil
 	bindInteract(choice ~= nil or holding)
-	bindDrop(packageState ~= nil and packageState.YouCarry)
+	bindDrop(root ~= nil and packageState ~= nil and packageState.YouCarry)
 end
 
 function PackageController.Init() end
 
 function PackageController.Start()
-	RemoteController.connect("PackageState", function(info: Types.PackageStateInfo)
+	local janitor = Janitor.new()
+	janitor:Add(RemoteController.connect("PackageState", function(info: Types.PackageStateInfo)
 		packageState = info
-	end)
-	RemoteController.connect("ExtractionState", function(info: Types.ExtractionStateInfo)
+		refresh()
+	end))
+	janitor:Add(RemoteController.connect("ExtractionState", function(info: Types.ExtractionStateInfo)
 		extractionState = info
-	end)
-	RemoteController.connect("TeamRoster", function(info: Types.TeamRosterInfo)
+		refresh()
+	end))
+	janitor:Add(RemoteController.connect("TeamRoster", function(info: Types.TeamRosterInfo)
 		teammates = info.Members
-	end)
-	RemoteController.connect("PhaseChanged", function(phase: Types.Phase)
-		if phase == "Lobby" or phase == "Insertion" then
+	end))
+	janitor:Add(RemoteController.connect("PhaseChanged", function(nextPhase: Types.Phase)
+		phase = nextPhase
+		if nextPhase == "Lobby" or nextPhase == "Insertion" then
 			packageState, extractionState = nil, nil
 		end
-	end)
-	RunService.Heartbeat:Connect(function(dt)
+		refresh()
+	end))
+	janitor:Add(RemoteController.connect("Downed", function()
+		downed = true
+		refresh()
+	end))
+	janitor:Add(RemoteController.connect("Eliminated", function()
+		eliminated = true
+		refresh()
+	end))
+	janitor:Add(RemoteController.connect("Revived", function()
+		downed = false
+		refresh()
+	end))
+	janitor:Add(localPlayer.CharacterAdded:Connect(function()
+		cancelHold()
+		downed, eliminated = false, false
+		refresh()
+	end))
+	janitor:Add(UserInputService.TextBoxFocused:Connect(refresh))
+	janitor:Add(UserInputService.WindowFocusReleased:Connect(function()
+		focused = false
+		refresh()
+	end))
+	janitor:Add(UserInputService.WindowFocused:Connect(function()
+		focused = true
+		refresh()
+	end))
+	janitor:Add(RunService.Heartbeat:Connect(function(dt)
 		elapsed += dt
 		if elapsed >= CHECK_SECONDS then
 			elapsed = 0
 			refresh()
 		end
+	end))
+	janitor:Add(function()
+		cancelHold()
+		bindInteract(false)
+		bindDrop(false)
+		packageState, extractionState, choice = nil, nil, nil
+		table.clear(teammates)
 	end)
+	janitor:Add(script.Destroying:Connect(function()
+		janitor:Destroy()
+	end))
 end
 
 return PackageController
