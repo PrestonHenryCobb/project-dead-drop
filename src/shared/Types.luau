@@ -400,6 +400,10 @@ export type PreDeployState = {
 	Members: { PreDeployMember },
 }
 
+-- Ticket 11a: a team's Intel (IntelUpdate, to that team only) and the match-wide unlock counter (GlobalIntelUpdate, to all).
+export type IntelUpdateInfo = { Balance: number, Used: { string } } -- Used: the station ids this team has already taken
+export type GlobalIntelInfo = { Current: number, Threshold: number }
+
 -- Ticket 10a: the match phases (spec 2). PhaseChanged(phase, PhaseData) goes to every client on each transition, and to
 -- the players in the lobby whenever the wait for the match changes. All times are on the server clock
 -- (workspace:GetServerTimeNow()). Fields that do not apply to a phase are nil.

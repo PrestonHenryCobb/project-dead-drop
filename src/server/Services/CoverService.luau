@@ -21,6 +21,7 @@
 --   CoverService.expose(player, reason, minExposedSeconds?)   cover-breaking actions (spec 7.2) call this
 --   CoverService.startLockout(player)                         starts or refreshes the combat lockout (spec 7.6)
 --   CoverService.onNpcKilled(player)                          a player killed an NPC (spec 5.5, 7.2 #11)
+--   CoverService.noteHacking(player)                          an Intel station hold is running (spec 9.2)
 --   CoverService.setWeaponDrawn(player, drawn)                the player is aiming their weapon (spec 7.3: 40 percent a second, doubled)
 --   CoverService.isExposed(player)
 --   CoverService.isCovered(player)         Covered, not Suspicious or Exposed
@@ -58,6 +59,7 @@ type State = {
 	lastSeenBySecurity: number,
 	pendingJumps: number,
 	weaponDrawn: boolean, -- aiming the weapon (CombatService)
+	hackingUntil: number, -- os.clock(): an Intel station hold (IntelService) is running until this time
 	-- what was last sent, so only changes go over the network
 	sentCover: string,
 	sentCanRecover: boolean,
@@ -110,6 +112,7 @@ local function newState(): State
 		lastSeenBySecurity = -math.huge,
 		pendingJumps = 0,
 		weaponDrawn = false,
+		hackingUntil = 0,
 		sentCover = "",
 		sentCanRecover = false,
 		sentBlocker = "",
@@ -239,6 +242,15 @@ end
 
 -- Spec 5.5, 7.2 #11: killing a civilian exposes the killer for at least ExposedSeconds. The Funds penalty and the
 -- alarm rise belong to the economy and alarm steps.
+-- Ticket 11a: the player is working an Intel station (spec 9.2: Suspicious if witnessed). IntelService calls this on every
+-- check of the hold, so it stops counting a moment after the hold ends.
+function CoverService.noteHacking(player: Player)
+	local state = states[player]
+	if state then
+		state.hackingUntil = os.clock() + config.HackingGraceSeconds
+	end
+end
+
 function CoverService.onNpcKilled(player: Player)
 	CoverService.expose(player, "KilledNpc", GameConfig.NPC.CivilianKill.ExposedSeconds)
 end
@@ -327,6 +339,9 @@ local function suspiciousRates(
 	end
 	if zoneTier >= 1 and crouching then
 		rate += gain.Crouch
+	end
+	if zoneTier >= 1 and os.clock() < state.hackingUntil then
+		rate += gain.Terminal
 	end
 	if zoneTier >= 1 and state.weaponDrawn then
 		rate += gain.WeaponDrawn

@@ -16,6 +16,7 @@
 --
 --   MatchService.phase() -> Types.Phase
 --   MatchService.isInMatch() -> boolean               Insertion up to Overtime
+--   MatchService.teamCount() -> number                teams in the match in progress
 --   MatchService.canQueue() -> boolean                the lobby is open to new teams
 --   MatchService.advance(to: Types.Phase) -> boolean  Insertion to Overtime transitions only (Steps 11 to 13 use it)
 --   MatchService.finish(winnerTeamId: number?)         ends the match: a winner, or nil for Mission Failed
@@ -254,6 +255,11 @@ function MatchService.isInMatch(): boolean
 		or phase == "VaultBreach"
 		or phase == "PackageHeist"
 		or phase == "Overtime"
+end
+
+-- How many teams are in the match in progress.
+function MatchService.teamCount(): number
+	return teamCount(matchTeams)
 end
 
 function MatchService.canQueue(): boolean
