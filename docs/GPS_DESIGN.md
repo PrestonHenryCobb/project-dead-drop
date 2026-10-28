@@ -30,13 +30,13 @@ Nothing is marked before the match reveals it. The player cycles targets with a 
 The carrier can see other players on the GPS, paid in intel from the team balance:
 - **Tap** (1 intel per tap): pings the **nearest rival** only.
 - **Hold** (1 intel per second): shows **all rivals within the radius**, live.
-- **Limited radius**, through walls. SPEC-QUESTION: the radius is a tunable; 60 studs proposed.
+- **Limited radius**, through walls: 60 studs (a tunable in GameConfig).
 - It **stops when the team cannot pay** the next second.
 - **Only players are shown**, never NPCs, and only to the carrier. SPEC-QUESTION: this tells the carrier which dots are players
   (only the ones inside the radius), which is the point of the mechanic; nothing on any character changes.
 - **The tracked or pinged rival gets a cue**: a low-opacity vignette round the screen edge and a whispering sound. It tells
   them they were seen, not by whom or where from.
-- Not decided: whether using it breaks the carrier's Cover (the answers ticked no Cover penalty; intel and the cue are the price).
+- **No Cover break**: intel and the cue are the price. Silent to everyone except the tracked rival.
 
 ## Build split (proposed)
 | Part | Owner |
@@ -51,8 +51,12 @@ Full floor plan from the start; zone tints; **teammates** plus what the team's *
 drone), for the right team only; the spec's pings (vault at Phase 3, the Package carrier every 10 s to enemies). No NPC dots and no
 rival dots, except the carrier's tracking above.
 
-## Open points (defaults chosen if not answered)
-1. Tap versus hold threshold: 0.3 s (a press shorter than that is a tap).
-2. Radius: 60 studs.
-3. Keys: M toggles the minimap (spec); one key cycles the GPS target; one key switches clean and fast; carrier tracking on its own key.
-4. How long the nearest-rival ping marker stays: 2 s.
+## Decided numbers (owner, 2026-10-28)
+1. Tap versus hold: a press shorter than **0.3 s** is a tap.
+2. Radius: **60 studs**.
+3. The nearest-rival marker stays **1 s**.
+4. Using tracking does not break Cover.
+
+## Still open (defaults used)
+Keys: M toggles the minimap (spec); one key cycles the GPS target; one key switches clean and fast; carrier tracking on its own
+key. Pick the exact keys when the controls are built.
