@@ -54,8 +54,23 @@ Sub-gadgets (docs/GADGETS_DRAFT.md, SPEC_CHANGES 16.1). Server-authoritative; th
   Disabled, and shooting the device freed it within 2.5 s; Keycard Clone opened a temporary keycard door and it closed again.
   Not tested: the lens on a camera or door, losing sight ending the lens hack, laser grids, enemy pads and Noise Makers jammed.
 
+- **17d: Recon.** Scanner Pulse (2): every enemy agent within 20 studs (any disguise, no line needed) is sent to the user alone as
+  a `TargetGlow` for 2 s; each is told "You've been scanned" (a `Notification`); no wave or source. Tripwire (2): a 0.12 stud red
+  beam across the way 3 studs ahead, wall to wall (up to 8 studs each side, 3 minimum), 1.4 studs up, for 90 s; an enemy agent
+  within 1.2 studs of it is slowed to 70% for 2 s (`DisguiseService.applySlow`) and glows (`TargetGlow`) for the owner's team for
+  3 s; NPCs, the owner and teammates pass; 3 s before the same body sets it off again; the aim button recalls the user's wires.
+  Bug Cam (2): sticks a small device to the surface the user aims at within 10 studs (`Spot.surface`); 60 s; `CoverService.onExposed`
+  tells it of every Cover break: an enemy within 40 studs, inside an 80 degree cone and in sight is tagged (`TargetGlow`) for the
+  owner's team for 4 s. The owner is sent where their cams are (`BugCamState`, to them only) and `BugCamController` (key Y)
+  looks through them one after another. All Discreet; all deployables are one-hit shootable and covered by the Jammer.
+  Tested solo in Studio: a Bug Cam was stuck and the client was told of it; a Tripwire was set 16 studs wide, and a shot destroyed
+  it; the Scanner Pulse spent its charge. Not tested (they need a rival): the pulse glow and warning, a tripwire crossing, a Bug Cam
+  tag; also the Y key view (a scripted key press is not allowed in Studio), the recall, the Jammer on the new deployables.
+
 ## Not built
-- The remaining gadgets: Recon (Scanner Pulse, Bug Cam, Tripwire), Briefcase Shield.
+- The Briefcase Shield (the last gadget).
+- While viewing a Bug Cam the body is not held still, and the view has no frame or HUD (client, Codex).
+- The "you've been scanned" warning is plain text for now (a subtler HUD cue is Codex's).
 - Long Lens on the vault terminals and on tier doors, and Keycard Clone on tier doors: tier-door hacks arrive in Step 18. The
   map has no keycard doors yet (re-layout), so Keycard Clone was tried on a temporary door.
 - The Noise Maker's sound is a stand-in sound id (`Gadgets.NoiseMaker.SoundId`) until the audio pass; the Spring Pad throw rose

@@ -195,6 +195,7 @@ local function sendCover(player: Player, state: State, now: number)
 	RemoteService.fireClient("CoverStateChanged", player, info)
 end
 
+local exposedListeners: { (Player, Vector3) -> () } = {}
 local NO_RULES: { [string]: any } = {}
 local agentRules: ((Player) -> { [string]: any })? = nil
 local rng = Random.new()
@@ -234,6 +235,11 @@ local function pingEnemies(exposed: Player, position: Vector3)
 	end
 end
 
+-- Ticket 17d: Bug Cams hear of every Cover break (listener(player, position)).
+function CoverService.onExposed(listener: (Player, Vector3) -> ())
+	table.insert(exposedListeners, listener)
+end
+
 function CoverService.expose(player: Player, reason: string, minExposedSeconds: number?)
 	local state = states[player]
 	local _, root = aliveRoot(player)
@@ -255,6 +261,9 @@ function CoverService.expose(player: Player, reason: string, minExposedSeconds: 
 	DisguiseService.expose(player)
 	pingEnemies(player, root.Position)
 	sendCover(player, state, now)
+	for _, listener in exposedListeners do
+		listener(player, root.Position)
+	end
 end
 
 function CoverService.startLockout(player: Player)

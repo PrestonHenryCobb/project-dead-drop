@@ -1,6 +1,7 @@
 --!strict
 -- Jammer (docs/GADGETS_DRAFT.md, Infiltration): a device set down ahead of the user. For Seconds, while it stands, cameras and
--- laser grids within RadiusStuds go dark, other teams' Spring Pads there stop throwing and their Noise Makers there are destroyed.
+-- laser grids within RadiusStuds go dark, other teams' Spring Pads and Tripwires there stop working and their Noise Makers and
+-- Bug Cams there are destroyed.
 -- Every CheckSeconds it holds them down for HoldSeconds more, so a Jammer that is shot (one hit) frees them at once. Discreet.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,10 +13,12 @@ local CoverService = require(script.Parent.Parent.Services.CoverService)
 local DownedService = require(script.Parent.Parent.Services.DownedService)
 local LaserService = require(script.Parent.Parent.Services.LaserService)
 local MatchService = require(script.Parent.Parent.Services.MatchService)
+local BugCam = require(script.Parent.BugCam)
 local Gadget = require(script.Parent.Gadget)
 local NoiseMaker = require(script.Parent.NoiseMaker)
 local Spot = require(script.Parent.Spot)
 local SpringPad = require(script.Parent.SpringPad)
+local Tripwire = require(script.Parent.Tripwire)
 
 local config = GameConfig.Gadgets.Jammer
 
@@ -44,7 +47,7 @@ local Jammer: Gadget.Gadget = {
 				local position = part.Position
 				CameraService.jamAt(position, config.RadiusStuds, config.HoldSeconds)
 				LaserService.jamAt(position, config.RadiusStuds, config.HoldSeconds)
-				for _, deployable in { SpringPad, NoiseMaker } do
+				for _, deployable in { SpringPad, NoiseMaker, Tripwire, BugCam } do
 					if deployable.jamAt then
 						deployable.jamAt(position, config.RadiusStuds, player, config.HoldSeconds)
 					end

@@ -369,6 +369,10 @@ export type GadgetDef = {
 	Description: string,
 }
 
+-- Ticket 17d: where a player's standing Bug Cams are and the way each faces ("BugCamState", to the owner only); the view of each
+-- is taken from its CFrame. Sent whenever one is placed or goes.
+export type BugCamStateInfo = { Cams: { CFrame } }
+
 -- Ticket 17: a player's gadgets for the HUD ("GadgetState", to the owner only). Held is 0 for the weapon, else the slot.
 export type GadgetStateInfo = {
 	Slots: { { Id: string, Charges: number } },

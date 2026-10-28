@@ -40,6 +40,9 @@ local gadgets: { [string]: Gadget.Gadget } = {
 	LongLens = require(script.Parent.Parent.Gadgets.LongLens),
 	KeycardClone = require(script.Parent.Parent.Gadgets.KeycardClone),
 	Jammer = require(script.Parent.Parent.Gadgets.Jammer),
+	ScannerPulse = require(script.Parent.Parent.Gadgets.ScannerPulse),
+	BugCam = require(script.Parent.Parent.Gadgets.BugCam),
+	Tripwire = require(script.Parent.Parent.Gadgets.Tripwire),
 }
 local kits: { [Player]: Kit } = {}
 

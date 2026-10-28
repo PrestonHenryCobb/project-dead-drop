@@ -14,6 +14,27 @@ type GadgetDef = Types.GadgetDef
 
 local defs: { GadgetDef } = {
 	{
+		Id = "ScannerPulse",
+		Name = "Scanner Pulse",
+		Category = "Recon",
+		Charges = 2,
+		Description = "Shows every enemy agent within 20 studs, disguised or not, for 2 s. They are only told they were scanned.",
+	},
+	{
+		Id = "BugCam",
+		Name = "Bug Cam",
+		Category = "Recon",
+		Charges = 2,
+		Description = "A sticky camera you can view with a key, for 60 s. Agents who break Cover in its view are tagged for your team.",
+	},
+	{
+		Id = "Tripwire",
+		Name = "Tripwire",
+		Category = "Recon",
+		Charges = 2,
+		Description = "A thin laser across a way for 90 s. An enemy agent who crosses it is shown to your team and slowed. NPCs pass.",
+	},
+	{
 		Id = "LongLens",
 		Name = "Long Lens",
 		Category = "Infiltration",

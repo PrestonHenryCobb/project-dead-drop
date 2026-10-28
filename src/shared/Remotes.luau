@@ -52,6 +52,8 @@ local Remotes = {
 		-- Ticket 9c
 		"SpectateState", -- to a spectator only: who they watch, or the drone (Types.SpectateStateInfo)
 		"SpectatorChat", -- to spectators only: a filtered chat line (Types.SpectatorChatInfo)
+		-- Ticket 17d
+		"BugCamState", -- to the owner only: where their Bug Cams are, to view them (Types.BugCamStateInfo)
 		-- Ticket auto-recover
 		"AutoRecoverState", -- to the owner only: a re-cover ring started or ended, and whether the option is on (Types.AutoRecoverInfo)
 		-- Ticket 17

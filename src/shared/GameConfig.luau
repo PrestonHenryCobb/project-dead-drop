@@ -1493,6 +1493,44 @@ local GameConfig = {
 		-- Med Injector: Heal HP over Seconds, self; it stops when damage is taken. HealHz is how often a bit is given.
 		MedInjector = { Heal = 35, Seconds = 4, HealHz = 4 },
 		-- Plate Pack: one plate onto the player, or the nearest teammate within ReachStuds who has room for one, in Seconds.
+		-- Scanner Pulse: every enemy agent within RadiusStuds, disguised or not, glows for the user alone for GlowSeconds; each
+		-- of them is told only that they have been scanned. Nothing shows where from.
+		ScannerPulse = { RadiusStuds = 20, GlowSeconds = 2 },
+		-- Tripwire: a thin beam set across the way Ahead of the user, to the walls either side (at most HalfWidthStuds each way,
+		-- at least MinLengthStuds across), Height above the floor, for Seconds. An enemy agent who crosses it (within HitStuds
+		-- of the beam) glows for the user's team for PingSeconds and walks at SlowMult for SlowSeconds; the same body sets it off
+		-- again no sooner than RetriggerSeconds. NPCs and teammates pass. One hit destroys it. The aim button recalls it.
+		Tripwire = {
+			Ahead = 3,
+			FloorProbe = { Up = 3, Down = 10 },
+			HalfWidthStuds = 8,
+			MinLengthStuds = 3,
+			Height = 1.4,
+			Thickness = 0.12,
+			Seconds = 90,
+			PingSeconds = 3,
+			SlowMult = 0.7,
+			SlowSeconds = 2,
+			HitStuds = 1.2,
+			RetriggerSeconds = 3,
+			CheckHz = 10,
+			HP = 1,
+			Color = Color3.fromRGB(255, 50, 60),
+		},
+		-- Bug Cam: stuck to the surface the user aims at within ReachStuds; for Seconds it watches a cone of FovDegrees to
+		-- RangeStuds and any enemy agent who breaks Cover in it, with a clear line, glows for the user's team for TagSeconds. The
+		-- user views it with a key (BugCam). One hit destroys it.
+		BugCam = {
+			ReachStuds = 10,
+			Seconds = 60,
+			FovDegrees = 80,
+			RangeStuds = 40,
+			TagSeconds = 4,
+			HP = 1,
+			Size = Vector3.new(0.6, 0.6, 0.6),
+			Color = Color3.fromRGB(50, 52, 58),
+			ViewOffsetStuds = 0.4, -- the view sits this far in front of the cam, clear of its body
+		},
 		-- Long Lens: aim at a hackable thing (an Intel station, a camera, a keycard door) within RangeStuds and in sight, within
 		-- AimDegrees of the crosshair, and press fire: its hack begins and goes on while it stays in sight and the user keeps
 		-- hacking, taking TimeMult times as long. The hack is measured from a point NearStuds from the target. GraceSeconds is how
@@ -1556,6 +1594,7 @@ local GameConfig = {
 
 	-- Spec 24: default keys. Rebinding comes with the settings menu.
 	Controls = {
+		BugCam = Enum.KeyCode.Y, -- view your Bug Cams, one after another
 		ToggleAutoRecover = Enum.KeyCode.H, -- turns Auto re-cover on or off (until the settings menu has it)
 		Weapon = Enum.KeyCode.One, -- ticket 17: equip the weapon; the gadgets are Gadget1 and Gadget2
 		Gadget1 = Enum.KeyCode.Two,

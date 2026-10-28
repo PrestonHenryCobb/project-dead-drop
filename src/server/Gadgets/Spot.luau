@@ -25,4 +25,19 @@ function Spot.ahead(root: BasePart, ahead: number, probeUp: number, probeDown: n
 	return if hit then hit.Position else point, facing
 end
 
+-- The surface a ray from `origin` along `aim` meets within `reach`: where, and which way it faces. Nil when it meets nothing.
+function Spot.surface(origin: Vector3, aim: Vector3, reach: number): (Vector3?, Vector3?)
+	local hit = workspace:Raycast(origin, aim * reach, floorParams)
+	if hit then
+		return hit.Position, hit.Normal
+	end
+	return nil, nil
+end
+
+-- The nearest wall (or other map solid) along `direction` from `origin`, at most `reach` away: the point, or the end of `reach`.
+function Spot.reachAlong(origin: Vector3, direction: Vector3, reach: number): Vector3
+	local hit = workspace:Raycast(origin, direction * reach, floorParams)
+	return if hit then hit.Position else origin + direction * reach
+end
+
 return Spot
