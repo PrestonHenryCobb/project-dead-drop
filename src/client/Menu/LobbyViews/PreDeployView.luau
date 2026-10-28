@@ -20,6 +20,7 @@ local GadgetCard = require(script.Parent.Parent.Parent.Combat.GadgetCard)
 local Menu = script.Parent.Parent
 local LobbyState = require(Menu:WaitForChild("LobbyState"))
 local MenuTheme = require(Menu:WaitForChild("MenuTheme"))
+local AssetDraft = require(Menu.AssetDraft)
 local RemoteController = require(Menu.Parent:WaitForChild("Controllers"):WaitForChild("RemoteController"))
 
 local config = GameConfig.Menu
@@ -343,8 +344,12 @@ local function buildRight(
 		LayoutOrder = 4,
 		Enabled = draftHardware ~= nil and state.Active and workspace:GetServerTimeNow() < state.EndsAt,
 		OnActivated = function()
-			local request: Types.LoadoutRequest =
-				{ AgentId = agentId, HardwareId = draftHardware :: string, GadgetIds = table.clone(draftGadgets or {}) }
+			local request: Types.LoadoutRequest = {
+				AgentId = agentId,
+				HardwareId = draftHardware :: string,
+				GadgetIds = table.clone(draftGadgets or {}),
+				AssetIds = AssetDraft.get(snapshot and snapshot.Loadout and snapshot.Loadout.AssetIds),
+			}
 			RemoteController.fire("RequestLockInPreDeploy", request)
 		end,
 	})

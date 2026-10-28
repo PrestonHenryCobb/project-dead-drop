@@ -32,6 +32,7 @@ local labels = {
 	AmmoCache = "Refill ammo",
 	FoodSpot = "Eat",
 	AgentTag = "Take Agent Tag", -- generic: only the server knows whether this tag belongs to a teammate
+	AssetSafe = "Open safe",
 }
 local validLabels: { [string]: boolean } = {}
 for _, label in labels do

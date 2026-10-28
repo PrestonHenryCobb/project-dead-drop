@@ -105,6 +105,7 @@ local function button(p)
 end
 MenuTheme.secondaryButton=button MenuTheme.primaryButton=button
 local navigator={snapshot=function()return snapshot end,focusAgent=function()end,onSnapshot=function(fn)snapshotListener=fn return function()snapshotListener=nil end end}
+local AssetDraft={get=function()return {"LightFeet","QuickHands","SteadyNerves","DeepPockets"}end}
 local Picker=(function()${picker}end)()
 local stage=Instance.new("Frame")Picker.Mount(stage,navigator)
 check(find("GadgetPick_MedInjector").selected and find("GadgetPick_PlatePack").selected,"Defaults initialize draft")

@@ -230,7 +230,7 @@ they differ (see MENU_CONTRACT.md "Where the handoffs were corrected").
 | 17a | Gadgets: GadgetService + GadgetController (keys 1 to 3, equip/deploy/alternate through HeldItemController), GadgetDefs, loadout GadgetIds, Med Injector, Plate Pack (and Plated's faster plates). Contract: .ai-sync/GADGET_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 16f | READY_FOR_REVIEW |
 | 17b | Gadgets, Evasion: Spring Pad (LaunchController), Noise Maker (NPC noise reaction), Disguise Kit; Gadgets/Spot. Contract: .ai-sync/GADGET_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 17a | READY_FOR_REVIEW |
 | 18e | Economy: Assets (AssetDefs, four-slot loadout, AssetService safes paid in intel, six hooks). Contract: .ai-sync/ECONOMY_CONTRACT.md; design docs/ASSETS_DESIGN.md. **Tested solo in Studio: loadout, safes, Quick Hands, loss on elimination; the other effects not.** | CLAUDE_CODE | 18d | READY_FOR_REVIEW |
-| 18e-hud | Assets UI: the Assets tab becomes a four-slot loadout (one Asset per rarity slot FieldAgent, Infiltrator, BlackOps, Ghost, four different of `AssetDefs.order`) sent as `AssetIds` in the lock-in `LoadoutRequest`; an in-match strip of the four slots from the `AssetState` remote (Found or not); safes coloured by their `Rarity` attribute and dimmed when `Opened`. Client only; read ECONOMY_CONTRACT.md and ASSETS_DESIGN.md. | CODEX | 18e | TODO |
+| 18e-hud | Four distinct rarity-slot Asset draft/value picker sent with lock-in; confirmed AssetState strip; attribute-driven safe tint/dim with actor protection. Client only. docs/ASSET_HUD_REVIEW_2026-10-28.md. | CODEX | 18e | READY_FOR_REVIEW |
 | 18d | Economy: Agent Tag drop and pickup, and Rescue as a Supply Cache item (RescueService; MatchService.reinstate; AbilityService.setCooldownFraction). Contract: .ai-sync/ECONOMY_CONTRACT.md. **Only the tag drop and the respawn steps were tested solo; pickup and the shop item need a teammate.** | CLAUDE_CODE | 18c | READY_FOR_REVIEW |
 | 18c | Economy: Supply Cache shop (SupplyService: sessions, discount, 2 s purchases that break Cover, six intel-priced items, Security Keycard use at keycard doors). Contract: .ai-sync/ECONOMY_CONTRACT.md. **Tested solo in Studio except ammo/gadget/ability items.** | CLAUDE_CODE | 18b | READY_FOR_REVIEW |
 | 18c-hud | ShopState-driven Supply Cache modal: server offers/prices/reasons/Intel, acknowledged purchase progress, buy/close/Escape, held-input safety and cache/keycard prompts. Client only. docs/SUPPLY_HUD_REVIEW_2026-10-28.md. | CODEX | 18c | READY_FOR_REVIEW |
@@ -456,3 +456,15 @@ Security 56 + Supply 50 assertions; 1,597 across fourteen checked client suites.
 Native multiplayer pickup/Rescue remains for Studio acceptance. No new SPEC-QUESTION. Files/steps/limits:
 docs/RESCUE_HUD_REVIEW_2026-10-28.md. Contract-owner note: the economy contract's old Not built list still mentions
 18c/18d despite its detailed Built sections; refresh that wording after review. No extra carried-tag state inferred.
+
+## Assets client handoff (Codex 18e-hud, 2026-10-28)
+
+READY_FOR_REVIEW: Assets tab shares a four-distinct-slot draft with lock-in (AssetIds in rarity order), displaying actual
+AssetDefs values. The match strip uses only AssetState/Found; map safes use Rarity/Opened, restore colours on removal,
+and refuse actor parts. No server changes or optimistic unlocks. 69 Assets + 2 security assertions; 1,668 across fifteen
+checked client suites. StyLua, Selene and Rojo pass; native layout/focus/network acceptance remains.
+Claude's 568dff6 adds four Tier 0 safes and reports a clean Studio rebuild; owner must save the place. PreDeployState does not echo AssetIds;
+menu choices remain labelled draft until confirmed in-match state. No new SPEC-QUESTION.
+Full files/Studio checks/limits: docs/ASSET_HUD_REVIEW_2026-10-28.md.
+Claude released the GameConfig lock after 568dff6; finalize the complete client patch. No Tier 4 keycard indicator is
+added without a KeycardState contract; Notifications are not treated as inventory.

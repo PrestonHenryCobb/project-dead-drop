@@ -111,6 +111,8 @@ events.InteractState({Kind="Use keycard",Active=true,Seconds=1})tick()check(find
 targetKind="AgentTag"events.InteractState({Kind="Use keycard",Active=false,Seconds=1})tick()check(find("Action").Text:find("Take Agent Tag",1,true)~=nil,"Generic tag pickup prompt without owner identity")
 events.InteractState({Kind="Take Agent Tag",Active=true,Seconds=1})now+=.5 tick()check(find("Action").Text=="TAKE AGENT TAG"and math.abs(find("SecurityHoldProgress").Size[1]-.5)<.0001,"Tag pickup uses server hold seconds")
 events.InteractState({Kind="Take Agent Tag",Active=false,Seconds=1})targetPart=nil tick()check(not find("SecurityAction").Visible,"Cancelled tag hold cannot imply carrying or keep a bar")targetPart={}
+targetKind="AssetSafe"tick()check(find("Action").Text:find("Open safe",1,true)~=nil,"Safe contextual prompt")
+events.InteractState({Kind="Open safe",Active=true,Seconds=3})tick()check(find("Action").Text=="OPEN SAFE","Safe progress waits for actual server hold label")
 events.InteractState({Kind="Cut power",Active=true,Seconds=3})now+=1.5 tick()check(find("Action").Text=="CUT POWER"and find("SecurityHoldProgress").Size[1]==.5,"Server acknowledgement drives hold bar")
 events.PhaseChanged("VaultBreach")tick()check(find("SecurityHoldProgress").Size[1]==.5,"Active-phase transition preserves acknowledged hold")
 events.InteractState({Kind="Cut power",Active=false,Seconds=3})tick()check(find("SecurityHoldProgress").Size[1]==0,"Server cancellation clears hold progress")

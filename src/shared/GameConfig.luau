@@ -1659,6 +1659,9 @@ local GameConfig = {
 		PlatePack = { Seconds = 1.5, ReachStuds = 4, SlackStuds = 2 },
 	},
 
+	-- Ticket 18e-hud: client-only strip geometry and opened safe dimming.
+	AssetHud = { TopPixels = 280, SlotWidthPixels = 216, SlotHeightPixels = 44, SafeDimFraction = 0.65 },
+
 	-- Ticket 18e, docs/ASSETS_DESIGN.md. A safe (tag AssetSafe) holds the rarity of the room it stands in; the first agent to finish a
 	-- SafeSeconds hold within SafeStuds takes it for the intel in SafeCost (by rarity, before Deep Pockets) and the safe is empty
 	-- for the rest of the match. DefaultPicks are the four Assets carried by a loadout that names none (rarity slots in order).
