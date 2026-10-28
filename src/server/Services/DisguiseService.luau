@@ -53,6 +53,7 @@ export type CoverHooks = {
 	canRecover: (Player) -> boolean, -- an Exposed player may put a disguise back on (spec 7.5)
 	onRecovered: (Player) -> (), -- the disguise is back on
 	canQuickChange: (Player) -> boolean, -- ticket 16a: Quick Change is allowed (not tracked, not carrying the Package)
+	canKit: (Player) -> boolean, -- ticket 17b: the Disguise Kit is allowed (not tracked, no lockout, not carrying the Package)
 }
 
 type Scan = {
@@ -463,6 +464,38 @@ end
 -- Ticket 16a (Guise's Quick Change, spec 15.1): switches to a stored look at once, ignoring the combat lockout. Refused while
 -- Security is tracking the player or they carry the Package, when no stored look differs from the one worn, or where the
 -- look's tier is below the zone. Returns false and a reason to show when refused.
+-- Ticket 17b (Disguise Kit gadget): at once, a random Guest look without scanning anyone. Refused while Security tracks the
+-- player, in combat lockout, or while carrying the Package, and where a Guest look is below the zone's tier. Returns false and a
+-- reason when refused.
+function DisguiseService.kitChange(player: Player): (boolean, string?)
+	local state = states[player]
+	local humanoid, root = aliveRoot(player)
+	if not (state and humanoid and root) or blocked(player) then
+		return false, nil
+	end
+	if not (coverHooks and coverHooks.canKit(player)) then
+		return false, "You can't change right now"
+	end
+	local target = OutfitDefs.random(Enums.Role.Guest, rng)
+	for _ = 1, 4 do
+		if target ~= state.worn then
+			break
+		end
+		target = OutfitDefs.random(Enums.Role.Guest, rng)
+	end
+	if ZoneService.tierAt(root.Position) > target.Tier then
+		return false, "You can't change into that here"
+	end
+	cancelScan(player, state)
+	state.applyId += 1
+	state.swapEndsAt = 0
+	for _, listener in swapListeners do
+		listener(player)
+	end
+	commit(player, state, target, humanoid, root)
+	return true, nil
+end
+
 function DisguiseService.quickChange(player: Player): (boolean, string?)
 	local state = states[player]
 	local humanoid, root = aliveRoot(player)

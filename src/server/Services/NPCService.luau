@@ -971,6 +971,13 @@ function NPCService.recall(npc: Npc)
 	end
 end
 
+-- Ticket 17b: a loud sound at `position`, heard `radius` studs away (Noise Maker): guards investigate, other NPCs look.
+function NPCService.noise(position: Vector3, radius: number)
+	if crowd then
+		Reactions.noise(crowd, position, os.clock(), radius)
+	end
+end
+
 function NPCService.Init() end
 
 function NPCService.Start()

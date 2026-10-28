@@ -53,6 +53,7 @@ local Remotes = {
 		"SpectateState", -- to a spectator only: who they watch, or the drone (Types.SpectateStateInfo)
 		"SpectatorChat", -- to spectators only: a filtered chat line (Types.SpectatorChatInfo)
 		-- Ticket 17
+		"Launch", -- to the player a Spring Pad throws: the velocity to take (Vector3)
 		"GadgetState", -- to the owner only: their gadgets, charges and what is held (Types.GadgetStateInfo)
 		-- Ticket 16c
 		"SparrowState", -- to Lattice only: her drone took off or ended (Types.SparrowStateInfo)

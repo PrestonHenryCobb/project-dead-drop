@@ -6,6 +6,7 @@
 export type Gadget = {
 	deploy: (player: Player, rules: { [string]: any }) -> (boolean, string?),
 	alternate: ((player: Player) -> ())?,
+	start: (() -> ())?, -- called once at boot, for a deployable's loop
 }
 
 return {}

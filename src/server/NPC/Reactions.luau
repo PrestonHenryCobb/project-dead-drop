@@ -217,6 +217,23 @@ function Reactions.gunfire(crowd: Crowd, position: Vector3, now: number, audible
 	investigate(crowd, position, now, audibleStuds)
 end
 
+-- Ticket 17b (Noise Maker): a loud sound that is not a gunshot. Guards within `radius` go to look; other NPCs that are standing
+-- or strolling within it turn to face it. Nothing panics.
+function Reactions.noise(crowd: Crowd, position: Vector3, now: number, radius: number)
+	investigate(crowd, position, now, radius)
+	for _, npc in crowd.npcs do
+		if
+			not config.Investigate.Roles[npc.role]
+			and (npc.state == "Idle" or npc.state == "Walk")
+			and not npc.decoy
+			and distance(npc, position) <= radius
+		then
+			local toward = position - npc.ground
+			npc.yaw = math.atan2(-toward.X, -toward.Z)
+		end
+	end
+end
+
 function Reactions.explosion(crowd: Crowd, position: Vector3, now: number)
 	panic(crowd, position, config.Panic.ExplosionRadius, now)
 	investigate(crowd, position, now, math.huge)

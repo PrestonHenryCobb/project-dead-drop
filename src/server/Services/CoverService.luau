@@ -534,6 +534,18 @@ function CoverService.Start()
 		onRecovered = onRecovered,
 		-- Ticket 16a (Guise's Quick Change, spec 15.1): ignores the combat lockout, but not being tracked by Security,
 		-- carrying the Package or an Exposed minimum.
+		-- Ticket 17b (Disguise Kit): not tracked by Security, not in combat lockout, not carrying the Package.
+		canKit = function(player)
+			local state = states[player]
+			if not state or state.carrying then
+				return false
+			end
+			local now = os.clock()
+			if state.cover == "Exposed" then
+				return canRecover(player, now)
+			end
+			return not isLockedOut(state, now) and now - state.lastSeenBySecurity >= config.ReCoverTrackingSeconds
+		end,
 		canQuickChange = function(player)
 			local state = states[player]
 			if not state or state.carrying then

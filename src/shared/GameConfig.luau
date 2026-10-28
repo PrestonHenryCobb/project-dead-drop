@@ -1468,6 +1468,18 @@ local GameConfig = {
 	},
 
 	-- Spec 16 and docs/GADGETS_DRAFT.md, ticket 17: each agent carries Slots sub-gadgets, used with keys 2 and 3. Charges refill at
+	-- Ticket 17-hud: category accents are UI-only, never world/tier colours.
+	GadgetHud = {
+		CardWidthPixels = 216,
+		CardHeightPixels = 60,
+		Categories = {
+			Recon = { Shape = "Circle", Color = Color3.fromHex("00CFE8") },
+			Infiltration = { Shape = "Diamond", Color = Color3.fromHex("4169E1") },
+			Evasion = { Shape = "Chevron", Color = Color3.fromHex("F476B5") },
+			Support = { Shape = "RoundedSquare", Color = Color3.fromHex("FF7F50") },
+		},
+	},
+
 	-- Supply Caches for intel (Step 18). DefaultPicks are carried until agent select can pick (a loadout without GadgetIds).
 	Gadgets = {
 		Slots = 2,
@@ -1475,6 +1487,41 @@ local GameConfig = {
 		-- Med Injector: Heal HP over Seconds, self; it stops when damage is taken. HealHz is how often a bit is given.
 		MedInjector = { Heal = 35, Seconds = 4, HealHz = 4 },
 		-- Plate Pack: one plate onto the player, or the nearest teammate within ReachStuds who has room for one, in Seconds.
+		-- Spring Pad: a flat pad set Ahead of the user; anyone (a player) who steps on it is thrown LaunchHeight studs up and
+		-- ForwardSpeed forward along the pad's facing, and is exposed. It goes after Seconds or MaxLaunches throwings, or one hit
+		-- (HP). A body is on it within Size's footprint and StepHeight above its top; the same body is thrown again no sooner
+		-- than ReLaunchSeconds. SPEC-QUESTION: it is set down, not thrown.
+		SpringPad = {
+			Size = Vector3.new(6, 0.5, 6),
+			Ahead = 4,
+			FloorProbe = { Up = 3, Down = 10 },
+			Seconds = 30,
+			MaxLaunches = 6,
+			LaunchHeight = 25,
+			ForwardSpeed = 40,
+			CheckHz = 10,
+			StepHeight = 4,
+			ReLaunchSeconds = 1.5,
+			HP = 1,
+			Color = Color3.fromRGB(120, 120, 130),
+			Material = Enum.Material.Metal,
+		},
+		-- Noise Maker: put down Ahead of the user; ArmSeconds later it sounds an alarm-like noise for Seconds that guards within
+		-- InvestigateStuds walk over to and other NPCs within it turn to look at. One hit (HP) destroys it. SPEC-QUESTION: it is
+		-- set down, not thrown, and SoundId is a stand-in sound until the audio pass (Step 20).
+		NoiseMaker = {
+			Size = Vector3.new(1, 0.6, 1),
+			Ahead = 4,
+			FloorProbe = { Up = 3, Down = 10 },
+			ArmSeconds = 3,
+			Seconds = 6,
+			InvestigateStuds = 30,
+			HP = 1,
+			Color = Color3.fromRGB(90, 90, 96),
+			SoundId = "rbxasset://sounds/electronicpingshort.wav",
+			Volume = 2,
+			RollOffMaxStuds = 120,
+		},
 		-- SlackStuds: how far the two may drift apart while it goes on.
 		PlatePack = { Seconds = 1.5, ReachStuds = 4, SlackStuds = 2 },
 	},

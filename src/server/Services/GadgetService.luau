@@ -34,6 +34,9 @@ local config = GameConfig.Gadgets
 local gadgets: { [string]: Gadget.Gadget } = {
 	MedInjector = require(script.Parent.Parent.Gadgets.MedInjector),
 	PlatePack = require(script.Parent.Parent.Gadgets.PlatePack),
+	SpringPad = require(script.Parent.Parent.Gadgets.SpringPad),
+	NoiseMaker = require(script.Parent.Parent.Gadgets.NoiseMaker),
+	DisguiseKit = require(script.Parent.Parent.Gadgets.DisguiseKit),
 }
 local kits: { [Player]: Kit } = {}
 
@@ -118,6 +121,11 @@ function GadgetService.Init() end
 
 function GadgetService.Start()
 	RemoteService.onRequest("RequestGadget", onRequest)
+	for _, gadget in gadgets do
+		if gadget.start then
+			gadget.start()
+		end
+	end
 	-- A new match: full charges, the weapon in hand.
 	MatchService.onPhaseChanged(function(phase)
 		if phase == "Insertion" then

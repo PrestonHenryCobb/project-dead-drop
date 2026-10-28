@@ -15,15 +15,11 @@ local DownedService = require(script.Parent.Parent.Services.DownedService)
 local MatchService = require(script.Parent.Parent.Services.MatchService)
 local TeamService = require(script.Parent.Parent.Services.TeamService)
 local ZoneService = require(script.Parent.Parent.Services.ZoneService)
+local Spot = require(script.Parent.Parent.Gadgets.Spot)
 local Ability = require(script.Parent.Ability)
 
 local mend = GameConfig.Agents.Suture.MendField
 local triage = GameConfig.Agents.Suture.Triage
-
--- Rays in the character group meet only the map.
-local floorParams = RaycastParams.new()
-floorParams.CollisionGroup = GameConfig.Rig.CollisionGroup
-floorParams.RespectCanCollide = true
 
 local folder: Folder? = nil
 
@@ -78,18 +74,6 @@ local function makeKit(at: Vector3): Model
 	return kit
 end
 
--- The floor spot Ahead of the player.
-local function spotAhead(root: BasePart): Vector3
-	local flat = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
-	local ahead = root.Position + (if flat.Magnitude > 1e-3 then flat.Unit else Vector3.zero) * mend.Ahead
-	local hit = workspace:Raycast(
-		ahead + Vector3.new(0, mend.FloorProbe.Up, 0),
-		Vector3.new(0, -(mend.FloorProbe.Up + mend.FloorProbe.Down), 0),
-		floorParams
-	)
-	return if hit then hit.Position else ahead
-end
-
 local function healField(owner: Player, at: Vector3, kit: Model)
 	local ownerTeam = TeamService.teamOf(owner)
 	local endsAt = os.clock() + mend.Seconds
@@ -119,7 +103,7 @@ local Suture: Ability.Ability = {
 		if ZoneService.tierAt(root.Position) >= 1 then
 			CoverService.expose(player, "MendField")
 		end
-		local at = spotAhead(root)
+		local at = Spot.ahead(root, mend.Ahead, mend.FloorProbe.Up, mend.FloorProbe.Down)
 		local kit = makeKit(at)
 		task.spawn(healField, player, at, kit)
 		return true, nil

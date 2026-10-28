@@ -29,9 +29,22 @@ Sub-gadgets (docs/GADGETS_DRAFT.md, SPEC_CHANGES 16.1). Server-authoritative; th
   deploy with no charge did nothing, Plate Pack added 25 armour after 1.5 s and not before. Not tested: Plate Pack on a teammate,
   Med Injector stopping on damage, the Cover rules in a Tier 1+ zone, the pad cycling.
 
+- **17b: Evasion.** Deployables are `Combat/Shields.adopt` parts (one hit destroys them; the owner's shots pass), with nothing on
+  them that says whose they are; `Gadgets/Spot.ahead` finds the floor point in front of the user (Suture's kit uses it too).
+  Spring Pad (2): a 6 x 6 pad 4 studs ahead; a player on it (anyone) is sent a `Launch` velocity (25 studs up under the
+  world's gravity, 40 studs/s along the pad's facing) and exposed; 30 s, 6 throws, 1.5 s between throws per body; the aim
+  button recalls the user's pads (no refund). `LaunchController` (client) takes the velocity. Noise Maker (2): 4 studs ahead,
+  3 s later a looping alarm sound for 6 s; guards within 30 studs investigate and other NPCs there turn to look
+  (`NPCService.noise`, `Reactions.noise`). Disguise Kit (1): `DisguiseService.kitChange`: at once, a random Guest look; refused
+  while tracked, in lockout (an Exposed player follows the re-cover rules) or carrying the Package. All Discreet.
+  Tested solo in Studio: pad placed and thrown me (velocity 0, 86.6, -40; rose 18.9 studs), the throw exposed me, the Disguise Kit
+  re-covered me in a new Guest look and spent its charge, the Noise Maker played its sound and a guard went to Investigate.
+  Not tested: an enemy on a pad, 6-launch expiry, recall, shooting a deployable, the kit's refusals, other NPCs turning.
+
 ## Not built
-- The other ten gadgets (17b to 17e): Evasion (Spring Pad, Noise Maker, Disguise Kit), Infiltration (Long Lens, Keycard
-  Clone, Jammer), Recon (Scanner Pulse, Bug Cam, Tripwire), Briefcase Shield.
+- The remaining gadgets: Infiltration (Long Lens, Keycard Clone, Jammer), Recon (Scanner Pulse, Bug Cam, Tripwire), Briefcase Shield.
+- The Noise Maker's sound is a stand-in sound id (`Gadgets.NoiseMaker.SoundId`) until the audio pass; the Spring Pad throw rose
+  about 19 studs, not 25 (air drag or the movement code; tune `LaunchHeight`).
 - The gadget bar HUD and picking gadgets in agent select (client, Codex): ticket 17-hud.
 - Charges refill at Supply Caches (Step 18). The loadout perks of spec 15.10 are replaced by Assets (SPEC_CHANGES), Step 18/21.
 

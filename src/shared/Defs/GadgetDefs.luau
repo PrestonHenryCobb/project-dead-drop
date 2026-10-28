@@ -14,6 +14,27 @@ type GadgetDef = Types.GadgetDef
 
 local defs: { GadgetDef } = {
 	{
+		Id = "SpringPad",
+		Name = "Spring Pad",
+		Category = "Evasion",
+		Charges = 2,
+		Description = "A flat pad that throws anyone who steps on it about 25 studs up and forward. Lasts 30 s or 6 throws. Aim recalls it.",
+	},
+	{
+		Id = "NoiseMaker",
+		Name = "Noise Maker",
+		Category = "Evasion",
+		Charges = 2,
+		Description = "After 3 s it sounds a loud alarm-like noise for 6 s. Guards within 30 studs come to look; other NPCs turn.",
+	},
+	{
+		Id = "DisguiseKit",
+		Name = "Disguise Kit",
+		Category = "Evasion",
+		Charges = 1,
+		Description = "Instantly put on a Guest disguise without scanning anyone. Not while tracked, in combat lockout, or carrying the Package.",
+	},
+	{
 		Id = "MedInjector",
 		Name = "Med Injector",
 		Category = "Support",
