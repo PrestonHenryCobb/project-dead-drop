@@ -229,6 +229,8 @@ they differ (see MENU_CONTRACT.md "Where the handoffs were corrected").
 | 16f | Agents: Feint (Double decoy NPC, Smoke and Mirrors ping offset and 0.3 s disguise). Completes the six agents. Contract: .ai-sync/ABILITY_CONTRACT.md. **Tested solo in Studio except the ping offset.** | CLAUDE_CODE | 16e | READY_FOR_REVIEW |
 | 17a | Gadgets: GadgetService + GadgetController (keys 1 to 3, equip/deploy/alternate through HeldItemController), GadgetDefs, loadout GadgetIds, Med Injector, Plate Pack (and Plated's faster plates). Contract: .ai-sync/GADGET_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 16f | READY_FOR_REVIEW |
 | 17b | Gadgets, Evasion: Spring Pad (LaunchController), Noise Maker (NPC noise reaction), Disguise Kit; Gadgets/Spot. Contract: .ai-sync/GADGET_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 17a | READY_FOR_REVIEW |
+| 18e | Economy: Assets (AssetDefs, four-slot loadout, AssetService safes paid in intel, six hooks). Contract: .ai-sync/ECONOMY_CONTRACT.md; design docs/ASSETS_DESIGN.md. **Tested solo in Studio: loadout, safes, Quick Hands, loss on elimination; the other effects not.** | CLAUDE_CODE | 18d | READY_FOR_REVIEW |
+| 18e-hud | Assets UI: the Assets tab becomes a four-slot loadout (one Asset per rarity slot FieldAgent, Infiltrator, BlackOps, Ghost, four different of `AssetDefs.order`) sent as `AssetIds` in the lock-in `LoadoutRequest`; an in-match strip of the four slots from the `AssetState` remote (Found or not); safes coloured by their `Rarity` attribute and dimmed when `Opened`. Client only; read ECONOMY_CONTRACT.md and ASSETS_DESIGN.md. | CODEX | 18e | TODO |
 | 18d | Economy: Agent Tag drop and pickup, and Rescue as a Supply Cache item (RescueService; MatchService.reinstate; AbilityService.setCooldownFraction). Contract: .ai-sync/ECONOMY_CONTRACT.md. **Only the tag drop and the respawn steps were tested solo; pickup and the shop item need a teammate.** | CLAUDE_CODE | 18c | READY_FOR_REVIEW |
 | 18c | Economy: Supply Cache shop (SupplyService: sessions, discount, 2 s purchases that break Cover, six intel-priced items, Security Keycard use at keycard doors). Contract: .ai-sync/ECONOMY_CONTRACT.md. **Tested solo in Studio except ammo/gadget/ability items.** | CLAUDE_CODE | 18b | READY_FOR_REVIEW |
 | 18c-hud | ShopState-driven Supply Cache modal: server offers/prices/reasons/Intel, acknowledged purchase progress, buy/close/Escape, held-input safety and cache/keycard prompts. Client only. docs/SUPPLY_HUD_REVIEW_2026-10-28.md. | CODEX | 18c | READY_FOR_REVIEW |
@@ -432,6 +434,8 @@ No optimistic preference, new main tab, server change or persistence. H remains 
 30 new actual-source assertions; 1,541 across thirteen checked suites. StyLua, Selene and Rojo pass; native layout/focus
 and multiplayer timing acceptance remain. No new SPEC-QUESTION. docs/AUTO_RECOVER_HUD_REVIEW_2026-10-28.md.
 
+
+
 ## Supply Cache HUD handoff (Codex 18c-hud, 2026-10-28)
 
 READY_FOR_REVIEW: SupplyHudController draws only private ShopState offers/prices/reasons/team Intel; BuySeconds drives
@@ -440,6 +444,7 @@ B/lifecycle/server close releases UI and held-item input safely. SecurityHud cov
 41 Supply assertions plus 3 security assertions; 1,585 across fourteen checked suites. StyLua, Selene and Rojo pass.
 Native layout/input/network acceptance remains; no new SPEC-QUESTION. No server changes or 18d work in this patch.
 Full files, checks and limits: docs/SUPPLY_HUD_REVIEW_2026-10-28.md.
+
 
 ## Rescue client (owner continuation, 2026-10-28)
 

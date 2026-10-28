@@ -16,6 +16,7 @@ local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local AbilityService = require(script.Parent.AbilityService)
 local AlarmService = require(script.Parent.AlarmService)
+local AssetService = require(script.Parent.AssetService)
 local CoverService = require(script.Parent.CoverService)
 local DoorService = require(script.Parent.DoorService)
 local DownedService = require(script.Parent.DownedService)
@@ -86,7 +87,8 @@ local function beginDoorHack(player: Player, targetName: string): InteractServic
 	then
 		return nil
 	end
-	local price = math.max(1, hackCost - (AbilityService.rulesOf(player).TierDoorDiscount or 0))
+	local price =
+		AssetService.discounted(player, math.max(1, hackCost - (AbilityService.rulesOf(player).TierDoorDiscount or 0))) -- Wired, then Deep Pockets
 	local function inReach(): boolean
 		local origin = ReachService.origin(player) or root.Position
 		return (door.Position - origin).Magnitude <= GameConfig.Doors.HackStuds

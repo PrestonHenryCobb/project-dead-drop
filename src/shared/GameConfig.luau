@@ -1643,6 +1643,33 @@ local GameConfig = {
 		PlatePack = { Seconds = 1.5, ReachStuds = 4, SlackStuds = 2 },
 	},
 
+	-- Ticket 18e, docs/ASSETS_DESIGN.md. A safe (tag AssetSafe) holds the rarity of the room it stands in; the first agent to finish a
+	-- SafeSeconds hold within SafeStuds takes it for the intel in SafeCost (by rarity, before Deep Pockets) and the safe is empty
+	-- for the rest of the match. DefaultPicks are the four Assets carried by a loadout that names none (rarity slots in order).
+	-- WallSlackStuds: as for the wall stations, the line of sight stops this short of the safe's nearest face.
+	Assets = {
+		DefaultPicks = { "LightFeet", "QuickHands", "SteadyNerves", "DeepPockets" },
+		SafeCost = { FieldAgent = 1, Infiltrator = 3, BlackOps = 5, Ghost = 8 },
+		SafeSeconds = 3,
+		SafeStuds = 6,
+		WallSlackStuds = 1.2,
+		-- Quick Hands: the hold kinds it speeds up (a hold takes 1 / (1 + the Asset's value) of its time). The vault terminals
+		-- are not holds and are not covered yet.
+		QuickHandsKinds = {
+			Intel = true,
+			DoorHack = true,
+			Camera = true,
+			Lockpick = true,
+			FuseBox = true,
+			CameraTerminal = true,
+			AssetSafe = true,
+		},
+		-- Duct Rat: from this rarity up, entering a vent does not break Cover.
+		QuietVentFrom = "BlackOps",
+		-- The tier of a room to the rarity of its safe; a safe above the last is Ghost.
+		RarityByTier = { [0] = "FieldAgent", [1] = "Infiltrator", [2] = "BlackOps", [3] = "Ghost" },
+	},
+
 	-- Spec 24: default keys. Rebinding comes with the settings menu.
 	Controls = {
 		BugCam = Enum.KeyCode.Y, -- view your Bug Cams, one after another

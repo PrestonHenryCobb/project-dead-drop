@@ -393,11 +393,26 @@ export type GadgetStateInfo = {
 	Held: number,
 }
 
+-- An Asset (docs/ASSETS_DESIGN.md): Values is a fraction for each rarity (-0.15 is 15 percent less, 0.4 is 40 percent more).
+export type AssetDef = {
+	Id: string,
+	Name: string,
+	Description: string,
+	Values: { [AssetRarity]: number },
+}
+
+-- Ticket 18e ("AssetState", to the owner only): the four Asset slots in rarity order, which Asset each holds, and whether it has
+-- been found yet. Sent at the start of a match and whenever one is found or lost.
+export type AssetStateInfo = {
+	Slots: { { Rarity: AssetRarity, AssetId: string, Found: boolean } },
+}
+
 -- What a player takes into a match. Cosmetics (Step 21) join this when their defs exist.
 export type PlayerLoadout = {
 	AgentId: AgentId,
 	HardwareId: string, -- must be one of AgentId's Hardware, built, and unlocked by mastery
 	GadgetIds: { string }?, -- up to Gadgets.Slots built gadgets (GadgetDefs); nil takes Gadgets.DefaultPicks
+	AssetIds: { string }?, -- four different Assets (AssetDefs), one for each rarity slot in order; nil takes Assets.DefaultPicks
 }
 
 export type AgentMastery = { Level: number, XP: number }
@@ -441,7 +456,7 @@ export type QueueInfo = { Mode: QueueMode, Available: { QueueMode } }
 export type MetaSnapshot = { Profile: MetaProfile, Loadout: PlayerLoadout?, Queue: QueueInfo }
 
 -- RequestEquipLoadout and RequestLockInPreDeploy send this; the server checks every field.
-export type LoadoutRequest = { AgentId: string, HardwareId: string, GadgetIds: { string }? }
+export type LoadoutRequest = { AgentId: string, HardwareId: string, GadgetIds: { string }?, AssetIds: { string }? }
 
 -- Agent select (META_DRAFT: the full 30 seconds, picks revisable until the cutoff, no duplicate agent on a team).
 -- Sent only to the members of one team, so no rival learns a team's agents (CLAUDE.md rule 3).

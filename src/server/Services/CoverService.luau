@@ -211,6 +211,18 @@ local function rulesOf(player: Player): { [string]: any }
 	return if lookup then lookup(player) else NO_RULES
 end
 
+-- Ticket 18e: AssetService says how much of an Asset the player has found (Light Feet, Steady Nerves).
+local assetLookup: ((Player, string) -> number)? = nil
+
+function CoverService.setAssetLookup(lookup: (Player, string) -> number)
+	assetLookup = lookup
+end
+
+local function assetValue(player: Player, assetId: string): number
+	local lookup = assetLookup
+	return if lookup then lookup(player, assetId) else 0
+end
+
 -- Enemies within ExposedPingRadius get a ping where the player was exposed (spec 7.2). Until teams exist (Step 10),
 -- every other player is an enemy. Feint's ping is shown PingOffset.Min to Max studs from where she is (ticket 16f).
 local function pingEnemies(exposed: Player, position: Vector3)
@@ -426,10 +438,11 @@ local function suspiciousRates(
 	local sprinting, crouching = DisguiseService.getMovement(player)
 	local noticed, rate = 0, 0
 	if sprinting then
+		local sprintGain = gain.Sprint * (1 + assetValue(player, "LightFeet")) -- Light Feet
 		if config.CivilianNotices.Sprint then
-			noticed += gain.Sprint
+			noticed += sprintGain
 		else
-			rate += gain.Sprint
+			rate += sprintGain
 		end
 	end
 	if zoneTier >= 1 and crouching then
@@ -468,7 +481,7 @@ local function step(player: Player, state: State, dt: number, now: number)
 
 	if state.cover ~= "Exposed" then
 		local noticedRate, guardRate = suspiciousRates(player, state, root.Position, zoneTier, clearance)
-		local jumpGain = state.pendingJumps * config.SuspicionGain.Jump
+		local jumpGain = state.pendingJumps * config.SuspicionGain.Jump * (1 + assetValue(player, "LightFeet"))
 		state.pendingJumps = 0
 		local jumpShare = if config.CivilianNotices.Jump then allShare else guardShare
 		local gain = noticedRate * dt * allShare + guardRate * dt * guardShare + jumpGain * jumpShare
@@ -476,7 +489,8 @@ local function step(player: Player, state: State, dt: number, now: number)
 			state.suspicion = math.min(state.suspicion + gain, config.SuspicionMax)
 			state.lastSuspiciousAt = now
 		elseif now - state.lastSuspiciousAt >= config.SuspicionDecayDelay then
-			state.suspicion = math.max(state.suspicion - config.SuspicionDecayPerSecond * dt, 0)
+			local drain = config.SuspicionDecayPerSecond * (1 + assetValue(player, "SteadyNerves")) -- Steady Nerves
+			state.suspicion = math.max(state.suspicion - drain * dt, 0)
 		end
 		state.cover = if state.suspicion > 0 then "Suspicious" else "Covered"
 		if state.suspicion >= config.SuspicionMax then

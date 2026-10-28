@@ -77,6 +77,16 @@ local KINDS: { Kind } = {
 		end,
 	},
 	{
+		-- Ticket 18e: a safe nobody has opened yet.
+		tag = Enums.Tag.AssetSafe,
+		kind = "AssetSafe",
+		idAttribute = "SafeId",
+		usable = function(part, from)
+			return part:GetAttribute("Opened") ~= true
+				and (part:GetClosestPointOnSurface(from) - from).Magnitude <= GameConfig.Assets.SafeStuds
+		end,
+	},
+	{
 		-- Ticket 18d: an Agent Tag; the server lets only a living teammate of the fallen agent take it.
 		tag = Enums.Tag.AgentTag,
 		kind = "AgentTag",

@@ -15,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local AssetService = require(script.Parent.AssetService)
 local CombatService = require(script.Parent.CombatService)
 local CoverService = require(script.Parent.CoverService)
 local DownedService = require(script.Parent.DownedService)
@@ -84,7 +85,7 @@ local KINDS: { Kind } = {
 			return if CombatService.isHurt(player) then nil else "Already at full health"
 		end,
 		apply = function(player)
-			CombatService.heal(player, config.FoodSpot.Heal)
+			CombatService.heal(player, config.FoodSpot.Heal * (1 + AssetService.value(player, "FieldMedic"))) -- Field Medic
 		end,
 	},
 }
@@ -125,8 +126,9 @@ local function begin(kind: Kind, player: Player, stationId: string): InteractSer
 		RemoteService.fireClient("Notification", player, reason)
 		return nil
 	end
-	if IntelService.balance(teamId) < kind.cost then
-		RemoteService.fireClient("Notification", player, `Needs {kind.cost} intel`)
+	local cost = AssetService.discounted(player, kind.cost) -- Deep Pockets
+	if IntelService.balance(teamId) < cost then
+		RemoteService.fireClient("Notification", player, `Needs {cost} intel`)
 		return nil
 	end
 	CoverService.useDiscreetly(player, kind.kind)
@@ -137,11 +139,11 @@ local function begin(kind: Kind, player: Player, stationId: string): InteractSer
 			return not DownedService.isOut(player)
 				and inReach()
 				and os.clock() >= station.takenUntil
-				and IntelService.balance(teamId) >= kind.cost
+				and IntelService.balance(teamId) >= cost
 				and kind.needs(player) == nil
 		end,
 		complete = function()
-			if kind.cost > 0 and not IntelService.spend(teamId, kind.cost) then
+			if cost > 0 and not IntelService.spend(teamId, cost) then
 				return
 			end
 			kind.apply(player)

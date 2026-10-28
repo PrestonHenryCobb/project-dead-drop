@@ -18,6 +18,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local AgentDefs = require(Shared:WaitForChild("Defs"):WaitForChild("AgentDefs"))
+local AssetDefs = require(Shared:WaitForChild("Defs"):WaitForChild("AssetDefs"))
 local GadgetDefs = require(Shared:WaitForChild("Defs"):WaitForChild("GadgetDefs"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
@@ -158,7 +159,25 @@ function MetaProgressionService.validateLoadout(player: Player, request: unknown
 		end
 		gadgetIds = picked
 	end
-	return { AgentId = agent.Id, HardwareId = hardwareId, GadgetIds = gadgetIds }, nil
+	-- Ticket 18e: the Asset loadout, if the request names one: four different Assets, one for each rarity slot in order.
+	local assetIds: { string }? = nil
+	local requestedAssets = (request :: any).AssetIds
+	if requestedAssets ~= nil then
+		if type(requestedAssets) ~= "table" or #requestedAssets ~= #AssetDefs.rarities then
+			return nil, "BadRequest"
+		end
+		local pickedAssets: { string } = {}
+		local seenAssets: { [string]: boolean } = {}
+		for _, id in requestedAssets do
+			if type(id) ~= "string" or not AssetDefs.get(id) or seenAssets[id] then
+				return nil, "AssetUnavailable"
+			end
+			seenAssets[id] = true
+			table.insert(pickedAssets, id)
+		end
+		assetIds = pickedAssets
+	end
+	return { AgentId = agent.Id, HardwareId = hardwareId, GadgetIds = gadgetIds, AssetIds = assetIds }, nil
 end
 
 function MetaProgressionService.setLoadout(player: Player, loadout: PlayerLoadout)

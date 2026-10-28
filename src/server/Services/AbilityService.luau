@@ -14,6 +14,7 @@ local AgentDefs = require(Shared:WaitForChild("Defs"):WaitForChild("AgentDefs"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local Ability = require(script.Parent.Parent.Abilities.Ability)
+local AssetService = require(script.Parent.AssetService)
 local CombatService = require(script.Parent.CombatService)
 local CoverService = require(script.Parent.CoverService)
 local DisguiseService = require(script.Parent.DisguiseService)
@@ -137,6 +138,9 @@ function AbilityService.Start()
 		local mult = if rules.HackKinds and rules.HackKinds[kind] then rules.HackMult else 1 -- Lattice's Wired
 		if label == "Revive" and rules.ReviveMult then
 			mult *= rules.ReviveMult -- Suture's Triage
+		end
+		if GameConfig.Assets.QuickHandsKinds[kind] then
+			mult /= 1 + AssetService.value(player, "QuickHands") -- the Quick Hands Asset
 		end
 		if ReachService.lensActive(player) then
 			mult *= GameConfig.Gadgets.LongLens.TimeMult -- the Long Lens hacks from afar, more slowly

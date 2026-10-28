@@ -58,7 +58,28 @@ with `IntelService.spend(teamId, amount)`. Server-authoritative; the client only
   at the nearest Insertion Point worked after an elimination. Not tested (they need a living teammate): the pickup and the carry,
   the shop item, the one-rescue limit, Overtime, the half cooldown.
 
+- **18e: Assets** (design: docs/ASSETS_DESIGN.md, all questions decided by the owner). `Defs/AssetDefs` (six Assets, values by
+  rarity as fractions), `PlayerLoadout.AssetIds` (four different ids, one per rarity slot; validated by
+  `MetaProgressionService`, error "AssetUnavailable"; `Assets.DefaultPicks` if none). `AssetService`: each `AssetSafe` gets
+  `SafeId` ("V1"..), `Rarity` (from its `Tier`; above 3 is Ghost) and `Opened`; hold kind `AssetSafe` (3 s, `Assets.SafeCost`
+  1 / 3 / 5 / 8 intel less Deep Pockets) is refused if the safe is opened, the agent already holds that rarity, or the team lacks
+  the intel; the first finisher takes it, the safe is empty for the match, and they get their loadout's Asset for the rarity.
+  Eliminated agents lose their Assets (downed keep, rescued return with none); a new match clears everything. `AssetState` (to the
+  owner: four slots {Rarity, AssetId, Found}). Hooks: Light Feet and Steady Nerves in `CoverService` (sprint and jump gain, decay;
+  `setAssetLookup`); Quick Hands divides hold times by 1 + value for `Assets.QuickHandsKinds` (`AbilityService`); Deep Pockets in
+  `AssetService.discounted` (cache shop, stations, tier doors after Wired, safes); Field Medic on Food Spots only; Duct Rat in
+  `VentService` (`setAssets`; speed-up while in a duct, and from Black Ops no Cover break on entering).
+  Client: `SecurityInteractController` outlines an unopened safe. The map has no Field Agent safe (the 12 safes are Tier 1 x4, 2 x4,
+  3 x4), so the Field Agent slot has nothing to find until a Tier 0 safe exists.
+  Tested solo in Studio: a four-Asset loadout validates and a repeat is refused; an Infiltrator safe cost 3 intel in 3 s and gave
+  Quick Hands; a Black Ops safe then took 2.5 s (Quick Hands +20%) for 5 intel and gave Light Feet; a second Infiltrator safe was
+  refused; elimination cleared all four slots; opened safes stay opened. Not tested: the Cover, price, food and vent effects
+  (Light Feet, Steady Nerves, Deep Pockets, Field Medic, Duct Rat), the Ghost safe, two agents racing for one safe.
+
 ## Not built (Step 18 to do)
+- Asset UI (client, Codex): the four-slot loadout screen, an in-match strip from `AssetState`, safe colours from `Rarity` and
+  `Opened`: ticket 18e-hud. SPEC-QUESTIONs: Field Medic does nothing for Health Stations (they heal to full); Duct Rat's "quiet"
+  is read as no Cover break from Black Ops.
 - The shop screen (a menu over `ShopState` with buy buttons calling `RequestShopBuy`): ticket 18c-hud for Codex. Until it
   exists nobody can pick an item with a button.
 - 18d: Agent Tag drop, pickup and Rescue (10 intel) at a Supply Cache.

@@ -52,6 +52,8 @@ local Remotes = {
 		-- Ticket 9c
 		"SpectateState", -- to a spectator only: who they watch, or the drone (Types.SpectateStateInfo)
 		"SpectatorChat", -- to spectators only: a filtered chat line (Types.SpectatorChatInfo)
+		-- Ticket 18e
+		"AssetState", -- to the owner only: their four Asset slots and which are found (Types.AssetStateInfo)
 		-- Ticket 18c
 		"ShopState", -- to the shopper only: the Supply Cache shop they have open (Types.ShopStateInfo)
 		-- Ticket 17d

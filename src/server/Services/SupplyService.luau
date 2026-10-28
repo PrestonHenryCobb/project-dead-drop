@@ -27,6 +27,7 @@ local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local AbilityService = require(script.Parent.AbilityService)
+local AssetService = require(script.Parent.AssetService)
 local CombatService = require(script.Parent.CombatService)
 local CoverService = require(script.Parent.CoverService)
 local DownedService = require(script.Parent.DownedService)
@@ -73,14 +74,15 @@ local function secondsOf(itemId: string): number
 	return if itemId == RESCUE then GameConfig.Downed.Rescue.CacheSeconds else config.PurchaseSeconds
 end
 
-local function priceOf(cache: Cache, base: number): number
+local function priceOf(cache: Cache, base: number, player: Player): number
 	if cache.tier == nil then
 		cache.tier = ZoneService.tierAt(cache.part.Position) -- read when first needed: the zones are made at boot
 	end
-	if (cache.tier :: number) < config.HigherTierMinTier then
-		return base
+	local price = base
+	if (cache.tier :: number) >= config.HigherTierMinTier then
+		price = math.max(1, math.floor(base * (1 - config.HigherTierDiscount) + 0.5))
 	end
-	return math.max(1, math.floor(base * (1 - config.HigherTierDiscount) + 0.5))
+	return AssetService.discounted(player, price) -- Deep Pockets
 end
 
 -- Why an item has no use for this player now, or nil if it does.
@@ -152,7 +154,7 @@ local function send(player: Player, session: Session?, open: boolean)
 			table.insert(info.Items, {
 				Id = item.Id,
 				Name = item.Name,
-				Price = priceOf(session.cache, baseOf(item)),
+				Price = priceOf(session.cache, baseOf(item), player),
 				Available = reason == nil,
 				Reason = reason or "",
 			})
@@ -212,7 +214,7 @@ local function onBuy(player: Player, itemId: unknown)
 	local price: number? = nil
 	for _, item in config.Items do
 		if item.Id == itemId then
-			price = priceOf(session.cache, baseOf(item))
+			price = priceOf(session.cache, baseOf(item), player)
 		end
 	end
 	if not price or unavailable(player, itemId) or IntelService.balance(teamId) < price then
