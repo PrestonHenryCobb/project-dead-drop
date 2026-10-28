@@ -20,6 +20,7 @@ changes); build plan in `docs/BUILD_ORDER.md`.
 | `docs/STEP8_HANDOFF.md` | Step 8's exact state: what exists, what is untested, what is left, Studio gotchas. |
 | `docs/IDEAS_2026-10-24.md` | The owner's batch of ideas sorted against the plan, every conflict, and all answers. |
 | `docs/IDEAS_2026-10-24_BRIEF.md` | The Deceive Inc. master brief sorted the same way: what we have, conflicts, and answers Q1 to Q13. |
+| `docs/PLAYTEST_PLAN.md` | The two playtest targets (alpha mid-January 2027, beta April 2027), what each must have, and the scope rules. |
 | `AGENTS.md`, `.ai-sync/` | Codex's rules, who owns which files, the lock table, and the shared task queue. |
 | `docs/AGENTS_DRAFT.md`, `GADGETS_DRAFT.md`, `META_DRAFT.md` | The six agents, the 12-gadget pool, the progression and shop design. |
 | `docs/MAP_BRIEF.md`, `MAP_BRIEF_REPLAN.md`, `docs/plans/` | The map brief, the re-plan with every review fix, and floor plans (`node tools/map-plan.js`). |
