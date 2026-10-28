@@ -25,6 +25,7 @@ local Menu = script.Parent.Parent:WaitForChild("Menu")
 local LobbyState = require(Menu:WaitForChild("LobbyState"))
 local MenuStage = require(Menu:WaitForChild("MenuStage"))
 local MenuTheme = require(Menu:WaitForChild("MenuTheme"))
+local SettingsPanel = require(Menu.Components.SettingsPanel)
 
 type MenuTab = Types.MenuTab
 type MenuView = Types.MenuView
@@ -174,6 +175,10 @@ local function navigateTo(tab: MenuTab, context: { [string]: any }?)
 end
 
 local function back()
+	if SettingsPanel.isOpen() then
+		SettingsPanel.close()
+		return
+	end
 	if inPreDeploy then
 		return
 	end
@@ -184,7 +189,7 @@ local function back()
 end
 
 local function cycleTab(step: number)
-	if inPreDeploy then
+	if inPreDeploy or SettingsPanel.isOpen() then
 		return
 	end
 	local index = 1
@@ -437,9 +442,20 @@ local function buildFooter(parent: Frame)
 		Style = "Kicker",
 		Parent = bar,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -config.PaddingPixels * 2, 0, 0),
-		Size = UDim2.new(0.3, 0, 1, 0),
+		Position = UDim2.new(1, -config.PaddingPixels * 2 - config.TabWidthPixels - config.GapPixels, 0, 0),
+		Size = UDim2.new(0.15, 0, 1, 0),
 		Alignment = Enum.TextXAlignment.Right,
+	})
+	MenuTheme.secondaryButton({
+		Name = "OpenSettings",
+		Text = "SETTINGS",
+		Parent = bar,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -config.PaddingPixels * 2, 0.5, 0),
+		Size = UDim2.new(0, config.TabWidthPixels, 1, -config.GapPixels),
+		OnActivated = function()
+			SettingsPanel.open(parent)
+		end,
 	})
 end
 
@@ -515,6 +531,7 @@ local function close()
 		return
 	end
 	open = false
+	SettingsPanel.close()
 	unmountCurrent()
 	if stage then
 		stage:destroy()

@@ -20,6 +20,7 @@ local HudLayout = require(script.Parent.Parent.Combat.HudLayout)
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local RemoteController = require(script.Parent.RemoteController)
 local CoverBreakFx = require(script.Parent.Parent.Combat.CoverBreakFx)
+local AutoRecoverController = require(script.Parent.AutoRecoverController)
 
 type Ping = { position: Vector3, expires: number, label: TextLabel }
 
@@ -41,6 +42,7 @@ local coverRoot: Frame? = nil
 local alive = true
 local stateLabel: TextLabel? = nil
 local meterFill: Frame? = nil
+local autoRecoverFill: Frame? = nil
 local warning: TextLabel? = nil
 local prompt: TextLabel? = nil
 local exposedText: TextLabel? = nil
@@ -144,6 +146,14 @@ local function build()
 	fill.BorderSizePixel = 0
 	fill.Parent = meterBack
 	meterFill = fill
+	local recovering = Instance.new("Frame")
+	recovering.Name = "AutoRecoverProgress"
+	recovering.Size = UDim2.fromScale(0, 1)
+	recovering.BackgroundColor3 = graphics.AccentColor
+	recovering.BorderSizePixel = 0
+	recovering.Visible = false
+	recovering.Parent = meterBack
+	autoRecoverFill = recovering
 	stateLabel = HudKit.text(
 		coverPanel,
 		"State",
@@ -205,18 +215,35 @@ local function build()
 	exposedText = bigText
 end
 
+local function updateAutoRecover(now: number): boolean
+	local info, arrivedAt = AutoRecoverController.state()
+	local active = info ~= nil and info.Active
+	if meterFill then
+		meterFill.Visible = not active
+	end
+	if autoRecoverFill then
+		autoRecoverFill.Visible = active
+		if info and active then
+			local progress = if info.Seconds > 0 then math.clamp((now - arrivedAt) / info.Seconds, 0, 1) else 1
+			autoRecoverFill.Size = UDim2.fromScale(progress, 1)
+		end
+	end
+	return active
+end
+
 local function refreshText(now: number)
 	local fill, label, debugPanel, warn, hint = meterFill, stateLabel, panel, warning, prompt
 	if not (fill and label and debugPanel and warn and hint) then
 		return
 	end
 	local color = ui.CoverColors[coverState]
+	local recovering = updateAutoRecover(now)
 	if coverRoot then
 		coverRoot.Visible = alive
 	end
 	fill.BackgroundColor3 = color
 	fill.Size = UDim2.fromScale(math.clamp(suspicion.Value / cover.SuspicionMax, 0, 1), 1)
-	label.Text = string.upper(coverState)
+	label.Text = if recovering then "RE-COVERING" else string.upper(coverState)
 	label.TextColor3 = graphics.TextColor
 	if alarmLabel then
 		alarmLabel.Text = `ALARM {alarm}`

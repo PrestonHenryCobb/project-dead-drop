@@ -231,7 +231,7 @@ they differ (see MENU_CONTRACT.md "Where the handoffs were corrected").
 | 17b | Gadgets, Evasion: Spring Pad (LaunchController), Noise Maker (NPC noise reaction), Disguise Kit; Gadgets/Spot. Contract: .ai-sync/GADGET_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 17a | READY_FOR_REVIEW |
 | 17c | Gadgets, Infiltration: Long Lens (hack from afar via ReachService), Keycard Clone, Jammer; Deploy carries the aim; InteractService.start. Contract: .ai-sync/GADGET_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 17b | READY_FOR_REVIEW |
 | auto-recover | Auto re-cover: an Exposed player allowed to re-cover starts a 1.5 s ring and the disguise goes back on by itself; Disguise (G) still does it at once; H toggles the option (on by default). Contract: .ai-sync/AUTO_RECOVER_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 17b | READY_FOR_REVIEW |
-| auto-recover-hud | Show the re-cover ring from `AutoRecoverController.state()` near the cover indicator (Active, Seconds; progress from the time it arrived), and put the Auto re-cover toggle in the settings menu (send `RequestAutoRecover`). Client only. | CODEX | auto-recover | IN_PROGRESS (CODEX) |
+| auto-recover-hud | Cover-meter re-cover progress from confirmed Active/Seconds/receipt time; footer Settings modal with confirmed Enabled toggle sending RequestAutoRecover(boolean). Client only. docs/AUTO_RECOVER_HUD_REVIEW_2026-10-28.md. | CODEX | auto-recover | READY_FOR_REVIEW |
 | 17-hud | Confirmed gadget bar with category shapes/accents, keys, charges and held state; distinct capped gadget draft in agent select sent as GadgetIds with lock-in/revisions. Client only; no server changes. docs/GADGET_HUD_REVIEW_2026-10-28.md. | CODEX | 17a | READY_FOR_REVIEW |
 | 16-hud | Ability cooldown HUD (name, ready/countdown from `AbilityController.cooldown()`) and every disguise slot, including empty entries. Server-time deadline, static Reduce Motion-safe presentation and one/two-slot layout checks. Client only. | CODEX | 16a | READY_FOR_REVIEW |
 | 15 | Security NPC combat (spec 18.5): GuardService (engage rules, pursuit, accuracy falloff, chase limit, recall), camera alert to the 2 nearest guards, Alert speed 14, Heightened extra guards, Lockdown engagement. Contract: .ai-sync/GUARD_CONTRACT.md. **Tested solo in Studio: engage, shots with falloff, give-up, Alert speed, Heightened extras.** | CLAUDE_CODE | 14 | READY_FOR_REVIEW |
@@ -415,3 +415,12 @@ and sends GadgetIds with existing lock-in requests, including empty lists and re
 Integration: camera pages use R1 (PC F6), preserving DPadRight gadget cycling. PreDeployState has no GadgetIds echo:
 the picker does not claim confirmation; optional private accepted-list echo is a future Claude handoff, not added here.
 No new SPEC-QUESTION. Full files/checks/limits: docs/GADGET_HUD_REVIEW_2026-10-28.md.
+
+## Auto re-cover HUD handoff (Codex, 2026-10-28)
+
+READY_FOR_REVIEW: CoverController shows functional re-cover progress only while confirmed Active, using Seconds and
+AutoRecoverController's receipt time. No guessed timing/local completion; normal suspicion meter returns on server end.
+SettingsPanel opens from the menu footer, shows confirmed Enabled/default on, and sends RequestAutoRecover(boolean).
+No optimistic preference, new main tab, server change or persistence. H remains the in-match shortcut.
+30 new actual-source assertions; 1,541 across thirteen checked suites. StyLua, Selene and Rojo pass; native layout/focus
+and multiplayer timing acceptance remain. No new SPEC-QUESTION. docs/AUTO_RECOVER_HUD_REVIEW_2026-10-28.md.
