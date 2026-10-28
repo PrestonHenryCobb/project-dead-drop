@@ -20,7 +20,9 @@
 --
 --   DoorService.seal(seconds)      Lockdown: keycard doors shut and refuse to open for this long
 --   DoorService.keycardDoor(id) -> BasePart?   the keycard door with that SecurityId, if it is shut and not sealed
---   DoorService.openKeycardDoor(id, seconds)   opens it and keeps it open that long
+--   DoorService.clearanceDoor(id) -> (BasePart?, number?)   a shut clearance door (SecurityId "D1", ...) and its intel HackCost
+--   DoorService.shutDoor(id) -> BasePart?   any shut keycard or clearance door (a keycard door is not shut while sealed)
+--   DoorService.openDoor(id, seconds)   opens a keycard or clearance door by its SecurityId and keeps it open that long
 --   DoorService.holdNear(position, clearance, opensKeycardDoors)
 --     keeps open the doors close to the position that this clearance opens (NPCs open keycard doors too, players do not)
 
@@ -53,6 +55,7 @@ local doors: { Door } = {}
 local byId: { [string]: Door } = {}
 local sealedUntil = 0
 local nextKeycardId = 0
+local nextTierId = 0
 
 local function setOpen(door: Door, open: boolean)
 	door.open = open
@@ -79,6 +82,11 @@ local function addDoor(instance: Instance, tagName: string)
 	if keycard then
 		nextKeycardId += 1
 		local id = `K{nextKeycardId}`
+		instance:SetAttribute("SecurityId", id)
+		byId[id] = door
+	elseif door.tier then
+		nextTierId += 1
+		local id = `D{nextTierId}` -- ticket 18a: a clearance door can be hacked open with intel
 		instance:SetAttribute("SecurityId", id)
 		byId[id] = door
 	end
@@ -212,13 +220,33 @@ end
 
 function DoorService.keycardDoor(id: string): BasePart?
 	local door = byId[id]
-	if door and not door.open and os.clock() >= sealedUntil then
+	if door and door.keycard and not door.open and os.clock() >= sealedUntil then
 		return door.part
 	end
 	return nil
 end
 
-function DoorService.openKeycardDoor(id: string, seconds: number)
+-- Ticket 18a: any shut door with that SecurityId, keycard or clearance (the Keycard Clone opens either free).
+function DoorService.shutDoor(id: string): BasePart?
+	local door = byId[id]
+	if door and not door.open and not (door.keycard and os.clock() < sealedUntil) then
+		return door.part
+	end
+	return nil
+end
+
+-- Ticket 18a: the clearance door with that SecurityId if it is shut, and what hacking it costs in intel (its HackCost attribute).
+function DoorService.clearanceDoor(id: string): (BasePart?, number?)
+	local door = byId[id]
+	if door and door.tier and not door.open then
+		local cost = door.part:GetAttribute("HackCost")
+		return door.part, if type(cost) == "number" then cost else nil
+	end
+	return nil, nil
+end
+
+-- Opens a keycard or clearance door by its SecurityId and keeps it open that long.
+function DoorService.openDoor(id: string, seconds: number)
 	local door = byId[id]
 	if door then
 		local now = os.clock()

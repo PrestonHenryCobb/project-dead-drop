@@ -1,7 +1,7 @@
 --!strict
--- Keycard Clone (docs/GADGETS_DRAFT.md, Infiltration): opens the nearest closed keycard door within ReachStuds that the user can
--- see, for the door's usual open time, and does not break Cover unless a Security NPC or camera sees it (Discreet). Opening a tier
--- door with no intel cost joins it when tier doors can be hacked (Step 18).
+-- Keycard Clone (docs/GADGETS_DRAFT.md, Infiltration): opens the nearest closed keycard door or tier door within ReachStuds that
+-- the user can see, for the door's usual open time, with no intel cost, and does not break Cover unless a Security NPC or camera
+-- sees it (Discreet). Going through a tier door above their disguise is still a trespass.
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -30,22 +30,25 @@ local KeycardClone: Gadget.Gadget = {
 		end
 		local best: string? = nil
 		local bestDistance = config.ReachStuds
-		for _, instance in CollectionService:GetTagged(Enums.Tag.KeycardDoor) do
-			local id = instance:GetAttribute("SecurityId")
-			if instance:IsA("BasePart") and type(id) == "string" and DoorService.keycardDoor(id) then
-				local offset = instance.Position - head.Position
-				if offset.Magnitude <= bestDistance then
-					local hit = workspace:Raycast(head.Position, offset, sight)
-					if hit == nil or hit.Instance == instance or hit.Instance.Parent == instance.Parent then
-						best, bestDistance = id, offset.Magnitude
+		-- A keycard door, or a tier door (which then costs no intel, ticket 18a).
+		for _, tag in { Enums.Tag.KeycardDoor, Enums.Tag.ClearanceDoor } do
+			for _, instance in CollectionService:GetTagged(tag) do
+				local id = instance:GetAttribute("SecurityId")
+				if instance:IsA("BasePart") and type(id) == "string" and DoorService.shutDoor(id) then
+					local offset = instance.Position - head.Position
+					if offset.Magnitude <= bestDistance then
+						local hit = workspace:Raycast(head.Position, offset, sight)
+						if hit == nil or hit.Instance == instance or hit.Instance.Parent == instance.Parent then
+							best, bestDistance = id, offset.Magnitude
+						end
 					end
 				end
 			end
 		end
 		if not best then
-			return false, "No keycard door in reach"
+			return false, "No door in reach"
 		end
-		DoorService.openKeycardDoor(best, GameConfig.Security.KeycardDoor.OpenSeconds)
+		DoorService.openDoor(best, GameConfig.Security.KeycardDoor.OpenSeconds)
 		CoverService.useDiscreetly(player, "KeycardClone")
 		return true, nil
 	end,

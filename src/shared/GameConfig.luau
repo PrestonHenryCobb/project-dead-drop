@@ -301,6 +301,11 @@ local GameConfig = {
 			Tier4ElevatorArrival = 8, -- the Sanctum elevator's arrival
 			PackageDoor = 10, -- the Package room's front door (the back door takes the keycard only)
 		},
+		-- Ticket 18a (SPEC_CHANGES): hack a shut tier door open with intel. SPEC-QUESTION: the time, the reach and how long it stays
+		-- open are not specified; 3 s, 8 studs and 4 s (as a lockpicked keycard door) are used.
+		HackSeconds = 3,
+		HackStuds = 8,
+		HackOpenSeconds = 4,
 		-- The Tier 4 keycard (single use) is printed at one of the printer spots; none is marked.
 		KeycardPrinter = { Cost = 10, Seconds = 20, ActiveSpots = 1 },
 		Elevators = { MinTier = 1 }, -- Staff and above ride the glass elevators free; a Guest must hack the door or tailgate
@@ -1392,7 +1397,15 @@ local GameConfig = {
 		-- for her team for TagSeconds. Her body stands still and cannot fire, and damage to it ends the flight.
 		Lattice = {
 			HackMult = 0.75,
-			HackKinds = { Intel = true, Camera = true, FuseBox = true, CameraTerminal = true, Lockpick = true },
+			HackKinds = {
+				Intel = true,
+				Camera = true,
+				FuseBox = true,
+				CameraTerminal = true,
+				Lockpick = true,
+				DoorHack = true,
+			},
+			TierDoorDiscount = 1, -- Wired: a tier door costs 1 less intel, never below 1
 			SparrowDrone = {
 				Seconds = 15,
 				HP = 40,
@@ -1549,8 +1562,8 @@ local GameConfig = {
 		-- Long Lens: aim at a hackable thing (an Intel station, a camera, a keycard door) within RangeStuds and in sight, within
 		-- AimDegrees of the crosshair, and press fire: its hack begins and goes on while it stays in sight and the user keeps
 		-- hacking, taking TimeMult times as long. The hack is measured from a point NearStuds from the target. GraceSeconds is how
-		-- long the lens waits for the hold to show it has begun. Doors that cost intel (Step 18) and the vault terminals are not
-		-- reachable through it yet.
+		-- long the lens waits for the hold to show it has begun. Tier doors (for their intel) are reachable through it; the vault
+		-- terminals are not yet.
 		LongLens = { RangeStuds = 30, AimDegrees = 4, TimeMult = 1.5, NearStuds = 2, GraceSeconds = 0.4 },
 		-- Keycard Clone: opens the nearest closed keycard door within ReachStuds, in sight, for the door's usual open time.
 		KeycardClone = { ReachStuds = 8 },

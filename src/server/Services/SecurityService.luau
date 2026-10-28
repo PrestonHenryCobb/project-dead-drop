@@ -14,14 +14,19 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local AbilityService = require(script.Parent.AbilityService)
 local AlarmService = require(script.Parent.AlarmService)
 local CoverService = require(script.Parent.CoverService)
 local DoorService = require(script.Parent.DoorService)
 local DownedService = require(script.Parent.DownedService)
+local DroneService = require(script.Parent.DroneService)
 local GuardService = require(script.Parent.GuardService)
 local InteractService = require(script.Parent.InteractService)
+local IntelService = require(script.Parent.IntelService)
 local MatchService = require(script.Parent.MatchService)
 local ReachService = require(script.Parent.ReachService)
+local RemoteService = require(script.Parent.RemoteService)
+local TeamService = require(script.Parent.TeamService)
 
 local SecurityService = {}
 
@@ -51,7 +56,59 @@ local function beginLockpick(player: Player, targetName: string): InteractServic
 		end,
 		complete = function()
 			CoverService.expose(player, "Lockpick")
-			DoorService.openKeycardDoor(targetName, settings.OpenSeconds)
+			DoorService.openDoor(targetName, settings.OpenSeconds)
+		end,
+	}
+end
+
+-- Ticket 18a (SPEC_CHANGES, tier doors): hold Interact (kind "DoorHack") on a shut tier door to hack it open, which costs the
+-- team HackCost intel (taken when the hack is done): Staff 3, Security 6, Executive 8 and more for the special doors. Lattice's
+-- Wired takes TierDoorDiscount off (never below 1). The door then stays open Doors.HackOpenSeconds. It is as suspicious as any
+-- hack if witnessed; a drone or the Long Lens may do it from afar (ReachService).
+local function beginDoorHack(player: Player, targetName: string): InteractService.Interaction?
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local door, hackCost = DoorService.clearanceDoor(targetName)
+	local teamId = TeamService.teamOf(player)
+	if
+		not (door and hackCost and teamId and root and root:IsA("BasePart"))
+		or not MatchService.isInMatch()
+		or DownedService.isOut(player)
+	then
+		return nil
+	end
+	local price = math.max(1, hackCost - (AbilityService.rulesOf(player).TierDoorDiscount or 0))
+	local function inReach(): boolean
+		local origin = ReachService.origin(player) or root.Position
+		return (door.Position - origin).Magnitude <= GameConfig.Doors.HackStuds
+	end
+	if not inReach() then
+		return nil
+	end
+	if IntelService.balance(teamId) < price then
+		RemoteService.fireClient("Notification", player, `Needs {price} intel`)
+		return nil
+	end
+	local flying = DroneService.position(player) ~= nil
+	if not flying then
+		CoverService.noteHacking(player)
+	end
+	return {
+		label = "Hack door",
+		seconds = GameConfig.Doors.HackSeconds,
+		stillValid = function()
+			if not flying then
+				CoverService.noteHacking(player)
+			end
+			return not DownedService.isOut(player)
+				and inReach()
+				and DoorService.clearanceDoor(targetName) ~= nil
+				and IntelService.balance(teamId) >= price
+		end,
+		complete = function()
+			if IntelService.spend(teamId, price) then
+				DoorService.openDoor(targetName, GameConfig.Doors.HackOpenSeconds)
+			end
 		end,
 	}
 end
@@ -72,6 +129,7 @@ function SecurityService.Start()
 		end
 	end)
 	InteractService.register("Lockpick", beginLockpick)
+	InteractService.register("DoorHack", beginDoorHack)
 end
 
 return SecurityService

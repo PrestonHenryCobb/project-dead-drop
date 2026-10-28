@@ -75,6 +75,16 @@ local KINDS: { Kind } = {
 				and (part.Position - from).Magnitude <= security.KeycardDoor.InteractStuds
 		end,
 	},
+	{
+		-- Ticket 18a: a tier door shut in your face can be hacked open with the team's intel.
+		tag = Enums.Tag.ClearanceDoor,
+		kind = "DoorHack",
+		usable = function(part, from)
+			return part:GetAttribute("Open") == false
+				and type(part:GetAttribute("HackCost")) == "number"
+				and (part.Position - from).Magnitude <= GameConfig.Doors.HackStuds
+		end,
+	},
 }
 
 local objects: { [BasePart]: Kind } = {}

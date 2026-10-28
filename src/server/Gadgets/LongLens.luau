@@ -23,6 +23,7 @@ local TARGETS = {
 	{ tag = Enums.Tag.IntelSpawn, kind = "Intel", attribute = "IntelId" },
 	{ tag = Enums.Tag.SecurityCamera, kind = "Camera", attribute = "SecurityId" },
 	{ tag = Enums.Tag.KeycardDoor, kind = "Lockpick", attribute = "SecurityId" },
+	{ tag = Enums.Tag.ClearanceDoor, kind = "DoorHack", attribute = "SecurityId" }, -- a tier door, for its intel cost (18a)
 }
 
 -- Rays in the character group meet only the map.
