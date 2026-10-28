@@ -13,7 +13,7 @@ Enum.UserInputState={Begin=1} Enum.ContextActionResult={Pass=0,Sink=1}
 local now=100
 local os={clock=function()return now end}
 local originalNew=Instance.new
-Instance.new=function(class)local v=originalNew(class)v.Enabled=true v.Activated=signal()return v end
+Instance.new=function(class)local v=originalNew(class)v.Enabled=true v.Activated=signal() v.props={} v.attrs={} function v:GetPropertyChangedSignal(n)self.props[n]=self.props[n] or signal();return self.props[n]end function v:GetAttributeChangedSignal(n)self.attrs[n]=self.attrs[n] or signal();return self.attrs[n]end return v end
 theme.MarginPixels=24
 local character=Instance.new("Model")
 local playerRoot=Instance.new("BasePart")playerRoot.Name="HumanoidRootPart"playerRoot.Position=Vector3.new(0,3,0)playerRoot.Parent=character
@@ -37,7 +37,8 @@ local script={Destroying=signal()}
 local RouteMap=Map
 local CarrierTrack={marks=function()return {},0 end}
 local hidden=false
-local RouteArrows={new=function()return {hide=function()hidden=true end,update=function()hidden=false end,Destroy=function()end}end}
+local arrowRoute=nil
+local RouteArrows={new=function()return {hide=function()hidden=true end,update=function(route)hidden=false;arrowRoute=route end,Destroy=function()end}end}
 for _,key in {"MapKey","TargetKey","ModeKey","FloorUpKey","FloorDownKey","MapPad","TargetPad","ModePad"} do config[key]={Name=key} end
 local Controller=(function()
 @CONTROLLER_SOURCE@
@@ -53,14 +54,23 @@ tick()tick()check(#pending==1,"only one outstanding request")
 flush()tick()
 check(#calls==1 and calls[1][1]=="RequestRoute","existing remote used")
 check(find("RoutePanel").Visible,"route panel appears in match")
+check(arrowRoute==route and string.find(find("RouteMode").Text,"Clean unavailable",1,true)==nil and string.find(find("RouteMode").Text,"CLEAN unavailable",1,true)~=nil,"Guest draws labelled Fast fallback without J")
+check(string.find(find("RouteSummary").Text,"SHOWN · FAST (fallback)",1,true)~=nil,"summary describes drawn fallback")
 check(string.find(find("NextRouteTarget").Text,"Vault terminal",1,true)~=nil,"server-selected target named")
 press("RouteSwitchMode")tick()
 check(string.find(find("StepDescriptions").Text,"breaks Cover",1,true)~=nil,"fast flags rendered")
+local oldRoom=find("Room")
+reply=table.clone(result) reply.Fast=table.clone(route) reply.Fast.Points=table.clone(route.Points) reply.Fast.Steps=table.clone(route.Steps)
+for _=1,6 do tick()end flush()tick()
+check(find("Room")==oldRoom,"identical route reply does not rebuild rooms")
+zoneG.attrs.Tier:fire()tick()
+check(find("Room")~=oldRoom,"zone attribute change invalidates map")
+local cycleCalls=#calls
 press("RouteNextTarget")tick()
 check(string.find(find("NextRouteTarget").Text,"A < B",1,true)~=nil,"target name literal")
-check(#calls==1,"cycling respects cadence")
+check(#calls==cycleCalls,"cycling respects cadence")
 reply={Targets=result.Targets,Selected="Mate:42",Intel=2,Clean=nil,Fast=nil}
-for _=1,6 do tick()end flush()tick()
+for _=1,10 do tick(); flush() end tick()
 check(calls[#calls][2]=="Mate:42","exact server target id sent")
 press("RouteToggleMap")tick()check(not find("RoutePanel").Visible,"M hides map")
 press("RouteToggleMap")tick()check(find("RoutePanel").Visible,"M restores map")
@@ -82,7 +92,7 @@ local RaycastParams={new=function()return {}end}
 local CFrame={lookAt=function(...)return {...}end}
 local workspace={}
 local ground=Instance.new("BasePart")ground.Parent=workspace
-workspace.Raycast=function(_,from)return {Position=Vector3.new(from.X,0,from.Z),Instance=ground}end
+workspace.Raycast=function(_,from,_,params)check(params.CollisionGroup=="Characters" and params.RespectCanCollide,"arrow ray preserves rig collision filtering")return {Position=Vector3.new(from.X,0,from.Z),Instance=ground}end
 -- Reload the actual module so its world dependencies resolve to these local fixtures.
 local WorldArrows=(function()
 @ARROW_SOURCE@
@@ -109,6 +119,7 @@ local checks=0
 local function check(value,reason)assert(value,reason)checks+=1 end
 local vec={}
 vec.__index=function(v,k)if k=="Magnitude" then return math.sqrt(v.X*v.X+v.Y*v.Y+(v.Z or 0)^2)end return vec[k]end
+vec.__eq=function(a,b)return a.X==b.X and a.Y==b.Y and a.Z==b.Z end
 vec.__add=function(a,b)return setmetatable({X=a.X+b.X,Y=a.Y+b.Y,Z=(a.Z or 0)+(b.Z or 0)},vec)end
 vec.__sub=function(a,b)return setmetatable({X=a.X-b.X,Y=a.Y-b.Y,Z=(a.Z or 0)-(b.Z or 0)},vec)end
 vec.__mul=function(a,b)if type(a)=="number" then a,b=b,a end return setmetatable({X=a.X*b,Y=a.Y*b,Z=(a.Z or 0)*b},vec)end
@@ -120,7 +131,7 @@ local Vector2={new=function(x,y)return setmetatable({X=x,Y=y},vec)end,zero={X=0,
 local UDim2={new=function(...)return {...}end,fromOffset=function(...)return {...}end,fromScale=function(...)return {...}end}
 local Color3={fromRGB=function(...)return {...}end}
 local Enum={KeyCode={M=1,N=2,J=3,PageUp=4,PageDown=5,ButtonSelect=6,ButtonL1=7,ButtonR1=8}}
-local GameConfig={UI={GraphicHud={DirectionEpsilonStuds=.001},WarningColor={}},Zones={TierColors={[0]={}}}}
+local GameConfig={Rig={CollisionGroup="Characters"},UI={GraphicHud={DirectionEpsilonStuds=.001},WarningColor={}},Zones={TierColors={[0]={}}}}
 local settings={
 `+configSource.slice(start,end)+String.raw`
 }
@@ -158,6 +169,21 @@ state.cycle()check(state.selected()=="Terminal@1,2","rapid cycling uses retained
 local beforeReset=state.revision()state.clear()
 check(not state.apply(result,beforeReset) and state.result()==nil,"phase/lifecycle reset rejects outstanding reply")
 check(state.apply(nil,state.revision()) and state.result()==nil,"refused request clears stale routes")
+local actual,fallback=Presentation.effective(result,"Clean")
+check(actual=="Fast" and fallback==route,"Clean preference falls back to Fast")
+local actualClean,clean=Presentation.effective({Clean=route,Fast=nil},"Fast")
+check(actualClean=="Clean" and clean==route,"Fast preference falls back to Clean")
+local neither,missing=Presentation.effective({Clean=nil,Fast=nil},"Clean")
+check(neither=="Clean" and missing==nil,"no route remains empty")
+local cloneRoute=table.clone(route)cloneRoute.Points={}cloneRoute.Steps={}
+for i,p in route.Points do cloneRoute.Points[i]=Vector3.new(p.X,p.Y,p.Z)end
+for i,step in route.Steps do cloneRoute.Steps[i]=table.clone(step)end
+local clone=table.clone(result)clone.Fast=cloneRoute clone.Intel=999
+check(Presentation.sameMap(result,clone),"equal reply values and changed balance keep geometry")
+cloneRoute.Steps[1].Intel=7
+check(not Presentation.sameMap(result,clone),"flag changes invalidate geometry")
+cloneRoute.Steps[1].Intel=nil cloneRoute.Points[1]=Vector3.new(1,0,0)
+check(not Presentation.sameMap(result,clone),"point movement invalidates geometry")
 local points=Arrows.samples(route,Vector3.new(0,3,0),"G",floorAt)
 check(#points>0 and #points<=config.ArrowMax,"bounded arrow samples")
 for _,sample in points do check(floorAt(sample.Point.Y)=="G","no other-floor arrows") check(sample.Direction.X>0,"arrow direction follows route")end
@@ -192,6 +218,15 @@ check(count("You")==0 and count("Destination")==1,"browse floor filters player a
 check(count("StepFlag")==2,"hack and Cover flags on destination floor")
 renderer.draw({zone(10)},"G",floorAt,result,"Clean",Vector3.new(0,3,0))
 check(count("StepFlag")==0 and count("FastRoute")==1,"alternate route visible without claiming selected flags")
+local longPoints={}
+for i=0,300 do table.insert(longPoints,Vector3.new(i,0,0))end
+check(#Map.segments(longPoints,"G",floorAt)==1,"301 collinear points merge to one segment")
+local bend={Vector3.new(0,0,0),Vector3.new(10,0,0),Vector3.new(10,0,10),Vector3.new(0,0,10)}
+check(#Map.segments(bend,"G",floorAt)==3,"corners stay distinct")
+check(#Map.segments({Vector3.new(0,0,0),Vector3.new(10,0,0),Vector3.new(0,0,0)},"G",floorAt)==2,"backtracking never merges")
+local longRoute=table.clone(route)longRoute.Points=longPoints longRoute.Steps={{Index=151,Kind="Hack",Intel=3,CoverBreak=false}}
+renderer.draw({zone(10)},"G",floorAt,{Fast=longRoute},"Fast",Vector3.new(0,3,0))
+check(count("FastRoute")==1 and count("StepFlag")==1 and find("StepFlag").Text=="1","merged lines preserve original step numbering")
 renderer.Destroy()
 check(count("Room")==0 and count("FastRoute")==0,"map teardown removes graphics")
 `+ worldFixture +String.raw`

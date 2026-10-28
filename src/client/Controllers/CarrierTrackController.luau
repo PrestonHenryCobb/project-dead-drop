@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
 local UserInputService = game:GetService("UserInputService")
+local ContentProvider = game:GetService("ContentProvider")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared.GameConfig)
 local Types = require(Shared.Types)
@@ -21,6 +22,9 @@ local revision = 0
 local expires: number? = nil
 
 local function clearMarks()
+	if #marks == 0 and expires == nil then
+		return
+	end
 	marks = {}
 	expires = nil
 	revision += 1
@@ -46,6 +50,9 @@ function CarrierTrackController.Start()
 	local focused = true
 	local pressed: { [Enum.KeyCode]: boolean } = {}
 	local cueUntil = 0
+	local wasActive = false
+	local pendingCue = false
+	local alive = true
 	local gui = HudKit.screen("CarrierTrackingHud")
 	janitor:Add(gui)
 	local hint = HudKit.panel(
@@ -101,10 +108,35 @@ function CarrierTrackController.Start()
 		release()
 		clearMarks()
 		cueUntil = 0
+		pendingCue = false
+		wasActive = false
 		vignette.setAll(1)
 		whisper:Stop()
 		hintRoot.Visible = false
 	end
+	local function playCue()
+		if not alive or not pendingCue or not active() or not whisper.IsLoaded then
+			return
+		end
+		pendingCue = false
+		cueUntil = os.clock() + config.CueSeconds
+		whisper:Stop()
+		whisper.TimePosition = 0
+		whisper:Play()
+	end
+	janitor:Add(whisper.Loaded:Connect(playCue))
+	task.spawn(function()
+		local ok, reason = pcall(function()
+			ContentProvider:PreloadAsync({ whisper })
+		end)
+		if not alive then
+			return
+		end
+		if not ok then
+			warn("[CarrierTrack] Cue preload failed: " .. tostring(reason))
+		end
+		playCue()
+	end)
 	ContextActionService:BindActionAtPriority("CarrierTrack", function(_, inputState, input)
 		if inputState == Enum.UserInputState.Begin then
 			if not active() or not carrier or not focused or UserInputService:GetFocusedTextBox() then
@@ -161,9 +193,8 @@ function CarrierTrackController.Start()
 			return
 		end
 		cueUntil = os.clock() + config.CueSeconds
-		whisper:Stop()
-		whisper.TimePosition = 0
-		whisper:Play()
+		pendingCue = true
+		playCue()
 	end))
 	janitor:Add(Remote.connect("PhaseChanged", function(value: Types.Phase)
 		phase = value
@@ -211,18 +242,22 @@ function CarrierTrackController.Start()
 		end
 		elapsed = 0
 		if not active() then
-			reset()
+			if wasActive then
+				reset()
+			end
 			return
 		end
+		wasActive = true
 		hintRoot.Visible = carrier
 		if not carrier then
 			release()
 		end
 		local remaining = cueUntil - os.clock()
-		if remaining <= 0 then
+		if remaining <= 0 and cueUntil > 0 then
+			cueUntil = 0
 			vignette.setAll(1)
 			whisper:Stop()
-		else
+		elseif remaining > 0 then
 			-- Reduced Motion keeps a steady, faint edge; normal mode only fades, never pulses or shakes.
 			local opacity = 1 - config.CueTransparency
 			if not Accessibility.reducedMotion() then
@@ -233,6 +268,7 @@ function CarrierTrackController.Start()
 		CarrierTrackController.marks()
 	end))
 	janitor:Add(function()
+		alive = false
 		reset()
 	end)
 	janitor:Add(script.Destroying:Connect(function()

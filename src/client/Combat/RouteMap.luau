@@ -9,6 +9,36 @@ local HudTheme = require(Shared.Util.HudTheme)
 local config = GameConfig.RouteHud
 local RouteMap = {}
 
+-- Merge only continuous, forward, collinear runs on the displayed floor. Original point/step indices stay intact.
+function RouteMap.segments(points: { Vector3 }, floor: string, floorAt: (number) -> string?): { { Vector3 } }
+	local segments: { { Vector3 } } = {}
+	local run: { Vector3 }? = nil
+	for index = 1, #points - 1 do
+		local a, b = points[index], points[index + 1]
+		if floorAt(a.Y) ~= floor or floorAt(b.Y) ~= floor then
+			run = nil
+			continue
+		end
+		local dx, dz = b.X - a.X, b.Z - a.Z
+		local length = math.sqrt(dx * dx + dz * dz)
+		if length <= GameConfig.UI.GraphicHud.DirectionEpsilonStuds then
+			continue
+		end
+		if run and run[2] == a then
+			local rx, rz = a.X - run[1].X, a.Z - run[1].Z
+			local cross = math.abs(rx * dz - rz * dx)
+			local tolerance = GameConfig.UI.GraphicHud.DirectionEpsilonStuds * math.sqrt(rx * rx + rz * rz) * length
+			if cross <= tolerance and rx * dx + rz * dz > 0 then
+				run[2] = b
+				continue
+			end
+		end
+		run = { a, b }
+		table.insert(segments, run)
+	end
+	return segments
+end
+
 function RouteMap.new(parent: Frame)
 	local content = Janitor.new()
 	local tracked = Janitor.new()
@@ -109,9 +139,9 @@ function RouteMap.new(parent: Frame)
 				end
 				local selected = name == mode
 				local color = if name == "Clean" then config.CleanColor else config.FastColor
-				for index = 1, #route.Points - 1 do
-					local a, b = route.Points[index], route.Points[index + 1]
-					if floorAt(a.Y) == floor and floorAt(b.Y) == floor then
+				for _, segment in RouteMap.segments(route.Points, floor, floorAt) do
+					local a, b = segment[1], segment[2]
+					do
 						local from, to = project(a), project(b)
 						local delta = to - from
 						local item = frame(

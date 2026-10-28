@@ -25,9 +25,9 @@ GameConfig.CarrierTrackHud=settings.CarrierTrackHud GameConfig.CarrierTrack=sett
 theme.PaddingPixels=12 theme.CaptionSize=12 theme.MarginPixels=24 theme.VitalsHeightPixels=72 theme.ActionWidthPixels=252 theme.ActionHeightPixels=58
 local baseNew=Instance.new
 Instance.new=function(class)
- local v=baseNew(class)v.Enabled=true v.Activated=signal()
+ local v=baseNew(class)v.Enabled=true v.Activated=signal() v.Loaded=signal() v.IsLoaded=true
  function v:Play()self.plays=(self.plays or 0)+1 self.playing=true end
- function v:Stop()self.playing=false end
+ function v:Stop()self.playing=false self.stops=(self.stops or 0)+1 end
  return v
 end
 local edge=1
@@ -35,6 +35,8 @@ HudKit.edgeGlow=function()return {setAll=function(v)edge=v end}end
 local reduced=false
 local Accessibility={reducedMotion=function()return reduced end}
 local SoundService={}
+local ContentProvider={PreloadAsync=function(_,items)check(#items==1,"preload actual cue Sound")end}
+local task={spawn=function(fn)fn()end}
 local character=Instance.new("Model")
 local humanoid=Instance.new("Humanoid")humanoid.Health=100 humanoid.Parent=character
 local player={Character=character,CharacterAdded=signal()}
@@ -55,6 +57,12 @@ local key=GameConfig.CarrierTrackHud.Key
 local pad=GameConfig.CarrierTrackHud.Pad
 local function input(state,k)return actions.CarrierTrack("",state,{KeyCode=k or key})end
 local function tick(seconds)now+=seconds or .05 heartbeat:fire(seconds or .05)end
+local _,idleRevision=Controller.marks()
+local idleStops=find("LocalTrackedWhisper").stops or 0
+for _=1,40 do tick()end
+local _,afterIdle=Controller.marks()
+check(idleRevision==afterIdle,"idle ticks do not bump marks revision")
+check((find("LocalTrackedWhisper").stops or 0)==idleStops,"idle ticks do not repeatedly stop audio")
 input(Enum.UserInputState.Begin)check(#sent==0,"lobby cannot track")
 events.PhaseChanged("PackageHeist")tick()
 check(not find("CarrierTrackHint").Visible,"noncarrier has no hint")
@@ -77,6 +85,9 @@ check(#Controller.marks()==2,"Live displays all server marks")
 events.CarrierTrackState({Mode="Live",Marks={{X=3}},Intel=3})
 check(#Controller.marks()==1 and Controller.marks()[1].X==3,"Live replaces marks")
 events.CarrierTrackState({Mode="End",Marks={},Intel=3})check(#Controller.marks()==0,"End clears")
+local _,emptyVersion=Controller.marks()
+events.CarrierTrackState({Mode="End",Marks={},Intel=3})
+local _,sameVersion=Controller.marks()check(emptyVersion==sameVersion,"empty End does not invalidate map")
 input(Enum.UserInputState.Begin)UserInputService.WindowFocusReleased:fire()
 check(sent[#sent][2]==false,"focus loss releases server hold")
 local count=#sent
@@ -88,6 +99,15 @@ input(Enum.UserInputState.Begin)events.PackageState({YouCarry=false})tick()
 check(not find("CarrierTrackHint").Visible and sent[#sent][2]==false,"carrier loss releases and hides")
 events.CarrierTrackState({Mode="Live",Marks={{X=4}},Intel=2})check(#Controller.marks()==0,"late marks ignored after loss")
 local sound=find("LocalTrackedWhisper")
+sound.IsLoaded=false events.TrackedCue()tick()
+check(not sound.playing,"unloaded cue does not attempt premature playback")
+tick(2)
+sound.IsLoaded=true sound.Loaded:fire()
+check(sound.playing and sound.plays==1,"pending cue plays when Sound loads")
+tick(2)
+local stopped=sound.stops tick(.2)tick(.2)
+check(sound.stops==stopped,"expired cue stops once")
+sound.plays=0
 events.TrackedCue()tick()
 check(sound.plays==1 and sound.Parent==SoundService,"cue is local nondirectional audio")
 check(edge>=.9 and edge<1,"vignette is faint")
@@ -101,6 +121,11 @@ check(sent[#sent][2]==false and not find("CarrierTrackHint").Visible,"downed rel
 events.TrackedCue()check(not sound.playing,"no cue after downed")
 events.Revived()events.PackageState({YouCarry=true})input(Enum.UserInputState.Begin)
 events.PhaseChanged("Results")tick()check(sent[#sent][2]==false and #Controller.marks()==0,"match exit releases and clears")
+local stoppedInResults=sound.stops
+local _,resultsVersion=Controller.marks()
+for _=1,40 do tick()end
+local _,finalVersion=Controller.marks()
+check(sound.stops==stoppedInResults and resultsVersion==finalVersion,"inactive transition resets once, then remains idle")
 script.Destroying:fire()
 check(actions.CarrierTrack==nil and #heartbeat.listeners==0 and next(events)==nil,"teardown cleans bindings and remotes")
 print("Carrier tracking: "..checks.." actual-source assertions passed")

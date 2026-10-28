@@ -31,6 +31,8 @@ function RouteHudController.Start()
 	local bands = FloorBands.new()
 	local state = Presentation.new()
 	local zones: { [BasePart]: boolean } = {}
+	local zoneWatches: { [BasePart]: Janitor.Janitor } = {}
+	local zonesVersion = 0
 	local mode = "Clean"
 	local phase: Types.Phase = "Lobby"
 	local unavailable = false
@@ -157,13 +159,35 @@ function RouteHudController.Start()
 	end
 	local function add(instance: Instance)
 		if instance:IsA("BasePart") then
+			if zones[instance] then
+				return
+			end
 			zones[instance] = true
 			bands.add(instance)
+			zonesVersion += 1
+			local watch = Janitor.new()
+			zoneWatches[instance] = watch
+			local function geometryChanged()
+				bands.add(instance)
+				zonesVersion += 1
+			end
+			for _, property in { "CFrame", "Size", "Name" } do
+				watch:Add(instance:GetPropertyChangedSignal(property):Connect(geometryChanged))
+			end
+			watch:Add(instance:GetAttributeChangedSignal("Tier"):Connect(function()
+				zonesVersion += 1
+			end))
 		end
 	end
 	local function remove(instance: Instance)
 		if instance:IsA("BasePart") then
 			zones[instance] = nil
+			local watch = zoneWatches[instance]
+			if watch then
+				watch:Destroy()
+				zoneWatches[instance] = nil
+			end
+			zonesVersion += 1
 		end
 		bands.remove(instance)
 	end
@@ -271,13 +295,7 @@ function RouteHudController.Start()
 	local drawnFloor: string? = nil
 	local drawnMode = ""
 	local drawnMarks = -1
-	local zonesVersion, drawnZones = 0, -1
-	janitor:Add(CollectionService:GetInstanceAddedSignal(Enums.Tag.ZoneVolume):Connect(function()
-		zonesVersion += 1
-	end))
-	janitor:Add(CollectionService:GetInstanceRemovedSignal(Enums.Tag.ZoneVolume):Connect(function()
-		zonesVersion += 1
-	end))
+	local drawnZones = -1
 	janitor:Add(RunService.Heartbeat:Connect(function(dt)
 		elapsed += dt
 		if elapsed < config.RefreshSeconds then
@@ -328,12 +346,21 @@ function RouteHudController.Start()
 			end
 		end
 		target.Text = `[ {config.TargetKey.Name} / LB ] {selectedName}`
-		choice.Text = `[ {config.ModeKey.Name} / RB ] {string.upper(mode)} ROUTE · switch`
-		choice.TextColor3 = if mode == "Clean" then config.CleanColor else config.FastColor
+		local drawnModeNow, route = Presentation.effective(result, mode)
+		local fallback = drawnModeNow ~= mode
+		choice.Text = `[ {config.ModeKey.Name} / RB ] {string.upper(drawnModeNow)}{if fallback
+			then ` · {string.upper(mode)} unavailable`
+			else " ROUTE · switch"}`
+		choice.TextColor3 = if drawnModeNow == "Clean" then config.CleanColor else config.FastColor
 		floorLabel.Text = `FLOOR · {floor or "Unknown"}{if browsing then " · browsing" else " · current"}`
-		local route = if result then (if mode == "Clean" then result.Clean else result.Fast) else nil
+		local displayStatus = if route
+			then `SHOWN · {string.upper(drawnModeNow)}{if fallback then " (fallback)" else ""}`
+			else "NO ROUTE AVAILABLE"
 		summary.Text = if result
-			then `{Presentation.summary("Clean", result.Clean)}\n{Presentation.summary("Fast", result.Fast)}\nTEAM INTEL · {result.Intel}`
+			then `{displayStatus}\n{Presentation.summary("Clean", result.Clean)}\n{Presentation.summary(
+				"Fast",
+				result.Fast
+			)}\nTEAM INTEL · {result.Intel}`
 			else "Waiting for route data"
 		local descriptions = {}
 		if route then
@@ -344,14 +371,20 @@ function RouteHudController.Start()
 		flags.Text = if #descriptions > 0 then table.concat(descriptions, "\n") else "No flagged steps"
 		panelRoot.Visible = shown
 		if
-			shown and (drawnResult ~= result or drawnFloor ~= floor or drawnMode ~= mode or drawnZones ~= zonesVersion)
+			shown
+			and (
+				not Presentation.sameMap(drawnResult, result)
+				or drawnFloor ~= floor
+				or drawnMode ~= drawnModeNow
+				or drawnZones ~= zonesVersion
+			)
 		then
 			local visibleZones = {}
 			for zone in zones do
 				table.insert(visibleZones, zone)
 			end
-			renderer.draw(visibleZones, floor, bands.nameAt, result, mode, root.Position)
-			drawnResult, drawnFloor, drawnMode, drawnZones = result, floor, mode, zonesVersion
+			renderer.draw(visibleZones, floor, bands.nameAt, result, drawnModeNow, root.Position)
+			drawnResult, drawnFloor, drawnMode, drawnZones = result, floor, drawnModeNow, zonesVersion
 			drawnMarks = -1
 		end
 		local trackedMarks, marksRevision = CarrierTrack.marks()
@@ -364,13 +397,17 @@ function RouteHudController.Start()
 			root.Position,
 			here,
 			bands.nameAt,
-			if mode == "Clean" then config.CleanColor else config.FastColor
+			if drawnModeNow == "Clean" then config.CleanColor else config.FastColor
 		)
 	end))
 	janitor:Add(function()
 		alive = false
 		state.clear()
 		bands.clear()
+		for _, watch in zoneWatches do
+			watch:Destroy()
+		end
+		table.clear(zoneWatches)
 	end)
 	janitor:Add(script.Destroying:Connect(function()
 		janitor:Destroy()

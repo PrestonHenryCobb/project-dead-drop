@@ -109,3 +109,27 @@ anonymous marks on the map; the tracking cue handler ran. The whisper sound was 
 
 No other contract mismatches: one request in flight, about one a second, stale replies rejected by revision, input and the hold
 released on every lifecycle event, marks never read from actors.
+
+## Codex follow-up to Claude review — 2026-10-28
+
+- An unavailable preferred route now falls back to the other mode. The mode control explicitly names the drawn mode and
+  unavailable preference; the summary, step list, map emphasis and floor arrows all use that same effective route. J still
+  changes the preference. Neither route available is labelled explicitly.
+- Geometry comparison skips rebuilding equal route replies even when Intel/prices change. Zone geometry/tier watchers,
+  floor changes, effective mode, point changes and flag changes invalidate the map. Continuous forward collinear runs merge
+  before drawing (301 points become one line); flags retain their original step indices/numbers.
+- Carrier idle reset runs on transition only. Empty clears do not advance marks revision, and an expired cue stops once.
+  The Sound preloads; an early cue waits for Loaded and gets its full cue duration after loading. Lifecycle changes cancel it.
+- Real Studio local Play test via Command Bar: the configured action_falling.ogg Sound loaded (10 s asset), played and advanced
+  to 0.834 s; measured peak PlaybackLoudness 1.4589 at Volume 0.14. Other tested clip offsets also produced nonzero output.
+  This verifies native engine decoding/playback, not a human listening-level signoff against combat. Isolated handler probes
+  in the lobby correctly refused playback because the client had no character; the output measurement played the actual
+  configured Sound directly. Temporary probes/play session were removed/stopped; no place save or server edits. An authored
+  whisper remains Step 20, and a two-player listening check in a running match remains useful.
+- Regression suites: route 141 + carrier 36 + existing data/floor 749 = 926 assertions. StyLua/Selene clean; Rojo build passes.
+  RouteArrows was untouched: Claude's CollisionGroup/RespectCanCollide fix is preserved, now covered by the ray fixture.
+
+Studio recheck: as a Guest, select a terminal and see FAST fallback without J; compare flags/arrows and then press J. With
+unchanged replies, Room instances should retain identity and a straight 301-point route should use one line Frame. In the
+lobby/results, marks revision and Sound Stop calls should remain stable between transitions. Trigger TrackedCue during a
+match, confirm the low-volume cue by ear, and repeat with Reduce Motion. No new SPEC-QUESTIONs.

@@ -4,6 +4,51 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Types = require(ReplicatedStorage.Shared.Types)
 local RoutePresentation = {}
 
+function RoutePresentation.effective(result: Types.RouteResult?, preferred: string): (string, Types.RouteInfo?)
+	local route = if result then (if preferred == "Clean" then result.Clean else result.Fast) else nil
+	if route then
+		return preferred, route
+	end
+	local other = if preferred == "Clean" then "Fast" else "Clean"
+	local fallback = if result then (if other == "Clean" then result.Clean else result.Fast) else nil
+	return if fallback then other else preferred, fallback
+end
+
+local function sameRoute(a: Types.RouteInfo?, b: Types.RouteInfo?): boolean
+	if a == b then
+		return true
+	end
+	if not a or not b or #a.Points ~= #b.Points or #a.Steps ~= #b.Steps then
+		return false
+	end
+	for index, point in a.Points do
+		if point ~= b.Points[index] then
+			return false
+		end
+	end
+	for index, step in a.Steps do
+		local other = b.Steps[index]
+		if
+			step.Index ~= other.Index
+			or step.Kind ~= other.Kind
+			or step.Detail ~= other.Detail
+			or step.Intel ~= other.Intel
+			or step.CoverBreak ~= other.CoverBreak
+		then
+			return false
+		end
+	end
+	return true
+end
+
+-- Prices/balances can update the summary without rebuilding identical geometry.
+function RoutePresentation.sameMap(a: Types.RouteResult?, b: Types.RouteResult?): boolean
+	if a == b then
+		return true
+	end
+	return a ~= nil and b ~= nil and sameRoute(a.Clean, b.Clean) and sameRoute(a.Fast, b.Fast)
+end
+
 function RoutePresentation.nextTarget(result: Types.RouteResult?, selected: string?): string?
 	if not result or #result.Targets == 0 then
 		return nil
