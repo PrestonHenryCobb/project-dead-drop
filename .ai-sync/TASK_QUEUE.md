@@ -361,3 +361,12 @@ without spurious cancellation. Janitor owns subscriptions, visuals, input and ca
 and existing station LOS policy unchanged. 104 new actual-source assertions; 1,263 across all eight checked suites.
 StyLua, Selene and Rojo pass; native rendering/input/network acceptance pending. No new SPEC-QUESTION or bot handoff.
 Files and Studio checks: docs/INTEL_INPUT_REVIEW_2026-10-28.md.
+
+
+## Body input continuation (Codex 9b, 2026-10-28)
+
+READY_FOR_REVIEW: contextual revive/execute input revalidates bodies and respects phase/life/focus/cinematic state.
+Held actions cancel once; server completion releases locally. All subscriptions/action bindings/tracks are cleaned up;
+delayed death poses cannot survive respawn/round end/teardown. Existing generic NPC/player body discovery preserved.
+93 new actual-source assertions; 1,356 across nine checked suites. StyLua, Selene and Rojo pass. Native animation,
+network/input acceptance remains for Studio. No SPEC-QUESTION or security handoff. docs/BODY_INPUT_REVIEW_2026-10-28.md.

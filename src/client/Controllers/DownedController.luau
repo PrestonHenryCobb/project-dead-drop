@@ -15,12 +15,14 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Knockdown = require(Shared:WaitForChild("Util"):WaitForChild("Knockdown"))
 local PoseAnimation = require(Shared:WaitForChild("Util"):WaitForChild("PoseAnimation"))
 local Types = require(Shared:WaitForChild("Types"))
+local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local MovementController = require(script.Parent.MovementController)
 local RemoteController = require(script.Parent.RemoteController)
 
@@ -35,6 +37,12 @@ local LYING_UP_Y = 0.5 -- a root whose up vector is flatter than this is lying d
 local DEATH_SOUND = "Died" -- the sound Roblox's RbxCharacterSounds adds to a player character
 
 local isDowned = false
+local eliminated = false
+local phase: Types.Phase = "Lobby"
+local focused = true
+local extractionFrozen = false
+local animationGeneration = 0
+local deathThread: thread? = nil
 local fall: Knockdown.Fall = "Forward"
 local posture: Knockdown.Posture = "Prone"
 local fallEndsAt = 0 -- os.clock(): the fall pose plays until then, then lying or crawling
@@ -76,9 +84,15 @@ local function play(name: string)
 end
 
 local function stopAll()
+	if deathThread then
+		task.cancel(deathThread)
+		deathThread = nil
+	end
 	for _, track in tracks do
 		track:Stop(npcConfig.AnimationFadeSeconds)
+		track:Destroy()
 	end
+	animationGeneration += 1
 	table.clear(tracks)
 	playing, playingName = nil, ""
 end
@@ -95,6 +109,11 @@ end
 
 local function onEliminated(info: Types.EliminatedInfo?)
 	isDowned = false
+	eliminated = true
+	if deathThread then
+		task.cancel(deathThread)
+		deathThread = nil
+	end
 	if not info then
 		return
 	end
@@ -109,9 +128,11 @@ local function onEliminated(info: Types.EliminatedInfo?)
 	end
 	local fallLeft = fallEndsAt - os.clock()
 	if fallLeft > 0 then
+		local generation = animationGeneration
 		-- Still falling (Solos, or a team wipe straight after going down): settle at the end of the fall.
-		task.delay(fallLeft, function()
-			if playingName == falling then
+		deathThread = task.delay(fallLeft, function()
+			deathThread = nil
+			if generation == animationGeneration and eliminated and playingName == falling then
 				play(dead)
 			end
 		end)
@@ -123,6 +144,33 @@ end
 local function onUp()
 	isDowned = false
 	stopAll()
+end
+
+local function activePhase(): boolean
+	return phase == "Infiltration" or phase == "VaultBreach" or phase == "PackageHeist" or phase == "Overtime"
+end
+
+local function usable(): boolean
+	local character = localPlayer.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	return activePhase()
+		and not isDowned
+		and not eliminated
+		and not extractionFrozen
+		and focused
+		and UserInputService:GetFocusedTextBox() == nil
+		and humanoid ~= nil
+		and humanoid.Health > 0
+		and root ~= nil
+		and root:IsA("BasePart")
+end
+
+local function cancelHold()
+	if holding then
+		holding = false
+		RemoteController.fire("RequestInteractCancel")
+	end
 end
 
 -- While downed: send the crawl direction, and lie or crawl like a downed NPC once the fall has played.
@@ -183,25 +231,28 @@ end
 
 local function onInteract(_: string, state: Enum.UserInputState): Enum.ContextActionResult
 	if state == Enum.UserInputState.Begin then
-		local body = target
-		if body and not isDowned then
+		local body = if usable() then findBody() else nil
+		if body then
 			holding = true
 			RemoteController.fire("RequestInteract", "Body", body.Name)
+			return Enum.ContextActionResult.Sink
 		end
-		return Enum.ContextActionResult.Sink
 	elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
 		if holding then
-			holding = false
-			RemoteController.fire("RequestInteractCancel")
+			cancelHold()
+			return Enum.ContextActionResult.Sink
 		end
-		return Enum.ContextActionResult.Sink
 	end
 	return Enum.ContextActionResult.Pass
 end
 
 -- Interact is bound only while there is a body to use it on (spec 24 note: contextual).
 local function stepTargeting()
-	target = if isDowned then nil else findBody()
+	local allowed = usable() and workspace.CurrentCamera ~= nil
+	if not allowed then
+		cancelHold()
+	end
+	target = if allowed then findBody() else nil
 	local want = target ~= nil or holding
 	if want and not bound then
 		bound = true
@@ -229,26 +280,67 @@ function DownedController.Init() end
 
 -- Ticket 9b-hud: a generic interaction opportunity; only the server tells whether the hold revives or executes.
 function DownedController.hasBodyTarget(): boolean
-	return not isDowned and target ~= nil
+	return usable() and target ~= nil
 end
 
 function DownedController.Start()
-	RemoteController.connect("Downed", onDowned)
-	RemoteController.connect("Revived", onUp)
-	RemoteController.connect("Eliminated", onEliminated)
-	localPlayer.CharacterAdded:Connect(function()
+	local janitor = Janitor.new()
+	janitor:Add(RemoteController.connect("Downed", function(info: Types.DownedInfo)
+		onDowned(info)
+		stepTargeting()
+	end))
+	janitor:Add(RemoteController.connect("Revived", function()
 		onUp()
-		holding = false
-	end)
+		stepTargeting()
+	end))
+	janitor:Add(RemoteController.connect("Eliminated", function(info: Types.EliminatedInfo?)
+		onEliminated(info)
+		stepTargeting()
+	end))
+	janitor:Add(RemoteController.connect("PhaseChanged", function(nextPhase: Types.Phase)
+		phase = nextPhase
+		if nextPhase == "Lobby" or nextPhase == "Insertion" then
+			extractionFrozen = false
+		end
+		if not activePhase() then
+			stopAll()
+		end
+		stepTargeting()
+	end))
+	janitor:Add(RemoteController.connect("ExtractionState", function(info: Types.ExtractionStateInfo)
+		extractionFrozen = info.State == "Extracted"
+		stepTargeting()
+	end))
+	janitor:Add(RemoteController.connect("InteractState", function(info: Types.InteractStateInfo)
+		if not info.Active and (info.Kind == "Revive" or info.Kind == "Execute") then
+			holding = false
+			stepTargeting()
+		end
+	end))
+	janitor:Add(localPlayer.CharacterAdded:Connect(function()
+		cancelHold()
+		eliminated = false
+		onUp()
+		stepTargeting()
+	end))
+	janitor:Add(UserInputService.TextBoxFocused:Connect(stepTargeting))
+	janitor:Add(UserInputService.WindowFocusReleased:Connect(function()
+		focused = false
+		stepTargeting()
+	end))
+	janitor:Add(UserInputService.WindowFocused:Connect(function()
+		focused = true
+		stepTargeting()
+	end))
 
 	for _, descendant in workspace:GetDescendants() do
 		silenceDeathSound(descendant)
 	end
-	workspace.DescendantAdded:Connect(silenceDeathSound)
+	janitor:Add(workspace.DescendantAdded:Connect(silenceDeathSound))
 
 	local targetElapsed = 0
-	RunService.RenderStepped:Connect(function(dt)
-		if isDowned then
+	janitor:Add(RunService.RenderStepped:Connect(function(dt)
+		if isDowned and activePhase() and not extractionFrozen then
 			stepDowned(dt)
 		end
 		targetElapsed += dt
@@ -256,7 +348,17 @@ function DownedController.Start()
 			targetElapsed = 0
 			stepTargeting()
 		end
+	end))
+	janitor:Add(function()
+		cancelHold()
+		ContextActionService:UnbindAction(INTERACT_ACTION)
+		bound, target = false, nil
+		isDowned, eliminated = false, true
+		stopAll()
 	end)
+	janitor:Add(script.Destroying:Connect(function()
+		janitor:Destroy()
+	end))
 end
 
 return DownedController
