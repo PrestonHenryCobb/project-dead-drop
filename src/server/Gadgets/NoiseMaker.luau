@@ -10,10 +10,12 @@ local Shields = require(script.Parent.Parent.Combat.Shields)
 local CoverService = require(script.Parent.Parent.Services.CoverService)
 local DownedService = require(script.Parent.Parent.Services.DownedService)
 local NPCService = require(script.Parent.Parent.Services.NPCService)
+local TeamService = require(script.Parent.Parent.Services.TeamService)
 local Gadget = require(script.Parent.Gadget)
 local Spot = require(script.Parent.Spot)
 
 local config = GameConfig.Gadgets.NoiseMaker
+local devices: { [Shields.Shield]: boolean } = {} -- the Noise Makers standing, for the Jammer
 
 local NoiseMaker: Gadget.Gadget = {
 	deploy = function(player: Player): (boolean, string?)
@@ -34,6 +36,7 @@ local NoiseMaker: Gadget.Gadget = {
 		part.CastShadow = false
 		part.Position = at + Vector3.new(0, config.Size.Y / 2, 0)
 		local shield = Shields.adopt(player, part, config.HP, nil)
+		devices[shield] = true
 		task.delay(config.ArmSeconds, function()
 			if not Shields.isUp(shield) then
 				return
@@ -50,7 +53,24 @@ local NoiseMaker: Gadget.Gadget = {
 				Shields.destroy(shield)
 			end)
 		end)
+		task.delay(config.ArmSeconds + config.Seconds, function()
+			devices[shield] = nil
+		end)
 		return true, nil
+	end,
+
+	-- A Jammer destroys other teams' Noise Makers within its radius.
+	jamAt = function(position: Vector3, radius: number, jammer: Player, _: number)
+		for shield in devices do
+			if
+				shield.owner ~= jammer
+				and not TeamService.areTeammates(jammer, shield.owner)
+				and (shield.part.Position - position).Magnitude <= radius
+			then
+				devices[shield] = nil
+				Shields.destroy(shield)
+			end
+		end
 	end,
 }
 

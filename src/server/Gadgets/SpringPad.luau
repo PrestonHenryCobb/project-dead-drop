@@ -17,10 +17,18 @@ local CoverService = require(script.Parent.Parent.Services.CoverService)
 local DownedService = require(script.Parent.Parent.Services.DownedService)
 local MatchService = require(script.Parent.Parent.Services.MatchService)
 local RemoteService = require(script.Parent.Parent.Services.RemoteService)
+local TeamService = require(script.Parent.Parent.Services.TeamService)
 local Gadget = require(script.Parent.Gadget)
 local Spot = require(script.Parent.Spot)
 
-type Pad = { shield: Shields.Shield, owner: Player, facing: Vector3, endsAt: number, launches: number }
+type Pad = {
+	shield: Shields.Shield,
+	owner: Player,
+	facing: Vector3,
+	endsAt: number,
+	launches: number,
+	jammedUntil: number, -- a Jammer holds it down until then
+}
 
 local config = GameConfig.Gadgets.SpringPad
 local pads: { Pad } = {}
@@ -70,6 +78,7 @@ local function step()
 					and not DownedService.isOut(player)
 					and now - (lastLaunch[player] or -math.huge) >= config.ReLaunchSeconds
 					and pad.launches < config.MaxLaunches
+					and now >= pad.jammedUntil
 					and onPad(pad, root.Position)
 				then
 					launch(player, pad)
@@ -111,8 +120,22 @@ local SpringPad: Gadget.Gadget = {
 			facing = facing,
 			endsAt = os.clock() + config.Seconds,
 			launches = 0,
+			jammedUntil = 0,
 		})
 		return true, nil
+	end,
+
+	-- A Jammer stops other teams' pads from throwing anyone while it holds them.
+	jamAt = function(position: Vector3, radius: number, jammer: Player, seconds: number)
+		for _, pad in pads do
+			if
+				pad.owner ~= jammer
+				and not TeamService.areTeammates(jammer, pad.owner)
+				and (pad.shield.part.Position - position).Magnitude <= radius
+			then
+				pad.jammedUntil = os.clock() + seconds
+			end
+		end
 	end,
 
 	-- The aim button recalls the user's pads.

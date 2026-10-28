@@ -31,7 +31,8 @@ end
 local item: HeldItemController.Item = {
 	fire = function(state: Enum.UserInputState)
 		if state == Enum.UserInputState.Begin then
-			RemoteController.fire("RequestGadget", "Deploy")
+			local camera = workspace.CurrentCamera
+			RemoteController.fire("RequestGadget", "Deploy", nil, if camera then camera.CFrame.LookVector else nil)
 		end
 	end,
 	aim = function(state: Enum.UserInputState)

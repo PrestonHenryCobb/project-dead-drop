@@ -21,6 +21,7 @@ local DownedService = require(script.Parent.DownedService)
 local InteractService = require(script.Parent.InteractService)
 local MatchService = require(script.Parent.MatchService)
 local MetaProgressionService = require(script.Parent.MetaProgressionService)
+local ReachService = require(script.Parent.ReachService)
 local RemoteService = require(script.Parent.RemoteService)
 
 local AbilityService = {}
@@ -112,6 +113,9 @@ function AbilityService.Start()
 		local mult = if rules.HackKinds and rules.HackKinds[kind] then rules.HackMult else 1 -- Lattice's Wired
 		if label == "Revive" and rules.ReviveMult then
 			mult *= rules.ReviveMult -- Suture's Triage
+		end
+		if ReachService.lensActive(player) then
+			mult *= GameConfig.Gadgets.LongLens.TimeMult -- the Long Lens hacks from afar, more slowly
 		end
 		return mult
 	end)

@@ -35,6 +35,7 @@ local DroneService = require(script.Parent.DroneService)
 local GuardService = require(script.Parent.GuardService)
 local InteractService = require(script.Parent.InteractService)
 local MatchService = require(script.Parent.MatchService)
+local ReachService = require(script.Parent.ReachService)
 local ZoneService = require(script.Parent.ZoneService)
 
 type CameraState = "Sweep" | "Locked" | "Disabled" | "Destroyed"
@@ -236,7 +237,7 @@ local function beginHack(player: Player, targetName: string): InteractService.In
 	-- Ticket 16c: Lattice's drone hacks from where it hovers.
 	local flying = DroneService.position(player) ~= nil
 	local function distance(): number
-		local origin = DroneService.position(player) or root.Position
+		local origin = ReachService.origin(player) or root.Position
 		local offset = camera.part.Position - origin
 		return Vector3.new(offset.X, 0, offset.Z).Magnitude -- the camera is high on a wall: reach is on the floor plan
 	end
@@ -334,6 +335,23 @@ local function makeTerminal()
 	folder.Parent = workspace
 	part.Parent = folder
 	terminal = part
+end
+
+-- Ticket 17c (Jammer): every working camera within `radius` (on the floor plan) of `position` goes dark for `seconds` from now; asked again before
+-- that, it stays dark. No hack immunity follows, so a jammer that is taken out lets its cameras back within `seconds`.
+function CameraService.jamAt(position: Vector3, radius: number, seconds: number)
+	local now = os.clock()
+	for _, camera in cameras do
+		-- A camera is high on a wall, so the radius is measured on the floor plan, as a hack's reach is.
+		local offset = camera.part.Position - position
+		if Vector3.new(offset.X, 0, offset.Z).Magnitude <= radius then
+			if working(camera) then
+				disable(camera, seconds, 0, now)
+			elseif camera.state == "Disabled" then
+				camera.untilAt = math.max(camera.untilAt, now + seconds)
+			end
+		end
+	end
 end
 
 function CameraService.Init() end

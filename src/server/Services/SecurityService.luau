@@ -21,6 +21,7 @@ local DownedService = require(script.Parent.DownedService)
 local GuardService = require(script.Parent.GuardService)
 local InteractService = require(script.Parent.InteractService)
 local MatchService = require(script.Parent.MatchService)
+local ReachService = require(script.Parent.ReachService)
 
 local SecurityService = {}
 
@@ -34,7 +35,8 @@ local function beginLockpick(player: Player, targetName: string): InteractServic
 		return nil
 	end
 	local function inReach(): boolean
-		return (door.Position - root.Position).Magnitude <= settings.InteractStuds
+		local origin = ReachService.origin(player) or root.Position -- the Long Lens reaches from beside the door
+		return (door.Position - origin).Magnitude <= settings.InteractStuds
 	end
 	if not inReach() then
 		return nil

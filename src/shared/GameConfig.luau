@@ -1493,6 +1493,28 @@ local GameConfig = {
 		-- Med Injector: Heal HP over Seconds, self; it stops when damage is taken. HealHz is how often a bit is given.
 		MedInjector = { Heal = 35, Seconds = 4, HealHz = 4 },
 		-- Plate Pack: one plate onto the player, or the nearest teammate within ReachStuds who has room for one, in Seconds.
+		-- Long Lens: aim at a hackable thing (an Intel station, a camera, a keycard door) within RangeStuds and in sight, within
+		-- AimDegrees of the crosshair, and press fire: its hack begins and goes on while it stays in sight and the user keeps
+		-- hacking, taking TimeMult times as long. The hack is measured from a point NearStuds from the target. GraceSeconds is how
+		-- long the lens waits for the hold to show it has begun. Doors that cost intel (Step 18) and the vault terminals are not
+		-- reachable through it yet.
+		LongLens = { RangeStuds = 30, AimDegrees = 4, TimeMult = 1.5, NearStuds = 2, GraceSeconds = 0.4 },
+		-- Keycard Clone: opens the nearest closed keycard door within ReachStuds, in sight, for the door's usual open time.
+		KeycardClone = { ReachStuds = 8 },
+		-- Jammer: a device set Ahead of the user. For Seconds, while it stands, cameras and laser grids within RadiusStuds go dark
+		-- and enemy Spring Pads there stop throwing and enemy Noise Makers there are destroyed; it is checked every CheckSeconds
+		-- and HoldSeconds is how long each check keeps them down, so taking the device out frees them quickly. One hit destroys it.
+		Jammer = {
+			Size = Vector3.new(1, 0.8, 1),
+			Ahead = 4,
+			FloorProbe = { Up = 3, Down = 10 },
+			RadiusStuds = 15,
+			Seconds = 20,
+			CheckSeconds = 0.5,
+			HoldSeconds = 1,
+			HP = 1,
+			Color = Color3.fromRGB(80, 84, 92),
+		},
 		-- Spring Pad: a flat pad set Ahead of the user; anyone (a player) who steps on it is thrown LaunchHeight studs up and
 		-- ForwardSpeed forward along the pad's facing, and is exposed. It goes after Seconds or MaxLaunches throwings, or one hit
 		-- (HP). A body is on it within Size's footprint and StepHeight above its top; the same body is thrown again no sooner

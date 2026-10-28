@@ -14,6 +14,27 @@ type GadgetDef = Types.GadgetDef
 
 local defs: { GadgetDef } = {
 	{
+		Id = "LongLens",
+		Name = "Long Lens",
+		Category = "Infiltration",
+		Charges = 3,
+		Description = "Hack an Intel station, camera or keycard door in sight up to 30 studs away, taking 1.5 times as long.",
+	},
+	{
+		Id = "KeycardClone",
+		Name = "Keycard Clone",
+		Category = "Infiltration",
+		Charges = 1,
+		Description = "Opens one keycard door in reach, silently.",
+	},
+	{
+		Id = "Jammer",
+		Name = "Jammer",
+		Category = "Infiltration",
+		Charges = 1,
+		Description = "For 20 s in a 15 stud radius, cameras and laser grids go dark and enemy deployables are disabled.",
+	},
+	{
 		Id = "SpringPad",
 		Name = "Spring Pad",
 		Category = "Evasion",

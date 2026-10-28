@@ -7,7 +7,8 @@
 -- The holder is told when a hold begins and ends (InteractState) for the HUD. Nothing else is told.
 --
 --   InteractService.register(kind, begin)   begin(player, target) -> Interaction?   nil refuses the request
---   InteractService.setSecondsMult(fn)      fn(player, kind, label) -> how much of the hold's time that player needs
+--   InteractService.start(player, kind, target) -> boolean   begins a hold for the player (what a request does)
+--   InteractService.setSecondsMult(fn)     fn(player, kind, label) -> how much of the hold's time that player needs
 --   InteractService.cancel(player)          ends any hold the player has going (going down, for example)
 --   InteractService.isBusy(player) -> boolean
 
@@ -63,23 +64,29 @@ function InteractService.cancel(player: Player)
 	end
 end
 
-local function onRequest(player: Player, kind: unknown, target: unknown)
-	if type(kind) ~= "string" or type(target) ~= "string" or #target > config.MaxTargetLength then
-		return
-	end
+-- Starts the hold of this kind on this target for the player, as if their client had asked (the same checks apply). Returns
+-- whether it began. Long Lens (ticket 17c) starts holds the player aimed at from afar.
+function InteractService.start(player: Player, kind: string, target: string): boolean
 	local begin = handlers[kind]
-	if not begin or holds[player] then
-		return
+	if not begin or holds[player] or #target > config.MaxTargetLength then
+		return false
 	end
 	local interaction = begin(player, target)
 	if not interaction then
-		return
+		return false
 	end
 	if secondsMult then
 		interaction.seconds *= secondsMult(player, kind, interaction.label) -- tickets 16c, 16e: Wired, Triage
 	end
 	holds[player] = { interaction = interaction, endsAt = os.clock() + interaction.seconds }
 	tell(player, interaction, true)
+	return true
+end
+
+local function onRequest(player: Player, kind: unknown, target: unknown)
+	if type(kind) == "string" and type(target) == "string" then
+		InteractService.start(player, kind, target)
+	end
 end
 
 local function check()

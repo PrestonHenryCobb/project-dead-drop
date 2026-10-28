@@ -162,6 +162,17 @@ local function makeFuseBox(grid: Grid, folder: Folder)
 	grid.fuseBox = box
 end
 
+-- Ticket 17c (Jammer): every laser grid within `radius` of `position` is off for `seconds` from now; asked again, it stays off.
+function LaserService.jamAt(position: Vector3, radius: number, seconds: number)
+	local now = os.clock()
+	for _, grid in grids do
+		if (grid.part.Position - position).Magnitude <= radius then
+			grid.offUntil = math.max(grid.offUntil, now + seconds)
+			show(grid)
+		end
+	end
+end
+
 function LaserService.Init() end
 
 function LaserService.Start()

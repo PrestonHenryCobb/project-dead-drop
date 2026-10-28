@@ -41,8 +41,23 @@ Sub-gadgets (docs/GADGETS_DRAFT.md, SPEC_CHANGES 16.1). Server-authoritative; th
   re-covered me in a new Guest look and spent its charge, the Noise Maker played its sound and a guard went to Investigate.
   Not tested: an enemy on a pad, 6-launch expiry, recall, shooting a deployable, the kit's refusals, other NPCs turning.
 
+- **17c: Infiltration.** `Deploy` now carries the crosshair direction (`RequestGadget("Deploy", nil, aim)`; the server makes it
+  unit length; `Gadget.deploy(player, rules, aim)`). `ReachService.origin(player)` is where a hack is measured from: the drone,
+  else the Long Lens point, else nil (the body); `IntelService`, `CameraService` and the lockpick use it. `InteractService.start`
+  begins a hold for a player. Long Lens (3): the target nearest the crosshair within 4 degrees, 30 studs and in sight among Intel
+  stations, cameras and keycard doors; its ordinary hack begins, measured from a point 2 studs from the target while the user
+  keeps it in sight, taking 1.5 times as long; the hack's own rules (clearance, witnesses) still apply. Keycard Clone (1): opens
+  the nearest closed keycard door within 8 studs and in sight for 4 s; Discreet. Jammer (1): a shootable device 4 studs ahead; for
+  20 s every 0.5 s it holds cameras (on the floor plan) and laser grids within 15 studs down for 1 s more, stops other teams'
+  Spring Pads from throwing and destroys their Noise Makers (`CameraService.jamAt`, `LaserService.jamAt`, `Gadget.jamAt`).
+  Tested solo in Studio: Long Lens started a hack of a tier 0 station 18 studs away (6 s = 4 x 1.5); a Jammer put a camera in
+  Disabled, and shooting the device freed it within 2.5 s; Keycard Clone opened a temporary keycard door and it closed again.
+  Not tested: the lens on a camera or door, losing sight ending the lens hack, laser grids, enemy pads and Noise Makers jammed.
+
 ## Not built
-- The remaining gadgets: Infiltration (Long Lens, Keycard Clone, Jammer), Recon (Scanner Pulse, Bug Cam, Tripwire), Briefcase Shield.
+- The remaining gadgets: Recon (Scanner Pulse, Bug Cam, Tripwire), Briefcase Shield.
+- Long Lens on the vault terminals and on tier doors, and Keycard Clone on tier doors: tier-door hacks arrive in Step 18. The
+  map has no keycard doors yet (re-layout), so Keycard Clone was tried on a temporary door.
 - The Noise Maker's sound is a stand-in sound id (`Gadgets.NoiseMaker.SoundId`) until the audio pass; the Spring Pad throw rose
   about 19 studs, not 25 (air drag or the movement code; tune `LaunchHeight`).
 - The gadget bar HUD and picking gadgets in agent select (client, Codex): ticket 17-hud.

@@ -37,6 +37,9 @@ local gadgets: { [string]: Gadget.Gadget } = {
 	SpringPad = require(script.Parent.Parent.Gadgets.SpringPad),
 	NoiseMaker = require(script.Parent.Parent.Gadgets.NoiseMaker),
 	DisguiseKit = require(script.Parent.Parent.Gadgets.DisguiseKit),
+	LongLens = require(script.Parent.Parent.Gadgets.LongLens),
+	KeycardClone = require(script.Parent.Parent.Gadgets.KeycardClone),
+	Jammer = require(script.Parent.Parent.Gadgets.Jammer),
 }
 local kits: { [Player]: Kit } = {}
 
@@ -76,9 +79,19 @@ local function canAct(player: Player): boolean
 		and not DownedService.isOut(player)
 end
 
-local function onRequest(player: Player, action: unknown, slot: unknown)
+local function onRequest(player: Player, action: unknown, slot: unknown, aimValue: unknown)
 	if not canAct(player) then
 		return
+	end
+	-- The crosshair direction a Deploy may carry: a vector the server makes unit length, or nothing.
+	local aim: Vector3? = nil
+	if
+		typeof(aimValue) == "Vector3"
+		and aimValue == aimValue
+		and aimValue.Magnitude > 1e-3
+		and aimValue.Magnitude < 1e3
+	then
+		aim = aimValue.Unit
 	end
 	local kit = kits[player]
 	if not kit then
@@ -105,7 +118,7 @@ local function onRequest(player: Player, action: unknown, slot: unknown)
 	end
 	local gadget = gadgets[held.id]
 	if action == "Deploy" and held.charges > 0 then
-		local used, reason = gadget.deploy(player, AbilityService.rulesOf(player))
+		local used, reason = gadget.deploy(player, AbilityService.rulesOf(player), aim)
 		if used then
 			held.charges -= 1
 			send(player, kit)

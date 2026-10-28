@@ -29,6 +29,7 @@ local DownedService = require(script.Parent.DownedService)
 local DroneService = require(script.Parent.DroneService)
 local InteractService = require(script.Parent.InteractService)
 local MatchService = require(script.Parent.MatchService)
+local ReachService = require(script.Parent.ReachService)
 local RemoteService = require(script.Parent.RemoteService)
 local TeamService = require(script.Parent.TeamService)
 local ZoneService = require(script.Parent.ZoneService)
@@ -126,7 +127,7 @@ local function beginStation(player: Player, targetName: string): InteractService
 		return nil
 	end
 	local function inReach(slack: number): boolean
-		local origin = DroneService.position(player) or root.Position
+		local origin = ReachService.origin(player) or root.Position
 		local offset = station.part.Position - origin
 		if offset.Magnitude > config.InteractStuds + slack then
 			return false
