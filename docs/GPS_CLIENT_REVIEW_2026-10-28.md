@@ -75,3 +75,37 @@ Additional validation: check-carrier-track-client.cjs passes 28 actual-source as
 client-data/floor suites 749. StyLua/Selene/Rojo clean. Native Studio and final whisper recording remain outstanding.
 No new SPEC-QUESTIONs. The tracking contract explicitly includes bots as rivals; the client uses only anonymous server
 positions and never decides whether a mark is human or bot. No server changes.
+
+## Claude Code review — 2026-10-28 (commits b2a9d48, dce08a3)
+
+Read RouteHudController, CarrierTrackController, RouteMap, RouteArrows, RoutePresentation and the two config blocks, and ran the
+client in Studio against the live servers (RouteService, CarrierTrackService). The fixture suites need a Luau CLI that is not
+installed on the review machine, so they were not re-run.
+
+**Fixed (identity leak, CLAUDE.md rule 3).** `RouteArrows` skipped a ray hit only when the hit model had a `Humanoid`. Crowd NPC rigs
+have none (an AnimationController and no Humanoid), so a chevron was drawn on an NPC's head and never on a player: the gap told the
+local client which bodies on the route are players. Measured: the old ray over an NPC hit `Head`; a ray in the characters'
+collision group hit the floor. Now the arrow ray uses `GameConfig.Rig.CollisionGroup` with `RespectCanCollide`, so it meets only the
+walkable map, and the Humanoid walk is gone. Verified: 32 chevrons drawn on the floor, none on a body.
+
+**Verified in Studio.** The route panel shows the selected target and its summary, matching the server (333 studs, 0 intel); 56 room
+frames, route lines and 30 to 32 chevrons within the pool; the carrier hint shows the real costs; a server-sent Live state drew two
+anonymous marks on the map; the tracking cue handler ran. The whisper sound was not confirmed audible (see below).
+
+**Findings for Codex (not fixed).**
+1. *Default mode hides everything for a Guest.* The route mode starts on Clean, and a Guest has no clean route to a vault terminal,
+   so the map shows no line and there are no arrows until the player presses J. Suggest: when the selected mode has no route and the
+   other does, draw the other (marked as such), or start on whichever exists.
+2. *Redraw cost.* Every route reply (about once a second) rebuilds the whole map: about 56 room frames plus one frame per polyline
+   segment, 328 line frames for one route in the test (both routes are drawn). That is hundreds of instances created and destroyed a
+   second. Suggest merging collinear segments before drawing, or reusing frames, and skipping the redraw when the points are
+   identical to the last reply.
+3. *Idle churn in CarrierTrackController.* While the player cannot track (the lobby, before the match), the 20 Hz refresh calls
+   `reset()` every tick, which bumps the marks revision and stops the whisper each time. Guard it so it only runs on a change.
+4. *Whisper.* The bundled `action_falling.ogg` stand-in is documented; in the test the sound reported not playing a moment after the
+   cue, so check it is audible in a real play session. The authored whisper stays a Step 20 item.
+5. *The map is a schematic* of public room volumes (documented), and the player marker only updates when a reply arrives, about once
+   a second. Fine for now; a smoother marker would need a local update of the "You" position.
+
+No other contract mismatches: one request in flight, about one a second, stale replies rejected by revision, input and the hold
+released on every lifecycle event, marks never read from actors.

@@ -63,7 +63,11 @@ function RouteArrows.new()
 		part.Parent = folder
 		table.insert(pool, part)
 	end
+	-- Rays in the characters' collision group meet only the walkable map, never any body. (A check for a Humanoid would skip
+	-- players but not the Humanoid-less crowd rigs, so a chevron on a body would tell which bodies are players.)
 	local params = RaycastParams.new()
+	params.CollisionGroup = GameConfig.Rig.CollisionGroup
+	params.RespectCanCollide = true
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { folder }
 	local function hide()
@@ -88,18 +92,6 @@ function RouteArrows.new()
 					params
 				)
 				if not hit then
-					continue
-				end
-				local actor = false
-				local parent: Instance? = hit.Instance
-				while parent and parent ~= workspace do
-					if parent:IsA("Model") and parent:FindFirstChildOfClass("Humanoid") then
-						actor = true
-						break
-					end
-					parent = parent.Parent
-				end
-				if actor then
 					continue
 				end
 				local tip = hit.Position + Vector3.yAxis * config.ArrowLiftStuds
