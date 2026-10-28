@@ -216,8 +216,15 @@ function SupplyHudController.Start()
 			else 0
 		progress.Size = UDim2.new(fill, -theme.PaddingPixels * 2 * fill, 0, theme.ReloadBarPixels)
 		progress.Visible = info.Buying ~= nil
+		local buyingName: string? = nil
+		for _, item in info.Items do
+			if item.Id == info.Buying then
+				buyingName = item.Name
+				break
+			end
+		end
 		status.Text = if info.Buying
-			then "BUYING · BREAKS COVER"
+			then `{if buyingName then string.upper(buyingName) else "BUYING"} · BREAKS COVER`
 			elseif requested then "REQUEST SENT"
 			else "PURCHASES BREAK COVER"
 	end))

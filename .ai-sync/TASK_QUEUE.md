@@ -440,3 +440,14 @@ B/lifecycle/server close releases UI and held-item input safely. SecurityHud cov
 41 Supply assertions plus 3 security assertions; 1,585 across fourteen checked suites. StyLua, Selene and Rojo pass.
 Native layout/input/network acceptance remains; no new SPEC-QUESTION. No server changes or 18d work in this patch.
 Full files, checks and limits: docs/SUPPLY_HUD_REVIEW_2026-10-28.md.
+
+## Rescue client (owner continuation, 2026-10-28)
+
+| Id | Work | Owner | Status |
+|---|---|---|---|
+| 18d-hud | Generic Agent Tag prompt and acknowledged pickup bar; Rescue name/reasons/price/duration through ShopState, with no inferred tag inventory/recipient/success. No server changes. | CODEX | READY_FOR_REVIEW |
+
+Security 56 + Supply 50 assertions; 1,597 across fourteen checked client suites. StyLua, Selene and Rojo pass.
+Native multiplayer pickup/Rescue remains for Studio acceptance. No new SPEC-QUESTION. Files/steps/limits:
+docs/RESCUE_HUD_REVIEW_2026-10-28.md. Contract-owner note: the economy contract's old Not built list still mentions
+18c/18d despite its detailed Built sections; refresh that wording after review. No extra carried-tag state inferred.

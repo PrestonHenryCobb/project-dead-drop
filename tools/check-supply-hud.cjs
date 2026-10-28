@@ -9,6 +9,8 @@ const match=between(config,'\tMatchHud = {','\n\t-- Spec 3.1: modes.');
 const graphic=between(config,'\t\tGraphicHud = {','\n\t\t-- Ticket 19-traversal-warnings:');
 const hud=after(read('src/client/Controllers/SupplyHudController.luau'),'local SupplyHudController =');
 const held=after(read('src/client/Controllers/HeldItemController.luau'),'local HeldItemController =');
+for(const reason of ['No rescue in Solos','Rescue is off during Overtime','Carry an Agent Tag','Nobody left to rescue'])if(!read('src/server/Services/RescueService.luau').includes('"'+reason+'"'))throw Error('Rescue reason changed: '+reason);
+if(!read('src/server/Services/SupplyService.luau').includes('"RescueTeammate"'))throw Error('Rescue item id changed');
 const harness=`
 local checks=0 local function check(v,msg)assert(v,msg)checks+=1 end
 local now=100 local os={clock=function()return now end}
@@ -78,6 +80,19 @@ now=101 frame()check(find("SupplyPurchaseProgress").Size[1]==.5,"BuySeconds driv
 events.ShopState(state("ArmorPlate"))frame()check(find("SupplyPurchaseProgress").Size[1]==.5,"Same active purchase snapshot does not restart bar")
 now=110 frame()check(find("SupplyPurchaseProgress").Size[1]==1 and find("SupplyPurchaseProgress").Visible,"Full bar cannot invent completion")
 events.ShopState(state(nil,23))frame()check(not find("SupplyPurchaseProgress").Visible and find("SupplyIntel").Text=="TEAM INTEL · 23","Only server snapshot confirms purchase/balance")
+local rescue={Id="RescueTeammate",Name="Rescue teammate",Price=8,Available=false,Reason=""}table.insert(offers,rescue)
+for _,reason in {"No rescue in Solos","Rescue is off during Overtime","Carry an Agent Tag","Nobody left to rescue"}do
+ rescue.Reason=reason events.ShopState(state())frame()local before=#requests click("RescueTeammate")
+ check(find("RescueTeammate").Text:find(reason,1,true)and not find("RescueTeammate").Active and #requests==before,"Exact authoritative Rescue refusal: "..reason)
+end
+rescue.Available=true rescue.Reason=""events.ShopState(state())frame()
+check(find("RescueTeammate").Text=="Rescue teammate · 8 INTEL","Rescue uses server price including discount")
+click("RescueTeammate")check(requests[#requests][1]=="RequestShopBuy"and requests[#requests][2]=="RescueTeammate","Rescue uses existing purchase request, no client respawn")
+local buyingRescue=state("RescueTeammate")buyingRescue.BuySeconds=3 now=200 events.ShopState(buyingRescue)now=201.5 frame()
+check(find("SupplyPurchaseProgress").Size[1]==.5 and find("SupplyStatus").Text=="RESCUE TEAMMATE · BREAKS COVER","Rescue uses its reported duration and generic server name")
+now=250 frame()check(find("SupplyPurchaseProgress").Visible and find("SupplyIntel").Text=="TEAM INTEL · 40","Full Rescue bar cannot invent spend or revive")
+rescue.Available=false rescue.Reason="Nobody left to rescue"events.ShopState(state(nil,32))frame()
+check(not find("SupplyPurchaseProgress").Visible and find("SupplyIntel").Text=="TEAM INTEL · 32"and not find("RescueTeammate").Active,"Only refreshed server state ends Rescue and changes availability/balance")
 events.ShopState(state(nil,0))frame()check(not find("ArmorPlate").Active and find("ArmorPlate").Text:find("Not enough Intel",1,true),"Affordability uses server balance")
 click("CloseSupplyShop")check(requests[#requests][1]=="RequestShopClose"and not find("SupplyShopOverlay").Visible,"Close button asks server and dismisses UI")
 n=#fireCalls bindings.HeldItemFire(nil,"Begin")check(#fireCalls==n+1 and heldChanges==1,"Closing restores input without changing held item")
