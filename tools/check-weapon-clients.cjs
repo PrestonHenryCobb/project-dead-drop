@@ -27,6 +27,8 @@ const summaries = read('src/client/Combat/WeaponSummary.luau');
 const effectConfig = between(read('src/shared/GameConfig.luau'), '\t\tWeaponEffects = {', '\t\t-- The hammer');
 const reload = between(controller, 'local function advanceReload(', 'local function step(');
 const melee = between(controller, 'local function onMelee(', 'local function resetWeapon(');
+const phaseGate = between(controller, 'local function onPhase(', 'local function onCharacter(');
+const fireInput = between(controller, 'local function onFire(', 'local function onAim(');
 const ammo = between(controller, 'janitor:Add(RemoteController.connect("AmmoUpdate", function(info: Types.AmmoInfo)', '\n\tjanitor:Add(RemoteController.connect("CombatStatus"')
   .replace('janitor:Add(RemoteController.connect("AmmoUpdate", function(info: Types.AmmoInfo)', 'local function onAmmo(info)')
   .replace(/end\)\)\s*$/, 'end');
@@ -96,6 +98,7 @@ local reloadEndsAt,reloadStartedAt=0,0
 local predictedReloadPending,shellInterruptPending=false,false
 local burstRemaining,nextFireAt,lastMeleeAt,lastEmptyAt=0,0,-math.huge,-math.huge
 local meleePending,takedownActive,held,aiming=false,false,true,false
+local phaseFrozen,combatEnabled,firing=false,true,false
 local recoilPitch,recoilYaw,spreadExtra,lastFireAt=0,0,0,0
 local shotDirections={}
 local streak={}
@@ -121,6 +124,8 @@ local aimBlend=0
 ${reload}
 ${ammo}
 ${melee}
+${phaseGate}
+${fireInput}
 local camera={CFrame={Position=Vector3.zero}}
 local function reset(id,m,r)
  def=defs[id] mag,reserve=m,r reloadEndsAt,reloadStartedAt=0,0
@@ -173,6 +178,19 @@ check(#predictions==1 and mag==0 and #calls==2,"Flare launch plus reload")
 reset("ParapetPump",6,12) lastMeleeAt=now fireOnce(camera,{},now+.64)
 check(#calls==0 and #sounds==0,"Recovery gate precedes feedback")
 fireOnce(camera,{},now+.65) check(#calls==1,"Recovery expires at per-weapon delay")
+reset("ParapetPump",6,12)
+firing,aiming,burstRemaining=true,true,3
+reloadEndsAt=now+.5 shellInterruptPending=true predictedReloadPending=true
+onPhase("Insertion")
+check(phaseFrozen and not firing and not aiming and burstRemaining==0,"Insertion clears held inputs")
+check(reloadEndsAt==0 and not shellInterruptPending and not predictedReloadPending,"Insertion clears reload prediction")
+table.clear(calls)table.clear(sounds)
+onFire("",Enum.UserInputState.Begin)fireOnce(camera,{},now)
+check(#calls==0 and #sounds==0 and mag==6,"Frozen input cannot predict shots")
+combatEnabled=false
+onPhase("Infiltration")
+check(not phaseFrozen and not combatEnabled and not firing,"Phase release cannot revive or queue fire")
+combatEnabled=true
 -- Exercise the actual effects module with engine instances/rays replaced only.
 local effectModule=(function()
 local config=GameConfig.Combat.WeaponEffects

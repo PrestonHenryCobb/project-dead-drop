@@ -86,6 +86,7 @@ local meleePending = false -- press through server action completion/cancel; fir
 local firing = false
 local held = true
 local combatEnabled = true -- owner-only Downed/Revived/Eliminated messages, never a character attribute
+local phaseFrozen = false -- independent of incapacitation; a phase change must never revive a downed player
 local aiming = false
 local aimBlend = 0
 local spreadExtra = 0
@@ -98,7 +99,7 @@ local baseFov = 70
 local appliedFov = 0
 
 local function character(): (Model?, Humanoid?, BasePart?)
-	if not combatEnabled then
+	if not combatEnabled or phaseFrozen then
 		return nil, nil, nil
 	end
 	local model = localPlayer.Character
@@ -204,7 +205,7 @@ local function startReload(now: number)
 end
 
 local function fireOnce(camera: Camera, root: BasePart, now: number)
-	if def.Melee or not held or (isReloading(now) and not def.ReloadPerShell) then
+	if phaseFrozen or def.Melee or not held or (isReloading(now) and not def.ReloadPerShell) then
 		return
 	end
 	if meleePending or takedownActive or now < lastMeleeAt + (def.PostMeleeFireDelay or 0) then
@@ -428,7 +429,7 @@ end
 
 local function onFire(_: string, state: Enum.UserInputState): Enum.ContextActionResult
 	if state == Enum.UserInputState.Begin then
-		if not combatEnabled or meleePending or takedownActive then
+		if not combatEnabled or phaseFrozen or meleePending or takedownActive then
 			return Enum.ContextActionResult.Sink
 		end
 		if attackBlocked(workspace.CurrentCamera) then
@@ -581,6 +582,24 @@ local function setCombatEnabled(value: boolean)
 	end
 end
 
+local function onPhase(phase: Types.Phase)
+	phaseFrozen = phase == "Insertion"
+	if not phaseFrozen then
+		return
+	end
+	cancelLocalMelee()
+	firing, burstRemaining = false, 0
+	reloadEndsAt = 0
+	predictedReloadPending, shellInterruptPending = false, false
+	if aiming then
+		aiming = false
+		RemoteController.fire("RequestDraw", false)
+	end
+	if viewModel then
+		viewModel:setVisible(false)
+	end
+end
+
 local function onCharacter(model: Model)
 	resetForSpawn()
 	local humanoid = model:WaitForChild("Humanoid") :: Humanoid
@@ -604,6 +623,7 @@ function WeaponController.Init() end
 
 function WeaponController.Start()
 	ShotVisuals.start()
+	janitor:Add(RemoteController.connect("PhaseChanged", onPhase))
 	local sounds = {
 		def.Sounds.Fire,
 		def.Sounds.Reload,
@@ -687,7 +707,7 @@ function WeaponController.Start()
 		cancelLocalMelee()
 	end))
 	janitor:Add(RemoteController.connect("MeleeState", function(info: Types.MeleeState)
-		if not combatEnabled or not held then
+		if not combatEnabled or phaseFrozen or not held then
 			cancelLocalMelee()
 			return
 		end

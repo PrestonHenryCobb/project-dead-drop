@@ -113,6 +113,28 @@ local GameConfig = {
 		TickSeconds = 0.25, -- ticket 10a: MatchService checks its timers this often
 	},
 
+	-- Tickets 10b/c: client presentation; match timing remains in Match above.
+	MatchHud = {
+		DisplayOrder = 60,
+		PanelWidthPixels = 560,
+		BriefHeightPixels = 208,
+		ResultsHeightPixels = 430,
+		BannerTopFraction = 0.23,
+		TitleSize = 28,
+		BodySize = 18,
+		PaddingPixels = 20,
+		TimerWidthPixels = 150,
+		TimerHeightPixels = 56,
+		TimerTopPixels = 16,
+		WaitBottomPixels = 76,
+		WaitHeightPixels = 48,
+		ScoreRowPixels = 32,
+		MarkerSizePixels = 18,
+		MarkerHeightStuds = 3.5,
+		MarkerFillTransparency = 0.88,
+		MarkerOutlineTransparency = 0.15,
+	},
+
 	-- Spec 3.1: modes.
 	Modes = {
 		Squads = { TeamSize = 3, MaxTeams = 4, MinPlayers = 4, MaxPlayers = 12 },

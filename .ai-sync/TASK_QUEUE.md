@@ -208,8 +208,8 @@ they differ (see MENU_CONTRACT.md "Where the handoffs were corrected").
 | Id | Ticket | Owner | Needs | Status |
 |---|---|---|---|---|
 | 10a | MatchService phase machine (spec 2: Lobby, Insertion, Infiltration, VaultBreach, PackageHeist, Overtime, Results), fill rules (3.1), insertion freeze, forced vault unlock at 6:00, 14:00 main timer, Mission Failed, Results then back to the lobby; LobbyService hands ready teams to it; PhaseChanged payload in Types (PhaseData). **Built, untested in Studio.** | CLAUDE_CODE | | READY_FOR_REVIEW |
-| 10b | MatchController: phase banner, black screen and briefing card on Insertion, main timer, results scoreboard, lobby wait text. Read MATCH_CONTRACT.md first; server complete, no server change needed. | CODEX | 10a | TODO |
-| 10c | Teammate markers: coloured diamond over living teammates through walls plus outline, from TeamRoster and Lobby.TeamColors, client only, nothing on characters. | CODEX | 10a | TODO |
+| 10b | MatchController: phase banner, black screen and briefing card on Insertion, main timer, results scoreboard, lobby wait text. Read MATCH_CONTRACT.md first; server complete, no server change needed. | CODEX | 10a | READY_FOR_REVIEW |
+| 10c | Teammate markers: coloured diamond over living teammates through walls plus outline, from TeamRoster and Lobby.TeamColors, client only, nothing on characters. | CODEX | 10a | READY_FOR_REVIEW |
 | 11a | IntelService + IntelController (Step 11): station ids, hold-to-hack through InteractService with per-team once-only use and 20 s saved progress, tier and sight checks, Suspicious-if-witnessed, team balance + spend(). Intel no longer unlocks the vault (re-layout; see 12a). Contract: .ai-sync/INTEL_CONTRACT.md. **Built, untested in Studio.** | CLAUDE_CODE | 10a | READY_FOR_REVIEW |
 | 11b | Intel HUD: team balance, taken-station state, hold progress. Read INTEL_CONTRACT.md; no server change. | CODEX | 11a | TODO |
 | 12a | VaultService (Step 12, re-layout rules): 3 of 5 vaults active per match with a terminal on each dais, server-wide per-terminal hack by standing on the dais (1.25 %/s, x1.25 with 3 intel, paused when contested, Exposed on the dais), Vault Breach on the first hack or at 6:00, all 3 hacked unlocks the Sanctum elevator and starts the Package Heist. Contract: .ai-sync/VAULT_CONTRACT.md. **Built, untested in Studio.** | CLAUDE_CODE | 10a, 11a | READY_FOR_REVIEW |
@@ -270,3 +270,13 @@ reloads and melee details now show charged/rear-hold damage. Smoke/server sight 
 Concurrent work: Claude has locked the Step 10a match services and shared contract. Codex has not touched those files.
 Next coordination: Claude should publish the stable 10a client event/state contract in .ai-sync before the client
 adds match-phase/objective UI. Keep continuing without a Studio playtest as the owner requested; no fake round state.
+
+## Match client handoff (Codex 10b/10c, 2026-10-27; no playtest)
+
+MatchController and MatchPresentation render the server phase/clock, private insertion brief/fade, banner, lobby
+wait and results roster. TeammateMarkerController draws only private-roster living teammate diamonds/outlines in
+client-owned instances and follows respawns; no character decoration. WeaponController now suppresses insertion
+prediction and clears held attacks without changing downed/eliminated state. MatchHud config is presentation-only.
+Changed files pass StyLua/Selene; 39 match and 225 weapon actual-source assertions pass; Rojo build passes.
+No Studio playtest per owner. Full files/acceptance/gaps: docs/MATCH_CLIENT_REVIEW_2026-10-27.md.
+Next: queued Intel/Vault client HUD from Claude's published contracts; keep server work and locks with Claude.
