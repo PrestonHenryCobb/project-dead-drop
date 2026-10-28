@@ -77,6 +77,7 @@ type State = {
 	slowUntil: number, -- os.clock() until which walking is slowed (a pump shotgun stagger)
 	slowMult: number,
 	slowId: number, -- bumped by each slow, so an older one's expiry never ends a newer one
+	autoSince: number?, -- ticket auto-recover: when the re-cover ring began, if one is running
 }
 
 local DisguiseService = {}
@@ -90,6 +91,8 @@ local npcLookup: ((string) -> NpcInfo?)? = nil
 local coverHooks: CoverHooks? = nil
 local swapListeners: { (Player) -> () } = {}
 local actionBlocker: ((Player) -> boolean)? = nil
+local autoRecover: { [Player]: boolean } = {} -- ticket auto-recover: the option where the player has changed it
+local autoElapsed = 0
 local agentLookup: ((Player) -> string?)? = nil -- ticket 16a: AbilityService says which agent a player is
 local validateAccumulator = 0
 
@@ -526,6 +529,58 @@ function DisguiseService.quickChange(player: Player): (boolean, string?)
 	return true, nil
 end
 
+-- Auto re-cover (ticket auto-recover) -------------------------------------------------------------------------------------
+
+local function autoEnabled(player: Player): boolean
+	local chosen = autoRecover[player]
+	return if chosen ~= nil then chosen else config.AutoRecoverDefault
+end
+
+local function sendAuto(player: Player, active: boolean)
+	local info: Types.AutoRecoverInfo =
+		{ Enabled = autoEnabled(player), Active = active, Seconds = config.AutoRecoverSeconds }
+	RemoteService.fireClient("AutoRecoverState", player, info)
+end
+
+-- An Exposed player who may re-cover (CoverService: no lockout, not tracked, in a zone their look allows, not carrying the
+-- Package) starts a ring; when it has run its time the disguise goes back on as if they had pressed Disguise. If anything stops
+-- re-covering the ring ends; they press Disguise at any time to do it at once.
+local function checkAuto()
+	local now = os.clock()
+	for player, state in states do
+		local ready = state.exposed
+			and autoEnabled(player)
+			and now >= state.swapEndsAt
+			and not blocked(player)
+			and coverHooks ~= nil
+			and coverHooks.canRecover(player)
+		if ready and not state.autoSince then
+			state.autoSince = now
+			sendAuto(player, true)
+		elseif ready and state.autoSince and now - state.autoSince >= config.AutoRecoverSeconds then
+			state.autoSince = nil
+			sendAuto(player, false)
+			onRequestDisguise(player)
+		elseif not ready and state.autoSince then
+			state.autoSince = nil
+			sendAuto(player, false)
+		end
+	end
+end
+
+local function onRequestAutoRecover(player: Player, on: unknown)
+	if typeof(on) ~= "boolean" then
+		return
+	end
+	autoRecover[player] = on
+	notify(player, if on then "Auto re-cover on" else "Auto re-cover off")
+	local state = states[player]
+	if state and not on and state.autoSince then
+		state.autoSince = nil
+	end
+	sendAuto(player, state ~= nil and state.autoSince ~= nil)
+end
+
 local function onRequestScan(player: Player, targetId: unknown)
 	local state = states[player]
 	if not state or blocked(player) then
@@ -639,6 +694,7 @@ function DisguiseService.spawn(player: Player, character: Model)
 	OutfitApplier.apply(character, insertion)
 	humanoid.WalkSpeed = speedFor(state)
 	sendUpdate(player, state)
+	sendAuto(player, false) -- tells the client whether Auto re-cover is on
 end
 
 function DisguiseService.Init() end
@@ -648,17 +704,24 @@ function DisguiseService.Start()
 	RemoteService.onRequest("RequestDisguise", onRequestDisguise)
 	RemoteService.onRequest("RequestSprint", onRequestSprint)
 	RemoteService.onRequest("RequestCrouch", onRequestCrouch)
+	RemoteService.onRequest("RequestAutoRecover", onRequestAutoRecover)
 
 	Players.PlayerRemoving:Connect(function(player)
 		states[player] = nil
 		frozen[player] = nil
 		carriers[player] = nil
+		autoRecover[player] = nil
 	end)
 	RunService.Heartbeat:Connect(function(dt)
 		validateAccumulator += dt
 		if validateAccumulator >= config.ScanCheckSeconds then
 			validateAccumulator = 0
 			checkScans()
+		end
+		autoElapsed += dt
+		if autoElapsed >= 1 / config.AutoRecoverCheckHz then
+			autoElapsed = 0
+			checkAuto()
 		end
 	end)
 end

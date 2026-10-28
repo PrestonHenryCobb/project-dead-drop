@@ -575,6 +575,12 @@ local GameConfig = {
 		DisguiseSeconds = 0.8,
 		DisguiseSwishRadius = 10, -- visible puff and audible swish
 		DisguiseSlots = 1,
+		-- Auto re-cover (ticket auto-recover): an Exposed player who is allowed to re-cover starts a ring, and AutoRecoverSeconds
+		-- later the disguise goes back on as if they had pressed Disguise. Anything that stops re-covering cancels the ring.
+		-- On unless the player turns it off (Controls.ToggleAutoRecover); AutoRecoverCheckHz is how often it is looked at.
+		AutoRecoverDefault = true,
+		AutoRecoverSeconds = 1.5,
+		AutoRecoverCheckHz = 5,
 		-- Spec 7.4's 3 s grace countdown is not used: trespass is a rate that builds suspicion while witnessed
 		-- (STEP7_QUESTIONS C1). Vesper's "grace 6 s" perk is reinterpreted when she is built in Step 16.
 		TrespassGrace = 3,
@@ -1528,6 +1534,7 @@ local GameConfig = {
 
 	-- Spec 24: default keys. Rebinding comes with the settings menu.
 	Controls = {
+		ToggleAutoRecover = Enum.KeyCode.H, -- turns Auto re-cover on or off (until the settings menu has it)
 		Weapon = Enum.KeyCode.One, -- ticket 17: equip the weapon; the gadgets are Gadget1 and Gadget2
 		Gadget1 = Enum.KeyCode.Two,
 		Gadget2 = Enum.KeyCode.Three,
@@ -1722,6 +1729,7 @@ local GameConfig = {
 			RequestDropPackage = { PerSecond = 1, Burst = 2 }, -- ticket 13a
 			RequestAbility = { PerSecond = 2, Burst = 3 }, -- ticket 16: a key press; the server holds the cooldown
 			RequestSparrowMove = { PerSecond = 30, Burst = 30 }, -- ticket 16c: sent at Lattice.SparrowDrone.MoveHz
+			RequestAutoRecover = { PerSecond = 2, Burst = 3 }, -- a key press
 			RequestGadget = { PerSecond = 6, Burst = 8 }, -- ticket 17: key presses (equip, deploy, alternate)
 			RequestSpectate = { PerSecond = 4, Burst = 8 },
 			RequestDronePosition = { PerSecond = 15, Burst = 15 },

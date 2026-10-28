@@ -85,6 +85,15 @@ export type SparrowStateInfo = {
 	EndsAt: number,
 }
 
+-- Ticket auto-recover ("AutoRecoverState", to the owner only). Enabled is the player's Auto re-cover option. While Active a
+-- re-cover ring is running: the disguise goes back on Seconds after the ring began unless something cancels it (a new message
+-- with Active = false) or the player presses Disguise to do it at once. Sent when the option changes and when a ring begins or ends.
+export type AutoRecoverInfo = {
+	Enabled: boolean,
+	Active: boolean,
+	Seconds: number,
+}
+
 -- Spec 7: a player's own cover. Sent only to that player; enemies never learn it (spec 25.7).
 export type CoverInfo = {
 	State: CoverState,

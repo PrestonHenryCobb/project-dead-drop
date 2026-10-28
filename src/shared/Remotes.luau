@@ -52,6 +52,8 @@ local Remotes = {
 		-- Ticket 9c
 		"SpectateState", -- to a spectator only: who they watch, or the drone (Types.SpectateStateInfo)
 		"SpectatorChat", -- to spectators only: a filtered chat line (Types.SpectatorChatInfo)
+		-- Ticket auto-recover
+		"AutoRecoverState", -- to the owner only: a re-cover ring started or ended, and whether the option is on (Types.AutoRecoverInfo)
 		-- Ticket 17
 		"Launch", -- to the player a Spring Pad throws: the velocity to take (Vector3)
 		"GadgetState", -- to the owner only: their gadgets, charges and what is held (Types.GadgetStateInfo)
@@ -89,6 +91,8 @@ local Remotes = {
 		"RequestSpectate", -- "Next", "Previous" or "Drone"; only honoured for an eliminated player
 		"RequestDronePosition", -- the drone camera's wanted position; the server limits speed and clamps it
 		"RequestSpectatorChat", -- a chat line for the other spectators
+		-- Ticket auto-recover
+		"RequestAutoRecover", -- turn the Auto re-cover option on or off (a boolean)
 		-- Ticket 16c
 		"RequestSparrowMove", -- the way the drone should fly, a vector of up to length 1 in world space (zero to hover)
 		-- Ticket menu-phase0
