@@ -24,6 +24,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
+local BotRegistry = require(script.Parent.Parent.Bots.BotRegistry)
 local CoverService = require(script.Parent.CoverService)
 local DownedService = require(script.Parent.DownedService)
 local ElevatorService = require(script.Parent.ElevatorService)
@@ -152,6 +153,18 @@ local function presence(terminal: Terminal): ({ [number]: boolean }, { Player })
 			end
 		end
 	end
+	-- Ticket 13B-a: a bot on its feet counts for its team like an agent does.
+	for _, bot in BotRegistry.list() do
+		if BotRegistry.alive(bot) then
+			local offset = bot.npc.ground - center
+			if
+				Vector3.new(offset.X, 0, offset.Z).Magnitude <= terminal.radius
+				and math.abs(offset.Y) <= config.TerminalHeightStuds
+			then
+				teams[bot.teamId] = true
+			end
+		end
+	end
 	return teams, present
 end
 
@@ -207,6 +220,17 @@ local function check(dt: number)
 		ElevatorService.setLocked(config.SanctumShaftId, false)
 		MatchService.advance("PackageHeist")
 	end
+end
+
+-- Ticket 13B-a: where the terminals not yet hacked stand (floor level), for a bot to walk to.
+function VaultService.openTerminals(): { Vector3 }
+	local list: { Vector3 } = {}
+	for _, terminal in terminals do
+		if not terminal.hacked then
+			table.insert(list, terminal.dais.Position)
+		end
+	end
+	return list
 end
 
 function VaultService.Init() end

@@ -70,6 +70,8 @@ export type Npc = {
 	animation: string, -- what clients should play ("" means just walk or idle)
 	threat: Vector3?, -- where the last gunshot or blast came from
 	reactedTo: { [Model]: boolean }, -- bodies this NPC has already reacted to
+	bot: boolean?, -- ticket 13B-a: a bot's brain (BotService) chooses its trips; it never picks one itself
+	botArrive: (() -> ())?, -- called when a bot finishes the walk the brain sent it on
 }
 
 -- What the reaction and death modules need from the crowd.

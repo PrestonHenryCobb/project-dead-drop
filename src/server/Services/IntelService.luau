@@ -83,6 +83,30 @@ local function take(teamId: number, station: Station)
 	sendTeam(teamId)
 end
 
+-- Ticket 13B-a: the stations a team has not taken, for a bot to walk to.
+function IntelService.untaken(teamId: number): { { id: string, position: Vector3, seconds: number } }
+	local list: { { id: string, position: Vector3, seconds: number } } = {}
+	for id, station in stations do
+		if not (used[teamId] and used[teamId][id]) then
+			table.insert(list, { id = id, position = station.part.Position, seconds = station.seconds })
+		end
+	end
+	table.sort(list, function(a, b)
+		return a.id < b.id
+	end)
+	return list
+end
+
+-- A bot team takes a station (the walk and the hack time were the bot's).
+function IntelService.takeFor(teamId: number, stationId: string): boolean
+	local station = stations[stationId]
+	if not station or (used[teamId] and used[teamId][stationId]) then
+		return false
+	end
+	take(teamId, station)
+	return true
+end
+
 local function beginStation(player: Player, targetName: string): InteractService.Interaction?
 	local station = stations[targetName]
 	local teamId = TeamService.teamOf(player)

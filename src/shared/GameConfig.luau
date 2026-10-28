@@ -679,6 +679,27 @@ local GameConfig = {
 		DecelSeconds = 0.15, -- from full speed to standing
 	},
 
+	-- Ticket 13B-a (BUILD_ORDER 13B, owner choice "crowd-NPC bots"): rival teams that fill the lobby. A bot is a crowd NPC
+	-- that walks to Intel stations and vault terminals; it does not shoot, pick up the Package or win. SPEC-QUESTION:
+	-- bots live beside the Player systems, not inside them, so a bot cannot be revived, carry the Package or be a teammate.
+	Bots = {
+		Enabled = true,
+		TargetTeams = 4, -- humans and bots together; bot teams fill up to this many (Match.MaxPlayers is never exceeded)
+		MaxTier = 4, -- a bot may go anywhere: it hacks its way through doors as a player would
+		TeamIdBase = 100, -- bot team ids start here, clear of the human teams
+		Difficulty = "Casual", -- a key of Profiles
+		ThinkHz = 2,
+		WarpStuds = 60, -- a bot that walked this near a terminal (a vault core has no nodes) is placed on its dais
+		ArriveStuds = 3, -- close enough to a station or terminal to work it
+		ResendSeconds = 3, -- a bot that stopped short of its goal (a reaction, a busy door) is sent again after this
+		Profiles = {
+			-- IntelGoal: stations each bot takes before it heads for a terminal. HackMult: times the station's hack time.
+			-- TerminalDelaySeconds: how long a bot waits after the Vault Breach begins before it walks to a terminal.
+			Casual = { IntelGoal = 2, HackMult = 1.6, TerminalDelaySeconds = 25 },
+			Competitive = { IntelGoal = 4, HackMult = 1, TerminalDelaySeconds = 0 },
+		},
+	},
+
 	-- Spec 9: intel.
 	Intel = {
 		-- Four station types (SPEC_CHANGES, intel amounts), chosen per station on the map. Points is the intel a station

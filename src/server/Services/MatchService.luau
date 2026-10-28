@@ -30,6 +30,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
+local BotRegistry = require(script.Parent.Parent.Bots.BotRegistry)
 local CombatService = require(script.Parent.CombatService)
 local DisguiseService = require(script.Parent.DisguiseService)
 local DownedService = require(script.Parent.DownedService)
@@ -74,6 +75,7 @@ local out: { [Player]: boolean } = {}
 local listeners: { (Types.Phase) -> () } = {}
 local tickElapsed = 0
 local packageHeld: (() -> boolean)? = nil
+local botSpawner: ((humanTeams: number) -> ())? = nil
 
 local function now(): number
 	return workspace:GetServerTimeNow()
@@ -112,7 +114,8 @@ local function broadcastPhase(banner: string?)
 		for _ in matchTeams do
 			total += 1
 		end
-		local count = #playersIn(matchTeams)
+		local count = #playersIn(matchTeams) + #BotRegistry.list()
+		total += BotRegistry.teamCount()
 		for teamId, members in matchTeams do
 			local own = table.clone(data)
 			own.Brief = { Mode = TeamService.mode(), TeamId = teamId, Teams = total, Players = count }
@@ -180,6 +183,10 @@ local function startInsertion()
 	table.clear(out)
 	results = nil
 	mainEndsAt, forcedVaultAt = nil, nil
+	local spawner = botSpawner
+	if spawner then
+		spawner(teamCount(matchTeams)) -- before the briefing, so it counts the bot teams
+	end
 	setPhase("Insertion", config.InsertionSeconds)
 	for _, member in playersIn(matchTeams) do
 		task.spawn(function()
@@ -265,6 +272,11 @@ end
 
 function MatchService.canQueue(): boolean
 	return phase == "Lobby"
+end
+
+-- Ticket 13B-a: BotService fills the empty team slots when the match starts.
+function MatchService.setBotSpawner(spawner: (humanTeams: number) -> ())
+	botSpawner = spawner
 end
 
 -- Ticket 13a: how the main timer asks whether someone is carrying the Package (spec 19: then Overtime begins).

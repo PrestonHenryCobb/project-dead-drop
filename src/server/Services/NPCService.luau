@@ -151,6 +151,7 @@ local function overloaded(chain: { NavGraph.Edge }): boolean
 	return false
 end
 
+local warped: { [Npc]: boolean } = {} -- bots standing on a dais (see warpBot)
 local putOffs = 0 -- trips put off because a door or stair on the way was full (reported with the tick cost)
 
 local function startTrip(npc: Npc, now: number, graph: NavGraph.Graph)
@@ -282,7 +283,7 @@ local function update(npc: Npc, dt: number, now: number, graph: NavGraph.Graph)
 	elseif state == "Cower" or state == "Gasp" then
 		Reactions.update(crowd :: NpcTypes.Crowd, npc, now)
 	elseif state == "Idle" then
-		if now >= npc.idleUntil then
+		if now >= npc.idleUntil and not npc.bot then
 			startTrip(npc, now, graph)
 		end
 	elseif state == "Wait" then
@@ -345,6 +346,14 @@ local function update(npc: Npc, dt: number, now: number, graph: NavGraph.Graph)
 			if npc.state == "BackAway" then
 				npc.state = "Idle"
 				npc.idleUntil = now
+			elseif npc.bot and npc.state == "Walk" and not npc.ride then
+				npc.state = "Idle"
+				npc.speed = npc.baseSpeed
+				AnimationSync.set(npc, "")
+				local arrived = npc.botArrive
+				if arrived then
+					arrived()
+				end
 			elseif npc.ride and npc.state == "Walk" then
 				beginWait(npc, now)
 			elseif npc.state ~= "Investigate" then
@@ -525,8 +534,9 @@ local function refreshTiers(now: number)
 		for _, position in positions do
 			nearest = math.min(nearest, (npc.ground - position).Magnitude)
 		end
-		npc.tier = if nearest <= settings.NearStuds
+		npc.tier = if npc.bot
 			then 1
+			elseif nearest <= settings.NearStuds then 1
 			elseif nearest <= settings.MidStuds then 2
 			elseif nearest <= settings.FarStuds then 3
 			else 0
@@ -658,6 +668,78 @@ local function describeNpc(id: string): DisguiseService.NpcInfo?
 end
 
 -- Combat (CombatService) reads the live crowd, hits NPCs and makes noise through these.
+-- Ticket 13B-a: a bot's brain drives this NPC. It never sleeps, may go anywhere (it is not held to its role's clearance:
+-- a bot hacks its way through, as a player would), and stops choosing its own trips.
+function NPCService.makeBot(npc: Npc, arrive: () -> ())
+	npc.bot = true
+	npc.botArrive = arrive
+	npc.maxTier = GameConfig.Bots.MaxTier
+	npc.tier = 1
+end
+
+-- A vault core has no nodes (no crowd NPC ever goes in), so the last step onto a terminal's dais is a placement: the bot
+-- stands where it is told. releaseBot puts it back at its node.
+function NPCService.warpBot(npc: Npc, position: Vector3)
+	if not npc.bot or (npc.state ~= "Idle" and npc.state ~= "Walk") then
+		return
+	end
+	npc.path = nil
+	npc.state = "Idle"
+	npc.ground = position
+	warped[npc] = true
+	Movement.place(npc)
+end
+
+-- The NPC goes back to being part of the crowd.
+function NPCService.releaseBot(npc: Npc)
+	if warped[npc] and currentGraph then
+		warped[npc] = nil
+		npc.ground = currentGraph.feet[npc.node]
+		Movement.place(npc)
+	end
+	npc.bot = nil
+	npc.botArrive = nil
+	npc.maxTier = config.RoleMaxTier[npc.role]
+	if npc.state == "Idle" then
+		npc.idleUntil = os.clock()
+	end
+end
+
+-- Walks a bot to a position along the node graph. False when it cannot walk now (down, held, in a lift) or has no route.
+function NPCService.sendTo(npc: Npc, position: Vector3): boolean
+	local graph = currentGraph
+	local state = npc.state
+	if not graph or not npc.bot then
+		return false
+	end
+	if state ~= "Idle" and state ~= "Walk" then
+		return false
+	end
+	local node, points = NavGraph.routeNear(graph, npc.node, npc.maxTier, position)
+	if not node or not points then
+		return false
+	end
+	local last = if #points > 0 then points[#points] else npc.ground
+	local exact = NavGraph.standable(graph, last, position, npc.maxTier)
+	if exact then
+		table.insert(points, exact)
+	end
+	if #points == 0 then
+		return false
+	end
+	release(npc.node)
+	claim(node)
+	npc.node = node
+	npc.path = points
+	npc.pathIndex = 1
+	npc.legs = {}
+	npc.ride = nil
+	npc.speed = npc.baseSpeed
+	npc.state = "Walk"
+	AnimationSync.set(npc, "")
+	return true
+end
+
 function NPCService.getNpcs(): { Npc }
 	return npcs
 end

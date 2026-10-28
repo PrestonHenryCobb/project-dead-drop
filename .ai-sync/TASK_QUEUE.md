@@ -217,6 +217,7 @@ they differ (see MENU_CONTRACT.md "Where the handoffs were corrected").
 | 13a | PackageService + ExtractionService + PackageController (Step 13): Package pickup/carrier rules/pass/drop/return/pings, extraction sites (call, 45 s or 20 s countdown, beacon, hover, green zone, 3 s channel), win via MatchService.finish, Overtime (90 s cap, 10 s drop grace) from the main timer when the Package is held. Contract: .ai-sync/PACKAGE_CONTRACT.md. **Built, untested in Studio.** | CLAUDE_CODE | 12a | READY_FOR_REVIEW |
 | 13b | Package/extraction/overtime HUD: package and ping markers, extraction countdown, zone and channel, overtime timer. Read PACKAGE_CONTRACT.md; no server change. | CODEX | 13a | READY_FOR_REVIEW |
 | 13c | Extraction presentation: helicopter at Hover, 5 s cinematic at Extracted, MISSION SUCCESS/FAILED. | CODEX | 13a | READY_FOR_REVIEW |
+| 13B-a | Bots, first slice (owner chose crowd-NPC bots): BotService/BotRegistry fill the lobby with rival teams that take Intel stations and stand on vault terminals (contesting humans); no shooting, Package or win yet. Contract: .ai-sync/BOT_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 13a | READY_FOR_REVIEW |
 
 ## Waiting on the owner
 
