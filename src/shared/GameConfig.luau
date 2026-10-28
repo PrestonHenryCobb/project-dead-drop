@@ -695,9 +695,29 @@ local GameConfig = {
 		Profiles = {
 			-- IntelGoal: stations each bot takes before it heads for a terminal. HackMult: times the station's hack time.
 			-- TerminalDelaySeconds: how long a bot waits after the Vault Breach begins before it walks to a terminal.
-			Casual = { IntelGoal = 2, HackMult = 1.6, TerminalDelaySeconds = 25 },
-			Competitive = { IntelGoal = 4, HackMult = 1, TerminalDelaySeconds = 0 },
+			-- Ticket 13B-b adds: PackageDelaySeconds (after the Package Heist begins before a team's nearest bot goes for the
+			-- Package), Hunts (heads for a rival carrier), and Shot: what a bot does to an Exposed agent in sight.
+			Casual = {
+				IntelGoal = 2,
+				HackMult = 1.6,
+				TerminalDelaySeconds = 25,
+				PackageDelaySeconds = 20,
+				Hunts = false,
+				Shot = { Damage = 8, IntervalSeconds = 0.7, HitChance = 0.35, RangeStuds = 45 },
+			},
+			Competitive = {
+				IntelGoal = 4,
+				HackMult = 1,
+				TerminalDelaySeconds = 0,
+				PackageDelaySeconds = 0,
+				Hunts = true,
+				Shot = { Damage = 12, IntervalSeconds = 0.4, HitChance = 0.6, RangeStuds = 70 },
+			},
 		},
+		WeaponId = "ReticleCarbine", -- what the shot looks like and sounds like to others (a registered weapon)
+		HearStuds = 80,
+		PackageFloorDrop = 6, -- the Package floats this far above the floor of its room (pedestal top plus Package.LiftStuds)
+		EyeStuds = 1.5, -- a bot's eye above its feet, for sight lines
 	},
 
 	-- Spec 9: intel.

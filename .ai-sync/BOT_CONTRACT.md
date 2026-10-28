@@ -13,12 +13,25 @@ a Vault Breach they reach terminals and contest them (`C` on the bars).
 - Profiles `Casual` (default) and `Competitive` in `GameConfig.Bots`.
 - The briefing's team and player counts include bots (`MatchService.setBotSpawner`).
 
-## Not built (named gaps, SPEC-QUESTIONs)
-- Bots do not shoot, take the Package, extract or win; they cannot be revived or be a human's teammate. Bots that hack a terminal
-  stay in their disguise (a human on a dais is Exposed). A human who disconnects is not replaced by a bot.
-- A new player joining mid-match does not take a bot's place (BUILD_ORDER 13B).
-- Bot teams are not on the Results scoreboard.
-- Reactions (gunfire panic) interrupt a bot; it is sent again after `ResendSeconds`.
+## Step 13B-b: bots fight and extract (2026-10-28)
+**Tested in Studio:** with the human parked, three bot teams ran a whole match alone: Intel, hacked all three terminals, took the
+Package, called extraction, stood in the zone and won (`[Match] ended, winner team: 101`). A Competitive bot killed an Exposed
+player in sight within seconds.
+- Package: `PackageService` can be carried by a bot (`botPickup`, `carrierTeam`, `carrierBot`); it drops where the bot goes down and
+  pings rivals like a human carrier. The Package room's front door costs 10 Intel: a stopped bot team pays
+  `Doors.HackCost.PackageDoor` (IntelService.spend) and the bot is placed inside; a team that cannot pay goes back to taking Intel.
+- Extraction: `ExtractionService.botCall`, `botExtract`, `sites`, `state`; the carrier walks to the nearest pad (placed on it if the graph
+  stops short), calls, waits for the green zone, stands the channel time with no rival in it, wins. A bot win ends the match for humans.
+- Combat: `CombatService.botFire`. A bot shoots an **Exposed** human in sight within its profile's range (Shot: damage, interval, hit
+  chance); Covered humans are left alone. The shot is heard (ShotHeard, NPC panic). Competitive bots also hunt a rival carrier.
+- Bots stay active through Package Heist and Overtime and return to the crowd at Results.
+- Fixes found while testing: a bot sent again mid-walk starts from the node nearest to it (not the node it was heading for); a bot that
+  finished its Intel goal scouts the terminals during Infiltration, so a match of bots alone does not stall until the 6:00 unlock.
 
-## Studio test
-Play, claim an agent, Deploy, wait for Infiltration: Output shows `[Bots] 6 bot(s) in 3 team(s), Casual` and `[Intel] team 10x took ...`.
+## Not built (named gaps, SPEC-QUESTIONs)
+- Bots cannot be revived, be a human's teammate or use gadgets; they do not pass the Package or defend a carrier (Competitive ones hunt).
+- A human who disconnects is not replaced by a bot; a new player joining mid-match does not take a bot's place (BUILD_ORDER 13B).
+- Bot teams are not on the Results scoreboard. Bots stay in their NPC look (never Exposed) even while shooting.
+- Placement (warp) onto vault daises, the Package room and extraction pads is a visible jump for anyone watching; rooms with no graph
+  nodes would need proper routing.
+- Casual (default) and Competitive numbers are first guesses from short runs.

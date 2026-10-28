@@ -691,12 +691,16 @@ function NPCService.warpBot(npc: Npc, position: Vector3)
 end
 
 -- The NPC goes back to being part of the crowd.
-function NPCService.releaseBot(npc: Npc)
+function NPCService.unwarpBot(npc: Npc)
 	if warped[npc] and currentGraph then
 		warped[npc] = nil
 		npc.ground = currentGraph.feet[npc.node]
 		Movement.place(npc)
 	end
+end
+
+function NPCService.releaseBot(npc: Npc)
+	NPCService.unwarpBot(npc)
 	npc.bot = nil
 	npc.botArrive = nil
 	npc.maxTier = config.RoleMaxTier[npc.role]
@@ -715,7 +719,18 @@ function NPCService.sendTo(npc: Npc, position: Vector3): boolean
 	if state ~= "Idle" and state ~= "Walk" then
 		return false
 	end
-	local node, points = NavGraph.routeNear(graph, npc.node, npc.maxTier, position)
+	-- npc.node is the node a walk is heading for, so a bot sent again mid-way starts from the node nearest where it is.
+	local from = npc.node
+	if (graph.feet[from] - npc.ground).Magnitude > GameConfig.Bots.ArriveStuds then
+		local nearest = math.huge
+		for index = 1, #graph.feet do
+			local distance = (graph.feet[index] - npc.ground).Magnitude
+			if distance < nearest then
+				from, nearest = index, distance
+			end
+		end
+	end
+	local node, points = NavGraph.routeNear(graph, from, npc.maxTier, position)
 	if not node or not points then
 		return false
 	end

@@ -25,6 +25,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
+local BotRegistry = require(script.Parent.Parent.Bots.BotRegistry)
 local CombatService = require(script.Parent.CombatService)
 local DisguiseService = require(script.Parent.DisguiseService)
 local DownedService = require(script.Parent.DownedService)
@@ -125,8 +126,7 @@ local function rootOf(player: Player): BasePart?
 end
 
 local function teamOfCarrier(): number?
-	local carrier = PackageService.carrier()
-	return carrier and TeamService.teamOf(carrier)
+	return PackageService.carrierTeam()
 end
 
 -- An agent of another team than the carrier's standing in the zone.
@@ -144,7 +144,51 @@ local function enemyInZone(site: Site, teamId: number): boolean
 			return true
 		end
 	end
+	for _, bot in BotRegistry.list() do
+		if bot.teamId ~= teamId and BotRegistry.alive(bot) and inZone(bot.npc.ground, site) then
+			return true
+		end
+	end
 	return false
+end
+
+-- Starts the countdown at a site for a team (a player's call or a bot's).
+local function startCountdown(site: Site, teamId: number)
+	if GameConfig.Debug.PrintEvents then
+		print(`[Extraction] team {teamId} called {site.id}`)
+	end
+	dropVisuals()
+	local seconds = if MatchService.phase() == "Overtime"
+		then GameConfig.Overtime.ExtractionCountdown
+		else config.Countdown
+	current.state, current.site, current.callerTeam = "Countdown", site, teamId
+	current.endsAt, current.channeler = now() + seconds, nil
+	current.beacon = neonPart(
+		"ExtractionBeacon",
+		config.BeaconSize,
+		CFrame.new(site.marker.Position + Vector3.new(0, config.BeaconSize.Y / 2, 0)),
+		config.BeaconColor
+	)
+	RemoteService.fireAllClients("Notification", "EXTRACTION CALLED")
+	broadcast()
+end
+
+-- Spec 12.3: everything stops for the cinematic, then the match ends with this team the winner.
+local function win(teamId: number)
+	if GameConfig.Debug.PrintEvents then
+		print(`[Extraction] team {teamId} is extracting`)
+	end
+	current.state, current.channeler = "Extracted", nil
+	broadcast()
+	for _, member in Players:GetPlayers() do
+		if member.Character then
+			CombatService.setFrozen(member, true)
+			DisguiseService.setFrozen(member, true)
+		end
+	end
+	task.delay(config.CinematicSeconds, function()
+		MatchService.finish(teamId)
+	end)
 end
 
 local function beginCall(player: Player, siteId: string): InteractService.Interaction?
@@ -184,21 +228,7 @@ local function beginCall(player: Player, siteId: string): InteractService.Intera
 			if current.state == "Extracted" or PackageService.carrier() ~= carrier or teamOfCarrier() ~= teamId then
 				return
 			end
-			dropVisuals()
-			local seconds = if MatchService.phase() == "Overtime"
-				then GameConfig.Overtime.ExtractionCountdown
-				else config.Countdown
-			current.state, current.site, current.callerTeam = "Countdown", site, teamId
-			current.endsAt, current.channeler = now() + seconds, nil
-			local up = site.marker.Position
-			current.beacon = neonPart(
-				"ExtractionBeacon",
-				config.BeaconSize,
-				CFrame.new(up + Vector3.new(0, config.BeaconSize.Y / 2, 0)),
-				config.BeaconColor
-			)
-			RemoteService.fireAllClients("Notification", "EXTRACTION CALLED")
-			broadcast()
+			startCountdown(site, teamId)
 		end,
 	}
 end
@@ -237,20 +267,70 @@ local function beginChannel(player: Player, siteId: string): InteractService.Int
 			if current.state ~= "Open" or PackageService.carrier() ~= player then
 				return
 			end
-			current.state, current.channeler = "Extracted", nil
-			broadcast()
-			-- Spec 12.3: everything stops for the cinematic, then the match ends with this team the winner.
-			for _, member in Players:GetPlayers() do
-				if member.Character then
-					CombatService.setFrozen(member, true)
-					DisguiseService.setFrozen(member, true)
-				end
-			end
-			task.delay(config.CinematicSeconds, function()
-				MatchService.finish(teamId)
-			end)
+			win(teamId)
 		end,
 	}
+end
+
+-- Ticket 13B-b: the sites, for a bot to walk to: the terminal that calls, and the pad.
+function ExtractionService.sites(): { { id: string, terminal: Vector3, pad: Vector3 } }
+	local list = {}
+	for id, site in sites do
+		if site.terminal then
+			table.insert(list, { id = id, terminal = site.terminal.Position, pad = site.marker.Position })
+		end
+	end
+	table.sort(list, function(a, b)
+		return a.id < b.id
+	end)
+	return list
+end
+
+-- What the extraction is doing: its state, the site it is at, and which team called it.
+function ExtractionService.state(): (string, string?, number)
+	return current.state, if current.site then current.site.id else nil, current.callerTeam
+end
+
+-- A bot carrying the Package calls extraction at a terminal it stands beside.
+function ExtractionService.botCall(bot: BotRegistry.Bot, siteId: string): boolean
+	local site = sites[siteId]
+	local terminal = site and site.terminal
+	if
+		not (site and terminal)
+		or not inMatch()
+		or PackageService.carrierBot() ~= bot
+		or not BotRegistry.alive(bot)
+		or current.state == "Extracted"
+		or (current.state ~= "Idle" and current.callerTeam == bot.teamId)
+		or flatDistance(terminal.Position, bot.npc.ground) > config.CallReachStuds + config.SlackStuds
+	then
+		return false
+	end
+	startCountdown(site, bot.teamId)
+	return true
+end
+
+-- The bot carrying the Package has stood in the open zone for the channel time with no rival in it: it wins.
+function ExtractionService.botExtract(bot: BotRegistry.Bot): boolean
+	local site = current.site
+	if
+		current.state ~= "Open"
+		or not site
+		or PackageService.carrierBot() ~= bot
+		or not BotRegistry.alive(bot)
+		or not inZone(bot.npc.ground, site)
+		or enemyInZone(site, bot.teamId)
+	then
+		return false
+	end
+	win(bot.teamId)
+	return true
+end
+
+-- Is this position on the open pad (a bot waits for the green zone)?
+function ExtractionService.inOpenZone(position: Vector3): boolean
+	local site = current.site
+	return current.state == "Open" and site ~= nil and inZone(position, site)
 end
 
 local function open()

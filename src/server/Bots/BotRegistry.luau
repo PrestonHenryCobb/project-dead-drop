@@ -18,6 +18,7 @@ export type Bot = {
 	workingUntil: number, -- os.clock(): working a station until then (0: not working)
 	destination: Vector3?, -- where the brain last sent it
 	sentAt: number, -- os.clock() of that
+	nextShotAt: number, -- os.clock(): when it may fire again
 }
 
 local BotRegistry = {}

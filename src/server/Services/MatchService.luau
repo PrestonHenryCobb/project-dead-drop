@@ -235,6 +235,9 @@ function MatchService.finish(winnerTeamId: number?)
 	end
 	mainEndsAt, forcedVaultAt = nil, nil
 	results = buildResults(winnerTeamId)
+	if GameConfig.Debug.PrintEvents then
+		print("[Match] ended, winner team: " .. tostring(winnerTeamId))
+	end
 	setPhase("Results", config.ResultsSeconds)
 end
 

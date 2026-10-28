@@ -218,6 +218,7 @@ they differ (see MENU_CONTRACT.md "Where the handoffs were corrected").
 | 13b | Package/extraction/overtime HUD: package and ping markers, extraction countdown, zone and channel, overtime timer. Read PACKAGE_CONTRACT.md; no server change. | CODEX | 13a | READY_FOR_REVIEW |
 | 13c | Extraction presentation: helicopter at Hover, 5 s cinematic at Extracted, MISSION SUCCESS/FAILED. | CODEX | 13a | READY_FOR_REVIEW |
 | 13B-a | Bots, first slice (owner chose crowd-NPC bots): BotService/BotRegistry fill the lobby with rival teams that take Intel stations and stand on vault terminals (contesting humans); no shooting, Package or win yet. Contract: .ai-sync/BOT_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 13a | READY_FOR_REVIEW |
+| 13B-b | Bots fight and extract: bots carry the Package (paying the Package door in Intel), call and complete extraction (a bot team can win), and shoot Exposed humans in sight (CombatService.botFire). Contract: .ai-sync/BOT_CONTRACT.md. **A bots-only match ran to a bot win in Studio.** | CLAUDE_CODE | 13B-a | READY_FOR_REVIEW |
 
 ## Waiting on the owner
 

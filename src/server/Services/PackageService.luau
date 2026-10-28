@@ -27,6 +27,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
+local BotRegistry = require(script.Parent.Parent.Bots.BotRegistry)
 local CoverService = require(script.Parent.CoverService)
 local DisguiseService = require(script.Parent.DisguiseService)
 local DownedService = require(script.Parent.DownedService)
@@ -43,6 +44,7 @@ local config = GameConfig.Package
 
 local status: Status = "Hidden"
 local carrier: Player? = nil
+local botCarrier: BotRegistry.Bot? = nil -- ticket 13B-b: a bot can carry it too
 local part: Part? = nil
 local weld: WeldConstraint? = nil
 local lastCarrierPosition = Vector3.zero
@@ -65,6 +67,30 @@ function PackageService.carrier(): Player?
 	return carrier
 end
 
+-- Ticket 13B-b: who carries it, human or bot.
+function PackageService.carrierTeam(): number?
+	if carrier then
+		return TeamService.teamOf(carrier)
+	end
+	return if botCarrier then botCarrier.teamId else nil
+end
+
+function PackageService.carrierBot(): BotRegistry.Bot?
+	return botCarrier
+end
+
+-- Where the carrier is, or where a resting Package lies.
+function PackageService.position(): Vector3?
+	if status == "Carried" then
+		return lastCarrierPosition
+	end
+	return if part then part.Position else nil
+end
+
+function PackageService.status(): Status
+	return status
+end
+
 function PackageService.isHeld(): boolean
 	return status == "Carried"
 end
@@ -80,8 +106,8 @@ local function send()
 	local pulsing = status == "Carried" and clock < pulseUntil
 	for _, player in Players:GetPlayers() do
 		local teamId = TeamService.teamOf(player)
-		local carrierTeam = carrier and TeamService.teamOf(carrier)
-		local mine = carrier ~= nil and carrierTeam ~= nil and carrierTeam == teamId
+		local carrierTeam = PackageService.carrierTeam()
+		local mine = carrierTeam ~= nil and carrierTeam == teamId
 		local position: Vector3? = nil
 		if status == "Pedestal" or status == "Dropped" then
 			position = part and part.Position
@@ -118,6 +144,7 @@ local function returnToPedestal()
 		return
 	end
 	clearWeld()
+	botCarrier = nil
 	if carrier then
 		setFree(carrier)
 		carrier = nil
@@ -139,6 +166,7 @@ local function drop(at: Vector3)
 		return
 	end
 	clearWeld()
+	botCarrier = nil
 	if carrier then
 		setFree(carrier)
 		carrier = nil
@@ -165,6 +193,7 @@ local function grant(player: Player)
 		return
 	end
 	clearWeld()
+	botCarrier = nil
 	if carrier and carrier ~= player then
 		setFree(carrier)
 	end
@@ -198,6 +227,7 @@ local function beginPickup(player: Player, _: string): InteractService.Interacti
 		or (status ~= "Pedestal" and status ~= "Dropped")
 		or DownedService.isOut(player)
 		or carrier ~= nil
+		or botCarrier ~= nil
 	then
 		return nil
 	end
@@ -248,6 +278,43 @@ local function nearestTeammate(from: Player): Player?
 		end
 	end
 	return best
+end
+
+-- Ticket 13B-b: a bot standing at the Package takes it (the walk and the hold time were the bot's).
+function PackageService.botPickup(bot: BotRegistry.Bot): boolean
+	local package = part
+	if
+		not package
+		or not inMatch()
+		or (status ~= "Pedestal" and status ~= "Dropped")
+		or not BotRegistry.alive(bot)
+		or (package.Position - Vector3.new(0, GameConfig.Bots.PackageFloorDrop, 0) - bot.npc.ground).Magnitude
+			> config.PickupRange + config.PickupSlackStuds
+	then
+		return false
+	end
+	clearWeld()
+	if carrier then
+		setFree(carrier)
+		carrier = nil
+	end
+	botCarrier = bot
+	status = "Carried"
+	graceEndsAt = nil
+	package.Anchored = false
+	package.CanCollide = false
+	package.Massless = true
+	package.CFrame = bot.npc.root.CFrame * config.CarryOffset
+	local joint = Instance.new("WeldConstraint")
+	joint.Part0 = bot.npc.root
+	joint.Part1 = package
+	joint.Parent = package
+	weld = joint
+	lastCarrierPosition = bot.npc.ground
+	nextPulseAt = now() + config.PingInterval
+	pulseUntil = 0
+	send()
+	return true
 end
 
 local function beginPass(player: Player, _: string): InteractService.Interaction?
@@ -310,7 +377,7 @@ local function reset()
 	if carrier then
 		setFree(carrier)
 	end
-	carrier, graceEndsAt = nil, nil
+	carrier, botCarrier, graceEndsAt = nil, nil, nil
 	if part then
 		part:Destroy()
 		part = nil
@@ -333,7 +400,22 @@ end
 
 local function check()
 	local clock = now()
-	if status == "Carried" then
+	if status == "Carried" and botCarrier then
+		local bot = botCarrier
+		if not BotRegistry.alive(bot) then
+			drop(bot.npc.ground + Vector3.new(0, config.DropLiftStuds, 0)) -- where it went down
+		else
+			lastCarrierPosition = bot.npc.ground
+			if clock >= nextPulseAt then
+				nextPulseAt = clock + config.PingInterval
+				pulseUntil = clock + config.PingPulseSeconds
+				send()
+			elseif pulseUntil ~= 0 and clock >= pulseUntil then
+				pulseUntil = 0
+				send()
+			end
+		end
+	elseif status == "Carried" then
 		local who = carrier
 		local character = who and who.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")

@@ -1077,6 +1077,29 @@ function CombatService.damageTarget(
 	return result
 end
 
+-- Ticket 13B-b: a bot fires. Everyone within earshot hears it and the crowd reacts as to any shot; a victim is hurt (no
+-- attacker is credited: bots are not Players).
+function CombatService.botFire(
+	origin: Vector3,
+	hit: Vector3,
+	victim: Player?,
+	amount: number,
+	hearStuds: number,
+	weaponId: string
+)
+	NPCService.gunshot(origin, hearStuds)
+	local info: Types.ShotInfo = { Origin = origin, Hit = hit, WeaponId = weaponId, Struck = victim ~= nil }
+	for _, other in Players:GetPlayers() do
+		local _, otherRoot = aliveParts(other)
+		if otherRoot and (otherRoot.Position - origin).Magnitude <= hearStuds then
+			RemoteService.fireClient("ShotHeard", other, info)
+		end
+	end
+	if victim then
+		damagePlayer(victim, amount, origin, nil)
+	end
+end
+
 -- Puts up to `count` rounds back into the magazine of a player who carries a Projectile weapon of this kind (picking up
 -- a landed knife; no reserve exists to refill from). Returns how many fitted.
 function CombatService.refillThrowable(player: Player, kind: string, count: number): number
