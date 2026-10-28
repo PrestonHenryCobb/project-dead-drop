@@ -1,4 +1,5 @@
 --!strict
+local WeaponSummary = require(script.Parent.Parent.Parent.Combat.WeaponSummary)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Types = require(Shared.Types)
@@ -119,16 +120,7 @@ function view.Mount(stage, navigator, context)
 		end
 		if selected.Def then
 			local def = selected.Def
-			Kit.text(
-				side,
-				if def.Melee
-					then `{def.Melee.SwingDamage} SWING · {def.Melee.SwingReach} STUDS\n{def.Melee.SwingSeconds}s CADENCE · V TO STRIKE / HOLD`
-					else `{def.Damage} DMG · {def.RPM} RPM · {def.MagSize}/{def.ReserveAmmo} AMMO\n{def.ReloadSeconds}s {if def.ReloadPerShell
-						then "PER SHELL"
-						else "RELOAD"} · {def.AimZoom}x FOV`,
-				356,
-				60
-			)
+			Kit.text(side, WeaponSummary.short(def), 356, 60)
 		end
 		Kit.button(
 			side,

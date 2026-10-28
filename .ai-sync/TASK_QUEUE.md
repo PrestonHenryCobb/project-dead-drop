@@ -248,3 +248,21 @@ Claude handoff (existing contract gaps, not silently fixed): NPC pump slow/hamme
 smoke remains visual-only for server sight/scans/Agent Sense; round end must clean landed knives; pickup prompt
 still shows for non-knife users. No additional event/field mismatch found in the reviewed server paths.
 Initial spread/recoil/pose/recovery and smoke appearance remain Studio tuning (SPEC-QUESTION).
+
+## Client weapon hardening — owner continuation, 2026-10-27
+
+Owner authorizes continuing without a playtest while Claude works concurrently. Codex owns local knife-prompt
+eligibility and accurate melee/projectile armory descriptions; server contracts and gameplay remain Claude's.
+| Id | Work | Owner | Status |
+|---|---|---|---|
+| 8.5-client-hardening | Local knife prompt eligibility/lifecycle; armory text derived from actual weapon definitions; changed-file StyLua/Selene clean, 221 actual-source assertions and Rojo build pass. No Studio playtest per owner. | CODEX | READY_FOR_REVIEW |
+
+Codex continuation result: KnifePickupController watches the server LandedKnives folder and enables local prompts
+only for a live knife user below the carrying cap. Stream-out/controller teardown restores original prompt state;
+server-disabled prompts stay disabled. No pickup requests, knife reparenting or character decoration added.
+WeaponSummary derives armory text from Melee/Projectile/Pellets/ReloadPerShell; knives no longer claim firearm
+reloads and melee details now show charged/rear-hold damage. Smoke/server sight and NPC parity remain unchanged.
+
+Concurrent work: Claude has locked the Step 10a match services and shared contract. Codex has not touched those files.
+Next coordination: Claude should publish the stable 10a client event/state contract in .ai-sync before the client
+adds match-phase/objective UI. Keep continuing without a Studio playtest as the owner requested; no fake round state.

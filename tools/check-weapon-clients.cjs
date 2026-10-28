@@ -22,6 +22,8 @@ const entries = ids.map(id => {
 }).join('\n');
 const effects = read('src/client/Combat/WeaponEffects.luau');
 const modelBuilders = between(read('src/client/Combat/ViewModel.luau'), 'local function addPart(', 'function ViewModel.new(');
+const hints = read('src/client/Combat/KnifePickupHints.luau');
+const summaries = read('src/client/Combat/WeaponSummary.luau');
 const effectConfig = between(read('src/shared/GameConfig.luau'), '\t\tWeaponEffects = {', '\t\t-- The hammer');
 const reload = between(controller, 'local function advanceReload(', 'local function step(');
 const melee = between(controller, 'local function onMelee(', 'local function resetWeapon(');
@@ -245,6 +247,51 @@ for _,id in {"GuiseGarrote","ParapetPump","ParapetHammer","SutureFlare","FeintSm
   check(child:GetAttribute("Offset")~=nil,"Part transform: "..id)
   check(child.Anchored and not child.CanCollide and not child.CanQuery,"Cosmetic collision: "..id)
  end
+end
+local pickup=(function()
+${hints}
+end)()
+local visibility=pickup.new()
+local knife=Instance.new("BasePart") knife.Name="LandedKnife"
+local prompt=Instance.new("ProximityPrompt") prompt.Enabled=true prompt.Parent=knife
+visibility.add(prompt)
+check(not prompt.Enabled,"Knife prompt hidden until eligible")
+visibility.setAvailable(true)
+check(prompt.Enabled,"Knife prompt available with carrying room")
+visibility.add(prompt)
+visibility.setAvailable(false)
+visibility.setAvailable(true)
+check(prompt.Enabled,"Duplicate discovery must not overwrite original visibility")
+local disabled=Instance.new("ProximityPrompt") disabled.Enabled=false disabled.Parent=knife
+visibility.add(disabled)
+visibility.setAvailable(false) visibility.setAvailable(true)
+check(not disabled.Enabled,"Never enable a server-disabled prompt")
+visibility.setAvailable(false)
+visibility.remove(prompt)
+check(prompt.Enabled,"Stream-out restores original prompt state")
+visibility.setAvailable(true) visibility.setAvailable(false)
+check(prompt.Enabled,"Removed prompt is no longer controlled")
+visibility.add(prompt)
+local unrelated=Instance.new("ProximityPrompt") unrelated.Enabled=true unrelated.Parent=target
+visibility.add(unrelated)
+check(unrelated.Enabled,"Never control non-knife prompts")
+visibility.Destroy()
+check(prompt.Enabled and not disabled.Enabled,"Teardown restores both original states")
+visibility.setAvailable(true) visibility.setAvailable(false)
+check(prompt.Enabled,"No retained prompt after teardown")
+local summary=(function()
+${summaries.slice(summaries.indexOf('local WeaponSummary ='))}
+end)()
+local knifeText=summary.detail(defs.FeintKnives)
+check(string.find(knifeText,"90 HEAD",1,true)~=nil,"Knife head damage follows its definition")
+check(string.find(knifeText,"NO RELOAD",1,true)~=nil and not string.find(knifeText,"SUPPRESSED",1,true),"Knives have throwable copy")
+check(string.find(summary.detail(defs.ParapetHammer),"100 CHARGED",1,true)~=nil,"Hammer charge shown")
+check(string.find(summary.detail(defs.GuiseGarrote),"100 REAR HOLD",1,true)~=nil,"Garrote hold shown")
+check(string.find(summary.short(defs.ParapetPump),"8 × 11",1,true)~=nil,"Shotgun lists pellet damage")
+check(string.find(summary.detail(defs.ParapetPump),"PER SHELL",1,true)~=nil,"Pump lists per-shell timing")
+for _,id in {"GuiseGarrote","ParapetHammer"}do
+ local text=summary.detail(defs[id])
+ check(not string.find(text,"RPM",1,true) and not string.find(text,"RELOAD",1,true),"Melee has no firearm stats")
 end
 print("Weapon clients: "..checks.." actual-source assertions passed")
 `;

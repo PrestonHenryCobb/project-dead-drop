@@ -1,4 +1,5 @@
 --!strict
+local WeaponSummary = require(script.Parent.Parent.Parent.Combat.WeaponSummary)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Types = require(Shared.Types)
@@ -113,16 +114,7 @@ function view.Mount(stage, navigator, context)
 				})
 			end
 			local def = selected.Def
-			local stats = Kit.text(
-				side,
-				if def.Melee
-					then `{def.Melee.SwingDamage} SWING · {def.Melee.SwingReach} STUDS\n{def.Melee.SwingSeconds}s BETWEEN SWINGS\nV: STRIKE / HOLD · NO AMMUNITION`
-					else `{def.Damage} DMG · {def.HeadshotMult}x HEAD · {def.RPM} RPM\n{def.MagSize}/{def.ReserveAmmo} AMMO · {def.ReloadSeconds}s {if def.ReloadPerShell
-						then "PER SHELL"
-						else "RELOAD"}\n{def.AimZoom}x FOV · {if def.Quiet then "SUPPRESSED" else "UNSUPPRESSED"}`,
-				276,
-				60
-			)
+			local stats = Kit.text(side, WeaponSummary.detail(def), 276, 60)
 			stats.Name = "HardwareStats"
 		else
 			Kit.documentArt(art, "IN\nDEVELOPMENT", UDim2.new(), UDim2.fromScale(1, 1))
