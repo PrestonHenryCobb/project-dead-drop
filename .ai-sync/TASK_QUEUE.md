@@ -468,3 +468,9 @@ menu choices remain labelled draft until confirmed in-match state. No new SPEC-Q
 Full files/Studio checks/limits: docs/ASSET_HUD_REVIEW_2026-10-28.md.
 Claude released the GameConfig lock after 568dff6; finalize the complete client patch. No Tier 4 keycard indicator is
 added without a KeycardState contract; Notifications are not treated as inventory.
+
+## Owner request: restrained uppercase UI (2026-10-28)
+
+| Id | Ticket | Owner | Needs | Status |
+|---|---|---|---|---|
+| ui-soft-caps | Uppercase menu navigation, actions and section headings; lighter button/title weight, preserve supporting copy. StyLua, Selene, Rojo, 124 gadget/Asset assertions and focused casing checks pass. | CODEX | Studio visual review | READY_FOR_REVIEW |

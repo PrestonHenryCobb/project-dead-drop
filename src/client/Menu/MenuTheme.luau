@@ -160,12 +160,18 @@ type ButtonStyle = {
 	TextSize: number,
 }
 
+-- Keep supporting copy in sentence case on multiline cards.
+local function actionText(value: string): string
+	local first, rest = string.match(value, "^([^\n]*)(.*)$")
+	return string.upper(first or value) .. (rest or "")
+end
+
 local function makeButton(props: ButtonProps, style: ButtonStyle): Button
 	local button = Instance.new("TextButton")
 	button.Name = props.Name
-	button.Text = props.Text
+	button.Text = actionText(props.Text)
 	button.TextWrapped = true
-	button.Font = config.Fonts.Bold
+	button.Font = config.Fonts.Body
 	button.TextSize = style.TextSize
 	button.TextColor3 = style.TextColor
 	button.AutoButtonColor = false
@@ -259,7 +265,7 @@ local function makeButton(props: ButtonProps, style: ButtonStyle): Button
 			refresh()
 		end,
 		SetText = function(text: string)
-			button.Text = text
+			button.Text = actionText(text)
 		end,
 	}
 end
@@ -357,7 +363,7 @@ export type LabelProps = {
 
 local labelStyles = {
 	Display = { Font = config.Fonts.Display, Size = config.TextSizes.Display, Color = colors.Text },
-	Title = { Font = config.Fonts.Bold, Size = config.TextSizes.Title, Color = colors.Text },
+	Title = { Font = config.Fonts.Body, Size = config.TextSizes.Title, Color = colors.Text },
 	Body = { Font = config.Fonts.Body, Size = config.TextSizes.Body, Color = colors.Text },
 	Small = { Font = config.Fonts.Body, Size = config.TextSizes.Small, Color = colors.TextDim },
 	Mono = { Font = config.Fonts.Mono, Size = config.TextSizes.Body, Color = colors.Text },
@@ -369,7 +375,8 @@ function MenuTheme.label(props: LabelProps): TextLabel
 	local style = labelStyles[props.Style or "Body"]
 	local text = Instance.new("TextLabel")
 	text.Name = props.Name
-	text.Text = props.Text
+	local heading = props.Style == "Display" or props.Style == "Title" or props.Style == "Kicker"
+	text.Text = if heading then string.upper(props.Text) else props.Text
 	text.Font = style.Font
 	text.TextSize = style.Size
 	text.TextColor3 = props.Color or style.Color
