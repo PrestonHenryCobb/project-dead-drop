@@ -1103,6 +1103,17 @@ local GameConfig = {
 		FundsForElimination = 25,
 		FundsForCameraHack = 10,
 		MedKitHP = 30,
+		-- Ticket 18b: the wall stations, paid in the team's intel (Funds are gone). A Health Station heals to full and an Ammo Cache
+		-- fills the weapon in hand, each reusable; a Food Spot is free, heals Heal and is empty for PickupRespawnSeconds after.
+		-- Each hold takes Seconds within InteractStuds of the station. Using one is Discreet. SPEC-QUESTION: all of these prices
+		-- and times are proposals (owner prices of 2026-10-28), the spec's Funds prices being obsolete.
+		Stations = {
+			InteractStuds = 6,
+			WallSlackStuds = 1.2, -- a station is set in its wall: the line of sight stops this short of its nearest face
+			HealthStation = { Cost = 3, Seconds = 2 },
+			AmmoCache = { Cost = 2, Seconds = 1.5 },
+			FoodSpot = { Cost = 0, Seconds = 1.5, Heal = 15 },
+		},
 		PickupRespawnSeconds = 60,
 		PickupGlintRange = 20,
 		-- Percent chance per PickupSpawn when it picks what to hold.

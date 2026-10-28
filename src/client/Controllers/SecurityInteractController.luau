@@ -22,6 +22,7 @@ local RemoteController = require(script.Parent.RemoteController)
 type Kind = {
 	tag: string,
 	kind: string, -- the InteractService kind
+	idAttribute: string?, -- the attribute naming the target to the server (SecurityId unless this says otherwise)
 	usable: (BasePart, Vector3) -> boolean, -- close enough and worth using right now
 }
 
@@ -73,6 +74,32 @@ local KINDS: { Kind } = {
 		usable = function(part, from)
 			return part:GetAttribute("Open") == false
 				and (part.Position - from).Magnitude <= security.KeycardDoor.InteractStuds
+		end,
+	},
+	{
+		-- Ticket 18b: the wall stations. The server decides whether you need it and can pay; the outline shows what Interact uses.
+		tag = Enums.Tag.HealthStation,
+		kind = "HealthStation",
+		idAttribute = "StationId",
+		usable = function(part, from)
+			return (part.Position - from).Magnitude <= GameConfig.Economy.Stations.InteractStuds
+		end,
+	},
+	{
+		tag = Enums.Tag.AmmoCache,
+		kind = "AmmoCache",
+		idAttribute = "StationId",
+		usable = function(part, from)
+			return (part.Position - from).Magnitude <= GameConfig.Economy.Stations.InteractStuds
+		end,
+	},
+	{
+		tag = Enums.Tag.FoodSpot,
+		kind = "FoodSpot",
+		idAttribute = "StationId",
+		usable = function(part, from)
+			return part:GetAttribute("Taken") ~= true
+				and (part.Position - from).Magnitude <= GameConfig.Economy.Stations.InteractStuds
 		end,
 	},
 	{
@@ -133,7 +160,7 @@ end
 local function onInteract(_: string, state: Enum.UserInputState): Enum.ContextActionResult
 	if state == Enum.UserInputState.Begin then
 		local part, kind = target, targetKind
-		local id = part and part:GetAttribute("SecurityId")
+		local id = part and kind and part:GetAttribute(kind.idAttribute or "SecurityId")
 		if part and kind and type(id) == "string" then
 			holding = true
 			RemoteController.fire("RequestInteract", kind.kind, id)

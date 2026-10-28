@@ -1220,6 +1220,24 @@ end
 
 -- Puts up to `count` rounds back into the magazine of a player who carries a Projectile weapon of this kind (picking up
 -- a landed knife; no reserve exists to refill from). Returns how many fitted.
+-- Ticket 18b (Ammo Cache): does the player's weapon have room for more rounds (magazine or reserve below full)?
+function CombatService.canRefillAmmo(player: Player): boolean
+	local state = states[player]
+	return state ~= nil
+		and not state.dead
+		and not isDowned(player)
+		and (state.mag < state.weapon.MagSize or state.reserve < state.weapon.ReserveAmmo)
+end
+
+-- Ticket 18b: a full magazine and a full reserve for the weapon in hand.
+function CombatService.refillAmmo(player: Player)
+	local state = states[player]
+	if state and CombatService.canRefillAmmo(player) then
+		state.mag, state.reserve = state.weapon.MagSize, state.weapon.ReserveAmmo
+		sendAmmo(player, state, 0)
+	end
+end
+
 function CombatService.refillThrowable(player: Player, kind: string, count: number): number
 	local state = states[player]
 	local def = state and state.weapon
