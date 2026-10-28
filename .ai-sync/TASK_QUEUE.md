@@ -488,3 +488,9 @@ added without a KeycardState contract; Notifications are not treated as inventor
 | gps-1 | RouteService: `RequestRoute`, clean and fast routes, targets, hidden vents. Contract: .ai-sync/ROUTE_CONTRACT.md. **Tested solo in Studio** except teammate and extraction targets and the zipline, gondola and ladder legs. | CLAUDE_CODE | READY_FOR_REVIEW |
 | gps-2 | CarrierTrackService: the Package carrier's tap (nearest rival, 1 intel) and hold (all rivals within 60 studs, 1 intel a second), the cue to the tracked rival. Contract: .ai-sync/CARRIER_TRACK_CONTRACT.md. **Tested solo in Studio** (tap, hold, out of intel, out of range); the cue needs a second human. | CLAUDE_CODE | READY_FOR_REVIEW |
 | gps-client | GPS routes/tracking plus Claude-review fixes: explicit unavailable-mode fallback; value-based map invalidation and collinear line merging; transition-only carrier reset/empty revision guard; preloaded cue. 926 assertions, StyLua/Selene/Rojo clean. Native Studio Sound playback/positive output verified; human listening level and authored Step 20 whisper remain. See docs/GPS_CLIENT_REVIEW_2026-10-28.md. | CODEX | READY_FOR_REVIEW |
+
+## Asset selection screen (owner request, 2026-10-28)
+
+| Id | Work | Owner | Status |
+|---|---|---|---|
+| assets-swap | Assets tab: assigning an Asset that is already in another slot **swaps** the two (today it is disabled, so moving a slot's rank means picking a different Asset first). Add a per-slot **clear** control and allow an **empty slot** in the local draft (`AssetDraft`). A match cannot be queued while any of the four slots is empty: disable Lock In (PreDeployView) and Deploy (PlayLobbyView) with a visible reason. The server already refuses anything but four different Assets (`MetaProgressionService`, "AssetUnavailable"), so no server change. Client only. | CODEX | TODO |
