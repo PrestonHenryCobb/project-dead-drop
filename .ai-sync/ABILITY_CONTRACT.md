@@ -32,7 +32,24 @@ Agent abilities (spec 15, key Q). Server-authoritative; the client only asks.
   Tested solo in Studio: armour 50 at spawn, an outside shot is stopped at the shield, his own shot passes, 400 HP breaks it.
   Not tested: two players (a real second shooter), the owner's clearer view.
 
+- **16c Lattice.** Wired: `Agents.Lattice.HackMult = 0.75` on the hold kinds in `HackKinds` (Intel, Camera, FuseBox,
+  CameraTerminal, Lockpick) through `InteractService.setSecondsMult`. Sparrow Drone (40 s): `Services/DroneService`. The server
+  makes a `Drone` part (workspace.Shields, no owner marking) 3 studs above her head and tells her (`SparrowState`
+  `{Active, EndsAt}`); `DroneController` finds the part beside her body, views from it (Scriptable camera, mouse look, WASD,
+  Jump up, Crouch down) and sends `RequestSparrowMove` (direction, 15 Hz); the server flies it at 24 studs/s, stops it at
+  walls, within 120 studs of her body, hovers if the client goes quiet. She cannot walk or fire meanwhile. Ends after 15 s, when
+  the drone is shot down (40 HP, via `Combat/Shields.adopt`), when her body takes damage (`CombatService.setDamageListener`),
+  when she is downed, or at match end. Hacks: `IntelService` and `CameraService` measure reach from the drone while it is up
+  (and skip the clearance check and the witness suspicion for Intel); `IntelController`/`SecurityInteractController` target
+  from it (`DroneController.part()`). Tagging: every 0.5 s each enemy in True Form within 80 studs and in sight of the drone gets
+  a `TargetGlow` for her team for 8 s.
+  Tested solo in Studio: take-off, camera, flight (13.6 studs in 1 s), an Intel hold from the drone 55 studs from her body (8.25 s,
+  i.e. 0.75 of the station time), the drone shot down ends the flight and returns the camera.
+  Not tested: tagging (needs a second player in True Form), the body-damage ending, two players, the cover/identity side.
+
 ## Not built
+- Wired's "tier doors cost 1 less intel": tier doors cost intel in Step 18, so it lands there (read `Agents.Lattice`).
+- Drone hacking of doors (keycard Lockpick and Step 18's tier doors) and of vault terminals; gamepad flight.
 - Plated's "plates on twice as fast": no plate-applying action exists yet (it comes with the economy/pickups), so there is
   nothing to speed up. When it is built, read `Agents.Parapet`.
 - Guards' and bots' shots (`CombatService.botFire`) ignore the shield; so do melee and explosions.

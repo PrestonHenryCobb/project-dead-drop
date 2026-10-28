@@ -120,6 +120,7 @@ local downedHooks: DownedHooks? = nil
 local projectileHooks: ProjectileHooks? = nil
 local worldHitListener: ((Vector3, Player) -> ())? = nil -- ticket 14: a shot ended on the map (cameras)
 local provokeHooks: ProvokeHooks? = nil -- ticket 15: guards
+local damageListener: ((Player) -> ())? = nil -- ticket 16c: a player took damage (a piloted drone lands)
 local extraPlates: ((Player) -> number)? = nil -- ticket 16b: plates an agent starts every life with beyond the usual
 local glintAccumulator = 0
 local rng = Random.new()
@@ -232,6 +233,9 @@ local function damagePlayer(victim: Player, amount: number, from: Vector3, attac
 	state.hp = math.max(0, state.hp - (amount - absorbed))
 	state.lastDamagedAt = os.clock()
 	sendHealth(victim, state)
+	if damageListener then
+		damageListener(victim)
+	end
 	local info: Types.DamageInfo = { Position = from, Amount = amount }
 	RemoteService.fireClient("DamageTaken", victim, info)
 	if attacker then
@@ -1090,6 +1094,11 @@ end
 -- Ticket 15: GuardService registers itself here at Start.
 function CombatService.setProvokeHooks(hooks: ProvokeHooks)
 	provokeHooks = hooks
+end
+
+-- Ticket 16c: DroneService is told whenever a player takes damage.
+function CombatService.setDamageListener(listener: (Player) -> ())
+	damageListener = listener
 end
 
 -- Ticket 16b: AbilityService says how many plates beyond the usual an agent starts a life with (Parapet's Plated).

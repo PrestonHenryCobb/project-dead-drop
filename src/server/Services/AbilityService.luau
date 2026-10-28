@@ -17,6 +17,7 @@ local Ability = require(script.Parent.Parent.Abilities.Ability)
 local CombatService = require(script.Parent.CombatService)
 local DisguiseService = require(script.Parent.DisguiseService)
 local DownedService = require(script.Parent.DownedService)
+local InteractService = require(script.Parent.InteractService)
 local MatchService = require(script.Parent.MatchService)
 local MetaProgressionService = require(script.Parent.MetaProgressionService)
 local RemoteService = require(script.Parent.RemoteService)
@@ -27,6 +28,7 @@ local AbilityService = {}
 local abilities: { [string]: Ability.Ability } = {
 	Guise = require(script.Parent.Parent.Abilities.Guise),
 	Parapet = require(script.Parent.Parent.Abilities.Parapet),
+	Lattice = require(script.Parent.Parent.Abilities.Lattice),
 }
 
 local readyAt: { [Player]: number } = {} -- os.clock() when the ability can next be used
@@ -88,6 +90,11 @@ function AbilityService.Init() end
 
 function AbilityService.Start()
 	DisguiseService.setAgentLookup(AbilityService.agentOf)
+	InteractService.setSecondsMult(function(player, kind)
+		local agentId = AbilityService.agentOf(player)
+		local rules = if agentId then (GameConfig.Agents :: { [string]: any })[agentId] else nil
+		return if rules and rules.HackKinds and rules.HackKinds[kind] then rules.HackMult else 1
+	end)
 	CombatService.setExtraPlates(function(player)
 		local agentId = AbilityService.agentOf(player)
 		local rules = if agentId then (GameConfig.Agents :: { [string]: any })[agentId] else nil

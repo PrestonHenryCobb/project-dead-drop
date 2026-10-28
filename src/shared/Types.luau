@@ -77,6 +77,14 @@ export type AbilityCooldownInfo = {
 	ReadyAt: number,
 }
 
+-- Ticket 16c: Lattice's Sparrow Drone ("SparrowState", to her only). While Active the client views from its own drone (the
+-- Drone part in workspace.Shields next to her body; a part sent by remote may not have replicated yet, so it is looked for)
+-- and sends RequestSparrowMove; the flight ends at EndsAt (server time) or sooner.
+export type SparrowStateInfo = {
+	Active: boolean,
+	EndsAt: number,
+}
+
 -- Spec 7: a player's own cover. Sent only to that player; enemies never learn it (spec 25.7).
 export type CoverInfo = {
 	State: CoverState,

@@ -26,6 +26,7 @@ local Types = require(Shared:WaitForChild("Types"))
 local CoverService = require(script.Parent.CoverService)
 local DisguiseService = require(script.Parent.DisguiseService)
 local DownedService = require(script.Parent.DownedService)
+local DroneService = require(script.Parent.DroneService)
 local InteractService = require(script.Parent.InteractService)
 local MatchService = require(script.Parent.MatchService)
 local RemoteService = require(script.Parent.RemoteService)
@@ -119,15 +120,18 @@ local function beginStation(player: Player, targetName: string): InteractService
 	end
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
-	if not (root and root:IsA("BasePart")) or DisguiseService.getClearance(player) < station.tier then
+	-- Ticket 16c: Lattice's drone hacks from where it hovers, whatever her body's clearance.
+	local flying = DroneService.position(player) ~= nil
+	if not (root and root:IsA("BasePart")) or (not flying and DisguiseService.getClearance(player) < station.tier) then
 		return nil
 	end
 	local function inReach(slack: number): boolean
-		local offset = station.part.Position - root.Position
+		local origin = DroneService.position(player) or root.Position
+		local offset = station.part.Position - origin
 		if offset.Magnitude > config.InteractStuds + slack then
 			return false
 		end
-		local hit = workspace:Raycast(root.Position, offset, mapParams)
+		local hit = workspace:Raycast(origin, offset, mapParams)
 		-- The station's own stand, cart or rack sits in the same folder, so those do not count as in the way.
 		return hit == nil or hit.Instance.Parent == station.part.Parent
 	end
@@ -143,7 +147,9 @@ local function beginStation(player: Player, targetName: string): InteractService
 		already = math.min(previous.elapsed, station.seconds - 1 / GameConfig.Interact.CheckHz)
 	end
 	local startedAt = clock - already
-	CoverService.noteHacking(player)
+	if not flying then
+		CoverService.noteHacking(player) -- a drone's hack is not seen on her body
+	end
 	return {
 		label = "Hack",
 		seconds = station.seconds - already,
@@ -154,7 +160,9 @@ local function beginStation(player: Player, targetName: string): InteractService
 			end
 			saved[teamId] = saved[teamId] or {}
 			saved[teamId][station.id] = { elapsed = os.clock() - startedAt, at = os.clock() }
-			CoverService.noteHacking(player)
+			if not flying then
+				CoverService.noteHacking(player)
+			end
 			return true
 		end,
 		complete = function()

@@ -52,6 +52,8 @@ local Remotes = {
 		-- Ticket 9c
 		"SpectateState", -- to a spectator only: who they watch, or the drone (Types.SpectateStateInfo)
 		"SpectatorChat", -- to spectators only: a filtered chat line (Types.SpectatorChatInfo)
+		-- Ticket 16c
+		"SparrowState", -- to Lattice only: her drone took off or ended (Types.SparrowStateInfo)
 		-- Ticket menu-phase0
 		"PreDeployStateUpdated", -- to each member of a team only: agent select picks and the cutoff (Types.PreDeployState)
 		"ProfileStateUpdated", -- to the owner only: their profile and loadout changed (Types.MetaSnapshot)
@@ -84,6 +86,8 @@ local Remotes = {
 		"RequestSpectate", -- "Next", "Previous" or "Drone"; only honoured for an eliminated player
 		"RequestDronePosition", -- the drone camera's wanted position; the server limits speed and clamps it
 		"RequestSpectatorChat", -- a chat line for the other spectators
+		-- Ticket 16c
+		"RequestSparrowMove", -- the way the drone should fly, a vector of up to length 1 in world space (zero to hover)
 		-- Ticket menu-phase0
 		"RequestQueueMode", -- the mode to queue for (Types.QueueMode)
 		"RequestStartPreDeploy", -- start agent select for the player's party

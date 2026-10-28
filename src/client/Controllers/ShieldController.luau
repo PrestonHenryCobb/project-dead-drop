@@ -29,7 +29,7 @@ function ShieldController.Start()
 			return
 		end
 		for _, part in folder:GetChildren() do
-			if part:IsA("BasePart") then
+			if part:IsA("BasePart") and part.Name == "Shield" then
 				part.LocalTransparencyModifier = if (part.Position - root.Position).Magnitude <= NEAR_STUDS
 					then config.OwnerFade
 					else 0

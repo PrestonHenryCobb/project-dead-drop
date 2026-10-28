@@ -1379,6 +1379,33 @@ local GameConfig = {
 		-- Parapet: Plated (one more starting plate than the usual 1, or 2 in Solos: 2, or 3) and Riot Wall, a shield carried
 		-- Offset studs in front of him: Size wide x tall x thick, it takes HP damage from shots (not his own) and ends after
 		-- Seconds. Its see-through look fades as it is worn down. SPEC-QUESTION: putting it up breaks Cover.
+		-- Lattice: Wired makes the hold kinds in HackKinds take HackMult of their time (tier doors cost 1 less intel when they
+		-- exist, Step 18). Sparrow Drone: she flies it for Seconds from a spot HeightAbove her head, up to MaxRangeStuds from her
+		-- body at Speed, ClearanceStuds off walls; it has HP and any shot at it counts; it hacks Intel stations and cameras
+		-- where it hovers (the usual reach); every TagCheckSeconds it tags enemy agents in True Form it can see within TagRange
+		-- for her team for TagSeconds. Her body stands still and cannot fire, and damage to it ends the flight.
+		Lattice = {
+			HackMult = 0.75,
+			HackKinds = { Intel = true, Camera = true, FuseBox = true, CameraTerminal = true, Lockpick = true },
+			SparrowDrone = {
+				Seconds = 15,
+				HP = 40,
+				Speed = 24,
+				MaxRangeStuds = 120,
+				HeightAbove = 3,
+				ClearanceStuds = 1.2,
+				Size = Vector3.new(1.6, 0.6, 1.6),
+				Color = Color3.fromRGB(60, 64, 72),
+				MoveHz = 15, -- how often the client sends its wanted direction
+				CameraSmoothRate = 18, -- the client's view glides to the drone this fast (per second)
+				FindSeconds = 2, -- the client looks this long for its drone to arrive, within HeightAbove + FindSlackStuds of it
+				FindSlackStuds = 3,
+				MoveStaleSeconds = 0.5, -- no word from the client this long: the drone hovers
+				TagSeconds = 8,
+				TagRange = 80,
+				TagCheckSeconds = 0.5,
+			},
+		},
 		Parapet = {
 			ExtraStartPlates = 1,
 			RiotWall = {
@@ -1586,6 +1613,7 @@ local GameConfig = {
 			-- Ticket 9c: switching view is a key press; the drone sends at Spectate.DroneSendHz; chat is slow on purpose.
 			RequestDropPackage = { PerSecond = 1, Burst = 2 }, -- ticket 13a
 			RequestAbility = { PerSecond = 2, Burst = 3 }, -- ticket 16: a key press; the server holds the cooldown
+			RequestSparrowMove = { PerSecond = 30, Burst = 30 }, -- ticket 16c: sent at Lattice.SparrowDrone.MoveHz
 			RequestSpectate = { PerSecond = 4, Burst = 8 },
 			RequestDronePosition = { PerSecond = 15, Burst = 15 },
 			RequestSpectatorChat = { PerSecond = 1, Burst = 3 },

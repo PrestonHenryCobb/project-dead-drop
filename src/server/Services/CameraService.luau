@@ -31,6 +31,7 @@ local CombatService = require(script.Parent.CombatService)
 local CoverService = require(script.Parent.CoverService)
 local DisguiseService = require(script.Parent.DisguiseService)
 local DownedService = require(script.Parent.DownedService)
+local DroneService = require(script.Parent.DroneService)
 local GuardService = require(script.Parent.GuardService)
 local InteractService = require(script.Parent.InteractService)
 local MatchService = require(script.Parent.MatchService)
@@ -232,19 +233,26 @@ local function beginHack(player: Player, targetName: string): InteractService.In
 	then
 		return nil
 	end
+	-- Ticket 16c: Lattice's drone hacks from where it hovers.
+	local flying = DroneService.position(player) ~= nil
 	local function distance(): number
-		local offset = camera.part.Position - root.Position
+		local origin = DroneService.position(player) or root.Position
+		local offset = camera.part.Position - origin
 		return Vector3.new(offset.X, 0, offset.Z).Magnitude -- the camera is high on a wall: reach is on the floor plan
 	end
 	if distance() > config.HackRange then
 		return nil
 	end
-	CoverService.noteHacking(player)
+	if not flying then
+		CoverService.noteHacking(player)
+	end
 	return {
 		label = "Hack camera",
 		seconds = config.HackSeconds,
 		stillValid = function()
-			CoverService.noteHacking(player)
+			if not flying then
+				CoverService.noteHacking(player)
+			end
 			return playerBody(player) ~= nil and working(camera) and distance() <= config.InteractStuds
 		end,
 		complete = function()

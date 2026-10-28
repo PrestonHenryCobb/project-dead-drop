@@ -21,6 +21,7 @@ local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local Types = require(Shared:WaitForChild("Types"))
+local DroneController = require(script.Parent.DroneController)
 local RemoteController = require(script.Parent.RemoteController)
 
 local IntelController = {}
@@ -79,7 +80,10 @@ local function eligibleRoot(): BasePart?
 	local character = localPlayer.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local root = character and character:FindFirstChild("HumanoidRootPart")
-	return if humanoid and humanoid.Health > 0 and root and root:IsA("BasePart") then root else nil
+	if humanoid and humanoid.Health > 0 and root and root:IsA("BasePart") then
+		return DroneController.part() or root -- ticket 16c: Lattice's drone hacks from where it hovers
+	end
+	return nil
 end
 
 local function cancelHold()

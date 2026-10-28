@@ -1,9 +1,10 @@
 --!strict
--- Riot Wall shields (spec 15.2): a body in the world that stops other people's shots and wears out. A shield is a see-through
--- part welded in front of its owner's root, so it moves with them without the server moving it. Its owner's own shots pass
--- through it. Nothing about it is put on the owner's character.
+-- Things in the world that stop other people's shots and wear out: Parapet's Riot Wall (spec 15.2) and Lattice's Sparrow
+-- Drone (spec 15.3, 40 HP, can be shot down). A shield is a part; a ray from anyone but its owner ends where it hits it, and the
+-- shot's damage is taken off its HP. The owner's own shots pass through. Nothing about it is put on a character.
 --
---   Shields.create(owner, root) -> Shield
+--   Shields.create(owner, root) -> Shield              a Riot Wall welded in front of the owner's root
+--   Shields.adopt(owner, part, hp, onBreak?) -> Shield  a part someone else made (a drone); onBreak runs when shots destroy it
 --   Shields.raycast(shooter, origin, direction, reach) -> (Shield?, number?)   the nearest shield, not the shooter's, within reach
 --   Shields.damage(shield, amount)     wears it down; destroys it at 0 HP
 --   Shields.destroy(shield)
@@ -17,6 +18,9 @@ export type Shield = {
 	part: Part,
 	owner: Player,
 	hp: number,
+	maxHp: number,
+	fades: boolean, -- the part grows more see-through as it wears (a Riot Wall)
+	onBreak: (() -> ())?,
 	up: boolean,
 }
 
@@ -37,8 +41,19 @@ local function container(): Folder
 end
 
 local function look(shield: Shield)
-	local worn = 1 - math.clamp(shield.hp / config.HP, 0, 1)
-	shield.part.Transparency = config.Transparency.Full + (config.Transparency.Worn - config.Transparency.Full) * worn
+	if shield.fades then
+		local worn = 1 - math.clamp(shield.hp / shield.maxHp, 0, 1)
+		shield.part.Transparency = config.Transparency.Full
+			+ (config.Transparency.Worn - config.Transparency.Full) * worn
+	end
+end
+
+function Shields.adopt(owner: Player, part: Part, hp: number, onBreak: (() -> ())?): Shield
+	part.Parent = container()
+	local shield: Shield =
+		{ part = part, owner = owner, hp = hp, maxHp = hp, fades = false, onBreak = onBreak, up = true }
+	shields[part] = shield
+	return shield
 end
 
 function Shields.create(owner: Player, root: BasePart): Shield
@@ -56,9 +71,8 @@ function Shields.create(owner: Player, root: BasePart): Shield
 	weld.Part0 = root
 	weld.Part1 = part
 	weld.Parent = part
-	part.Parent = container()
-	local shield: Shield = { part = part, owner = owner, hp = config.HP, up = true }
-	shields[part] = shield
+	local shield = Shields.adopt(owner, part, config.HP, nil)
+	shield.fades = true
 	look(shield)
 	return shield
 end
@@ -82,6 +96,9 @@ function Shields.damage(shield: Shield, amount: number)
 	shield.hp -= amount
 	if shield.hp <= 0 then
 		Shields.destroy(shield)
+		if shield.onBreak then
+			shield.onBreak()
+		end
 	else
 		look(shield)
 	end
