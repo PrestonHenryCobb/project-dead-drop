@@ -37,6 +37,7 @@ local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"
 local TestLoadout = require(Shared.Util.TestLoadout)
 local Ballistics = require(script.Parent.Parent.Combat.Ballistics)
 local Death = require(script.Parent.Parent.NPC.Death)
+local NpcTypes = require(script.Parent.Parent.NPC.NpcTypes)
 local FireRate = require(script.Parent.Parent.Combat.FireRate)
 local History = require(script.Parent.Parent.Combat.History)
 local CoverService = require(script.Parent.CoverService)
@@ -88,6 +89,12 @@ export type ProjectileHooks = {
 	launch: (shooter: Player, def: WeaponDef, origin: Vector3, direction: Vector3) -> (),
 }
 
+-- Ticket 15: GuardService hears about an agent firing and about an agent hitting an NPC (the Security guards it provokes).
+export type ProvokeHooks = {
+	fired: (shooter: Player, origin: Vector3, hearStuds: number) -> (),
+	hitNpc: (shooter: Player, npc: NpcTypes.Npc) -> (),
+}
+
 -- One target's share of a pull that is tallied as a whole (pump shotgun).
 type Tally = { amount: number, head: boolean, pellets: number }
 
@@ -111,6 +118,7 @@ local takedownAccumulator = 0
 local downedHooks: DownedHooks? = nil
 local projectileHooks: ProjectileHooks? = nil
 local worldHitListener: ((Vector3, Player) -> ())? = nil -- ticket 14: a shot ended on the map (cameras)
+local provokeHooks: ProvokeHooks? = nil -- ticket 15: guards
 local glintAccumulator = 0
 local rng = Random.new()
 local sweep = 0
@@ -255,6 +263,9 @@ local function applyDamage(
 	local confirm: Types.HitConfirm
 	local result: Types.MeleeResult = "Hit"
 	if target.kind == "Npc" then
+		if provokeHooks then
+			provokeHooks.hitNpc(shooter, target.npc :: any)
+		end
 		if NPCService.hitNpc(target.npc :: any, amount, from) then
 			CoverService.onNpcKilled(shooter, (target.npc :: any).role) -- killing an NPC exposes the killer (spec 7.2 #11)
 			result = "Downed"
@@ -493,6 +504,9 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 		or (if def.Quiet then GameConfig.Audio.SuppressedWeaponRadius else GameConfig.Audio.DefaultWeaponRadius)
 	local silent = hearStuds <= 0 -- throwing knives: no gunshot, so no NPC panic and nobody hears it
 	local soundOrigin = soundOriginOf(def, origin)
+	if not silent and provokeHooks then
+		provokeHooks.fired(player, soundOrigin, hearStuds)
+	end
 	if def.Projectile and hooks then
 		hooks.launch(player, def, origin, directions[1])
 		if not silent and now - state.lastReactAt >= config.GunfireReactSeconds then
@@ -1064,6 +1078,11 @@ end
 -- Ticket 14: told where each shot ends on the map and who fired it (CameraService: a shot that ends on a camera destroys it).
 function CombatService.setWorldHitListener(listener: (Vector3, Player) -> ())
 	worldHitListener = listener
+end
+
+-- Ticket 15: GuardService registers itself here at Start.
+function CombatService.setProvokeHooks(hooks: ProvokeHooks)
+	provokeHooks = hooks
 end
 
 function CombatService.setProjectileHooks(hooks: ProjectileHooks)

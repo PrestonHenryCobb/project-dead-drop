@@ -1,7 +1,8 @@
 --!strict
 -- Ticket 14: ties the security systems (spec 18) to the match and to each other.
 --
---   * The alarm only counts while a match runs and starts each match Calm (AlarmService).
+--   * The alarm only counts while a match runs and starts each match Calm (AlarmService). The guards fight only while a
+--     match runs (GuardService).
 --   * Lockdown seals every keycard door (DoorService.seal) for LockdownDoorSealSeconds.
 --   * Lockpicking: hold Interact (kind "Lockpick") on a keycard door for KeycardDoor.LockpickSeconds. It breaks Cover
 --     (spec 7.2 #12) and opens the door for OpenSeconds.
@@ -17,6 +18,7 @@ local AlarmService = require(script.Parent.AlarmService)
 local CoverService = require(script.Parent.CoverService)
 local DoorService = require(script.Parent.DoorService)
 local DownedService = require(script.Parent.DownedService)
+local GuardService = require(script.Parent.GuardService)
 local InteractService = require(script.Parent.InteractService)
 local MatchService = require(script.Parent.MatchService)
 
@@ -57,6 +59,7 @@ function SecurityService.Init() end
 function SecurityService.Start()
 	MatchService.onPhaseChanged(function(phase)
 		AlarmService.setArmed(MatchService.isInMatch())
+		GuardService.setActive(MatchService.isInMatch())
 		if phase == "Lobby" or phase == "Insertion" then
 			AlarmService.reset()
 		end

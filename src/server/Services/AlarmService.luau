@@ -8,7 +8,7 @@
 --
 -- What each level does is done by the systems it touches, which ask here: Security witnesses see further from Alert
 -- (CoverService, detectionMult), cameras sweep faster and keycard doors seal in Lockdown (CameraService, DoorService).
--- Extra guards at Heightened, Security walking at 14 and shooting Exposed agents in Lockdown belong to the guards (Step 15).
+-- Extra guards at Heightened, Security walking at 14 and shooting Exposed agents in Lockdown are the guards' (GuardService).
 --
 --   AlarmService.level() -> number
 --   AlarmService.raise(amount, reason)

@@ -512,14 +512,7 @@ local function refreshWitnesses()
 	end
 end
 
--- Which NPCs are near a player (UpdateTier: 1 every tick, 2 and 3 every few, 0 asleep). Looked at a couple of times a
--- second; an NPC is as far as the nearest player.
-local refreshTiersAt = 0
-local function refreshTiers(now: number)
-	if now < refreshTiersAt then
-		return
-	end
-	refreshTiersAt = now + config.Update.PlayerCheckSeconds
+local function playerPositions(): { Vector3 }
 	local positions: { Vector3 } = {}
 	for _, player in Players:GetPlayers() do
 		local character = player.Character
@@ -528,6 +521,18 @@ local function refreshTiers(now: number)
 			table.insert(positions, root.Position)
 		end
 	end
+	return positions
+end
+
+-- Which NPCs are near a player (UpdateTier: 1 every tick, 2 and 3 every few, 0 asleep). Looked at a couple of times a
+-- second; an NPC is as far as the nearest player.
+local refreshTiersAt = 0
+local function refreshTiers(now: number)
+	if now < refreshTiersAt then
+		return
+	end
+	refreshTiersAt = now + config.Update.PlayerCheckSeconds
+	local positions = playerPositions()
 	local settings = config.Update
 	for _, npc in npcs do
 		local nearest = math.huge
@@ -825,6 +830,94 @@ end
 function NPCService.gunshot(position: Vector3, audibleStuds: number)
 	if crowd then
 		Reactions.gunfire(crowd, position, os.clock(), audibleStuds)
+	end
+end
+
+-- Ticket 15: the guards' side of the crowd. GuardService decides what a guard does; these move and make guards.
+local guardSpeed = config.WalkSpeed.Security
+
+-- Security's walking speed (the alarm makes it 14 from Alert, spec 18.4). A guard already walking at its base speed picks
+-- the new one up at once.
+function NPCService.setGuardSpeed(speed: number)
+	guardSpeed = speed
+	for _, npc in npcs do
+		if npc.role == Enums.Role.Security then
+			if npc.speed == npc.baseSpeed then
+				npc.speed = speed
+			end
+			npc.baseSpeed = speed
+		end
+	end
+end
+
+-- An extra guard (Heightened, spec 18.4) at a random node of `tier`, none within `awayStuds` of a player when there is a
+-- choice, so nobody watches it appear. Nil when the map has no free node of that tier.
+function NPCService.spawnGuard(tier: number, awayStuds: number): Npc?
+	local graph = currentGraph
+	if not graph then
+		return nil
+	end
+	local free = isFree(graph)
+	local positions = playerPositions()
+	local anywhere: { number } = {}
+	local unseen: { number } = {}
+	for node = 1, #graph.feet do
+		if graph.tiers[node] == tier and #graph.edges[node] > 0 and free(node) then
+			table.insert(anywhere, node)
+			local clear = true
+			for _, position in positions do
+				if (graph.feet[node] - position).Magnitude < awayStuds then
+					clear = false
+					break
+				end
+			end
+			if clear then
+				table.insert(unseen, node)
+			end
+		end
+	end
+	local options = if #unseen > 0 then unseen else anywhere
+	if #options == 0 then
+		return nil
+	end
+	local npc = createNpc(Enums.Role.Security, options[rng:NextInteger(1, #options)], graph, os.clock(), nil)
+	npc.extra = true
+	npc.baseSpeed = guardSpeed
+	npc.speed = guardSpeed
+	return npc
+end
+
+-- Takes an NPC out of the crowd for good (an extra guard when the match ends).
+function NPCService.removeNpc(npc: Npc)
+	local index = table.find(npcs, npc)
+	if not index then
+		return
+	end
+	table.remove(npcs, index)
+	if npc.riding then
+		ElevatorService.leave(npc.riding, npc)
+		npc.riding = nil
+	end
+	dropHolds(npc)
+	if not Death.isDown(npc) then
+		release(npc.node) -- a downed NPC gave its node up when it went down
+	end
+	Death.forget(npc)
+	npc.model:Destroy()
+end
+
+-- A guard goes after a position; false when it cannot walk now or has no route (Reactions.pursue).
+function NPCService.pursue(npc: Npc, position: Vector3): boolean
+	return crowd ~= nil and Reactions.pursue(crowd, npc, position, os.clock())
+end
+
+function NPCService.holdPosition(npc: Npc, stop: boolean)
+	Reactions.holdPosition(npc, os.clock(), stop)
+end
+
+function NPCService.recall(npc: Npc)
+	if crowd then
+		Reactions.recall(crowd, npc, os.clock())
 	end
 end
 

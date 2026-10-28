@@ -184,9 +184,16 @@ local function investigate(crowd: Crowd, position: Vector3, now: number, audible
 	end
 end
 
-local function beginReturn(crowd: Crowd, npc: Npc, now: number)
-	local points = if npc.node ~= npc.post then NavGraph.routeTo(crowd.graph, npc.node, npc.maxTier, npc.post) else nil
+-- `fromNode` is given when the guard is not standing at the node it was heading for (a pursuit cut short).
+local function beginReturn(crowd: Crowd, npc: Npc, now: number, fromNode: number?)
+	local from = fromNode or npc.node
+	local points = if from ~= npc.post then NavGraph.routeTo(crowd.graph, from, npc.maxTier, npc.post) else nil
 	if not points then
+		if npc.node ~= from then
+			crowd.release(npc.node)
+			crowd.claim(from)
+			npc.node = from
+		end
 		npc.state = "Idle"
 		npc.idleUntil = now
 		return
@@ -218,6 +225,77 @@ function Reactions.explosion(crowd: Crowd, position: Vector3, now: number)
 			Death.down(crowd, npc, position, now)
 		end
 	end
+end
+
+-- Ticket 15: the node an NPC under way is nearest to on its own floor. A guard cut off from a route starts the new one
+-- here; `npc.node` is where the old one was going.
+local function nearestNode(crowd: Crowd, npc: Npc): number
+	local graph = crowd.graph
+	local best, bestDistance = npc.node, math.huge
+	for node = 1, #graph.feet do
+		local offset = graph.feet[node] - npc.ground
+		if
+			graph.tiers[node] <= npc.maxTier
+			and #graph.edges[node] > 0
+			and math.abs(offset.Y) < config.Graph.SupportWindow.Above
+			and offset.Magnitude < bestDistance
+		then
+			best, bestDistance = node, offset.Magnitude
+		end
+	end
+	return best
+end
+
+-- Ticket 15: a guard goes after `position` (a target, or where a camera saw one), whatever it was doing, and may be sent
+-- again as the target moves. It waits where the walk ends (state Investigate) until holdPosition lapses or it is recalled.
+-- Returns false when the guard cannot walk now or has no route.
+function Reactions.pursue(crowd: Crowd, npc: Npc, position: Vector3, now: number): boolean
+	if Death.isDown(npc) or reacting(npc) then
+		return false
+	end
+	local destination, points = NavGraph.routeNear(crowd.graph, nearestNode(crowd, npc), npc.maxTier, position)
+	if not destination or not points then
+		return false
+	end
+	if npc.state ~= "Investigate" and npc.state ~= "Return" then
+		npc.post = npc.node
+	end
+	Movement.cancelRide(npc)
+	crowd.release(npc.node)
+	crowd.claim(destination)
+	npc.node = destination
+	npc.resume = nil
+	npc.path = if #points > 0 then points else nil
+	npc.pathIndex = 1
+	npc.speed = npc.baseSpeed
+	npc.state = "Investigate"
+	npc.stateUntil = now + config.Investigate.ReturnAfterQuietSeconds
+	AnimationSync.set(npc, "")
+	return true
+end
+
+-- A pursuing guard that still has a target does not give up waiting; `stop` makes it stand where it is.
+function Reactions.holdPosition(npc: Npc, now: number, stop: boolean)
+	if npc.state ~= "Investigate" then
+		return
+	end
+	npc.stateUntil = now + config.Investigate.ReturnAfterQuietSeconds
+	if stop then
+		npc.path = nil
+		npc.resume = nil
+		npc.moveSpeed = 0
+	end
+end
+
+-- The guard gives up and walks back to its post.
+function Reactions.recall(crowd: Crowd, npc: Npc, now: number)
+	if npc.state ~= "Investigate" then
+		return
+	end
+	npc.path = nil
+	npc.resume = nil
+	npc.moveSpeed = 0
+	beginReturn(crowd, npc, now, nearestNode(crowd, npc))
 end
 
 -- Guests who come within BodyRadius of a body they have not yet reacted to gasp at it.

@@ -5,7 +5,7 @@
 --     (ConeDegrees, Range). It is a witness for Cover while it works (CoverService.addWitnessSource, worth 0.6).
 --   * It locks on to an agent in its cone who is Exposed in a Tier 1+ zone, or trespassing (zone above their clearance):
 --     it stops sweeping and turns red, and LockOnSeconds of continuous view raises the alarm once. It sweeps on again
---     once it has lost the target for LockLoseSeconds. (Alerting the nearest guards is the guards' job: Step 15.)
+--     once it has lost the target for LockLoseSeconds. The nearest AlertGuards guards go to where the agent was (GuardService).
 --   * Hold Interact within HackRange for HackSeconds (kind "Camera"): disabled for HackDisabledSeconds, and it cannot be
 --     hacked again for HackImmuneSeconds after it comes back. Suspicious if another camera sees it (noteHacking).
 --   * A shot that ends on a camera destroys it for DestroyedSeconds (CombatService world-hit listener).
@@ -31,6 +31,7 @@ local CombatService = require(script.Parent.CombatService)
 local CoverService = require(script.Parent.CoverService)
 local DisguiseService = require(script.Parent.DisguiseService)
 local DownedService = require(script.Parent.DownedService)
+local GuardService = require(script.Parent.GuardService)
 local InteractService = require(script.Parent.InteractService)
 local MatchService = require(script.Parent.MatchService)
 local ZoneService = require(script.Parent.ZoneService)
@@ -167,6 +168,10 @@ local function think(camera: Camera, bodies: { [Player]: BasePart }, now: number
 		if not camera.raised and now - camera.lockStart >= config.LockOnSeconds then
 			camera.raised = true
 			AlarmService.raise(1, `Camera {camera.id} saw {seen.Name}`)
+			local root = bodies[seen]
+			if root then
+				GuardService.alertNearest(root.Position, config.AlertGuards) -- spec 18.1
+			end
 		end
 	else
 		if camera.lostSince == 0 then

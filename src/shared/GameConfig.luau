@@ -1183,18 +1183,33 @@ local GameConfig = {
 			FuseBox = { MinStuds = 5, MaxStuds = 14, InteractStuds = 8, Size = Vector3.new(2, 3, 1) },
 		},
 		KeycardDoor = { OpenSeconds = 4, LockpickSeconds = 4, InteractStuds = 8 },
+		-- Spec 18.5. A guard never fires at anyone who is not Exposed (a disguised agent, suspicion under 100%). Its HP is
+		-- NPC.MaxHP and it stands up NPC.WakeUp.Seconds (60) after it went down, where it fell (SPEC_CHANGES relayout-2).
 		Guard = {
-			MaxHP = 50,
 			Damage = 8,
 			FireIntervalSeconds = 0.8,
 			NearAccuracy = 0.6,
 			NearAccuracyStuds = 15,
 			FarAccuracy = 0.2,
-			FarAccuracyStuds = 40,
+			FarAccuracyStuds = 40, -- it does not shoot beyond this
 			EngageFiringRadius = 30, -- an agent firing within this distance gets engaged
 			ChaseLimitStuds = 40,
-			RespawnSeconds = 60,
-			SuspicionImmuneBelow = 100, -- never fires at disguised agents with suspicion under this
+			-- Ticket 15: implementation values. SPEC-QUESTION: the spec gives none of these.
+			ThinkHz = 10,
+			ProvokeSeconds = 8, -- a guard that heard an agent fire, or was hit by one, goes for that agent this long
+			LoseSeconds = 4, -- a target out of sight this long is given up and the guard goes back to its post
+			HoldStuds = 14, -- in sight and this close, the guard stops closing in
+			RepathStuds = 5, -- the guard picks a new route when its target has moved this far from the last one aimed at
+			RepathSeconds = 1,
+			EyeStuds = 1.5,
+			MissStuds = 3, -- a shot that misses ends this far from the target's middle
+			HearStuds = 70,
+			WeaponId = "ReticlePistol", -- what the shot looks and sounds like to others (a registered weapon)
+			-- Heightened (18.4): extra guards appear at nodes of this tier, none within SpawnAwayStuds of a player, up to
+			-- MaxExtras at once. They stay until the match ends.
+			ExtraTier = 1,
+			MaxExtras = 6,
+			SpawnAwayStuds = 40,
 		},
 		Alarm = {
 			MaxLevel = 3,

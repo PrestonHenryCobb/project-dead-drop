@@ -72,6 +72,7 @@ export type Npc = {
 	reactedTo: { [Model]: boolean }, -- bodies this NPC has already reacted to
 	bot: boolean?, -- ticket 13B-a: a bot's brain (BotService) chooses its trips; it never picks one itself
 	botArrive: (() -> ())?, -- called when a bot finishes the walk the brain sent it on
+	extra: boolean?, -- ticket 15: a guard the Heightened alarm added; it goes when the match ends
 }
 
 -- What the reaction and death modules need from the crowd.

@@ -221,6 +221,7 @@ they differ (see MENU_CONTRACT.md "Where the handoffs were corrected").
 | 13B-b | Bots fight and extract: bots carry the Package (paying the Package door in Intel), call and complete extraction (a bot team can win), and shoot Exposed humans in sight (CombatService.botFire). Contract: .ai-sync/BOT_CONTRACT.md. **A bots-only match ran to a bot win in Studio.** | CLAUDE_CODE | 13B-a | READY_FOR_REVIEW |
 | 14 | Security (spec 18): AlarmService, CameraService (sweep, lock-on, hack, shoot, Camera Room terminal), LaserService (grids, fuse boxes), keycard door lockpicking and Lockdown seal, camera and interact controllers. Contract: .ai-sync/SECURITY_CONTRACT.md. Tested in Studio except shooting a camera. | CLAUDE_CODE | 13B-b | READY_FOR_REVIEW |
 | 14b | Security HUD: alarm level pips and Lockdown banner, Camera Room 4-feed view, hold prompts for camera/fuse box/terminal/lockpick. Read SECURITY_CONTRACT.md; no server change. | CODEX | 14 | READY_FOR_REVIEW |
+| 15 | Security NPC combat (spec 18.5): GuardService (engage rules, pursuit, accuracy falloff, chase limit, recall), camera alert to the 2 nearest guards, Alert speed 14, Heightened extra guards, Lockdown engagement. Contract: .ai-sync/GUARD_CONTRACT.md. **Tested solo in Studio: engage, shots with falloff, give-up, Alert speed, Heightened extras.** | CLAUDE_CODE | 14 | READY_FOR_REVIEW |
 
 ## Waiting on the owner
 

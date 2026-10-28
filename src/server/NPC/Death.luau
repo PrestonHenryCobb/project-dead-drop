@@ -110,6 +110,16 @@ function Death.removePlayerBody(model: Model)
 	end
 end
 
+-- The NPC is leaving the crowd: its body, if it is one, is no longer there to react to.
+function Death.forget(npc: Npc)
+	for index, body in Death.bodies do
+		if body.npc == npc then
+			table.remove(Death.bodies, index)
+			return
+		end
+	end
+end
+
 -- An executed NPC (spec 14.1: an enemy holds Interact on a downed body) bleeds out at once.
 function Death.execute(npc: Npc, now: number)
 	if npc.state == "Downed" then
