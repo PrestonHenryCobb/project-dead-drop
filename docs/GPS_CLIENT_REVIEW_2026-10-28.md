@@ -1,7 +1,7 @@
 # GPS client review — 2026-10-28
 
 Owner scope: RouteService presentation only, using .ai-sync/ROUTE_CONTRACT.md and docs/GPS_DESIGN.md at 27cab42.
-Carrier tracking controls, vignette and whisper remain deferred until CarrierTrackService has a contract.
+Extended under owner authorization after CarrierTrackService commit 6a624d1; .ai-sync/CARRIER_TRACK_CONTRACT.md is the tracking contract.
 
 ## Built
 - RouteHudController: north-up floor map, server target cycling, both route summaries, selected-route step list,
@@ -33,7 +33,7 @@ Carrier tracking controls, vignette and whisper remain deferred until CarrierTra
 
 ## Validation
 - StyLua on changed Luau; full-source format check and Selene clean; Rojo build passes.
-- tools/check-route-client.cjs: 119 actual-source fixture assertions (controller, presentation, map, arrow sampling).
+- tools/check-route-client.cjs: 122 actual-source fixture assertions (controller, presentation, map, arrow sampling).
 - Existing client-data: 673 assertions; floor markers: 76. Fixtures are not a native Studio playtest.
 
 ## Limits / questions
@@ -44,3 +44,34 @@ Carrier tracking controls, vignette and whisper remain deferred until CarrierTra
 - Native Studio, gamepad priority, camera-feed overlap and multi-player review remain pending. The server contract's
   traversal connectivity gaps remain; the client does not invent missing links or route availability.
 - No new SPEC-QUESTIONs. Exact keys were open in GPS_DESIGN; the client defaults above are now in RouteHud config.
+
+## Carrier extension — 2026-10-28
+
+- CarrierTrackController owns T / left-stick press. Sends RequestCarrierTrack(true/false) on press/release; the server
+  alone classifies tap/hold. Duplicate key-down and overlapping keyboard/gamepad presses send one balanced pair.
+- Only PackageState.YouCarry enables the tracking hint and input. Focus loss, text entry, downed/eliminated, extraction,
+  carrier loss, phase reset and teardown release the hold. No client spending, distance search or actor identities.
+- CarrierTrackState positions feed a separate minimap mark layer, filtered by displayed named floor. Ping expires
+  from receipt using Seconds, Live replaces all positions, End clears. Actor names/attributes/tags are never read or set.
+- TrackedCue draws a faint edge vignette and plays one local nondirectional cue. Normal mode fades only; Reduce Motion
+  keeps a steady low-opacity edge until expiry. Audio and vignette stop on expiry/lifecycle changes; no stacking sounds.
+- Audio gap: no authored whisper exists in the repo. The working cue uses Roblox bundled action_falling.ogg wind with
+  quiet EQ/playback treatment as a breath-like stand-in. Replace CarrierTrackHud.WhisperSoundId with an approved
+  experience-accessible whisper recording during the Step 20 audio pass. This is not a finished whispered voice asset.
+
+### Additional Studio checks
+1. Use a local server with two players on different teams. Enter Package Heist and acquire the Package normally.
+   Only its carrier should see the T/L3 hint. A noncarrier pressing T/L3 must send no tracking request.
+2. With Intel and a rival within 60 studs, briefly tap T: one anonymous minimap dot appears for the sent Seconds, and the
+   server charges 1 Intel. Hold T longer than 0.3 s: marks follow the server updates; release clears the live marks.
+   Use a wall between rivals, and repeat on different storeys using Page Up/Down to inspect the corresponding map floor.
+3. On the rival, confirm the faint vignette and quiet local audio cue. Repeat with Reduce Motion: steady faint edge, no
+   pulse/shake. Check sound volume against combat audio. The cue must reveal neither direction nor carrier identity.
+4. Hold until Intel runs out, drop/pass the Package while holding, alt-tab, enter chat, become downed and leave the match.
+   No stuck hold, leaked marks or lingering audio/vignette should remain. Repeat with L3 and overlapping T/L3 inputs.
+5. Verify M/N/J, floor browsing and floor arrows still work. Nearby Camera Room RB retains priority over route mode RB.
+
+Additional validation: check-carrier-track-client.cjs passes 28 actual-source assertions; route suite now 122, existing
+client-data/floor suites 749. StyLua/Selene/Rojo clean. Native Studio and final whisper recording remain outstanding.
+No new SPEC-QUESTIONs. The tracking contract explicitly includes bots as rivals; the client uses only anonymous server
+positions and never decides whether a mark is human or bot. No server changes.

@@ -1,5 +1,5 @@
 --!strict
--- GPS routes consume only RequestRoute results; tracking and actor decoration are deliberately absent.
+-- GPS routes and private carrier marks consume server data; never decorate or identify actors.
 local CollectionService = game:GetService("CollectionService")
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -18,6 +18,7 @@ local RouteMap = require(script.Parent.Parent.Combat.RouteMap)
 local RouteArrows = require(script.Parent.Parent.Combat.RouteArrows)
 local FloorBands = require(script.Parent.Parent.Combat.FloorBands)
 local Remote = require(script.Parent.RemoteController)
+local CarrierTrack = require(script.Parent.CarrierTrackController)
 local RouteHudController = {}
 
 function RouteHudController.Init() end
@@ -269,6 +270,7 @@ function RouteHudController.Start()
 	local drawnResult: Types.RouteResult? = nil
 	local drawnFloor: string? = nil
 	local drawnMode = ""
+	local drawnMarks = -1
 	local zonesVersion, drawnZones = 0, -1
 	janitor:Add(CollectionService:GetInstanceAddedSignal(Enums.Tag.ZoneVolume):Connect(function()
 		zonesVersion += 1
@@ -288,6 +290,8 @@ function RouteHudController.Start()
 			end
 			panelRoot.Visible = false
 			arrows.hide()
+			renderer.marks({})
+			drawnMarks = -1
 			return
 		end
 		if not inFlight and os.clock() >= nextRequest then
@@ -307,6 +311,8 @@ function RouteHudController.Start()
 		if not root or not root:IsA("BasePart") then
 			panelRoot.Visible = false
 			arrows.hide()
+			renderer.marks({})
+			drawnMarks = -1
 			return
 		end
 		local here = bands.nameAt(root.Position.Y)
@@ -346,6 +352,12 @@ function RouteHudController.Start()
 			end
 			renderer.draw(visibleZones, floor, bands.nameAt, result, mode, root.Position)
 			drawnResult, drawnFloor, drawnMode, drawnZones = result, floor, mode, zonesVersion
+			drawnMarks = -1
+		end
+		local trackedMarks, marksRevision = CarrierTrack.marks()
+		if shown and drawnMarks ~= marksRevision then
+			renderer.marks(trackedMarks)
+			drawnMarks = marksRevision
 		end
 		arrows.update(
 			route,

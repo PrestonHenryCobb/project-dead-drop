@@ -1812,6 +1812,23 @@ local GameConfig = {
 	-- HoldCostPerSecond intel at the start and each second after, ending when the team cannot pay, the key goes up, or the
 	-- carrier stops being the carrier. A tracked player rival gets a cue, again only after CueRepeatSeconds. Using it does not break
 	-- Cover. SPEC-QUESTION: bots count as rivals (they stand in for agents); a downed or eliminated rival is not shown.
+	-- gps-carrier-client: local input and tracked-player feedback only.
+	CarrierTrackHud = {
+		Key = Enum.KeyCode.T,
+		Pad = Enum.KeyCode.ButtonL3,
+		RefreshSeconds = 0.05,
+		MarkColor = Color3.fromRGB(170, 65, 110),
+		CueColor = Color3.fromRGB(70, 55, 80),
+		CueSeconds = 1.2,
+		CueTransparency = 0.91,
+		-- Breath-like bundled wind until the Step 20 authored whisper/audio pass.
+		WhisperSoundId = "rbxasset://sounds/action_falling.ogg",
+		WhisperVolume = 0.14,
+		WhisperSpeed = 0.85,
+		WhisperLowGain = -18,
+		WhisperMidGain = -12,
+		WhisperHighGain = -6,
+	},
 	CarrierTrack = {
 		Radius = 60,
 		TapSeconds = 0.3,

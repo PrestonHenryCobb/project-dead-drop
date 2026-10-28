@@ -35,6 +35,7 @@ local RunService={Heartbeat=heartbeat}
 local task={spawn=function(fn)table.insert(pending,fn)end}
 local script={Destroying=signal()}
 local RouteMap=Map
+local CarrierTrack={marks=function()return {},0 end}
 local hidden=false
 local RouteArrows={new=function()return {hide=function()hidden=true end,update=function()hidden=false end,Destroy=function()end}end}
 for _,key in {"MapKey","TargetKey","ModeKey","FloorUpKey","FloorDownKey","MapPad","TargetPad","ModePad"} do config[key]={Name=key} end
@@ -172,12 +173,19 @@ local function zone(y)
  return part
 end
 local canvas=Instance.new("Frame")
+GameConfig.CarrierTrackHud={MarkColor={}}
 local renderer=Map.new(canvas)
 renderer.draw({zone(10),zone(34)},"G",floorAt,result,"Fast",Vector3.new(0,3,0))
 local function count(name)local n=0 for _,v in objects do if v.Name==name and not v.destroyed then n+=1 end end return n end
 check(count("Room")==1,"floor plan filters rooms by floor")
 check(count("FastRoute")==1,"route segments never bridge floors in 2D")
 check(count("StepFlag")==1,"step index mapped to matching floor")
+renderer.marks({Vector3.new(0,0,0),Vector3.new(0,24,0)})
+check(count("TrackedMark")==1,"private marks filtered by displayed floor")
+renderer.marks({Vector3.new(24,0,0)})
+check(count("TrackedMark")==1,"live updates replace prior marks")
+renderer.marks({})
+check(count("TrackedMark")==0,"End/expiry clears private map marks")
 check(count("You")==1 and count("Destination")==0,"no off-floor target dot")
 renderer.draw({zone(10),zone(34)},"M",floorAt,result,"Fast",Vector3.new(0,3,0))
 check(count("You")==0 and count("Destination")==1,"browse floor filters player and destination")

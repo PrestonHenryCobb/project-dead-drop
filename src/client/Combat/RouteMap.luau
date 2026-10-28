@@ -11,6 +11,10 @@ local RouteMap = {}
 
 function RouteMap.new(parent: Frame)
 	local content = Janitor.new()
+	local tracked = Janitor.new()
+	local projectMark: ((Vector3) -> Vector2)? = nil
+	local markFloor: string? = nil
+	local markFloorAt: ((number) -> string?)? = nil
 	local theme = HudTheme.get()
 	local function frame(name: string, position: UDim2, size: UDim2, color: Color3): Frame
 		local item = Instance.new("Frame")
@@ -23,7 +27,7 @@ function RouteMap.new(parent: Frame)
 		content:Add(item)
 		return item
 	end
-	local function caption(name: string, text: string, at: Vector2, color: Color3): TextLabel
+	local function caption(name: string, text: string, at: Vector2, color: Color3, tracking: boolean?): TextLabel
 		local label = Instance.new("TextLabel")
 		label.Name = name
 		label.Text = text
@@ -37,7 +41,11 @@ function RouteMap.new(parent: Frame)
 		label.Position = UDim2.fromOffset(at.X, at.Y)
 		label.Size = UDim2.fromOffset(config.FlagPixels, config.FlagPixels)
 		label.Parent = parent
-		content:Add(label)
+		if tracking then
+			tracked:Add(label)
+		else
+			content:Add(label)
+		end
 		return label
 	end
 	return {
@@ -50,6 +58,9 @@ function RouteMap.new(parent: Frame)
 			origin: Vector3
 		)
 			content:Cleanup()
+			tracked:Cleanup()
+			projectMark = nil
+			markFloor, markFloorAt = floor, floorAt
 			local lowX, lowZ, highX, highZ = math.huge, math.huge, -math.huge, -math.huge
 			for _, zone in zones do
 				-- Bounds include all public floors, keeping scale stable when browsing floors.
@@ -74,6 +85,7 @@ function RouteMap.new(parent: Frame)
 					config.MapPixels / 2 + (p.Z - center.Y) * scale
 				)
 			end
+			projectMark = project
 			for _, zone in zones do
 				if floorAt(zone.Position.Y) == floor then
 					local p = project(zone.Position)
@@ -144,7 +156,20 @@ function RouteMap.new(parent: Frame)
 				caption("You", "▲", project(origin), theme.TextColor)
 			end
 		end,
+		marks = function(points: { Vector3 })
+			tracked:Cleanup()
+			local project, floorAt = projectMark, markFloorAt
+			if not project or not floorAt or not markFloor then
+				return
+			end
+			for _, point in points do
+				if floorAt(point.Y) == markFloor then
+					caption("TrackedMark", "●", project(point), GameConfig.CarrierTrackHud.MarkColor, true)
+				end
+			end
+		end,
 		Destroy = function()
+			tracked:Destroy()
 			content:Destroy()
 		end,
 	}
