@@ -45,7 +45,8 @@ local scanSeconds = 0
 local ringSegments: { Frame } = {}
 local centerDot: Frame? = nil
 local badge: TextLabel? = nil
-local storedBadge: TextLabel? = nil
+local storedBadges: { TextLabel } = {}
+local badgePanel: Frame? = nil
 local tierPips: { Frame } = {}
 local toast: TextLabel? = nil
 local toastToken = 0
@@ -81,22 +82,23 @@ local function buildHud()
 		table.insert(ringSegments, tick)
 	end
 
-	local badgePanel = HudKit.panel(
+	local disguisePanel = HudKit.panel(
 		gui,
 		"Disguise",
 		UDim2.new(0, graphics.MarginPixels, 1, -graphics.CoverBottomPixels),
 		Vector2.new(0, 1),
 		UDim2.fromOffset(graphics.VitalsWidthPixels, graphics.PaddingPixels * 4)
 	)
+	badgePanel = disguisePanel
 	HudKit.icon(
-		badgePanel,
+		disguisePanel,
 		"Badge",
 		UDim2.fromOffset(graphics.PaddingPixels, graphics.PaddingPixels),
 		graphics.IconPixels,
 		graphics.TextColor
 	)
 	local badgeText = HudKit.text(
-		badgePanel,
+		disguisePanel,
 		"Badge",
 		UDim2.fromOffset(graphics.PaddingPixels * 2 + graphics.IconPixels, graphics.PaddingPixels / 2),
 		Vector2.zero,
@@ -110,19 +112,9 @@ local function buildHud()
 		pip.BorderSizePixel = 0
 		pip.Size = UDim2.fromOffset(graphics.ReloadBarPixels, graphics.PaddingPixels)
 		pip.Position = UDim2.new(1, -graphics.PaddingPixels * index, 0, graphics.PaddingPixels / 2)
-		pip.Parent = badgePanel
+		pip.Parent = disguisePanel
 		tierPips[index] = pip
 	end
-	storedBadge = HudKit.text(
-		badgePanel,
-		"Stored",
-		UDim2.fromOffset(graphics.PaddingPixels * 2 + graphics.IconPixels, graphics.PaddingPixels * 2),
-		Vector2.zero,
-		UDim2.new(1, -graphics.PaddingPixels * 3 - graphics.IconPixels, 0, graphics.CaptionSize)
-	)
-	storedBadge.TextSize = graphics.CaptionSize
-	storedBadge.TextColor3 = graphics.DimTextColor
-	storedBadge.TextXAlignment = Enum.TextXAlignment.Left
 
 	local toastText = HudKit.text(
 		gui,
@@ -172,8 +164,6 @@ local function showDisguise(update: Types.DisguiseUpdate)
 	if not text then
 		return
 	end
-	local stored = update.Slots[1]
-	local storedLine = if type(stored) == "string" then roleOf(stored) else "EMPTY"
 	local wornLine = if update.Exposed then "TRUE FORM" else roleOf(update.Worn)
 	text.Text = wornLine
 	local outfit = OutfitDefs.byId[update.Worn]
@@ -182,8 +172,38 @@ local function showDisguise(update: Types.DisguiseUpdate)
 	for index, pip in tierPips do
 		pip.BackgroundColor3 = if index <= tier then GameConfig.Zones.TierColors[tier] else ui.ScanRingDimColor
 	end
-	if storedBadge then
-		storedBadge.Text = `{controls.Disguise.Name} / {storedLine}`
+	local panel = badgePanel
+	if panel then
+		local count = math.max(1, #update.Slots)
+		local root = panel.Parent :: Frame
+		root.Size =
+			UDim2.fromOffset(graphics.VitalsWidthPixels, graphics.PaddingPixels * 3 + graphics.CaptionSize * count)
+		for index = #storedBadges, count + 1, -1 do
+			storedBadges[index]:Destroy()
+			table.remove(storedBadges, index)
+		end
+		for index = 1, count do
+			local storedText = storedBadges[index]
+			if not storedText then
+				storedText = HudKit.text(
+					panel,
+					`Stored{index}`,
+					UDim2.fromOffset(
+						graphics.PaddingPixels * 2 + graphics.IconPixels,
+						graphics.PaddingPixels * 2 + (index - 1) * graphics.CaptionSize
+					),
+					Vector2.zero,
+					UDim2.new(1, -graphics.PaddingPixels * 3 - graphics.IconPixels, 0, graphics.CaptionSize)
+				)
+				storedText.TextSize = graphics.CaptionSize
+				storedText.TextColor3 = graphics.DimTextColor
+				storedText.TextXAlignment = Enum.TextXAlignment.Left
+				storedBadges[index] = storedText
+			end
+			local stored = update.Slots[index]
+			local storedLine = if type(stored) == "string" then roleOf(stored) else "EMPTY"
+			storedText.Text = `{controls.Disguise.Name} / {index} · {storedLine}`
+		end
 	end
 end
 

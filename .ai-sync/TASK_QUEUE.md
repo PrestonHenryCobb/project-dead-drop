@@ -223,7 +223,7 @@ they differ (see MENU_CONTRACT.md "Where the handoffs were corrected").
 | 14b | Security HUD: alarm level pips and Lockdown banner, Camera Room 4-feed view, hold prompts for camera/fuse box/terminal/lockpick. Read SECURITY_CONTRACT.md; no server change. | CODEX | 14 | READY_FOR_REVIEW |
 | 16a | Agents: AbilityService + AbilityController (Q, cooldown via CooldownUpdate) and Guise (Quick Change, Two Faces: 2 slots, 0.6 s scan). Contract: .ai-sync/ABILITY_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 15 | READY_FOR_REVIEW |
 | 16b | Agents: Parapet (Riot Wall shield in Combat/Shields, stopped shots and projectiles; Plated: 2 starting plates) and ShieldController. Contract: .ai-sync/ABILITY_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 16a | READY_FOR_REVIEW |
-| 16-hud | Ability cooldown HUD (name, ready/cooldown ring from `AbilityController.cooldown()`) and show both disguise slots in the disguise badge (`DisguiseUpdate.Slots` now has up to 2 entries). Client only. | CODEX | 16a | IN_PROGRESS (CODEX) |
+| 16-hud | Ability cooldown HUD (name, ready/countdown from `AbilityController.cooldown()`) and every disguise slot, including empty entries. Server-time deadline, static Reduce Motion-safe presentation and one/two-slot layout checks. Client only. | CODEX | 16a | READY_FOR_REVIEW |
 | 15 | Security NPC combat (spec 18.5): GuardService (engage rules, pursuit, accuracy falloff, chase limit, recall), camera alert to the 2 nearest guards, Alert speed 14, Heightened extra guards, Lockdown engagement. Contract: .ai-sync/GUARD_CONTRACT.md. **Tested solo in Studio: engage, shots with falloff, give-up, Alert speed, Heightened extras.** | CLAUDE_CODE | 14 | READY_FOR_REVIEW |
 
 ## Waiting on the owner
@@ -387,3 +387,11 @@ bounded, occlusion-checked and fully released when hidden. No server files/remot
 50 security source assertions and all 1,406 assertions across ten suites pass; StyLua, Selene and Rojo pass.
 Native appearance, streaming completeness and performance need Studio acceptance. No new SPEC-QUESTION.
 Full files, limitations and Studio checks: docs/SECURITY_CLIENT_REVIEW_2026-10-28.md.
+
+## Ability/disguise HUD handoff (Codex 16-hud, 2026-10-28)
+
+AbilityHudController reads AbilityController.cooldown(), shows the configured key/name and server-time READY/countdown,
+and hides outside matches or before fresh confirmed data. DisguiseController renders every ordered Slots entry,
+including false/empty slots, with reusable numbered rows and dynamic badge height. No server/shared-contract changes.
+50 new actual-source assertions; 1,456 across eleven checked client suites. StyLua, Selene and Rojo pass.
+Native Studio typography/timing acceptance remains. No new SPEC-QUESTION. docs/ABILITY_HUD_REVIEW_2026-10-28.md.
