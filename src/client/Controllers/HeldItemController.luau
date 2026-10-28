@@ -21,12 +21,21 @@ local HeldItemController = {}
 local janitor = Janitor.new()
 local active: Item? = nil
 local weapon: Item? = nil
+local interfaces: { [Instance]: boolean } = {}
 
 local function cancelInputs()
 	local item = active
 	if item then
 		item.fire(Enum.UserInputState.Cancel)
 		item.aim(Enum.UserInputState.Cancel)
+	end
+end
+
+-- Client UI owns its blocker and releases it on close/teardown. Cancelling never changes the server-confirmed item.
+function HeldItemController.setInterfaceBlocked(owner: Instance, blocked: boolean)
+	interfaces[owner] = if blocked then true else nil
+	if blocked then
+		cancelInputs()
 	end
 end
 
@@ -68,6 +77,9 @@ function HeldItemController.unregisterWeapon(item: Item)
 end
 
 local function onFire(_: string, state: Enum.UserInputState): Enum.ContextActionResult
+	if next(interfaces) then
+		return Enum.ContextActionResult.Pass
+	end
 	if state == Enum.UserInputState.Begin and UserInputService:GetFocusedTextBox() then
 		return Enum.ContextActionResult.Pass
 	end
@@ -78,6 +90,9 @@ local function onFire(_: string, state: Enum.UserInputState): Enum.ContextAction
 end
 
 local function onAim(_: string, state: Enum.UserInputState): Enum.ContextActionResult
+	if next(interfaces) then
+		return Enum.ContextActionResult.Pass
+	end
 	if state == Enum.UserInputState.Begin and UserInputService:GetFocusedTextBox() then
 		return Enum.ContextActionResult.Pass
 	end
@@ -96,6 +111,7 @@ function HeldItemController.Start()
 	ContextActionService:BindActionAtPriority("HeldItemAim", onAim, false, priority, controls.Aim, controls.AimPad)
 	janitor:Add(function()
 		cancelInputs()
+		table.clear(interfaces)
 		ContextActionService:UnbindAction("HeldItemFire")
 		ContextActionService:UnbindAction("HeldItemAim")
 	end)

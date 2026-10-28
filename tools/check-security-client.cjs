@@ -10,7 +10,8 @@ const hud=after(read('src/client/Controllers/SecurityHudController.luau'),'local
 const cover=read('src/client/Controllers/CoverController.luau');
 const alarmBuild=between(cover,'\tlocal alarmPanel =','\n\t-- Ticket HUD refresh:');
 const alarmRefresh=between(cover,'\tif alarmLabel then','\n\tlocal lockout =');
-for(const [file,label]of [['CameraService','Hack camera'],['CameraService','Camera Room'],['LaserService','Cut power'],['SecurityService','Pick lock']])if(!read('src/server/Services/'+file+'.luau').includes('label = "'+label+'"'))throw Error('Server label changed: '+label);
+for(const [file,label]of [['CameraService','Hack camera'],['CameraService','Camera Room'],['LaserService','Cut power']])if(!read('src/server/Services/'+file+'.luau').includes('label = "'+label+'"'))throw Error('Server label changed: '+label);
+if(!read('src/server/Services/SecurityService.luau').includes('label = if keycard then "Use keycard" else "Pick lock"'))throw Error('Keycard/lockpick label contract changed');
 const harness=`
 local checks=0 local function check(v,msg)assert(v,msg)checks+=1 end
 local now=100 local os={clock=function()return now end}
@@ -103,6 +104,9 @@ tick()check(not find("CameraRoomFeeds").Visible and not find("SecurityAction").V
 events.PhaseChanged("Infiltration")tick()check(find("CameraRoomFeeds").Visible,"Feed screen only near match terminal")
 check(find("Action").Text:find("Hack camera",1,true)~=nil,"Camera target prompt")
 for kind,label in {FuseBox="Cut power",CameraTerminal="Camera Room",Lockpick="Pick lock"}do targetKind=kind tick()check(find("Action").Text:find(label,1,true)~=nil,"Exact target prompt "..kind)end
+targetKind="SupplyCache"tick()check(find("Action").Text:find("Open Supply Cache",1,true)~=nil,"Cache contextual open prompt")
+events.InteractState({Kind="Supply Cache",Active=true,Seconds=.3})now+=.15 tick()check(find("Action").Text=="SUPPLY CACHE"and math.abs(find("SecurityHoldProgress").Size[1]-.5)<.0001,"Exact server cache-open hold label")
+events.InteractState({Kind="Use keycard",Active=true,Seconds=1})tick()check(find("Action").Text=="USE KEYCARD","Purchased keycard acknowledged hold label")
 events.InteractState({Kind="Cut power",Active=true,Seconds=3})now+=1.5 tick()check(find("Action").Text=="CUT POWER"and find("SecurityHoldProgress").Size[1]==.5,"Server acknowledgement drives hold bar")
 events.PhaseChanged("VaultBreach")tick()check(find("SecurityHoldProgress").Size[1]==.5,"Active-phase transition preserves acknowledged hold")
 events.InteractState({Kind="Cut power",Active=false,Seconds=3})tick()check(find("SecurityHoldProgress").Size[1]==0,"Server cancellation clears hold progress")

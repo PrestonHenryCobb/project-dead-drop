@@ -231,7 +231,7 @@ they differ (see MENU_CONTRACT.md "Where the handoffs were corrected").
 | 17b | Gadgets, Evasion: Spring Pad (LaunchController), Noise Maker (NPC noise reaction), Disguise Kit; Gadgets/Spot. Contract: .ai-sync/GADGET_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 17a | READY_FOR_REVIEW |
 | 18d | Economy: Agent Tag drop and pickup, and Rescue as a Supply Cache item (RescueService; MatchService.reinstate; AbilityService.setCooldownFraction). Contract: .ai-sync/ECONOMY_CONTRACT.md. **Only the tag drop and the respawn steps were tested solo; pickup and the shop item need a teammate.** | CLAUDE_CODE | 18c | READY_FOR_REVIEW |
 | 18c | Economy: Supply Cache shop (SupplyService: sessions, discount, 2 s purchases that break Cover, six intel-priced items, Security Keycard use at keycard doors). Contract: .ai-sync/ECONOMY_CONTRACT.md. **Tested solo in Studio except ammo/gadget/ability items.** | CLAUDE_CODE | 18b | READY_FOR_REVIEW |
-| 18c-hud | Supply Cache shop screen: while `ShopState.Open` show the items (name, price, Reason when not Available), the team Intel balance and a progress bar while `Buying` (BuySeconds); a click calls `RequestShopBuy(itemId)`, a close button or Escape calls `RequestShopClose`. Client only; read ECONOMY_CONTRACT.md. | CODEX | 18c | IN_PROGRESS (CODEX) |
+| 18c-hud | ShopState-driven Supply Cache modal: server offers/prices/reasons/Intel, acknowledged purchase progress, buy/close/Escape, held-input safety and cache/keycard prompts. Client only. docs/SUPPLY_HUD_REVIEW_2026-10-28.md. | CODEX | 18c | READY_FOR_REVIEW |
 | 18b | Economy: wall stations (Health Station 3 intel, Ammo Cache 2 intel, free Food Spots +15 HP) via StationService. Contract: .ai-sync/ECONOMY_CONTRACT.md. **Tested solo in Studio except the Ammo Cache.** | CLAUDE_CODE | 18a | READY_FOR_REVIEW |
 | 18a | Economy: hack a shut tier door open with intel (DoorHack hold, price HackCost, Wired discount, Long Lens and Keycard Clone on tier doors, door ids). Contract: .ai-sync/ECONOMY_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 17e | READY_FOR_REVIEW |
 | 17e | Gadgets, Support: Briefcase Shield (Shields.create takes a carried spec; DisguiseService.setSprintBlocked). Completes the 12 gadgets and Step 17. Contract: .ai-sync/GADGET_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 17d | READY_FOR_REVIEW |
@@ -432,4 +432,11 @@ No optimistic preference, new main tab, server change or persistence. H remains 
 30 new actual-source assertions; 1,541 across thirteen checked suites. StyLua, Selene and Rojo pass; native layout/focus
 and multiplayer timing acceptance remain. No new SPEC-QUESTION. docs/AUTO_RECOVER_HUD_REVIEW_2026-10-28.md.
 
+## Supply Cache HUD handoff (Codex 18c-hud, 2026-10-28)
 
+READY_FOR_REVIEW: SupplyHudController draws only private ShopState offers/prices/reasons/team Intel; BuySeconds drives
+cosmetic progress only while Buying. Requests send an item id; no optimistic spend, inventory or completion. Close/Escape/
+B/lifecycle/server close releases UI and held-item input safely. SecurityHud covers cache/station/door/keycard labels.
+41 Supply assertions plus 3 security assertions; 1,585 across fourteen checked suites. StyLua, Selene and Rojo pass.
+Native layout/input/network acceptance remains; no new SPEC-QUESTION. No server changes or 18d work in this patch.
+Full files, checks and limits: docs/SUPPLY_HUD_REVIEW_2026-10-28.md.

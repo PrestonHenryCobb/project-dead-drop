@@ -21,11 +21,23 @@ local SecurityHudController = {}
 local theme = HudTheme.get()
 local config = GameConfig.SecurityHud
 local player = Players.LocalPlayer
-local labels = { Camera = "Hack camera", FuseBox = "Cut power", CameraTerminal = "Camera Room", Lockpick = "Pick lock" }
+local labels = {
+	Camera = "Hack camera",
+	FuseBox = "Cut power",
+	CameraTerminal = "Camera Room",
+	Lockpick = "Pick lock",
+	SupplyCache = "Open Supply Cache",
+	DoorHack = "Hack door",
+	HealthStation = "Heal",
+	AmmoCache = "Refill ammo",
+	FoodSpot = "Eat",
+}
 local validLabels: { [string]: boolean } = {}
 for _, label in labels do
 	validLabels[label] = true
 end
+validLabels["Supply Cache"] = true -- the authoritative hold label differs from the contextual prompt
+validLabels["Use keycard"] = true -- Supply Cache keycards change the acknowledged door hold
 
 function SecurityHudController.Init() end
 
