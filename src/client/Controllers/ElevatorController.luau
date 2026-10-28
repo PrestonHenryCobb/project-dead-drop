@@ -1,8 +1,5 @@
 --!strict
--- Ticket 7B-glass-elevators: asking a cab for a level. Standing inside a cab, Interact (E) goes to the next level up, wrapping
--- to the lowest after the highest (a real level selector is a UI ticket for Codex). The server checks that the player really
--- stands in the cab; PlatformController carries the character with the cab floor.
-
+-- Glass elevator selector: replicated stops and status; server-authoritative travel.
 local CollectionService = game:GetService("CollectionService")
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -17,13 +14,12 @@ local RemoteController = require(script.Parent.RemoteController)
 local ElevatorController = {}
 
 local ACTION = "CoverStoryElevatorFloor"
-local CHECK_SECONDS = 0.2
+local CHECK_SECONDS = GameConfig.SecurityHud.RefreshSeconds
 local controls = GameConfig.Controls
 local rideConfig = GameConfig.Doors.Elevators
 local localPlayer = Players.LocalPlayer
 
 local janitor = Janitor.new()
-local bound = false
 local current: BasePart? = nil
 
 local function insideCab(): BasePart?
@@ -54,8 +50,9 @@ local function levelsOf(cab: BasePart): { string }
 	local text = cab:GetAttribute("Stops")
 	for entry in string.gmatch(if type(text) == "string" then text else "", "[^,]+") do
 		local name, height = string.match(entry, "^(%a+):(%-?[%d%.]+)$")
-		if name and height then
-			table.insert(stops, { name = name, height = tonumber(height) :: number })
+		local numericHeight = if height then tonumber(height) else nil
+		if name and numericHeight then
+			table.insert(stops, { name = name, height = numericHeight })
 		end
 	end
 	table.sort(stops, function(a, b)
@@ -68,45 +65,211 @@ local function levelsOf(cab: BasePart): { string }
 	return names
 end
 
-local function onInteract(_: string, state: Enum.UserInputState): Enum.ContextActionResult
-	local cab = current
-	if state ~= Enum.UserInputState.Begin or not cab then
-		return Enum.ContextActionResult.Pass
-	end
-	local level = cab:GetAttribute("Level")
-	if cab:GetAttribute("State") == "Moving" or type(level) ~= "string" then
-		return Enum.ContextActionResult.Sink
-	end
-	local names = levelsOf(cab)
-	local index = table.find(names, level) or 0
-	local nextName = names[index % #names + 1]
-	if nextName then
-		RemoteController.fire("RequestElevatorFloor", nextName)
-	end
-	return Enum.ContextActionResult.Sink
-end
-
-local function bindFor(want: boolean)
-	if want and not bound then
-		bound = true
-		-- Below the security Interact (High): a prompt aimed at something wins, since in a cab there is usually none.
-		ContextActionService:BindActionAtPriority(
-			ACTION,
-			onInteract,
-			false,
-			Enum.ContextActionPriority.Medium.Value,
-			controls.Interact,
-			controls.InteractPad
-		)
-	elseif not want and bound then
-		bound = false
-		ContextActionService:UnbindAction(ACTION)
-	end
-end
+local GuiService = game:GetService("GuiService")
+local UserInputService = game:GetService("UserInputService")
+local HudKit = require(Shared.Util.HudKit)
+local HudTheme = require(Shared.Util.HudTheme)
+local HeldItemController = require(script.Parent.HeldItemController)
 
 function ElevatorController.Init() end
 
 function ElevatorController.Start()
+	local theme = HudTheme.get()
+	local content = Janitor.new()
+	janitor:Add(content)
+	local gui = HudKit.screen("ElevatorSelector")
+	gui.DisplayOrder = GameConfig.MatchHud.DisplayOrder
+	janitor:Add(gui)
+	local panel = HudKit.panel(
+		gui,
+		"ElevatorLevels",
+		UDim2.new(1, -theme.MarginPixels, 0.5, 0),
+		Vector2.new(1, 0.5),
+		UDim2.fromOffset(theme.ActionWidthPixels, theme.ActionHeightPixels)
+	)
+	local root = panel.Parent :: Frame
+	root.Visible = false
+	local title = HudKit.text(
+		panel,
+		"CabStatus",
+		UDim2.fromOffset(theme.PaddingPixels, theme.PaddingPixels),
+		Vector2.zero,
+		UDim2.new(1, -theme.PaddingPixels * 2, 0, theme.CaptionSize)
+	)
+	title.TextSize = theme.CaptionSize
+	local rows = Instance.new("Frame")
+	rows.BackgroundTransparency = 1
+	rows.Position = UDim2.fromOffset(theme.PaddingPixels, theme.CaptionSize + theme.PaddingPixels * 2)
+	rows.Size = UDim2.new(1, -theme.PaddingPixels * 2, 1, -theme.CaptionSize - theme.PaddingPixels * 3)
+	rows.Parent = panel
+	local layout = Instance.new("UIListLayout")
+	layout.Padding = UDim.new(0, theme.PaddingPixels)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = rows
+	local opened = false
+	local previous: GuiObject? = nil
+	local signature = ""
+	local phase = "Lobby"
+	local unavailable = false
+	local function close()
+		opened = false
+		signature = ""
+		HeldItemController.setInterfaceBlocked(gui, false)
+		if GuiService.SelectedObject and GuiService.SelectedObject:IsDescendantOf(rows) then
+			GuiService.SelectedObject = if previous and previous.Parent then previous else nil
+		end
+		previous = nil
+	end
+	local function button(name: string, text: string, order: number, enabled: boolean, callback: () -> ()): TextButton
+		local item = Instance.new("TextButton")
+		item.Name = name
+		item.Text = text
+		item.Font = theme.Font
+		item.TextSize = theme.CaptionSize
+		item.TextColor3 = if enabled then theme.TextColor else theme.DimTextColor
+		item.BackgroundColor3 = theme.PanelColor
+		item.BackgroundTransparency = theme.PanelTransparency
+		item.AutoButtonColor = true
+		item.Modal = opened -- releases the first-person mouse only while choosing a destination
+		item.Active = enabled
+		item.Selectable = enabled
+		item.TextWrapped = true
+		item.Size = UDim2.new(1, 0, 0, theme.CaptionSize + theme.PaddingPixels * 2)
+		item.LayoutOrder = order
+		item.Parent = rows
+		content:Add(item)
+		content:Add(item.Activated:Connect(function()
+			if item.Active then
+				callback()
+			end
+		end))
+		return item
+	end
+	local function open()
+		if not current or opened then
+			return
+		end
+		previous = GuiService.SelectedObject
+		opened = true
+		signature = ""
+		HeldItemController.setInterfaceBlocked(gui, true)
+	end
+	local function refresh()
+		local cab = current
+		root.Visible = cab ~= nil and gui.Enabled
+		if not cab then
+			close()
+			return
+		end
+		local state = cab:GetAttribute("State")
+		local level = cab:GetAttribute("Level")
+		local stops = cab:GetAttribute("Stops")
+		local key = tostring(stops) .. "/" .. tostring(state) .. "/" .. tostring(level) .. tostring(opened)
+		if key == signature then
+			return
+		end
+		signature = key
+		title.Text = if state == "Moving"
+			then "ELEVATOR · MOVING"
+			else `ELEVATOR · {if type(level) == "string" and level ~= "" then level else "—"} · {if type(
+					state
+				) == "string"
+				then string.upper(state)
+				else ""}`
+		content:Cleanup()
+		local count = 1
+		local first: TextButton? = nil
+		if opened then
+			for index, name in levelsOf(cab) do
+				local enabled = (state == "Idle" or state == "Open") and name ~= level
+				local item = button(
+					name,
+					`LEVEL {string.upper(name)}{if name == level then " · HERE" else ""}`,
+					index,
+					enabled,
+					function()
+						if current ~= cab or insideCab() ~= cab or cab:GetAttribute("State") == "Moving" then
+							return
+						end
+						RemoteController.fire("RequestElevatorFloor", name)
+						close()
+					end
+				)
+				if enabled then
+					first = first or item
+				end
+				count += 1
+			end
+			local back = button("CloseElevator", "CLOSE · ESC / B", count, true, close)
+			first = first or back
+		else
+			first = button(
+				"ChooseLevel",
+				`[ {controls.Interact.Name} / {controls.InteractPad.Name} ] SELECT LEVEL`,
+				1,
+				true,
+				open
+			)
+		end
+		root.Size = UDim2.fromOffset(
+			theme.ActionWidthPixels,
+			theme.CaptionSize + theme.PaddingPixels * 3 + count * (theme.CaptionSize + theme.PaddingPixels * 3)
+		)
+		if opened then
+			GuiService.SelectedObject = first
+		end
+	end
+	ContextActionService:BindActionAtPriority(ACTION, function(_, state)
+		if state ~= Enum.UserInputState.Begin or not current or UserInputService:GetFocusedTextBox() then
+			return Enum.ContextActionResult.Pass
+		end
+		if opened then
+			close()
+		else
+			open()
+		end
+		refresh()
+		return Enum.ContextActionResult.Sink
+	end, false, Enum.ContextActionPriority.Medium.Value, controls.Interact, controls.InteractPad)
+	ContextActionService:BindActionAtPriority("CloseElevatorSelector", function(_, state)
+		if state == Enum.UserInputState.Begin and opened then
+			close()
+			refresh()
+			return Enum.ContextActionResult.Sink
+		end
+		return Enum.ContextActionResult.Pass
+	end, false, GameConfig.Combat.InputPriority + 1, Enum.KeyCode.ButtonB, Enum.KeyCode.Backspace)
+	janitor:Add(UserInputService.InputBegan:Connect(function(input)
+		if input.KeyCode == Enum.KeyCode.Escape and opened then
+			close()
+			refresh()
+		end
+	end))
+	janitor:Add(RemoteController.connect("PhaseChanged", function(value)
+		phase = value
+		if value == "Lobby" or value == "Insertion" then
+			unavailable = false
+		end
+	end))
+	for _, event in { "Downed", "Eliminated" } do
+		janitor:Add(RemoteController.connect(event, function()
+			unavailable = true
+			close()
+		end))
+	end
+	janitor:Add(RemoteController.connect("Revived", function()
+		unavailable = false
+	end))
+	janitor:Add(RemoteController.connect("ExtractionState", function(info)
+		if info.State == "Extracted" then
+			unavailable = true
+			close()
+		end
+	end))
+	janitor:Add(localPlayer.CharacterAdded:Connect(function()
+		unavailable = false
+		close()
+	end))
 	local elapsed = 0
 	janitor:Add(game:GetService("RunService").Heartbeat:Connect(function(dt)
 		elapsed += dt
@@ -114,12 +277,34 @@ function ElevatorController.Start()
 			return
 		end
 		elapsed = 0
-		current = insideCab()
-		bindFor(current ~= nil)
+		local character = localPlayer.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		local running = phase == "Infiltration"
+			or phase == "VaultBreach"
+			or phase == "PackageHeist"
+			or phase == "Overtime"
+		local cab = if running
+				and not unavailable
+				and humanoid
+				and humanoid.Health > 0
+				and gui.Enabled
+			then insideCab()
+			else nil
+		if cab ~= current then
+			close()
+			signature = ""
+		end
+		current = cab
+		refresh()
 	end))
 	janitor:Add(function()
-		bindFor(false)
+		close()
+		ContextActionService:UnbindAction(ACTION)
+		ContextActionService:UnbindAction("CloseElevatorSelector")
 	end)
+	janitor:Add(gui.Destroying:Connect(function()
+		janitor:Destroy()
+	end))
 end
 
 return ElevatorController

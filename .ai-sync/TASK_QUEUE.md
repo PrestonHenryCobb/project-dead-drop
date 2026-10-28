@@ -474,3 +474,9 @@ added without a KeycardState contract; Notifications are not treated as inventor
 | Id | Ticket | Owner | Needs | Status |
 |---|---|---|---|---|
 | ui-soft-caps | Uppercase menu navigation, actions and section headings; lighter button/title weight, preserve supporting copy. StyLua, Selene, Rojo, 124 gadget/Asset assertions and focused casing checks pass. | CODEX | Studio visual review | READY_FOR_REVIEW |
+
+## Glass elevator client selector (owner request 2026-10-28)
+
+| Id | Ticket | Owner | Needs | Status |
+|---|---|---|---|---|
+| elevator-selector | Cab selector from Stops/State/Level, exact floor requests, mouse/gamepad controls and lifecycle cleanup; elevator/printer prompts and acknowledged hold labels. StyLua/Selene/Rojo and 82 actual-source assertions pass. Client only; Studio review pending. | CODEX | Glass elevators contract | READY_FOR_REVIEW |
