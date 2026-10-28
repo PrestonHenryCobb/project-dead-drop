@@ -69,6 +69,8 @@ with `IntelService.spend(teamId, amount)`. Server-authoritative; the client only
   `setAssetLookup`); Quick Hands divides hold times by 1 + value for `Assets.QuickHandsKinds` (`AbilityService`); Deep Pockets in
   `AssetService.discounted` (cache shop, stations, tier doors after Wired, safes); Field Medic on Food Spots only; Duct Rat in
   `VentService` (`setAssets`; speed-up while in a duct, and from Black Ops no Cover break on entering).
+  Field Medic (decided 2026-10-28): Food Spots heal more, and the Health Station hold takes 1 / (1 + value) of its time
+  (`Assets.FieldMedicKinds`, in `AbilityService`'s seconds multiplier), since the station already heals to full.
   Client: `SecurityInteractController` outlines an unopened safe. Gap-closing 2026-10-28: the map now has 16 safes, 4 of them Tier 0
   (Field Agent: g_lounge, m_gallery, wm_lobby, t_ter_s; `Relayout.luau` and `tools/relayout-layout.cjs`), 4 each of Tiers 1 to 3.
   Rebuilt in Studio: 0 problems, the four Tier 0 safes read Rarity FieldAgent. **The owner must save the place.**

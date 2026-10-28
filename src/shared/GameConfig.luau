@@ -1699,6 +1699,9 @@ local GameConfig = {
 			CameraTerminal = true,
 			AssetSafe = true,
 		},
+		-- Field Medic: the hold kinds it shortens (a hold takes 1 / (1 + the Asset's value) of its time). A Health Station already heals
+		-- to full, so its heal cannot grow; Food Spots heal more instead (StationService). SPEC-QUESTION, owner's choice 2026-10-28.
+		FieldMedicKinds = { HealthStation = true },
 		-- Duct Rat: from this rarity up, entering a vent does not break Cover.
 		QuietVentFrom = "BlackOps",
 		-- The tier of a room to the rarity of its safe; a safe above the last is Ghost.

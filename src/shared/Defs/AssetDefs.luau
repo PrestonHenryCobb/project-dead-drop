@@ -49,7 +49,7 @@ local defs: { AssetDef } = {
 	{
 		Id = "FieldMedic",
 		Name = "Field Medic",
-		Description = "Food heals more.",
+		Description = "Food heals more; Health Stations heal faster.",
 		Values = values(0.15, 0.3, 0.5, 0.75),
 	},
 	{

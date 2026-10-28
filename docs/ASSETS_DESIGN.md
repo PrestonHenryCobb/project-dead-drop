@@ -40,7 +40,7 @@ menu's "equal footing" line still holds: everyone can bring the same four.
 | Quick Hands: intel stations, doors and the vault hack faster | +10% | +20% | +30% | +40% | `InteractService.setSecondsMult` for Intel, DoorHack, Camera, Lockpick and the vault |
 | Steady Nerves: suspicion drains faster once unwatched | +25% | +50% | +100% | +150% | `CoverService` decay rate |
 | Deep Pockets: intel purchases cost less | -10% | -15% | -25% | -35% | prices in `SupplyService`, `StationService`, tier doors and safes |
-| Field Medic: health stations and food heal more | +15% | +30% | +50% | +75% | `StationService` (Health Station and Food Spot) |
+| Field Medic: food heals more and health stations heal faster | +15% | +30% | +50% | +75% | `StationService` (Health Station and Food Spot) |
 | Duct Rat: crawl through vents faster (quietly from Black Ops) | +20% | +35% | +50% | +75% | `VentService` speed, and no Cover break from Black Ops |
 
 **PROPOSED:** two or more of these that touch one number multiply (for example Quick Hands with Lattice's Wired), and Deep

@@ -142,6 +142,9 @@ function AbilityService.Start()
 		if GameConfig.Assets.QuickHandsKinds[kind] then
 			mult /= 1 + AssetService.value(player, "QuickHands") -- the Quick Hands Asset
 		end
+		if GameConfig.Assets.FieldMedicKinds[kind] then
+			mult /= 1 + AssetService.value(player, "FieldMedic") -- the Field Medic Asset: a quicker Health Station
+		end
 		if ReachService.lensActive(player) then
 			mult *= GameConfig.Gadgets.LongLens.TimeMult -- the Long Lens hacks from afar, more slowly
 		end
