@@ -35,6 +35,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
+local AlarmService = require(script.Parent.AlarmService)
 local DisguiseService = require(script.Parent.DisguiseService)
 local RemoteService = require(script.Parent.RemoteService)
 local ZoneService = require(script.Parent.ZoneService)
@@ -44,6 +45,8 @@ export type Witness = {
 	position: Vector3, -- the eyes
 	look: Vector3, -- unit vector the witness faces
 	kind: "Security" | "Camera" | "Npc",
+	range: number?, -- how far it sees (a camera's own range); the witness range if nil
+	fov: number?, -- full field of view in degrees; the witness field of view if nil
 }
 
 export type Sources = {
@@ -81,7 +84,7 @@ local CoverService = {}
 local config = GameConfig.Cover
 local states: { [Player]: State } = {}
 local sources: Sources? = nil
-local alarmLevel = 0
+local extraWitnesses: { () -> { Witness } } = {} -- ticket 14: cameras
 local accumulator = 0
 local lastTick = os.clock()
 
@@ -92,6 +95,11 @@ sightParams.RespectCanCollide = true -- an open door does not block sight
 
 function CoverService.setSources(newSources: Sources)
 	sources = newSources
+end
+
+-- Ticket 14: CameraService adds the cameras to the witnesses.
+function CoverService.addWitnessSource(source: () -> { Witness })
+	table.insert(extraWitnesses, source)
 end
 
 local function aliveRoot(player: Player): (Humanoid?, BasePart?)
@@ -268,8 +276,15 @@ function CoverService.setPackageCarrier(player: Player, carrying: boolean)
 	end
 end
 
-function CoverService.onNpcKilled(player: Player)
+-- Spec 5.5 and SPEC_CHANGES: the kill also raises the alarm (a civilian by 1, Security by 1, the Warden or Curator by 2).
+function CoverService.onNpcKilled(player: Player, role: Types.Role)
 	CoverService.expose(player, "KilledNpc", GameConfig.NPC.CivilianKill.ExposedSeconds)
+	local npcConfig = GameConfig.NPC
+	local raise = if role == "Security"
+		then npcConfig.SecurityKillAlarmRaise
+		elseif role == "Warden" or role == "Curator" then npcConfig.Tier4.DownedAlarmRaise
+		else npcConfig.CivilianKill.AlarmRaise
+	AlarmService.raise(raise, `Killed{role}`)
 end
 
 local function onRecovered(player: Player)
@@ -287,11 +302,15 @@ end
 local function sees(witness: Witness, target: Vector3): boolean
 	local offset = target - witness.position
 	local distance = offset.Magnitude
-	if distance > config.WitnessRange then
+	local range = witness.range or config.WitnessRange
+	if witness.kind == "Security" then
+		range *= AlarmService.detectionMult() -- spec 18.4: from Alert, Security sees further
+	end
+	if distance > range then
 		return false
 	end
 	if distance > 1e-3 then
-		local halfFov = math.rad(config.WitnessFov / 2)
+		local halfFov = math.rad((witness.fov or config.WitnessFov) / 2)
 		if math.acos(math.clamp(witness.look:Dot(offset / distance), -1, 1)) > halfFov then
 			return false
 		end
@@ -304,7 +323,7 @@ end
 local function witnessShare(target: Vector3): (number, number, number, number, number)
 	local all, guards, security, npc, camera = 0, 0, 0, 0, 0
 	local list = if sources then sources.witnesses() else {}
-	for _, witness in list do
+	local function count(witness: Witness)
 		if sees(witness, target) then
 			local weight = config.WitnessWeights[witness.kind]
 			all += weight
@@ -318,6 +337,14 @@ local function witnessShare(target: Vector3): (number, number, number, number, n
 			else
 				npc += 1
 			end
+		end
+	end
+	for _, witness in list do
+		count(witness)
+	end
+	for _, source in extraWitnesses do
+		for _, witness in source() do
+			count(witness)
 		end
 	end
 	return math.min(all, config.WitnessCap), math.min(guards, config.WitnessCap), security, npc, camera
@@ -402,9 +429,8 @@ local function step(player: Player, state: State, dt: number, now: number)
 		end
 		state.cover = if state.suspicion > 0 then "Suspicious" else "Covered"
 		if state.suspicion >= config.SuspicionMax then
-			-- The witness raises the alarm (spec 7.3). Stored and shown now; it gets effects in Step 14.
-			alarmLevel += 1
-			RemoteService.fireAllClients("AlarmLevel", alarmLevel)
+			-- The witness raises the alarm (spec 7.3).
+			AlarmService.raise(1, "MeterFull")
 			CoverService.expose(player, "MeterFull")
 		end
 	else

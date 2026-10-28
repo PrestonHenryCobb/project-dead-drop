@@ -1128,10 +1128,44 @@ local GameConfig = {
 			HackDisabledSeconds = 30,
 			HackImmuneSeconds = 30,
 			DestroyedSeconds = 60,
+			-- Ticket 14: implementation values. SPEC-QUESTION: the spec gives no unlock delay, so a camera that loses its
+			-- target for LockLoseSeconds goes back to sweeping; one lock-on raises the alarm once.
+			CheckHz = 10,
+			LockLoseSeconds = 1.5,
+			HitRadiusStuds = 2.5, -- a shot that ends this close to a camera destroys it
+			InteractStuds = 8, -- the most a hacker may drift from the camera (on the floor plan) before the hold breaks
 		},
-		CameraRoom = { Feeds = 4, DisableAllSeconds = 20, CooldownSeconds = 120, HoldSeconds = 5 },
-		LaserGrid = { FuseBoxSeconds = 3, DisabledSeconds = 30, AlarmRaise = 1 },
-		KeycardDoor = { OpenSeconds = 4, LockpickSeconds = 4 },
+		-- Ticket 14: how a camera looks on the client (CameraController) and the outline on what Interact would use.
+		CameraLook = {
+			SweepColor = Color3.fromRGB(255, 244, 214),
+			LockedColor = Color3.fromRGB(255, 50, 50),
+			OffColor = Color3.fromRGB(40, 40, 44),
+			Brightness = 1.2,
+			TargetColor = Color3.fromRGB(120, 200, 255),
+		},
+		CameraRoom = {
+			Feeds = 4,
+			DisableAllSeconds = 20,
+			CooldownSeconds = 120,
+			HoldSeconds = 5,
+			-- Ticket 14: the terminal is made at match start in this room (the generator's id) on a clear spot.
+			RoomId = "b_camera",
+			InteractStuds = 8,
+			TerminalSize = Vector3.new(3, 3.5, 2),
+		},
+		LaserGrid = {
+			FuseBoxSeconds = 3,
+			DisabledSeconds = 30,
+			AlarmRaise = 1,
+			-- Ticket 14: implementation values. A body is across a grid when it is inside the doorway and within
+			-- CrossDepthStuds of the beam plane; the same body sets it off again no sooner than RetriggerSeconds.
+			CheckHz = 20,
+			CrossDepthStuds = 1.5,
+			RetriggerSeconds = 3,
+			-- A fuse box is made beside each grid, on a clear spot between these distances from the doorway.
+			FuseBox = { MinStuds = 5, MaxStuds = 14, InteractStuds = 8, Size = Vector3.new(2, 3, 1) },
+		},
+		KeycardDoor = { OpenSeconds = 4, LockpickSeconds = 4, InteractStuds = 8 },
 		Guard = {
 			MaxHP = 50,
 			Damage = 8,
@@ -1154,6 +1188,7 @@ local GameConfig = {
 			HeightenedExtraGuards = 2,
 			LockdownDoorSealSeconds = 20,
 			LockdownCameraSweepMult = 1.5,
+			TickHz = 4,
 		},
 	},
 

@@ -109,6 +109,9 @@ local Enums = {
 		ElevatorCall = "ElevatorCall", -- ShaftId, Level
 		PackageDoor = "PackageDoor", -- Side ("Front" or "Back"), HackCost, KeycardOnly
 		ServiceLadder = "ServiceLadder", -- a Cover-breaking ladder up the crown
+		-- Ticket 14: security objects the server makes at match start (SecurityId says which)
+		FuseBox = "FuseBox", -- beside each laser grid; GridId
+		CameraTerminal = "CameraTerminal", -- in the Camera Room
 	},
 
 	-- Spec 5.3, 6.7, 5.4: the code-built animations NPCs (and later the Blend wheel) play.

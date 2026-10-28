@@ -110,6 +110,7 @@ local sampleAccumulator = 0
 local takedownAccumulator = 0
 local downedHooks: DownedHooks? = nil
 local projectileHooks: ProjectileHooks? = nil
+local worldHitListener: ((Vector3, Player) -> ())? = nil -- ticket 14: a shot ended on the map (cameras)
 local glintAccumulator = 0
 local rng = Random.new()
 local sweep = 0
@@ -255,7 +256,7 @@ local function applyDamage(
 	local result: Types.MeleeResult = "Hit"
 	if target.kind == "Npc" then
 		if NPCService.hitNpc(target.npc :: any, amount, from) then
-			CoverService.onNpcKilled(shooter) -- killing an NPC exposes the killer (spec 7.2 #11)
+			CoverService.onNpcKilled(shooter, (target.npc :: any).role) -- killing an NPC exposes the killer (spec 7.2 #11)
 			result = "Downed"
 		end
 		confirm = { Kind = "Npc", Head = head }
@@ -514,6 +515,9 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 	local smoke = def.Smoke
 	for _, ray in directions do
 		local hits, endPoint, hitWall = Ballistics.trace(player, origin, ray, timestamp, maxHits)
+		if hitWall and worldHitListener then
+			worldHitListener(endPoint, player)
+		end
 		for index, hit in hits do
 			-- A disguised agent (Covered or Suspicious) always takes body damage, even on the head; headshots count once
 			-- they are Exposed (SPEC_CHANGES 2026-10-24, brief Q2). The hitmarker shows a body hit to match.
@@ -1057,6 +1061,11 @@ function CombatService.setDownedHooks(hooks: DownedHooks)
 end
 
 -- ProjectileService registers itself here at Start (flares and throwing knives are launched by it).
+-- Ticket 14: told where each shot ends on the map and who fired it (CameraService: a shot that ends on a camera destroys it).
+function CombatService.setWorldHitListener(listener: (Vector3, Player) -> ())
+	worldHitListener = listener
+end
+
 function CombatService.setProjectileHooks(hooks: ProjectileHooks)
 	projectileHooks = hooks
 end

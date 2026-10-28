@@ -219,6 +219,8 @@ they differ (see MENU_CONTRACT.md "Where the handoffs were corrected").
 | 13c | Extraction presentation: helicopter at Hover, 5 s cinematic at Extracted, MISSION SUCCESS/FAILED. | CODEX | 13a | READY_FOR_REVIEW |
 | 13B-a | Bots, first slice (owner chose crowd-NPC bots): BotService/BotRegistry fill the lobby with rival teams that take Intel stations and stand on vault terminals (contesting humans); no shooting, Package or win yet. Contract: .ai-sync/BOT_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 13a | READY_FOR_REVIEW |
 | 13B-b | Bots fight and extract: bots carry the Package (paying the Package door in Intel), call and complete extraction (a bot team can win), and shoot Exposed humans in sight (CombatService.botFire). Contract: .ai-sync/BOT_CONTRACT.md. **A bots-only match ran to a bot win in Studio.** | CLAUDE_CODE | 13B-a | READY_FOR_REVIEW |
+| 14 | Security (spec 18): AlarmService, CameraService (sweep, lock-on, hack, shoot, Camera Room terminal), LaserService (grids, fuse boxes), keycard door lockpicking and Lockdown seal, camera and interact controllers. Contract: .ai-sync/SECURITY_CONTRACT.md. Tested in Studio except shooting a camera. | CLAUDE_CODE | 13B-b | READY_FOR_REVIEW |
+| 14b | Security HUD: alarm level pips and Lockdown banner, Camera Room 4-feed view, hold prompts for camera/fuse box/terminal/lockpick. Read SECURITY_CONTRACT.md; no server change. | CODEX | 14 | TODO |
 
 ## Waiting on the owner
 

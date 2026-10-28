@@ -6,7 +6,10 @@
 -- while it is open. Its Open attribute tells clients to swing the visible leaves (DoorController); the server never
 -- moves them (map re-plan stage 3).
 --
---   * Keycard doors (spec 4.3) open for any NPC. Players opening them with keycards, gadgets and lockpicks is Step 14.
+--   * Keycard doors (spec 18.3) open for any NPC. A player picks the lock (SecurityService: hold Interact, which breaks
+--     Cover); the door then stays open for KeycardDoor.OpenSeconds and closes. Keycards, the
+--     Keycard Clone and Ferro's passive arrive with the economy, gadgets and agents (Steps 16 to 18). In Lockdown every
+--     keycard door seals (DoorService.seal): shut for everyone, nothing opens it.
 --   * Clearance doors open only for a body whose clearance tier is at least the door's Tier attribute: an NPC of that
 --     role, or a player wearing a disguise of that tier, from either side. An Exposed player has no clearance.
 --   * Free exit (R3-doors, owner decision 2026-10-25): a player on the inside of an ordinary clearance door may always
@@ -15,6 +18,9 @@
 --     on each side of the doorway (server map data, never a client claim); a doorway with the same tier on both sides
 --     has no inside and no free exit.
 --
+--   DoorService.seal(seconds)      Lockdown: keycard doors shut and refuse to open for this long
+--   DoorService.keycardDoor(id) -> BasePart?   the keycard door with that SecurityId, if it is shut and not sealed
+--   DoorService.openKeycardDoor(id, seconds)   opens it and keeps it open that long
 --   DoorService.holdNear(position, clearance, opensKeycardDoors)
 --     keeps open the doors close to the position that this clearance opens (NPCs open keycard doors too, players do not)
 
@@ -36,12 +42,17 @@ type Door = {
 	lastHeld: number,
 	inside: Vector3?, -- flat unit direction from the doorway into the higher-tier side, if the zones say which
 	freeExit: boolean, -- an ordinary clearance door: anyone on its inside may leave
+	keycard: boolean, -- a keycard door (lockpicks, Lockdown seals)
+	openUntil: number, -- os.clock(): a lockpicked door stays open until then
 }
 
 local DoorService = {}
 
 local config = GameConfig.NPC
 local doors: { Door } = {}
+local byId: { [string]: Door } = {}
+local sealedUntil = 0
+local nextKeycardId = 0
 
 local function setOpen(door: Door, open: boolean)
 	door.open = open
@@ -49,31 +60,49 @@ local function setOpen(door: Door, open: boolean)
 	door.part:SetAttribute("Open", open)
 end
 
+local function addDoor(instance: Instance, tagName: string)
+	if not instance:IsA("BasePart") then
+		return
+	end
+	local keycard = tagName == Enums.Tag.KeycardDoor
+	local door: Door = {
+		part = instance,
+		tier = if tagName == Enums.Tag.ClearanceDoor then instance:GetAttribute("Tier") else nil,
+		open = false,
+		lastHeld = 0,
+		inside = nil,
+		freeExit = false,
+		keycard = keycard,
+		openUntil = 0,
+	}
+	table.insert(doors, door)
+	if keycard then
+		nextKeycardId += 1
+		local id = `K{nextKeycardId}`
+		instance:SetAttribute("SecurityId", id)
+		byId[id] = door
+	end
+	instance:SetAttribute("Open", false)
+	if config.Door.OpenForNpcs then
+		-- Pathfinding treats the door as open ground, so NPC routes can go through it.
+		local modifier = Instance.new("PathfindingModifier")
+		modifier.PassThrough = true
+		modifier.Parent = instance
+	end
+end
+
 function DoorService.Init()
 	for _, tagName in { Enums.Tag.KeycardDoor, Enums.Tag.ClearanceDoor } do
 		for _, instance in CollectionService:GetTagged(tagName) do
-			if instance:IsA("BasePart") then
-				table.insert(doors, {
-					part = instance,
-					tier = if tagName == Enums.Tag.ClearanceDoor then instance:GetAttribute("Tier") else nil,
-					open = false,
-					lastHeld = 0,
-					inside = nil,
-					freeExit = false,
-				})
-				instance:SetAttribute("Open", false)
-				if config.Door.OpenForNpcs then
-					-- Pathfinding treats the door as open ground, so NPC routes can go through it.
-					local modifier = Instance.new("PathfindingModifier")
-					modifier.PassThrough = true
-					modifier.Parent = instance
-				end
-			end
+			addDoor(instance, tagName)
 		end
 	end
 end
 
 local function hold(door: Door, position: Vector3, now: number)
+	if door.keycard and now < sealedUntil then
+		return
+	end
 	door.lastHeld = now
 	if not door.open then
 		setOpen(door, true)
@@ -169,8 +198,40 @@ local function readSides()
 	end
 end
 
+function DoorService.seal(seconds: number)
+	sealedUntil = os.clock() + seconds
+	for _, door in doors do
+		if door.keycard then
+			door.openUntil = 0
+			if door.open then
+				setOpen(door, false)
+			end
+		end
+	end
+end
+
+function DoorService.keycardDoor(id: string): BasePart?
+	local door = byId[id]
+	if door and not door.open and os.clock() >= sealedUntil then
+		return door.part
+	end
+	return nil
+end
+
+function DoorService.openKeycardDoor(id: string, seconds: number)
+	local door = byId[id]
+	if door then
+		local now = os.clock()
+		door.openUntil = now + seconds
+		hold(door, door.part.Position, now)
+	end
+end
+
 function DoorService.Start()
 	readSides()
+	CollectionService:GetInstanceAddedSignal(Enums.Tag.KeycardDoor):Connect(function(instance)
+		addDoor(instance, Enums.Tag.KeycardDoor)
+	end)
 	local playerCheck = 0
 	RunService.Heartbeat:Connect(function(dt)
 		local now = os.clock()
@@ -186,7 +247,7 @@ function DoorService.Start()
 			end
 		end
 		for _, door in doors do
-			if door.open and now - door.lastHeld >= config.DoorCloseDelay then
+			if door.open and now - door.lastHeld >= config.DoorCloseDelay and now >= door.openUntil then
 				setOpen(door, false)
 			end
 		end
