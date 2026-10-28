@@ -121,7 +121,7 @@ function DisguiseService.setAgentLookup(lookup: (Player) -> string?)
 end
 
 -- The agent's own disguise numbers (GameConfig.Agents), or the usual ones.
-local function agentRules(player: Player): { DisguiseSlots: number?, ScanSeconds: number? }
+local function agentRules(player: Player): { DisguiseSlots: number?, ScanSeconds: number?, DisguiseSeconds: number? }
 	local lookup = agentLookup
 	local agentId = if lookup then lookup(player) else nil
 	local rules = if agentId then (GameConfig.Agents :: { [string]: any })[agentId] else nil
@@ -162,6 +162,12 @@ end
 function DisguiseService.getDisguiseTier(player: Player): number
 	local state = states[player]
 	return if state then state.lastDisguise.Tier else 0
+end
+
+-- Ticket 16f: the look on the character now (True Form while Exposed).
+function DisguiseService.wornOutfit(player: Player): OutfitDef?
+	local state = states[player]
+	return if state then state.worn else nil
 end
 
 function DisguiseService.getMovement(player: Player): (boolean, boolean)
@@ -431,11 +437,12 @@ local function onRequestDisguise(player: Player)
 
 	state.applyId += 1
 	local applyId = state.applyId
-	state.swapEndsAt = os.clock() + config.DisguiseSeconds
+	local seconds = agentRules(player).DisguiseSeconds or config.DisguiseSeconds -- Feint's Smoke and Mirrors: 0.3 s
+	state.swapEndsAt = os.clock() + seconds
 	for _, listener in swapListeners do
 		listener(player)
 	end
-	task.delay(config.DisguiseSeconds, function()
+	task.delay(seconds, function()
 		local stillHumanoid, stillRoot = aliveRoot(player)
 		if states[player] ~= state or state.applyId ~= applyId or not (stillHumanoid and stillRoot) then
 			return

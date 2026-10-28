@@ -65,7 +65,18 @@ Agent abilities (spec 15, key Q). Server-authoritative; the client only asks.
   Tested solo in Studio: the kit appears and goes after 8 s; healing from 4.6 to 55.6 HP in 4.5 s (12 HP/s); the ability and
   rules load. Not tested: Triage, the 2 s revive and the Cover break (need a teammate or a Tier 1+ position).
 
+- **16f Feint.** Double (30 s): `NPCService.spawnDecoy` makes a real NPC rig in her current look (`DisguiseService.wornOutfit`,
+  True Form when Exposed) 2 studs ahead; it walks her aim line (floor-checked every 2 studs) for 8 s at its role's NPC pace
+  (sprint in True Form), then is removed. `npc.decoy`: 1 HP, never picks a trip (bot flag), not a guard even in Security clothes.
+  A hit from anyone (`CombatService.applyDamage`) gives the shooter the `Agent` hitmarker, pops it at once, exposes nobody.
+  Smoke and Mirrors: `Agents.Feint.PingOffset` (8 to 15 studs, `CoverService.pingEnemies`) and `DisguiseSeconds = 0.3`
+  (`DisguiseService`, every disguise change). Tested solo in Studio: Q spawns one decoy (Guest, 1 HP, walking), it walked 28 studs
+  in 3 s and stood at the end of the floor, a hit returned the Agent hitmarker and removed it. Not tested: the ping offset (needs
+  a rival), the 0.3 s change, the decoy in True Form, scanning a decoy.
+
 ## Not built
+- The Double is an ordinary NPC rig, not a see-through hologram (that would tell it from the crowd); it may walk into zones her
+  clearance does not cover.
 - Mend Field is set down, not thrown (no canister arc), and shows no heal ring or sound.
 - The Tracer Glass highlight is the shared flare colour (WeaponEffects, Codex's file): a own colour needs a client change there.
 - Wired's "tier doors cost 1 less intel": tier doors cost intel in Step 18, so it lands there (read `Agents.Lattice`).

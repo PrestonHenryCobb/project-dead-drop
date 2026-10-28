@@ -71,7 +71,7 @@ sight.CollisionGroup = GameConfig.Rig.CollisionGroup
 sight.RespectCanCollide = true
 
 local function isGuard(npc: Npc): boolean
-	return npc.role == Enums.Role.Security
+	return npc.role == Enums.Role.Security and not npc.decoy -- Feint's Double in a guard's clothes is no guard
 end
 
 -- Standing, walking, or already on a call-out: not cowering, held, in a lift or down.

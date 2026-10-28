@@ -1441,6 +1441,15 @@ local GameConfig = {
 				CrossColor = Color3.fromRGB(210, 40, 40),
 			},
 		},
+		-- Feint: Smoke and Mirrors (while Exposed the ping rivals get is shown PingOffset.Min to Max studs from her; a disguise change
+		-- takes DisguiseSeconds) and Double: an NPC in her current look (True Form sprints) set Ahead of her that walks her aim line
+		-- for Seconds, stepping the floor every StepStuds, then goes; one hit pops it with the hitmarker of an agent.
+		-- SPEC-QUESTION: it is an ordinary NPC rig, not a see-through hologram, so nothing tells it from the crowd.
+		Feint = {
+			PingOffset = { Min = 8, Max = 15 },
+			DisguiseSeconds = 0.3,
+			Double = { Seconds = 8, StepStuds = 2, Ahead = 2 },
+		},
 		Parapet = {
 			ExtraStartPlates = 1,
 			RiotWall = {

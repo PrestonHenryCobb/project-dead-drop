@@ -195,9 +195,31 @@ local function sendCover(player: Player, state: State, now: number)
 	RemoteService.fireClient("CoverStateChanged", player, info)
 end
 
+local NO_RULES: { [string]: any } = {}
+local agentRules: ((Player) -> { [string]: any })? = nil
+local rng = Random.new()
+
+-- Ticket 16d: AbilityService gives the GameConfig.Agents numbers of a player's agent (QuietScope: Reticle's Still Water;
+-- PingOffset: Feint's Smoke and Mirrors).
+function CoverService.setAgentRules(lookup: (Player) -> { [string]: any })
+	agentRules = lookup
+end
+
+local function rulesOf(player: Player): { [string]: any }
+	local lookup = agentRules
+	return if lookup then lookup(player) else NO_RULES
+end
+
 -- Enemies within ExposedPingRadius get a ping where the player was exposed (spec 7.2). Until teams exist (Step 10),
--- every other player is an enemy.
+-- every other player is an enemy. Feint's ping is shown PingOffset.Min to Max studs from where she is (ticket 16f).
 local function pingEnemies(exposed: Player, position: Vector3)
+	local offset = rulesOf(exposed).PingOffset
+	local shown = position
+	if offset then
+		local angle = rng:NextNumber(0, 2 * math.pi)
+		local distance = rng:NextNumber(offset.Min, offset.Max)
+		shown = position + Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance)
+	end
 	for _, other in Players:GetPlayers() do
 		if other ~= exposed then
 			local _, root = aliveRoot(other)
@@ -205,7 +227,7 @@ local function pingEnemies(exposed: Player, position: Vector3)
 				RemoteService.fireClient(
 					"ExposedPing",
 					other,
-					{ Position = position, Seconds = config.ExposedPingSeconds }
+					{ Position = shown, Seconds = config.ExposedPingSeconds }
 				)
 			end
 		end
@@ -348,19 +370,6 @@ local function witnessShare(target: Vector3): (number, number, number, number, n
 		end
 	end
 	return math.min(all, config.WitnessCap), math.min(guards, config.WitnessCap), security, npc, camera
-end
-
-local NO_RULES: { [string]: any } = {}
-local agentRules: ((Player) -> { [string]: any })? = nil
-
--- Ticket 16d: AbilityService gives the GameConfig.Agents numbers of a player's agent (QuietScope: Reticle's Still Water).
-function CoverService.setAgentRules(lookup: (Player) -> { [string]: any })
-	agentRules = lookup
-end
-
-local function rulesOf(player: Player): { [string]: any }
-	local lookup = agentRules
-	return if lookup then lookup(player) else NO_RULES
 end
 
 -- Ticket 16d: how suspicious the player is, 0 to Cover.SuspicionMax (Reticle's Tracer Glass shows anyone over half).

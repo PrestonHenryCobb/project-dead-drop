@@ -32,6 +32,7 @@ local abilities: { [string]: Ability.Ability } = {
 	Lattice = require(script.Parent.Parent.Abilities.Lattice),
 	Reticle = require(script.Parent.Parent.Abilities.Reticle),
 	Suture = require(script.Parent.Parent.Abilities.Suture),
+	Feint = require(script.Parent.Parent.Abilities.Feint),
 }
 
 local readyAt: { [Player]: number } = {} -- os.clock() when the ability can next be used

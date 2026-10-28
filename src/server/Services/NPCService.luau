@@ -370,13 +370,14 @@ local function createNpc(
 	node: number,
 	graph: NavGraph.Graph,
 	now: number,
-	limits: NavGraph.Limits?
+	limits: NavGraph.Limits?,
+	look: { outfit: Types.OutfitDef, ground: Vector3, yaw: number }? -- ticket 16f: a decoy's chosen look and place
 ): Npc
 	local maxTier = config.RoleMaxTier[role]
 	claim(node)
-	local ground = spreadAround(graph, node, maxTier)
-	local yaw = rng:NextNumber(-math.pi, math.pi)
-	local outfit = OutfitDefs.random(role, rng)
+	local ground = if look then look.ground else spreadAround(graph, node, maxTier)
+	local yaw = if look then look.yaw else rng:NextNumber(-math.pi, math.pi)
+	local outfit = if look then look.outfit else OutfitDefs.random(role, rng)
 	local model, rootHeight = RigService.createNpcRig(outfit, CFrame.new(ground) * CFrame.Angles(0, yaw, 0))
 	local speed = config.WalkSpeed[role]
 	local npc: Npc = {
@@ -904,6 +905,55 @@ function NPCService.removeNpc(npc: Npc)
 	end
 	Death.forget(npc)
 	npc.model:Destroy()
+end
+
+-- Ticket 16f: Feint's Double. An NPC wearing `outfit`, put at `from` and walking along `direction` at `speed` for `seconds`
+-- (as far as the floor goes), then gone. It has 1 HP and is taken out of the crowd the moment a shot hits it
+-- (CombatService). To everything else it is an NPC. Nil when the map has no nodes or the direction is straight up or down.
+function NPCService.spawnDecoy(
+	outfit: Types.OutfitDef,
+	from: Vector3,
+	direction: Vector3,
+	speed: number,
+	seconds: number,
+	stepStuds: number
+): Npc?
+	local graph = currentGraph
+	local flat = Vector3.new(direction.X, 0, direction.Z)
+	if not graph or flat.Magnitude < 1e-3 then
+		return nil
+	end
+	flat = flat.Unit
+	local nearest, nearestDistance = 1, math.huge
+	for node = 1, #graph.feet do
+		local distance = (graph.feet[node] - from).Magnitude
+		if distance < nearestDistance and #graph.edges[node] > 0 then
+			nearest, nearestDistance = node, distance
+		end
+	end
+	local yaw = math.atan2(-flat.X, -flat.Z)
+	local npc = createNpc(outfit.Role, nearest, graph, os.clock(), nil, { outfit = outfit, ground = from, yaw = yaw })
+	npc.decoy = true
+	npc.hp = 1
+	npc.baseSpeed, npc.speed = speed, speed
+	NPCService.makeBot(npc, function() end) -- it never picks a trip of its own; at the end of its walk it stands
+	local path: { Vector3 } = {}
+	local at = from
+	for _ = 1, math.floor(speed * seconds / stepStuds) do
+		local spot = NavGraph.standable(graph, at, at + flat * stepStuds, math.huge)
+		if not spot then
+			break
+		end
+		table.insert(path, spot)
+		at = spot
+	end
+	if #path > 0 then
+		npc.path, npc.pathIndex, npc.state = path, 1, "Walk"
+	end
+	task.delay(seconds, function()
+		NPCService.removeNpc(npc)
+	end)
+	return npc
 end
 
 -- A guard goes after a position; false when it cannot walk now or has no route (Reactions.pursue).

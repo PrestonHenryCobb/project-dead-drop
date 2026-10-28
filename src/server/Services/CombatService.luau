@@ -275,7 +275,12 @@ local function applyDamage(
 	end
 	local confirm: Types.HitConfirm
 	local result: Types.MeleeResult = "Hit"
-	if target.kind == "Npc" then
+	if target.kind == "Npc" and (target.npc :: any).decoy then
+		-- Feint's Double (ticket 16f): the hitmarker of an agent, then it pops. Nobody is killed, so nobody is exposed for it.
+		History.untrack(target.id)
+		NPCService.removeNpc(target.npc :: any)
+		confirm = { Kind = "Agent", Head = head }
+	elseif target.kind == "Npc" then
 		if provokeHooks then
 			provokeHooks.hitNpc(shooter, target.npc :: any)
 		end
