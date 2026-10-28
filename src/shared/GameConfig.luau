@@ -1806,6 +1806,22 @@ local GameConfig = {
 		CharactersCollideWithEachOther = false,
 	},
 
+	-- GPS carrier tracking (docs/GPS_DESIGN.md, owner answers 2026-10-28). Only the Package carrier. A press shorter than
+	-- TapSeconds is a tap: it shows the nearest rival within Radius studs (through walls) for PingSeconds and costs TapCost intel
+	-- (nothing if nobody is in range). A longer press is a hold: live marks of every rival in range sent SendHz times a second,
+	-- HoldCostPerSecond intel at the start and each second after, ending when the team cannot pay, the key goes up, or the
+	-- carrier stops being the carrier. A tracked player rival gets a cue, again only after CueRepeatSeconds. Using it does not break
+	-- Cover. SPEC-QUESTION: bots count as rivals (they stand in for agents); a downed or eliminated rival is not shown.
+	CarrierTrack = {
+		Radius = 60,
+		TapSeconds = 0.3,
+		PingSeconds = 1,
+		TapCost = 1,
+		HoldCostPerSecond = 1,
+		SendHz = 5,
+		CueRepeatSeconds = 4,
+	},
+
 	-- GPS routes (docs/GPS_DESIGN.md, owner answers 2026-10-28). RouteService searches the NPC lane graph twice for a player: the
 	-- clean route keeps to the doors and zones the current disguise may enter; the fast route may also hack tier doors (an intel
 	-- price counts as HackStudsPerIntel studs of walking), cross a zone above the clearance (RestrictedStuds), and use the ways
@@ -1966,6 +1982,7 @@ local GameConfig = {
 			RequestAbility = { PerSecond = 2, Burst = 3 }, -- ticket 16: a key press; the server holds the cooldown
 			RequestSparrowMove = { PerSecond = 30, Burst = 30 }, -- ticket 16c: sent at Lattice.SparrowDrone.MoveHz
 			RequestAutoRecover = { PerSecond = 2, Burst = 3 }, -- a key press
+			RequestCarrierTrack = { PerSecond = 6, Burst = 8 }, -- a key down and up
 			RequestRoute = { PerSecond = 2, Burst = 4 }, -- GPS: the client asks about once a second while a route shows
 			RequestElevatorFloor = { PerSecond = 2, Burst = 4 }, -- ticket 7B-glass-elevators: a key press in the cab
 			RequestShopBuy = { PerSecond = 2, Burst = 4 }, -- ticket 18c: a button

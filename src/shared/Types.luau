@@ -587,6 +587,16 @@ export type RouteResult = {
 	Intel: number, -- the team's intel now
 }
 
+-- GPS carrier tracking (docs/GPS_DESIGN.md), to the Package carrier only. A "Ping" is one mark (the nearest rival) that the
+-- client shows for Seconds; "Live" is every rival in range, sent again each update while the key is held; "End" clears them.
+-- Marks are positions only: never who they are, and never a crowd NPC.
+export type CarrierTrackInfo = {
+	Mode: "Ping" | "Live" | "End",
+	Marks: { Vector3 },
+	Seconds: number?,
+	Intel: number, -- the team's intel after paying
+}
+
 -- Token-bucket limits for one client -> server remote (GameConfig.Network).
 export type RateLimit = {
 	PerSecond: number,

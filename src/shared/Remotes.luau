@@ -52,6 +52,9 @@ local Remotes = {
 		-- Ticket 9c
 		"SpectateState", -- to a spectator only: who they watch, or the drone (Types.SpectateStateInfo)
 		"SpectatorChat", -- to spectators only: a filtered chat line (Types.SpectatorChatInfo)
+		-- GPS carrier tracking (docs/GPS_DESIGN.md)
+		"CarrierTrackState", -- to the Package carrier only: rivals they see now (Types.CarrierTrackInfo)
+		"TrackedCue", -- to a tracked rival only, no payload: they were seen (a vignette and a whisper)
 		-- Ticket 18e
 		"AssetState", -- to the owner only: their four Asset slots and which are found (Types.AssetStateInfo)
 		-- Ticket 18c
@@ -102,6 +105,8 @@ local Remotes = {
 		"RequestShopClose", -- leave the open shop
 		-- Ticket auto-recover
 		"RequestAutoRecover", -- turn the Auto re-cover option on or off (a boolean)
+		-- GPS carrier tracking
+		"RequestCarrierTrack", -- the carrier's tracking key went down (true) or up (false); the server tells a tap from a hold
 		-- Ticket 7B-glass-elevators
 		"RequestElevatorFloor", -- the level name ("G", "M", ...) the player in a cab wants (a string)
 		-- Ticket 16c
