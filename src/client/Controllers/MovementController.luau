@@ -31,6 +31,7 @@ local humanoid: Humanoid? = nil
 local moving = Vector3.zero -- the eased move vector, length 0 to 1
 local shoveVelocity = Vector3.zero -- flat studs a second while a shove runs
 local shoveUntil = 0 -- os.clock()
+local frozen = false -- ticket 10a: the Insertion phase; the server also holds WalkSpeed at 0
 
 local function anyDown(keys: { Enum.KeyCode }): boolean
 	for _, key in keys do
@@ -77,7 +78,7 @@ end
 
 local function step(dt: number)
 	local body = humanoid
-	if not (body and body.Health > 0) then
+	if not (body and body.Health > 0) or frozen then
 		moving = Vector3.zero
 		return
 	end
@@ -105,7 +106,7 @@ end
 
 local function onJump(_: string, state: Enum.UserInputState): Enum.ContextActionResult
 	local body = humanoid
-	if state == Enum.UserInputState.Begin and body and not UserInputService:GetFocusedTextBox() then
+	if state == Enum.UserInputState.Begin and body and not frozen and not UserInputService:GetFocusedTextBox() then
 		body.Jump = true
 	end
 	return Enum.ContextActionResult.Pass
@@ -124,6 +125,9 @@ function MovementController.Start()
 		task.spawn(onCharacter, localPlayer.Character)
 	end
 	RemoteController.connect("CombatStatus", onStatus)
+	RemoteController.connect("PhaseChanged", function(phase: Types.Phase)
+		frozen = phase == "Insertion"
+	end)
 	ContextActionService:BindAction("CoverStoryJump", onJump, false, controls.Jump, controls.JumpPad)
 	RunService:BindToRenderStep(BIND_NAME, Enum.RenderPriority.Input.Value, step)
 end

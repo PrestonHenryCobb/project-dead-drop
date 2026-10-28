@@ -109,6 +109,8 @@ local GameConfig = {
 		FillCountdownMax = 60, -- 3.1: wait this long for players, then start if >= 2 teams
 		MinTeamsToStart = 2,
 		MaxPlayers = 12,
+		BannerSeconds = 3, -- spec 2: phase banners
+		TickSeconds = 0.25, -- ticket 10a: MatchService checks its timers this often
 	},
 
 	-- Spec 3.1: modes.
@@ -1356,6 +1358,9 @@ local GameConfig = {
 		StudioMasteryLevel = 1,
 		-- The mode a Studio test plays in until the lobby picks one (Step 10): a key of Modes. Teams fill in join order.
 		TestMode = "Duos",
+		-- Ticket 10a, Studio only: start the match as soon as one team has finished agent select, instead of waiting for
+		-- MinPlayers or the fill countdown with 2 teams (spec 3.1). Set false to play the real lobby rules.
+		FastMatchStart = true,
 	},
 
 	-- Spec 25.6: client -> server remotes are rate-limited. Overrides are by remote name.

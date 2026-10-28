@@ -18,6 +18,7 @@
 --
 --   DisguiseService.spawn(player, character)   dresses a freshly spawned character in a random Guest insertion outfit
 --   DisguiseService.applySlow(player, mult, seconds)   walking speed times mult for a while (stagger)
+--   DisguiseService.setFrozen(player, frozen)          walking speed 0 while true (Insertion, ticket 10a)
 --   DisguiseService.setNpcLookup(function(id) -> NpcInfo?)   how scans find NPCs; NPCService provides it
 --   DisguiseService.setCoverHooks(hooks)       how CoverService limits scanning and re-covering
 
@@ -59,6 +60,7 @@ type Scan = {
 }
 
 type State = {
+	player: Player,
 	insertion: OutfitDef,
 	worn: OutfitDef, -- the look on the character now (TrueForm while Exposed)
 	lastDisguise: OutfitDef, -- the last NPC disguise worn; what an Exposed player is scanned as, and the re-cover tier
@@ -79,6 +81,7 @@ local DisguiseService = {}
 local config = GameConfig.Cover
 local rng = Random.new()
 local states: { [Player]: State } = {}
+local frozen: { [Player]: boolean } = {} -- ticket 10a: Insertion; set before the character (and its State) exists
 local npcLookup: ((string) -> NpcInfo?)? = nil
 local coverHooks: CoverHooks? = nil
 local swapListeners: { (Player) -> () } = {}
@@ -160,6 +163,9 @@ local function aliveRoot(player: Player): (Humanoid?, BasePart?)
 end
 
 local function speedFor(state: State): number
+	if frozen[state.player] then
+		return 0
+	end
 	local walk = if state.exposed then GameConfig.Speeds.ExposedWalk else GameConfig.NPC.WalkSpeed[state.worn.Role]
 	local slow = if os.clock() < state.slowUntil then state.slowMult else 1
 	if state.crouching then
@@ -472,10 +478,21 @@ function DisguiseService.applySlow(player: Player, mult: number, seconds: number
 	end)
 end
 
+-- Ticket 10a: no walking while frozen (the Insertion phase). Safe to call before the player's character exists.
+function DisguiseService.setFrozen(player: Player, isFrozen: boolean)
+	frozen[player] = if isFrozen then true else nil
+	local state = states[player]
+	local humanoid = aliveRoot(player)
+	if state and humanoid then
+		humanoid.WalkSpeed = speedFor(state)
+	end
+end
+
 function DisguiseService.spawn(player: Player, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 	local insertion = pickInsertion(player)
 	local state: State = {
+		player = player,
 		insertion = insertion,
 		worn = insertion,
 		lastDisguise = insertion,
@@ -508,6 +525,7 @@ function DisguiseService.Start()
 
 	Players.PlayerRemoving:Connect(function(player)
 		states[player] = nil
+		frozen[player] = nil
 	end)
 	RunService.Heartbeat:Connect(function(dt)
 		validateAccumulator += dt

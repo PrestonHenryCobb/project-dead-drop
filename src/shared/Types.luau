@@ -400,6 +400,37 @@ export type PreDeployState = {
 	Members: { PreDeployMember },
 }
 
+-- Ticket 10a: the match phases (spec 2). PhaseChanged(phase, PhaseData) goes to every client on each transition, and to
+-- the players in the lobby whenever the wait for the match changes. All times are on the server clock
+-- (workspace:GetServerTimeNow()). Fields that do not apply to a phase are nil.
+export type MatchBrief = {
+	Mode: string, -- a key of GameConfig.Modes
+	TeamId: number, -- the receiving player's own team; GameConfig.Lobby.TeamColors[TeamId] is its colour
+	Teams: number, -- how many teams are in the match
+	Players: number,
+}
+
+export type ResultsMember = { UserId: number, DisplayName: string, AgentId: AgentId?, Out: boolean }
+
+export type ResultsTeam = { TeamId: number, Won: boolean, Members: { ResultsMember } }
+
+export type MatchResults = {
+	WinnerTeamId: number?, -- nil: Mission Failed for everyone
+	Reason: "Extracted" | "MissionFailed",
+	Teams: { ResultsTeam }, -- revealed only now, once the match is over
+}
+
+export type PhaseData = {
+	StartedAt: number,
+	EndsAt: number?, -- when the phase's own timer ends (Insertion, Results, and the Lobby wait for more teams)
+	MainEndsAt: number?, -- Infiltration onward: when the main match timer ends
+	ForcedVaultAt: number?, -- Infiltration: when the Vault unlocks whatever the Intel total
+	Banner: string?, -- large centred text for GameConfig.Match.BannerSeconds
+	Brief: MatchBrief?, -- Insertion
+	Results: MatchResults?, -- Results
+	ReadyPlayers: number?, -- Lobby, once this player's team has finished agent select: players waiting for the match
+}
+
 -- Ticket menu-phase0: a menu screen. Views are plain modules in src/client/Menu/Views (not Controllers: the client boot
 -- requires every Controller). MenuController requires each one, mounts it into its stage frame when its tab opens and
 -- unmounts it when the tab closes; Unmount must destroy everything Mount made. Context carries deep-link data, for

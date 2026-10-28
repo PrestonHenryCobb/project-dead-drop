@@ -11,6 +11,7 @@
 -- (CLAUDE.md rule 3 is about the living).
 --
 --   SpectateService.isSpectating(player) -> boolean
+--   SpectateService.stopAll()                   everyone goes back to the lobby (the match ended)
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -288,6 +289,13 @@ local function onChat(player: Player, text: unknown)
 			local info: Types.SpectatorChatInfo = { Sender = player.DisplayName, Text = message :: string }
 			RemoteService.fireClient("SpectatorChat", recipient, info)
 		end
+	end
+end
+
+-- Ticket 10a: the match is over, so every spectator goes back to the lobby.
+function SpectateService.stopAll()
+	for player in spectators do
+		finish(player)
 	end
 end
 

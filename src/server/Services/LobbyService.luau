@@ -8,8 +8,8 @@
 --
 -- The state is sent only to the team's own members (CLAUDE.md rule 3: no rival learns a team's agents).
 --
--- Until the match loop (Step 10) and matchmaking (Step 22) exist, "the match" is the map this server already runs:
--- deploying spawns the player into it, and a player who has deployed stays in it.
+-- At the cutoff the team is handed to MatchService (ticket 10a), which spawns every ready team together when the match
+-- starts. Until matchmaking (Step 22) "the match" is the map this server already runs.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,9 +19,9 @@ local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"))
 local CombatService = require(script.Parent.CombatService)
+local MatchService = require(script.Parent.MatchService)
 local MetaProgressionService = require(script.Parent.MetaProgressionService)
 local RemoteService = require(script.Parent.RemoteService)
-local RigService = require(script.Parent.RigService)
 local TeamService = require(script.Parent.TeamService)
 
 type Pick = {
@@ -38,7 +38,7 @@ type Selection = {
 local LobbyService = {}
 
 local selections: { [number]: Selection } = {}
-local deployed: { [Player]: boolean } = {}
+local queued: { [Player]: boolean } = {} -- in agent select or waiting for the match: the menu is theirs until it spawns
 
 local function now(): number
 	return workspace:GetServerTimeNow()
@@ -134,24 +134,29 @@ local function finish(selection: Selection)
 	selections[selection.teamId] = nil
 	broadcast(selection, false)
 	local final = resolveLoadouts(selection)
+	local members: { Player } = {}
 	for member in selection.picks do
 		local loadout = final[member]
 		if loadout then
 			MetaProgressionService.setLoadout(member, loadout)
 			CombatService.setLoadoutWeapon(member, loadout.HardwareId)
 		end
-		deployed[member] = true
-		task.spawn(RigService.spawn, member)
+		table.insert(members, member)
 	end
+	MatchService.selectionFinished(selection.teamId, members)
 end
 
 local function inMenu(player: Player): boolean
-	return not deployed[player] and player.Character == nil
+	return not queued[player] and player.Character == nil
 end
 
 local function onStart(player: Player)
 	if not inMenu(player) or not MetaProgressionService.getLoadout(player) then
-		return -- already in the match, or owns no agent yet (the free picks come first)
+		return -- already queued or in the match, or owns no agent yet (the free picks come first)
+	end
+	if not MatchService.canQueue() then
+		RemoteService.fireClient("Notification", player, "A match is in progress.")
+		return
 	end
 	local teamId = TeamService.teamOf(player)
 	if not teamId then
@@ -166,6 +171,7 @@ local function onStart(player: Player)
 		}
 		selection = created
 		selections[teamId] = created
+		MatchService.selectionStarted(teamId)
 		task.delay(GameConfig.Lobby.AgentSelectSeconds, finish, created)
 	end
 	local active = selection :: Selection
@@ -173,6 +179,7 @@ local function onStart(player: Player)
 	for _, member in TeamService.members(teamId) do
 		if not active.picks[member] and inMenu(member) and MetaProgressionService.getLoadout(member) then
 			active.picks[member] = startingPick(active, member)
+			queued[member] = true
 		end
 	end
 	broadcast(active, true)
@@ -213,8 +220,13 @@ function LobbyService.Start()
 	RemoteService.onRequest("RequestStartPreDeploy", onStart)
 	RemoteService.onRequest("RequestLockInPreDeploy", onLockIn)
 	RemoteService.onRequest("RequestQueueMode", onQueueMode)
+	MatchService.onPhaseChanged(function(phase)
+		if phase == "Lobby" then
+			table.clear(queued) -- the match is over: everyone can queue again
+		end
+	end)
 	Players.PlayerRemoving:Connect(function(player)
-		deployed[player] = nil
+		queued[player] = nil
 		for _, selection in selections do
 			if selection.picks[player] then
 				selection.picks[player] = nil

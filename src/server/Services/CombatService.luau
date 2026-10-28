@@ -101,6 +101,7 @@ local CombatService = {}
 
 local config = GameConfig.Combat
 local states: { [Player]: State } = {}
+local frozen: { [Player]: boolean } = {} -- ticket 10a: no shots or melee during Insertion
 -- Ticket studio-test-loadout: private server selections, retained through respawn, never character metadata.
 local testWeapons: { [Player]: string } = {}
 -- Ticket menu-services: the Hardware each player deployed with (LobbyService); used for every spawn after it.
@@ -406,7 +407,7 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 	end
 	local state = states[player]
 	local humanoid, root = aliveParts(player)
-	if not (state and humanoid and root) or state.dead or isDowned(player) then
+	if not (state and humanoid and root) or state.dead or isDowned(player) or frozen[player] then
 		return
 	end
 	local def = state.weapon
@@ -767,7 +768,7 @@ local function onMelee(player: Player, kind: unknown, lookArg: unknown)
 		return
 	end
 	local humanoid, root = aliveParts(player)
-	if not (humanoid and root) or state.dead or isDowned(player) then
+	if not (humanoid and root) or state.dead or isDowned(player) or frozen[player] then
 		cancelMelee(player, state)
 		return
 	end
@@ -1150,6 +1151,14 @@ function CombatService.restore(player: Player, hp: number, armor: number)
 	sendHealth(player, state)
 end
 
+-- Ticket 10a: a frozen player (the Insertion phase) cannot fire or melee; the server drops those requests.
+function CombatService.setFrozen(player: Player, isFrozen: boolean)
+	frozen[player] = if isFrozen then true else nil
+	if isFrozen then
+		CombatService.disarm(player)
+	end
+end
+
 -- Ends what a player was doing with their weapon (going down: no aim, no reload, no takedown).
 function CombatService.disarm(player: Player)
 	local state = states[player]
@@ -1197,6 +1206,7 @@ function CombatService.Start()
 	Players.PlayerRemoving:Connect(function(player)
 		History.untrack(targetIdOf(player))
 		states[player] = nil
+		frozen[player] = nil
 		testWeapons[player] = nil
 		loadoutWeapons[player] = nil
 	end)

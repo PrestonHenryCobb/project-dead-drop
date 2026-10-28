@@ -590,6 +590,13 @@ function MenuController.Start()
 	RemoteController.connect("ProfileStateUpdated", setSnapshot)
 	local player = Players.LocalPlayer
 	player.CharacterAdded:Connect(close)
+	-- Ticket 10a: the match is over and the character is gone, so the lobby opens again.
+	RemoteController.connect("PhaseChanged", function(phase: Types.Phase)
+		if phase == "Lobby" and not open and not player.Character then
+			openMenu()
+			task.spawn(fetchProfile)
+		end
+	end)
 	if player.Character then
 		return -- already in the match (the menu opens only before the first spawn)
 	end
