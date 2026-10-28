@@ -115,9 +115,11 @@ function view.Mount(stage, navigator, context)
 			local def = selected.Def
 			local stats = Kit.text(
 				side,
-				`{def.Damage} DMG · {def.HeadshotMult}x HEAD · {def.RPM} RPM\n{def.MagSize}/{def.ReserveAmmo} AMMO · {def.ReloadSeconds}s RELOAD\n{def.AimZoom}x FOV · {if def.Quiet
-					then "SUPPRESSED"
-					else "UNSUPPRESSED"}`,
+				if def.Melee
+					then `{def.Melee.SwingDamage} SWING · {def.Melee.SwingReach} STUDS\n{def.Melee.SwingSeconds}s BETWEEN SWINGS\nV: STRIKE / HOLD · NO AMMUNITION`
+					else `{def.Damage} DMG · {def.HeadshotMult}x HEAD · {def.RPM} RPM\n{def.MagSize}/{def.ReserveAmmo} AMMO · {def.ReloadSeconds}s {if def.ReloadPerShell
+						then "PER SHELL"
+						else "RELOAD"}\n{def.AimZoom}x FOV · {if def.Quiet then "SUPPRESSED" else "UNSUPPRESSED"}`,
 				276,
 				60
 			)

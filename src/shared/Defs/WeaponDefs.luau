@@ -125,8 +125,8 @@ local defs: { WeaponDef } = {
 	},
 }
 
--- Ticket 8.5: these firearms use completed server firing-path rules. Weapons needing missing melee/projectile/status
--- effects are deliberately not registered. The default loadout remains GuiseSMG.
+-- Ticket 8.5: registered weapons use their completed server rules and client model/action/effect paths.
+-- The default loadout remains GuiseSMG.
 local function addFirearm(def: WeaponDef)
 	table.insert(defs, def)
 end
@@ -263,10 +263,155 @@ addFirearm({
 	Sounds = librarySounds,
 })
 
+addFirearm({
+	Id = "GuiseGarrote",
+	Name = "Garrote",
+	Agent = "Guise",
+	Automatic = false,
+	Damage = 0,
+	HeadshotMult = 1,
+	RPM = 1,
+	MagSize = 0,
+	ReserveAmmo = 0,
+	ReloadSeconds = 0,
+	PostMeleeFireDelay = 0.15,
+	Quiet = true,
+	Spread = { Hip = 0, Aim = 0, PerShot = 0, MaxExtra = 0, RecoverPerSecond = 1, MoveMult = 1 },
+	Recoil = { PitchPerShot = 0, YawPerShot = 0, RecoverRate = 8, ViewKick = 0.12 },
+	AimZoom = 1,
+	Sounds = librarySounds,
+	Melee = { SwingDamage = 40, SwingSeconds = 0.8, SwingReach = 4, TakedownSeconds = 0.8, TakedownDamage = 100 },
+})
+
+addFirearm({
+	Id = "ParapetPump",
+	Name = "Pump Shotgun",
+	Agent = "Parapet",
+	Automatic = false,
+	Damage = 11,
+	HeadshotMult = GameConfig.Combat.HeadshotMult,
+	RPM = 70,
+	Pellets = 8,
+	MagSize = 6,
+	ReserveAmmo = 12,
+	ReloadSeconds = 0.5,
+	ReloadPerShell = true,
+	Falloff = { StartStuds = 10, EndStuds = 30, MinMult = 0.3 },
+	PostMeleeFireDelay = 0.65,
+	Quiet = false,
+	SurvivesFullHealth = true,
+	Stagger = { MinPellets = 5, WithinStuds = 12, SlowMult = 0.75, Seconds = 0.35, AimBumpDegrees = 1.5 },
+	Spread = { Hip = 6, Aim = 4, PerShot = 0.7, MaxExtra = 2, RecoverPerSecond = 6, MoveMult = 1.3 },
+	Recoil = { PitchPerShot = 2.6, YawPerShot = 0.22, RecoverRate = 3.2, ViewKick = 0.18 },
+	AimZoom = 0.92,
+	Sounds = librarySounds,
+})
+
+addFirearm({
+	Id = "ParapetHammer",
+	Name = "Breaching Hammer",
+	Agent = "Parapet",
+	Automatic = false,
+	Damage = 0,
+	HeadshotMult = 1,
+	RPM = 1,
+	MagSize = 0,
+	ReserveAmmo = 0,
+	ReloadSeconds = 0,
+	PostMeleeFireDelay = 0.8,
+	Quiet = false,
+	Spread = { Hip = 0, Aim = 0, PerShot = 0, MaxExtra = 0, RecoverPerSecond = 1, MoveMult = 1 },
+	Recoil = { PitchPerShot = 0, YawPerShot = 0, RecoverRate = 4, ViewKick = 0.24 },
+	AimZoom = 1,
+	Sounds = librarySounds,
+	Melee = {
+		SwingDamage = 70,
+		SwingSeconds = 1.1,
+		SwingReach = 6,
+		ChargeSeconds = 1,
+		ChargeDamage = 100,
+		ShoveStuds = 3,
+	},
+})
+
+addFirearm({
+	Id = "SutureFlare",
+	Name = "Flare Pistol",
+	Agent = "Suture",
+	Automatic = false,
+	Damage = 55,
+	HeadshotMult = 1,
+	RPM = 40,
+	MagSize = 1,
+	ReserveAmmo = 12,
+	ReloadSeconds = 1.6,
+	PostMeleeFireDelay = 0.6,
+	Quiet = false,
+	Spread = { Hip = 1.4, Aim = 0.2, PerShot = 0.4, MaxExtra = 1, RecoverPerSecond = 5, MoveMult = 1.3 },
+	Recoil = { PitchPerShot = 1.7, YawPerShot = 0.15, RecoverRate = 3.5, ViewKick = 0.11 },
+	AimZoom = 0.94,
+	Sounds = librarySounds,
+	Projectile = {
+		Kind = "Flare",
+		Speed = 70,
+		Gravity = 45,
+		MaxSeconds = 4,
+		SplashDamage = 15,
+		SplashRadius = 6,
+		LightSeconds = 5,
+		GlowSeconds = 4,
+	},
+})
+
+addFirearm({
+	Id = "FeintSmokeSMG",
+	Name = "Smoke-Burst SMG",
+	Agent = "Feint",
+	Automatic = true,
+	Damage = 8,
+	HeadshotMult = GameConfig.Combat.HeadshotMult,
+	RPM = 750,
+	MagSize = 32,
+	ReserveAmmo = 64,
+	ReloadSeconds = 2,
+	Falloff = { StartStuds = 25, EndStuds = 60, MinMult = 0.55 },
+	PostMeleeFireDelay = 0.2,
+	Quiet = false,
+	Smoke = { Rounds = 5, Radius = 2, Seconds = 2 },
+	Spread = { Hip = 3.5, Aim = 0.85, PerShot = 0.24, MaxExtra = 3.1, RecoverPerSecond = 8, MoveMult = 1.4 },
+	Recoil = { PitchPerShot = 0.55, YawPerShot = 0.2, RecoverRate = 3, ViewKick = 0.065 },
+	AimZoom = 0.9,
+	Sounds = librarySounds,
+})
+
+addFirearm({
+	Id = "FeintKnives",
+	Name = "Throwing Knives",
+	Agent = "Feint",
+	Automatic = false,
+	Damage = 45,
+	HeadshotMult = 2,
+	RPM = 100,
+	MagSize = 6,
+	ReserveAmmo = 0,
+	ReloadSeconds = 0,
+	PostMeleeFireDelay = 0.35,
+	Quiet = true,
+	HearStuds = 0,
+	Spread = { Hip = 1, Aim = 0.15, PerShot = 0.2, MaxExtra = 0.8, RecoverPerSecond = 6, MoveMult = 1.2 },
+	Recoil = { PitchPerShot = 0.25, YawPerShot = 0.05, RecoverRate = 6, ViewKick = 0.13 },
+	AimZoom = 0.96,
+	Sounds = librarySounds,
+	Projectile = { Kind = "Knife", Speed = 120, Gravity = 25, MaxSeconds = 3, PickupStuds = 4 },
+})
+
 local byId: { [string]: WeaponDef } = {}
 for _, def in defs do
 	assert(not byId[def.Id], `Duplicate weapon {def.Id}`)
-	assert(def.ReserveAmmo >= 0 and def.MagSize > 0 and def.RPM > 0, `Weapon {def.Id} has impossible ammo or rate`)
+	assert(
+		def.ReserveAmmo >= 0 and (def.MagSize > 0 or def.Melee ~= nil) and def.RPM > 0,
+		`Weapon {def.Id} has impossible ammo or rate`
+	)
 	byId[def.Id] = def
 	-- Ticket menu-phase0: every playable weapon is one of its agent's three Hardware items (AgentDefs).
 	assert(AgentDefs.hardwareOwner[def.Id] == def.Agent, `Weapon {def.Id} is not in {def.Agent}'s Hardware`)
@@ -303,6 +448,12 @@ type WeaponVisual = {
 	Poses: { [string]: { Position: Vector3, Rotation: Vector3 } }?,
 }
 local visuals: { [string]: WeaponVisual } = {
+	FeintKnives = { AimBlendRate = 22, PoseSpeed = 22 },
+	FeintSmokeSMG = { AimBlendRate = 17, PoseSpeed = 17 },
+	SutureFlare = { AimBlendRate = 15, PoseSpeed = 15 },
+	ParapetHammer = { AimBlendRate = 9, PoseSpeed = 9 },
+	ParapetPump = { AimBlendRate = 11, PoseSpeed = 11, BoltCycleSeconds = 0.7, BoltTravelStuds = 0.22 },
+	GuiseGarrote = { AimBlendRate = 20, PoseSpeed = 20 },
 	-- SPEC-QUESTION: initial heavy-SMG handling tune; slower than Guise's SMG, without changing spin-up cadence.
 	ParapetHeavySMG = { AimBlendRate = 10, PoseSpeed = 10 },
 	-- Ticket 8.5a: light suppressed handling; the pistol settles faster than the shouldered SMG.

@@ -25,6 +25,7 @@ local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"
 local Combat = script.Parent.Parent:WaitForChild("Combat")
 local ShotFx = require(Combat:WaitForChild("ShotFx"))
 local ShotVisuals = require(Combat:WaitForChild("ShotVisuals"))
+local WeaponEffects = require(Combat:WaitForChild("WeaponEffects"))
 local SoundPlayer = require(Combat:WaitForChild("SoundPlayer"))
 local ViewModel = require(Combat:WaitForChild("ViewModel"))
 local WeaponCadence = require(Combat:WaitForChild("WeaponCadence"))
@@ -34,6 +35,7 @@ local RemoteController = require(script.Parent.RemoteController)
 local HeldItemController = require(script.Parent.HeldItemController)
 
 export type Status = {
+	hasAmmo: boolean,
 	active: boolean, -- owner is alive and not downed/eliminated
 	weaponId: string,
 	name: string,
@@ -73,10 +75,13 @@ local mag = def.MagSize
 local reserve = def.ReserveAmmo
 local reloadEndsAt = 0
 local reloadStartedAt = 0
+local shellInterruptPending = false
 local predictedReloadPending = false -- waiting for the server to confirm a reload completed locally
 local nextFireAt = 0
 local lastMeleeAt = -math.huge
 local takedownActive = false
+local meleeStartedAt = 0
+local meleeSeconds = 1
 local meleePending = false -- press through server action completion/cancel; fire prediction must wait
 local firing = false
 local held = true
@@ -155,8 +160,40 @@ local function spreadDirection(cframe: CFrame, degrees: number): Vector3
 	))).Unit
 end
 
+-- Shell loading uses the same per-round clock as the server; a due shell counts before interruption.
+local function advanceReload(now: number)
+	if reloadEndsAt == 0 or now < reloadEndsAt then
+		return
+	end
+	if def.ReloadPerShell then
+		local take = math.min(1, def.MagSize - mag, reserve)
+		mag += take
+		reserve -= take
+		predictedReloadPending = true
+		if mag < def.MagSize and reserve > 0 then
+			reloadStartedAt = now
+			reloadEndsAt = now + def.ReloadSeconds
+		else
+			reloadEndsAt = 0
+		end
+	else
+		reloadEndsAt = 0
+		local take = math.min(def.MagSize - mag, reserve)
+		mag += take
+		reserve -= take
+		predictedReloadPending = true
+	end
+end
+
 local function startReload(now: number)
-	if isReloading(now) or mag >= def.MagSize or reserve <= 0 then
+	if
+		shellInterruptPending
+		or def.Melee
+		or def.ReloadSeconds <= 0
+		or isReloading(now)
+		or mag >= def.MagSize
+		or reserve <= 0
+	then
 		return
 	end
 	reloadStartedAt = now
@@ -167,7 +204,7 @@ local function startReload(now: number)
 end
 
 local function fireOnce(camera: Camera, root: BasePart, now: number)
-	if not held or isReloading(now) then
+	if def.Melee or not held or (isReloading(now) and not def.ReloadPerShell) then
 		return
 	end
 	if meleePending or takedownActive or now < lastMeleeAt + (def.PostMeleeFireDelay or 0) then
@@ -177,8 +214,16 @@ local function fireOnce(camera: Camera, root: BasePart, now: number)
 		burstRemaining = 0
 		return -- a fully tucked gun cannot fire; keep ammo, recoil and requests untouched
 	end
+	advanceReload(now)
+	if def.ReloadPerShell and reloadEndsAt ~= 0 then
+		if mag <= 0 then
+			return
+		end
+		reloadEndsAt = 0
+		shellInterruptPending = true
+	end
 	if mag <= 0 then
-		if now - lastEmptyAt >= EMPTY_CLICK_GAP then
+		if def.HearStuds ~= 0 and now - lastEmptyAt >= EMPTY_CLICK_GAP then
 			lastEmptyAt = now
 			SoundPlayer.play(def.Sounds.Empty, combat.Feedback.ShotVolume)
 		end
@@ -199,6 +244,9 @@ local function fireOnce(camera: Camera, root: BasePart, now: number)
 	for index = 1, def.Pellets or 1 do
 		shotDirections[index] = spreadDirection(camera.CFrame, currentSpread(root))
 	end
+	if def.Projectile then
+		WeaponEffects.predict(def, camera.CFrame.Position, shotDirections[1])
+	end
 	RemoteController.fire(
 		"FireRequest",
 		camera.CFrame.Position,
@@ -207,12 +255,14 @@ local function fireOnce(camera: Camera, root: BasePart, now: number)
 		def.Id
 	)
 
-	-- What the shot feels like, at once.
-	SoundPlayer.play(
-		def.Sounds.Fire,
-		combat.Feedback.ShotVolume,
-		1 + rng:NextNumber(-FIRE_NOISE_PITCH, FIRE_NOISE_PITCH)
-	)
+	-- Silent throws never play firearm audio.
+	if def.HearStuds ~= 0 then
+		SoundPlayer.play(
+			def.Sounds.Fire,
+			combat.Feedback.ShotVolume,
+			1 + rng:NextNumber(-FIRE_NOISE_PITCH, FIRE_NOISE_PITCH)
+		)
+	end
 	local recoil = def.Recoil
 	recoilPitch += recoil.PitchPerShot
 	recoilYaw += rng:NextNumber(-recoil.YawPerShot, recoil.YawPerShot)
@@ -220,18 +270,20 @@ local function fireOnce(camera: Camera, root: BasePart, now: number)
 	if viewModel then
 		viewModel:kick()
 	end
-	for index, direction in shotDirections do
-		local point, normal = ShotFx.mapHit(camera.CFrame.Position, direction)
-		if viewModel then
-			ShotVisuals.fire(
-				def,
-				viewModel:getMuzzlePosition(def.AimedRPM ~= nil and not aiming and mag % 2 == 0),
-				point or (camera.CFrame.Position + direction * combat.MaxShotStuds),
-				index == 1
-			)
-		end
-		if point and normal then
-			ShotFx.impact(point, normal)
+	if not def.Projectile then
+		for index, direction in shotDirections do
+			local point, normal = ShotFx.mapHit(camera.CFrame.Position, direction)
+			if viewModel then
+				ShotVisuals.fire(
+					def,
+					viewModel:getMuzzlePosition(def.AimedRPM ~= nil and not aiming and mag % 2 == 0),
+					point or (camera.CFrame.Position + direction * combat.MaxShotStuds),
+					index == 1
+				)
+			end
+			if point and normal then
+				ShotFx.impact(point, normal)
+			end
 		end
 	end
 	if mag <= 0 then
@@ -281,14 +333,7 @@ local function step(dt: number)
 		aimBlend = 0
 	end
 
-	-- A reload that has run its time puts the rounds in (the server confirms with AmmoUpdate).
-	if reloadEndsAt ~= 0 and now >= reloadEndsAt then
-		reloadEndsAt = 0
-		local take = math.min(def.MagSize - mag, reserve)
-		mag += take
-		reserve -= take
-		predictedReloadPending = true
-	end
+	advanceReload(now)
 
 	-- Recoil climbs the view and settles; spread closes up while the trigger is off.
 	local recover = math.min(def.Recoil.RecoverRate * dt, 1)
@@ -341,6 +386,9 @@ local function step(dt: number)
 	local velocity = root.AssemblyLinearVelocity
 	local speed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
 	view:update(camera, dt, {
+		meleeProgress = if meleePending
+			then math.clamp((workspace:GetServerTimeNow() - meleeStartedAt) / meleeSeconds, 0, 1)
+			else nil,
 		pose = pose,
 		speedFraction = math.clamp(speed / GameConfig.Speeds.Sprint, 0, 1),
 		reloadProgress = if isReloading(now) then (now - reloadStartedAt) / def.ReloadSeconds else nil,
@@ -360,6 +408,7 @@ function WeaponController.getStatus(): Status
 	local _, _, root = character()
 	local camera = workspace.CurrentCamera
 	return {
+		hasAmmo = def.Melee == nil,
 		active = root ~= nil,
 		weaponId = def.Id,
 		name = def.Name,
@@ -437,7 +486,7 @@ local function onMelee(_: string, state: Enum.UserInputState): Enum.ContextActio
 			or meleePending
 			or takedownActive
 			or isReloading(now)
-			or now - lastMeleeAt < combat.Melee.CooldownSeconds
+			or now - lastMeleeAt < (if def.Melee then def.Melee.SwingSeconds else combat.Melee.CooldownSeconds)
 		then
 			return Enum.ContextActionResult.Sink
 		end
@@ -468,6 +517,7 @@ local function resetWeapon()
 	end
 	mag, reserve = def.MagSize, def.ReserveAmmo
 	reloadEndsAt = 0
+	shellInterruptPending = false
 	predictedReloadPending = false
 	firing, aiming = false, false
 	spreadExtra, recoilPitch, recoilYaw = 0, 0, 0
@@ -515,6 +565,7 @@ local function setCombatEnabled(value: boolean)
 	combatEnabled = value
 	if not value then
 		cancelLocalMelee()
+		shellInterruptPending = false
 		firing = false
 		burstRemaining = 0
 		takedownActive = false
@@ -538,6 +589,7 @@ local function onCharacter(model: Model)
 	end
 	characterJanitor:Add(humanoid.Died:Connect(function()
 		cancelLocalMelee()
+		shellInterruptPending = false
 		firing, aiming = false, false
 		takedownActive = false
 		reloadEndsAt = 0
@@ -566,6 +618,35 @@ function WeaponController.Start()
 
 	janitor:Add(RemoteController.connect("AmmoUpdate", function(info: Types.AmmoInfo)
 		if info.WeaponId and info.WeaponId ~= def.Id then
+			local selected = WeaponDefs.get(info.WeaponId)
+			if not selected then
+				return
+			end
+			cancelLocalMelee()
+			local camera = workspace.CurrentCamera
+			if camera then
+				camera.CFrame *= CFrame.Angles(math.rad(-appliedPitch), math.rad(-appliedYaw), 0)
+			end
+			def = selected
+			shotDirections = table.create(def.Pellets or 1)
+			resetWeapon()
+			aimBlend = 0
+		end
+		if def.ReloadPerShell then
+			-- A stop update caused by our interrupt is sent BEFORE the server spends the fired shell.
+			local spent = if shellInterruptPending then 1 else 0
+			local confirmsLocal = predictedReloadPending and info.Reserve == reserve and info.Mag >= mag
+			if not confirmsLocal or spent > 0 then
+				mag, reserve = math.max(0, info.Mag - spent), info.Reserve
+			end
+			if info.ReloadSeconds > 0 and not shellInterruptPending then
+				reloadStartedAt = os.clock()
+				reloadEndsAt = reloadStartedAt + info.ReloadSeconds
+			elseif info.ReloadSeconds <= 0 then
+				reloadEndsAt = 0
+				shellInterruptPending = false
+			end
+			predictedReloadPending = false
 			return
 		end
 		-- Ticket 8.10: a delayed reload confirmation must not put predicted shots back in the magazine.
@@ -582,6 +663,23 @@ function WeaponController.Start()
 			predictedReloadPending = false
 		end
 	end))
+	janitor:Add(RemoteController.connect("CombatStatus", function(info: Types.CombatStatusInfo)
+		if info.Kind ~= "Stagger" or not info.AimBumpDegrees or not info.From or not character() then
+			return
+		end
+		local camera = workspace.CurrentCamera
+		if not camera then
+			return
+		end
+		local localSource = camera.CFrame:PointToObjectSpace(info.From)
+		local across = Vector2.new(localSource.X, localSource.Y)
+		if across.Magnitude < 0.001 then
+			across = Vector2.new(0, -1)
+		end
+		across = across.Unit
+		recoilPitch -= across.Y * info.AimBumpDegrees
+		recoilYaw += across.X * info.AimBumpDegrees
+	end))
 	janitor:Add(RemoteController.connect("CoverStateChanged", function(info: Types.CoverInfo)
 		exposed = info.State == "Exposed"
 	end))
@@ -595,9 +693,16 @@ function WeaponController.Start()
 		end
 		takedownActive = info.Active and info.Kind == "Takedown"
 		meleePending = info.Active
+		meleeStartedAt = info.StartedAt or workspace:GetServerTimeNow()
+		meleeSeconds = math.max(info.Seconds, 0.001)
 		if info.Kind == "Strike" then
 			lastMeleeAt = os.clock()
-			SoundPlayer.play(combat.Feedback.MeleeSound, combat.Feedback.ShotVolume)
+			if viewModel and def.Melee then
+				viewModel:kick()
+			end
+			if not (def.Melee and def.Quiet) then
+				SoundPlayer.play(combat.Feedback.MeleeSound, combat.Feedback.ShotVolume)
+			end
 		end
 	end))
 	-- Step 9 keeps the Humanoid alive while downed. Health > 0 alone is therefore not permission to predict combat.

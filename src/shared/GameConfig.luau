@@ -822,6 +822,26 @@ local GameConfig = {
 			PickupHoldSeconds = 0.2,
 			PickupSlackStuds = 1.5, -- extra reach allowed for lag when a pickup is validated
 		},
+		-- Ticket 8.5 client effects: cosmetic values only; authoritative durations arrive in events.
+		WeaponEffects = {
+			PredictionSeconds = 1.5,
+			MaxFlights = 96,
+			MaxLights = 48,
+			MaxGlows = 48,
+			MaxClouds = 64,
+			KnifeColor = Color3.fromRGB(180, 185, 192),
+			FlareSize = Vector3.new(0.16, 0.16, 0.5),
+			FlareColor = Color3.fromRGB(255, 145, 65),
+			FlareBrightness = 2,
+			FlareRange = 18,
+			GlowFillTransparency = 0.65,
+			GlowOutlineTransparency = 0.15,
+			ImpactSize = 0.18,
+			SmokeColor = Color3.fromRGB(90, 88, 84),
+			SmokeTransparency = 0.15,
+			SmokeVeilTransparency = 0.45,
+			SmokeDisplayOrder = 1,
+		},
 		-- The hammer's shove: how long the victim's client takes to travel the distance, and the free run it needs.
 		Shove = { Seconds = 0.25, ProbeUpStuds = 1.5, WallClearanceStuds = 1 },
 		MovingSpeedStuds = 2, -- a body faster than this counts as moving for spread

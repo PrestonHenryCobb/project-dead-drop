@@ -26,6 +26,7 @@ local WeaponPlacement = require(script.Parent.WeaponPlacement)
 type WeaponDef = Types.WeaponDef
 
 export type Input = {
+	meleeProgress: number?,
 	pose: string, -- "Tucked", "Ready" or "Aim"
 	speedFraction: number, -- 0 standing, 1 at full speed
 	reloadProgress: number?, -- 0 to 1 while reloading
@@ -415,7 +416,100 @@ local function buildCompactPdw(model: Model): (CFrame, CFrame)
 	return CFrame.new(0.01, -0.34, 0.02), CFrame.new(-0.03, -0.18, -0.58)
 end
 
+local function buildGarrote(model: Model): (CFrame, CFrame)
+	local body, accent = config.GunColor, config.AccentColor
+	addPart(model, "Receiver", Vector3.new(0.15, 0.16, 0.65), CFrame.new(0.42, 0, 0), body)
+	addPart(model, "LeftHandle", Vector3.new(0.15, 0.16, 0.65), CFrame.new(-0.42, 0, 0), body)
+	addPart(model, "Wire", Vector3.new(0.84, 0.025, 0.025), CFrame.new(0, 0, -0.3), accent, Enum.Material.Metal)
+	for _, side in { -1, 1 } do
+		addPart(model, "EndCap", Vector3.new(0.18, 0.18, 0.06), CFrame.new(side * 0.42, 0, 0.3), accent)
+	end
+	local tip = Instance.new("Attachment")
+	tip.Name = "Muzzle"
+	tip.Parent = model:FindFirstChild("Receiver")
+	return CFrame.new(0.42, -0.08, 0), CFrame.new(-0.42, -0.08, 0)
+end
+
+local function buildPump(model: Model): (CFrame, CFrame)
+	local right, left = buildMedicShotgun(model)
+	local stock = model:FindFirstChild("Stock") :: BasePart
+	stock.Color = config.AccentColor
+	addPart(model, "PumpRail", Vector3.new(0.12, 0.1, 1), CFrame.new(0, -0.25, -0.8), config.GunColor)
+	local fore = model:FindFirstChild("ForeEnd") :: BasePart
+	fore.Name = "BoltStem"
+	for index = 1, 4 do
+		addPart(
+			model,
+			"PumpRib" .. index,
+			Vector3.new(0.36, 0.04, 0.04),
+			CFrame.new(0, -0.25, -0.65 - index * 0.14),
+			config.GunColor
+		)
+	end
+	return right, left
+end
+
+local function buildHammer(model: Model): (CFrame, CFrame)
+	local body, accent = config.GunColor, config.AccentColor
+	addPart(model, "Receiver", Vector3.new(0.16, 1.5, 0.18), CFrame.new(0, 0.1, 0), body)
+	addPart(model, "HammerHead", Vector3.new(0.85, 0.4, 0.48), CFrame.new(0, 0.92, 0), body, Enum.Material.Metal)
+	addPart(model, "StrikeFace", Vector3.new(0.08, 0.44, 0.52), CFrame.new(0.45, 0.92, 0), accent)
+	addPart(model, "GripWrap", Vector3.new(0.19, 0.55, 0.21), CFrame.new(0, -0.34, 0), accent)
+	local tip = Instance.new("Attachment")
+	tip.Name = "Muzzle"
+	tip.Parent = model:FindFirstChild("Receiver")
+	return CFrame.new(0, -0.43, 0.04), CFrame.new(0, 0.12, 0.04)
+end
+
+local function buildFlare(model: Model): (CFrame, CFrame)
+	local right, left = buildPistol(model, false)
+	local barrel = model:FindFirstChild("ShroudedBarrel") :: BasePart
+	barrel.Size = Vector3.new(0.65, 0.38, 0.38)
+	addPart(model, "BreakHinge", Vector3.new(0.42, 0.16, 0.2), CFrame.new(0, -0.02, -0.3), config.AccentColor)
+	addPart(model, "SignalBand", Vector3.new(0.4, 0.12, 0.14), CFrame.new(0, 0.28, -0.6), Color3.fromRGB(180, 74, 42))
+	return right, left
+end
+
+local function buildSmokeSmg(model: Model): (CFrame, CFrame)
+	local right, left = buildSuppressedSmg(model)
+	local barrel = model:FindFirstChild("Suppressor") :: BasePart
+	barrel.Name = "SmokeBarrel"
+	barrel.Size = Vector3.new(0.5, 0.25, 0.25)
+	local muzzle = barrel:FindFirstChild("Muzzle") :: Attachment
+	muzzle.Position = Vector3.new(0.25, 0, 0)
+	addPart(model, "SmokeChamber", Vector3.new(0.42, 0.22, 0.48), CFrame.new(0, -0.12, -0.85), config.AccentColor)
+	addPart(model, "ChamberBand", Vector3.new(0.46, 0.06, 0.2), CFrame.new(0, -0.25, -0.85), config.GunColor)
+	return right, left
+end
+
+local function buildKnives(model: Model): (CFrame, CFrame)
+	local body, accent = config.GunColor, config.AccentColor
+	addPart(model, "Receiver", Vector3.new(0.16, 0.12, 0.48), CFrame.new(0, 0, 0.18), body)
+	addPart(model, "Guard", Vector3.new(0.36, 0.1, 0.09), CFrame.new(0, 0, -0.1), accent)
+	addPart(model, "Blade", Vector3.new(0.23, 0.05, 0.65), CFrame.new(0, 0, -0.46), accent, Enum.Material.Metal)
+	local tip = Instance.new("WedgePart")
+	tip.Name = "Tip"
+	tip.Size = Vector3.new(0.23, 0.05, 0.3)
+	tip.Color = accent
+	tip.Material = Enum.Material.Metal
+	tip.Anchored = true
+	tip.CanCollide, tip.CanTouch, tip.CanQuery = false, false, false
+	tip:SetAttribute("Offset", CFrame.new(0, 0, -0.93) * CFrame.Angles(0, 0, math.pi / 2))
+	tip.Parent = model
+	local muzzle = Instance.new("Attachment")
+	muzzle.Name = "Muzzle"
+	muzzle.Position = Vector3.new(0, 0, -0.3)
+	muzzle.Parent = tip
+	return CFrame.new(0, -0.07, 0.18), CFrame.new(-0.3, -0.14, 0.35)
+end
+
 local builders: { [string]: (Model) -> (CFrame, CFrame) } = {
+	FeintKnives = buildKnives,
+	FeintSmokeSMG = buildSmokeSmg,
+	SutureFlare = buildFlare,
+	ParapetHammer = buildHammer,
+	ParapetPump = buildPump,
+	GuiseGarrote = buildGarrote,
 	LatticePDW = buildCompactPdw,
 	GuiseSMG = buildSuppressedSmg,
 	ReticleCarbine = buildFoldingCarbine,
@@ -604,6 +698,10 @@ function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: In
 	self.kickBack -= self.kickBack * math.min(config.KickRecoverSpeed * dt, 1)
 
 	local offset = CFrame.new(self.sway + bob + Vector3.new(0, 0, self.kickBack))
+	if self.def.Melee then
+		offset *= CFrame.Angles((input.meleeProgress or 0) * -0.6, 0, (input.meleeProgress or 0) * 0.35)
+		offset *= CFrame.Angles(0, self.kickBack * 3, -self.kickBack * 2)
+	end
 	local progress = input.reloadProgress
 	if progress then
 		local dip = math.sin(math.pi * progress)

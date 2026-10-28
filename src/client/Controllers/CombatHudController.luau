@@ -56,6 +56,7 @@ local healthText: TextLabel? = nil
 local healthFill: Frame? = nil
 local plates: { Frame } = {}
 local ammoText: TextLabel? = nil
+local ammunitionPanel: Frame? = nil
 local takedownBack: Frame? = nil
 local takedownFill: Frame? = nil
 local obstruction: Frame? = nil
@@ -175,6 +176,7 @@ local function build()
 		Vector2.new(1, 1),
 		UDim2.fromOffset(graphics.AmmoWidthPixels, graphics.AmmoHeightPixels)
 	)
+	ammunitionPanel = ammoPanel.Parent :: Frame -- hide the wrapper too, including its separate shadow
 	HudKit.icon(
 		ammoPanel,
 		"Bullet",
@@ -232,7 +234,7 @@ local function updateCrosshair(viewportHeight: number)
 		+ feedback.CrosshairGapPixels
 	local length = feedback.CrosshairLengthPixels
 	for side, line in crosshair do
-		line.Visible = status.weaponUp and not status.attackBlocked
+		line.Visible = status.hasAmmo and status.weaponUp and not status.attackBlocked
 		local horizontal = side == "Left" or side == "Right"
 		local direction = if side == "Left" or side == "Up" then -1 else 1
 		line.Size = if horizontal
@@ -240,6 +242,9 @@ local function updateCrosshair(viewportHeight: number)
 			else UDim2.fromOffset(CROSSHAIR_THICKNESS, length)
 		local along = direction * (reach + length / 2)
 		line.Position = if horizontal then UDim2.new(0.5, along, 0.5, 0) else UDim2.new(0.5, 0, 0.5, along)
+	end
+	if ammunitionPanel then
+		ammunitionPanel.Visible = status.hasAmmo
 	end
 	if ammoText then
 		ammoText.Text = `{status.mag} / {status.reserve}`
@@ -384,7 +389,7 @@ function CombatHudController.Start()
 	janitor:Add(RemoteController.connect("MeleeState", function(info: Types.MeleeState)
 		-- Ticket 8.22: shared bar shows server-timed charge or takedown; Strike is an acknowledgement, not a finisher.
 		takedownStartedAt = if info.Active then (info.StartedAt or workspace:GetServerTimeNow()) else nil
-		takedownSeconds = info.Seconds
+		takedownSeconds = math.max(info.Seconds, 0.001)
 		if takedownFill then
 			takedownFill.BackgroundColor3 = if info.Kind == "Charge"
 				then feedback.ArmorColor

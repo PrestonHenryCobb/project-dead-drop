@@ -217,3 +217,27 @@ WeaponDef.PostMeleeFireDelay and blocks while a server-confirmed takedown is act
 - The brief's answers (`docs/IDEAS_2026-10-24_BRIEF.md`) are decided; each lands in the step its table names. Only 8.8 is
   ticketed now. Step 16 needs 12 new Talents and 12 new Instincts designed with the owner first.
 - The Deceive Inc. tutorial videos for Step 13C (`IDEAS_2026-10-24.md` Q10).
+
+## Six-weapon client integration (Codex, 2026-10-27)
+
+Extends server commit 8750cdf using WEAPON_SERVER_CONTRACTS.md. These new rows supersede older client notes that say
+these six weapons are unavailable. All six entries moved from PendingWeaponDefs to WeaponDefs, in the owner's order.
+
+| Id | Client work | Owner | Needs | Status |
+|---|---|---|---|---|
+| 8.5a-garrote-client | Two-handle wire model, no ammo panel or firearm requests, weapon melee cooldown and server Seconds bar; 0.15 s recovery. | CODEX | Studio acceptance | READY_FOR_REVIEW |
+| 8.5b-pump-client | Pump model/cycle, 8-direction request, per-shell prediction/reconciliation, due-shell fire interrupt and Stagger aim bump; 0.65 s recovery. | CODEX | Studio acceptance | READY_FOR_REVIEW |
+| 8.5b-hammer-client | Two-hand hammer model, charge pose, weapon cooldown, server Seconds bar, no ammo or firearm requests; 0.8 s recovery. Existing MovementController owns shove. | CODEX | Studio acceptance | READY_FOR_REVIEW |
+| 8.5e-flare-client | Signal pistol model, predicted flight adopted by Own launch, authoritative impact lights and LOS-only team glow through disguise changes; 0.6 s recovery. | CODEX | Studio acceptance | READY_FOR_REVIEW |
+| 8.5f-smoke-client | Chambered SMG model, automatic handling, server SmokeCloud rendering and inside-cloud veil; 0.2 s recovery. | CODEX | Studio acceptance | READY_FOR_REVIEW |
+| 8.5f-knives-client | Knife model/flight, silent prediction, six-round carry with no reload; existing server LandedKnife/pickup prompt retained unchanged; 0.35 s recovery. | CODEX | Studio acceptance | READY_FOR_REVIEW |
+
+Validation: StyLua and Selene clean on every changed Luau file; 204 real-source Luau assertions exercise firing,
+melee cooldowns, shell updates/interrupts, projectile adoption, light/smoke expiry, glow occlusion/rebinding, bounded
+allocation/cleanup and model structure. Rojo build passes. Engine framing and multiplayer input remain untested.
+Full Studio instructions, files and limitations: docs/WEAPON_CLIENT_REVIEW_2026-10-27.md.
+
+Claude handoff (existing contract gaps, not silently fixed): NPC pump slow/hammer shove differ from players;
+smoke remains visual-only for server sight/scans/Agent Sense; round end must clean landed knives; pickup prompt
+still shows for non-knife users. No additional event/field mismatch found in the reviewed server paths.
+Initial spread/recoil/pose/recovery and smoke appearance remain Studio tuning (SPEC-QUESTION).

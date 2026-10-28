@@ -121,7 +121,11 @@ function view.Mount(stage, navigator, context)
 			local def = selected.Def
 			Kit.text(
 				side,
-				`{def.Damage} DMG · {def.RPM} RPM · {def.MagSize}/{def.ReserveAmmo} AMMO\n{def.ReloadSeconds}s RELOAD · {def.AimZoom}x FOV`,
+				if def.Melee
+					then `{def.Melee.SwingDamage} SWING · {def.Melee.SwingReach} STUDS\n{def.Melee.SwingSeconds}s CADENCE · V TO STRIKE / HOLD`
+					else `{def.Damage} DMG · {def.RPM} RPM · {def.MagSize}/{def.ReserveAmmo} AMMO\n{def.ReloadSeconds}s {if def.ReloadPerShell
+						then "PER SHELL"
+						else "RELOAD"} · {def.AimZoom}x FOV`,
 				356,
 				60
 			)
