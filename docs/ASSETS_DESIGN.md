@@ -56,8 +56,10 @@ Pockets never takes a price below 1.
 - Codex: the Assets loadout screen (four rarity slots), an in-match held-Assets strip, and a coloured look for the safes
   (their rarity colour, readable at a glance).
 
-## Questions still open
-1. Four different Assets, or may a loadout repeat one? (Proposed: different.)
-2. Safe prices in intel (proposed 1 / 3 / 5 / 8) and the 3 s hold.
-3. Once per safe per match, first come first served? Or once per player per safe, so nobody is locked out? (Proposed: once.)
-4. Supply Caches stay without Assets? (Proposed: yes.)
+## Decided (owner, 2026-10-28, all four proposals confirmed)
+1. The four slots hold four different Assets (no repeats).
+2. Safe prices: 1 / 3 / 5 / 8 intel for Field Agent / Infiltrator / Black Ops / Ghost, a 3 s hold.
+3. A safe opens once per match, for the first agent to finish the hold; after that it is empty.
+4. Supply Caches sell no Assets. A safe in a Tier 4 room is Ghost.
+
+Nothing is open: Step 18e can be built from this file.
