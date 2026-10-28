@@ -7,7 +7,7 @@
 -- The holder is told when a hold begins and ends (InteractState) for the HUD. Nothing else is told.
 --
 --   InteractService.register(kind, begin)   begin(player, target) -> Interaction?   nil refuses the request
---   InteractService.setSecondsMult(fn)      fn(player, kind) -> how much of the hold's time that player needs
+--   InteractService.setSecondsMult(fn)      fn(player, kind, label) -> how much of the hold's time that player needs
 --   InteractService.cancel(player)          ends any hold the player has going (going down, for example)
 --   InteractService.isBusy(player) -> boolean
 
@@ -34,7 +34,7 @@ local InteractService = {}
 local config = GameConfig.Interact
 local handlers: { [string]: (Player, string) -> Interaction? } = {}
 local holds: { [Player]: Hold } = {}
-local secondsMult: ((Player, string) -> number)? = nil
+local secondsMult: ((Player, string, string) -> number)? = nil
 
 function InteractService.register(kind: string, begin: (Player, string) -> Interaction?)
 	assert(not handlers[kind], `Interaction kind {kind} is registered twice`)
@@ -42,7 +42,7 @@ function InteractService.register(kind: string, begin: (Player, string) -> Inter
 end
 
 -- Ticket 16c: how much of its time a player's hold of this kind takes (AbilityService: Wired makes hacks 25% faster).
-function InteractService.setSecondsMult(mult: (Player, string) -> number)
+function InteractService.setSecondsMult(mult: (Player, string, string) -> number)
 	secondsMult = mult
 end
 
@@ -76,7 +76,7 @@ local function onRequest(player: Player, kind: unknown, target: unknown)
 		return
 	end
 	if secondsMult then
-		interaction.seconds *= secondsMult(player, kind) -- ticket 16c: Lattice's Wired
+		interaction.seconds *= secondsMult(player, kind, interaction.label) -- tickets 16c, 16e: Wired, Triage
 	end
 	holds[player] = { interaction = interaction, endsAt = os.clock() + interaction.seconds }
 	tell(player, interaction, true)

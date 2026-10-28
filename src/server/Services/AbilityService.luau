@@ -31,6 +31,7 @@ local abilities: { [string]: Ability.Ability } = {
 	Parapet = require(script.Parent.Parent.Abilities.Parapet),
 	Lattice = require(script.Parent.Parent.Abilities.Lattice),
 	Reticle = require(script.Parent.Parent.Abilities.Reticle),
+	Suture = require(script.Parent.Parent.Abilities.Suture),
 }
 
 local readyAt: { [Player]: number } = {} -- os.clock() when the ability can next be used
@@ -99,10 +100,19 @@ end
 function AbilityService.Init() end
 
 function AbilityService.Start()
+	for _, ability in abilities do
+		if ability.start then
+			ability.start(AbilityService.agentOf)
+		end
+	end
 	DisguiseService.setAgentLookup(AbilityService.agentOf)
-	InteractService.setSecondsMult(function(player, kind)
+	InteractService.setSecondsMult(function(player, kind, label)
 		local rules = AbilityService.rulesOf(player)
-		return if rules.HackKinds and rules.HackKinds[kind] then rules.HackMult else 1
+		local mult = if rules.HackKinds and rules.HackKinds[kind] then rules.HackMult else 1 -- Lattice's Wired
+		if label == "Revive" and rules.ReviveMult then
+			mult *= rules.ReviveMult -- Suture's Triage
+		end
+		return mult
 	end)
 	CombatService.setAgentRules(AbilityService.rulesOf)
 	CoverService.setAgentRules(AbilityService.rulesOf)

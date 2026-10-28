@@ -56,7 +56,17 @@ Agent abilities (spec 15, key Q). Server-authoritative; the client only asks.
   Tested solo in Studio: she gets the ability and rules, a 60-stud drop cost 28.5 (full damage would be about 57), Q starts the
   30 s cooldown with no error while scoped. Not tested: the glow itself and the suspicion effect (both need a second player).
 
+- **16e Suture.** Mend Field (45 s): `Abilities/Suture` sets a `FirstAidKit` model (white box, red cross, no owner marking,
+  workspace.FieldKits) 4 studs ahead on the floor; for 8 s each 0.25 s it heals his team and himself within 10 studs by 12 HP/s
+  (`CombatService.heal`, health only, never a downed player); a Tier 1+ zone breaks his Cover (`CoverService.expose`).
+  Triage: `Ability.start` (new optional field, called by `AbilityService` at boot with the agent lookup) runs a 4 Hz loop; teammates
+  other than him within 12 studs regain 2 HP/s once `CombatService.secondsSinceDamaged` is 6 s or more. Revives take half the time:
+  `InteractService.setSecondsMult` now also gets the interaction's label and `Agents.Suture.ReviveMult = 0.5` applies to "Revive".
+  Tested solo in Studio: the kit appears and goes after 8 s; healing from 4.6 to 55.6 HP in 4.5 s (12 HP/s); the ability and
+  rules load. Not tested: Triage, the 2 s revive and the Cover break (need a teammate or a Tier 1+ position).
+
 ## Not built
+- Mend Field is set down, not thrown (no canister arc), and shows no heal ring or sound.
 - The Tracer Glass highlight is the shared flare colour (WeaponEffects, Codex's file): a own colour needs a client change there.
 - Wired's "tier doors cost 1 less intel": tier doors cost intel in Step 18, so it lands there (read `Agents.Lattice`).
 - Drone hacking of doors (keycard Lockpick and Step 18's tier doors) and of vault terminals; gamepad flight.

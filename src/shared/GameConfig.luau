@@ -1422,6 +1422,25 @@ local GameConfig = {
 				GlowSeconds = 0.6,
 			},
 		},
+		-- Suture: Triage (revives take ReviveMult of the time; teammates other than him within Triage.Radius regain PerSecond HP
+		-- once OutOfCombatSeconds have passed since they were hurt) and Mend Field, a first-aid kit set Ahead of him on the floor
+		-- that heals his team, himself included, HealPerSecond within Radius for Seconds. In a Tier 1+ zone setting it down breaks
+		-- his Cover; in a public zone it looks like any first-aid kit. SPEC-QUESTION: it is set down, not thrown.
+		Suture = {
+			ReviveMult = 0.5,
+			Triage = { Radius = 12, PerSecond = 2, OutOfCombatSeconds = 6, TickHz = 4 },
+			MendField = {
+				Seconds = 8,
+				HealPerSecond = 12,
+				Radius = 10,
+				HealHz = 4,
+				Ahead = 4,
+				FloorProbe = { Up = 3, Down = 10 },
+				KitSize = Vector3.new(1.6, 0.9, 1),
+				KitColor = Color3.fromRGB(240, 240, 240),
+				CrossColor = Color3.fromRGB(210, 40, 40),
+			},
+		},
 		Parapet = {
 			ExtraStartPlates = 1,
 			RiotWall = {

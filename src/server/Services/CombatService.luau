@@ -1109,6 +1109,23 @@ function CombatService.setProvokeHooks(hooks: ProvokeHooks)
 	provokeHooks = hooks
 end
 
+-- Ticket 16e (Suture): gives back health, up to the maximum. Nothing else heals in the game (spec 13.1). A downed or dead
+-- player is not healed (a revive is DownedService's).
+function CombatService.heal(player: Player, amount: number)
+	local state = states[player]
+	if not state or state.dead or isDowned(player) or state.hp >= config.MaxHP then
+		return
+	end
+	state.hp = math.min(config.MaxHP, state.hp + amount)
+	sendHealth(player, state)
+end
+
+-- Ticket 16e: how long since the player last took damage (a very long time if never).
+function CombatService.secondsSinceDamaged(player: Player): number
+	local state = states[player]
+	return if state then os.clock() - state.lastDamagedAt else 0
+end
+
 -- Ticket 16d: is the player aiming (scoped) their weapon right now?
 function CombatService.isAiming(player: Player): boolean
 	local state = states[player]
