@@ -785,6 +785,20 @@ local GameConfig = {
 		ZoneHeightStuds = 6, -- how far above or below the pad the carrier may stand and still count as in the zone
 	},
 
+	-- Tickets 13b/c: cosmetic aircraft and extraction screen. Server Extraction owns every deadline/outcome.
+	ExtractionVisuals = {
+		DisplayOrder = 65,
+		HoverStuds = 14,
+		RiseStuds = 18,
+		RotorRadiansPerSecond = 24,
+		HoverBobStuds = 0.2,
+		HoverBobSpeed = 2,
+		LetterboxFraction = 0.16,
+		BodyColor = Color3.fromRGB(36, 39, 43),
+		WindowColor = Color3.fromRGB(130, 175, 185),
+		AccentColor = Color3.fromRGB(190, 150, 82),
+	},
+
 	-- Spec 19: overtime.
 	Overtime = {
 		CapSeconds = 90,

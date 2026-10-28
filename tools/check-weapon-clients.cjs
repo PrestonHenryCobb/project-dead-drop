@@ -27,7 +27,7 @@ const summaries = read('src/client/Combat/WeaponSummary.luau');
 const effectConfig = between(read('src/shared/GameConfig.luau'), '\t\tWeaponEffects = {', '\t\t-- The hammer');
 const reload = between(controller, 'local function advanceReload(', 'local function step(');
 const melee = between(controller, 'local function onMelee(', 'local function resetWeapon(');
-const phaseGate = between(controller, 'local function onPhase(', 'local function onCharacter(');
+const phaseGate = between(controller, 'local function freezePrediction(', 'local function onCharacter(');
 const fireInput = between(controller, 'local function onFire(', 'local function onAim(');
 const ammo = between(controller, 'janitor:Add(RemoteController.connect("AmmoUpdate", function(info: Types.AmmoInfo)', '\n\tjanitor:Add(RemoteController.connect("CombatStatus"')
   .replace('janitor:Add(RemoteController.connect("AmmoUpdate", function(info: Types.AmmoInfo)', 'local function onAmmo(info)')
@@ -98,7 +98,7 @@ local reloadEndsAt,reloadStartedAt=0,0
 local predictedReloadPending,shellInterruptPending=false,false
 local burstRemaining,nextFireAt,lastMeleeAt,lastEmptyAt=0,0,-math.huge,-math.huge
 local meleePending,takedownActive,held,aiming=false,false,true,false
-local phaseFrozen,combatEnabled,firing=false,true,false
+local phaseFrozen,extractionFrozen,combatEnabled,firing=false,false,true,false
 local recoilPitch,recoilYaw,spreadExtra,lastFireAt=0,0,0,0
 local shotDirections={}
 local streak={}
@@ -191,6 +191,12 @@ combatEnabled=false
 onPhase("Infiltration")
 check(not phaseFrozen and not combatEnabled and not firing,"Phase release cannot revive or queue fire")
 combatEnabled=true
+onExtraction({State="Extracted"})
+check(extractionFrozen and not firing,"Extraction freezes prediction")
+table.clear(calls)table.clear(sounds)
+onPhase("Overtime")onFire("",Enum.UserInputState.Begin)fireOnce(camera,{},now)
+check(extractionFrozen and #calls==0 and #sounds==0,"Phase update cannot undo extraction freeze")
+onPhase("Results")check(not extractionFrozen,"Results releases extraction freeze")
 -- Exercise the actual effects module with engine instances/rays replaced only.
 local effectModule=(function()
 local config=GameConfig.Combat.WeaponEffects

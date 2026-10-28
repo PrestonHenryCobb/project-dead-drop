@@ -40,7 +40,12 @@ function MatchPresentation.new()
 				brief = if insertion then current.Brief else nil,
 				insertion = insertion,
 				fade = if insertion then math.clamp((now - current.StartedAt) / math.max(span, 0.001), 0, 1) else 1,
-				mainTimer = if active then MatchPresentation.clock(current.MainEndsAt, now) else nil,
+				mainTimer = if active
+					then MatchPresentation.clock(
+						if phase == "Overtime" then current.EndsAt else current.MainEndsAt,
+						now
+					)
+					else nil,
 				phaseTimer = MatchPresentation.clock(current.EndsAt, now),
 				results = if phase == "Results" then current.Results else nil,
 				ready = if phase == "Lobby" then current.ReadyPlayers else nil,

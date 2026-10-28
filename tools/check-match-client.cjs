@@ -117,7 +117,10 @@ check(oldRow.destroyed and not find("Results").Visible,"Results destroyed on lob
 check(find("Waiting").Text=="WAITING FOR PLAYERS · 2 READY · FILL 00:53","Ready-team lobby wait")
 result.WinnerTeamId=1
 events.PhaseChanged("Results",{StartedAt=1000,EndsAt=1015,Results=result})
-RunService.RenderStepped:fire()check(find("Result").Text=="TEAM 1 WINS","Winner from server")
+RunService.RenderStepped:fire()check(find("Result").Text=="MISSION SUCCESS","Own-team success from server")
+result.WinnerTeamId=2
+events.PhaseChanged("Results",{StartedAt=1000,EndsAt=1015,Results=result})
+check(find("Result").Text=="MISSION FAILED","Rival winner does not become own success")
 script.Destroying:fire()
 check(events.PhaseChanged==nil and #RunService.RenderStepped.listeners==0,"Controller listeners cleaned")
 local Players={LocalPlayer={},PlayerRemoving=signal()}

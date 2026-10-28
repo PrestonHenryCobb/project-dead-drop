@@ -36,6 +36,7 @@ function MatchController.Init() end
 
 function MatchController.Start()
 	local gui = HudKit.screen("MatchHud")
+	local ownTeamId: number? = nil
 	gui.DisplayOrder = config.DisplayOrder
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	janitor:Add(gui)
@@ -148,12 +149,16 @@ function MatchController.Start()
 		board.CanvasPosition = Vector2.zero
 		if phase == "Insertion" and data.Brief then
 			local info = data.Brief
+			ownTeamId = info.TeamId
 			local color = GameConfig.Lobby.TeamColors[info.TeamId]
 			briefTitle.TextColor3 = if color then color.Color else theme.TextColor
 			briefInfo.Text = `{string.upper(info.Mode)} · {info.Teams} TEAMS · {info.Players} PLAYERS`
 		elseif phase == "Results" and data.Results then
 			local info = data.Results
-			resultTitle.Text = if info.WinnerTeamId then `TEAM {info.WinnerTeamId} WINS` else "MISSION FAILED"
+			resultTitle.Text = if info.WinnerTeamId and info.WinnerTeamId == ownTeamId
+				then "MISSION SUCCESS"
+				elseif info.WinnerTeamId and ownTeamId == nil then `TEAM {info.WinnerTeamId} WINS`
+				else "MISSION FAILED"
 			local order = 0
 			local function row(text: string, color: Color3)
 				order += 1

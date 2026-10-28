@@ -295,3 +295,24 @@ Changed-file StyLua/Selene clean; 28 objective actual-source assertions and Rojo
 Known limits: native layout/replication acceptance remains unverified; server contracts own station availability,
 terminal positions/rate and match transitions. No new gameplay decision or additional shared contract was introduced.
 Next: Package/extraction HUD and presentation against .ai-sync/PACKAGE_CONTRACT.md.
+
+
+## Package client continuation (Codex, 2026-10-27; PACKAGE_CONTRACT.md)
+
+| Id | Client work | Owner | Status |
+|---|---|---|---|
+| 13b | Package/resting marker and strictly expiring rival pulses, carrier/drop hint, extraction/channel HUD and overtime timer. | CODEX | READY_FOR_REVIEW |
+| 13c | Client-only native extraction aircraft at Hover/Open, five-second extraction presentation, server Results success/failure copy. | CODEX | READY_FOR_REVIEW |
+## Package/extraction client handoff (Codex 13b/13c, 2026-10-28; no playtest)
+
+PackageHudController consumes only per-player PackageState and ExtractionState; resting markers and rival pulses
+expire without inferring any carrier identity/position. Real InteractState labels from server handlers drive objective
+hold bars. Native client-only aircraft at Hover/Open rises during Extracted; server Results owns success/failure.
+MatchPresentation now uses EndsAt for Overtime. WeaponController independently freezes prediction during extraction.
+Changed-file StyLua/Selene and Rojo build pass. Actual-source suites: 228 weapon + 40 match + 28 objective + 29 Package
+assertions = 325 total. No Studio playtest per owner. Detailed files, gaps, source checks and next Claude prompt:
+docs/CLIENT_LOOP_REVIEW_2026-10-28.md. No gameplay questions added; presentation values remain tuning.
+Contract detail for Claude: InteractState.Kind is the handler label (Take the Package / Pass the Package / Call
+extraction / Extract), not the RequestInteract kind. Extracted has no new cinematic timestamp and retains the previous
+Open EndsAt; cosmetic fade therefore starts at event receipt for configured CinematicSeconds and stops on Results.
+Do not use that stale EndsAt as a cinematic deadline. Optional server timestamp handoff for tighter visual sync.
