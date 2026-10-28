@@ -15,6 +15,7 @@ local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local Ability = require(script.Parent.Parent.Abilities.Ability)
 local CombatService = require(script.Parent.CombatService)
+local CoverService = require(script.Parent.CoverService)
 local DisguiseService = require(script.Parent.DisguiseService)
 local DownedService = require(script.Parent.DownedService)
 local InteractService = require(script.Parent.InteractService)
@@ -29,6 +30,7 @@ local abilities: { [string]: Ability.Ability } = {
 	Guise = require(script.Parent.Parent.Abilities.Guise),
 	Parapet = require(script.Parent.Parent.Abilities.Parapet),
 	Lattice = require(script.Parent.Parent.Abilities.Lattice),
+	Reticle = require(script.Parent.Parent.Abilities.Reticle),
 }
 
 local readyAt: { [Player]: number } = {} -- os.clock() when the ability can next be used
@@ -36,6 +38,14 @@ local readyAt: { [Player]: number } = {} -- os.clock() when the ability can next
 function AbilityService.agentOf(player: Player): Types.AgentId?
 	local loadout = MetaProgressionService.getLoadout(player)
 	return if loadout then loadout.AgentId else nil
+end
+
+local NO_RULES: { [string]: any } = {}
+
+-- The GameConfig.Agents numbers of the player's agent (empty for an agent with none).
+function AbilityService.rulesOf(player: Player): { [string]: any }
+	local agentId = AbilityService.agentOf(player)
+	return if agentId then (GameConfig.Agents :: { [string]: any })[agentId] or NO_RULES else NO_RULES
 end
 
 local function talentOf(player: Player): (Types.AgentKitItem?, Ability.Ability?)
@@ -91,15 +101,11 @@ function AbilityService.Init() end
 function AbilityService.Start()
 	DisguiseService.setAgentLookup(AbilityService.agentOf)
 	InteractService.setSecondsMult(function(player, kind)
-		local agentId = AbilityService.agentOf(player)
-		local rules = if agentId then (GameConfig.Agents :: { [string]: any })[agentId] else nil
-		return if rules and rules.HackKinds and rules.HackKinds[kind] then rules.HackMult else 1
+		local rules = AbilityService.rulesOf(player)
+		return if rules.HackKinds and rules.HackKinds[kind] then rules.HackMult else 1
 	end)
-	CombatService.setExtraPlates(function(player)
-		local agentId = AbilityService.agentOf(player)
-		local rules = if agentId then (GameConfig.Agents :: { [string]: any })[agentId] else nil
-		return if rules and rules.ExtraStartPlates then rules.ExtraStartPlates else 0
-	end)
+	CombatService.setAgentRules(AbilityService.rulesOf)
+	CoverService.setAgentRules(AbilityService.rulesOf)
 	RemoteService.onRequest("RequestAbility", onRequestAbility)
 	MatchService.onPhaseChanged(function(phase)
 		if phase == "Insertion" then

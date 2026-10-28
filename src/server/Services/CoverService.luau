@@ -350,6 +350,25 @@ local function witnessShare(target: Vector3): (number, number, number, number, n
 	return math.min(all, config.WitnessCap), math.min(guards, config.WitnessCap), security, npc, camera
 end
 
+local NO_RULES: { [string]: any } = {}
+local agentRules: ((Player) -> { [string]: any })? = nil
+
+-- Ticket 16d: AbilityService gives the GameConfig.Agents numbers of a player's agent (QuietScope: Reticle's Still Water).
+function CoverService.setAgentRules(lookup: (Player) -> { [string]: any })
+	agentRules = lookup
+end
+
+local function rulesOf(player: Player): { [string]: any }
+	local lookup = agentRules
+	return if lookup then lookup(player) else NO_RULES
+end
+
+-- Ticket 16d: how suspicious the player is, 0 to Cover.SuspicionMax (Reticle's Tracer Glass shows anyone over half).
+function CoverService.suspicionOf(player: Player): number
+	local state = states[player]
+	return if state then state.suspicion else 0
+end
+
 local function nearBody(position: Vector3): boolean
 	if not sources then
 		return false
@@ -387,7 +406,7 @@ local function suspiciousRates(
 	if zoneTier >= 1 and os.clock() < state.hackingUntil then
 		rate += gain.Terminal
 	end
-	if zoneTier >= 1 and state.weaponDrawn then
+	if zoneTier >= 1 and state.weaponDrawn and not rulesOf(player).QuietScope then -- Reticle's Still Water
 		rate += gain.WeaponDrawn
 	end
 	if nearBody(position) then

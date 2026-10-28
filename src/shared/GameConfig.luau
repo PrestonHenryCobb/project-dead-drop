@@ -1406,6 +1406,22 @@ local GameConfig = {
 				TagCheckSeconds = 0.5,
 			},
 		},
+		-- Reticle: Still Water (aiming while disguised raises no suspicion until she fires; falls hurt FallDamageMult as much) and
+		-- Tracer Glass: for Seconds, while she is scoped, every agent who is Exposed or over SuspicionOver of the suspicion
+		-- meter inside a ConeDegrees cone ahead of her, to RangeStuds, glows for her alone (through walls), refreshed every
+		-- CheckSeconds. SPEC-QUESTION: the cone follows her body's facing, not the camera's pitch.
+		Reticle = {
+			QuietScope = true,
+			FallDamageMult = 0.5,
+			TracerGlass = {
+				Seconds = 6,
+				ConeDegrees = 45,
+				RangeStuds = 150,
+				SuspicionOver = 0.5,
+				CheckSeconds = 0.25,
+				GlowSeconds = 0.6,
+			},
+		},
 		Parapet = {
 			ExtraStartPlates = 1,
 			RiotWall = {

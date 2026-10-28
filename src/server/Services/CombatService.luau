@@ -121,7 +121,7 @@ local projectileHooks: ProjectileHooks? = nil
 local worldHitListener: ((Vector3, Player) -> ())? = nil -- ticket 14: a shot ended on the map (cameras)
 local provokeHooks: ProvokeHooks? = nil -- ticket 15: guards
 local damageListener: ((Player) -> ())? = nil -- ticket 16c: a player took damage (a piloted drone lands)
-local extraPlates: ((Player) -> number)? = nil -- ticket 16b: plates an agent starts every life with beyond the usual
+local agentRules: ((Player) -> { [string]: any })? = nil -- ticket 16: GameConfig.Agents numbers of the player's agent
 local glintAccumulator = 0
 local rng = Random.new()
 local sweep = 0
@@ -130,6 +130,13 @@ local sweep = 0
 local mapParams = RaycastParams.new()
 mapParams.CollisionGroup = GameConfig.Rig.CollisionGroup
 mapParams.RespectCanCollide = true
+
+local NO_RULES: { [string]: any } = {}
+
+local function rulesOf(player: Player): { [string]: any }
+	local lookup = agentRules
+	return if lookup then lookup(player) else NO_RULES
+end
 
 local function aliveParts(player: Player): (Humanoid?, BasePart?)
 	local character = player.Character
@@ -950,7 +957,13 @@ local function trackFall(player: Player, state: State)
 		if state.airborne then
 			local fallen = state.fallPeakY - y
 			if fallen > config.FallSafeStuds then
-				damagePlayer(player, (fallen - config.FallSafeStuds) * config.FallDamagePerStud, root.Position, nil)
+				local mult = rulesOf(player).FallDamageMult or 1
+				damagePlayer(
+					player,
+					(fallen - config.FallSafeStuds) * config.FallDamagePerStud * mult,
+					root.Position,
+					nil
+				)
 			end
 		end
 		state.airborne = false
@@ -968,12 +981,12 @@ local function onCharacterAdded(player: Player, character: Model)
 	local deployed = loadoutWeapons[player] or config.DefaultWeapon
 	local def = WeaponDefs.get(if RunService:IsStudio() then testWeapons[player] or deployed else deployed)
 	assert(def, `Combat.DefaultWeapon {config.DefaultWeapon} is not a weapon`)
+	local startPlates = (if TeamService.isSolos() then config.SoloStartPlates else config.StartPlates)
+		+ (rulesOf(player).ExtraStartPlates or 0) -- Parapet's Plated
 	local state: State = {
 		weapon = def,
 		hp = config.MaxHP,
-		armor = ((if TeamService.isSolos() then config.SoloStartPlates else config.StartPlates) + (if extraPlates
-			then extraPlates(player)
-			else 0)) * config.PlateHP,
+		armor = startPlates * config.PlateHP,
 		mag = def.MagSize,
 		reserve = def.ReserveAmmo,
 		reloadEndsAt = 0,
@@ -1096,14 +1109,21 @@ function CombatService.setProvokeHooks(hooks: ProvokeHooks)
 	provokeHooks = hooks
 end
 
+-- Ticket 16d: is the player aiming (scoped) their weapon right now?
+function CombatService.isAiming(player: Player): boolean
+	local state = states[player]
+	return state ~= nil and state.aiming and not state.dead
+end
+
 -- Ticket 16c: DroneService is told whenever a player takes damage.
 function CombatService.setDamageListener(listener: (Player) -> ())
 	damageListener = listener
 end
 
--- Ticket 16b: AbilityService says how many plates beyond the usual an agent starts a life with (Parapet's Plated).
-function CombatService.setExtraPlates(lookup: (Player) -> number)
-	extraPlates = lookup
+-- Ticket 16: AbilityService gives the GameConfig.Agents numbers of a player's agent: ExtraStartPlates (Parapet's Plated),
+-- FallDamageMult (Reticle's Still Water).
+function CombatService.setAgentRules(lookup: (Player) -> { [string]: any })
+	agentRules = lookup
 end
 
 function CombatService.setProjectileHooks(hooks: ProjectileHooks)

@@ -47,7 +47,17 @@ Agent abilities (spec 15, key Q). Server-authoritative; the client only asks.
   i.e. 0.75 of the station time), the drone shot down ends the flight and returns the camera.
   Not tested: tagging (needs a second player in True Form), the body-damage ending, two players, the cover/identity side.
 
+- **16d Reticle.** Still Water: `Agents.Reticle.QuietScope` (CoverService skips the WeaponDrawn suspicion for her; firing still
+  exposes) and `FallDamageMult = 0.5` (CombatService). Both read the agent's numbers through `setAgentRules` (CombatService,
+  CoverService), fed by `AbilityService.rulesOf`; this replaced 16b's `setExtraPlates`. Tracer Glass (30 s): `Abilities/Reticle`
+  runs for 6 s; every 0.25 s, while she is scoped (`CombatService.isAiming`), each enemy agent who is Exposed or over half the
+  suspicion meter (`CoverService.suspicionOf`) inside a 45 degree cone of her body's facing, within 150 studs, gets a
+  `TargetGlow` sent to her only (0.6 s, refreshed), seen through walls.
+  Tested solo in Studio: she gets the ability and rules, a 60-stud drop cost 28.5 (full damage would be about 57), Q starts the
+  30 s cooldown with no error while scoped. Not tested: the glow itself and the suspicion effect (both need a second player).
+
 ## Not built
+- The Tracer Glass highlight is the shared flare colour (WeaponEffects, Codex's file): a own colour needs a client change there.
 - Wired's "tier doors cost 1 less intel": tier doors cost intel in Step 18, so it lands there (read `Agents.Lattice`).
 - Drone hacking of doors (keycard Lockpick and Step 18's tier doors) and of vault terminals; gamepad flight.
 - Plated's "plates on twice as fast": no plate-applying action exists yet (it comes with the economy/pickups), so there is
