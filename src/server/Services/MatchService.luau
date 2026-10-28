@@ -294,11 +294,17 @@ function MatchService.advance(to: Types.Phase): boolean
 end
 
 function MatchService.selectionStarted(teamId: number)
+	if GameConfig.Debug.PrintEvents then
+		print(`[Match] agent select started for team {teamId}`)
+	end
 	selecting[teamId] = true
 end
 
 function MatchService.selectionFinished(teamId: number, members: { Player })
 	selecting[teamId] = nil
+	if GameConfig.Debug.PrintEvents then
+		print(`[Match] team {teamId} ready with {#members} player(s)`)
+	end
 	if #members == 0 then
 		return
 	end

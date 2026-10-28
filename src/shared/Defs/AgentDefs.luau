@@ -48,7 +48,7 @@ local defs: { AgentDef } = {
 		Role = "Frontline anchor",
 		Hardware = {
 			{ Id = "ParapetHeavySMG", Name = "Heavy SMG", Category = "SMG" },
-			{ Id = "ParapetShotgun", Name = "Pump Shotgun", Category = "Shotgun" },
+			{ Id = "ParapetPump", Name = "Pump Shotgun", Category = "Shotgun" },
 			{ Id = "ParapetHammer", Name = "Breaching Hammer", Category = "Melee" },
 		},
 		Talents = {
@@ -126,7 +126,7 @@ local defs: { AgentDef } = {
 		Hardware = {
 			{ Id = "SutureDualPistols", Name = "Dual Machine Pistols", Category = "Machine pistols" },
 			{ Id = "SutureShotgun", Name = "Medic Shotgun", Category = "Shotgun" },
-			{ Id = "SutureFlarePistol", Name = "Flare Pistol", Category = "Flare pistol" },
+			{ Id = "SutureFlare", Name = "Flare Pistol", Category = "Flare pistol" },
 		},
 		Talents = {
 			{
