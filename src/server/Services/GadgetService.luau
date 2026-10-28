@@ -68,6 +68,40 @@ local function send(player: Player, kit: Kit)
 	RemoteService.fireClient("GadgetState", player, info)
 end
 
+-- The slot a bought charge would go to: the held gadget if it is short, else the first that is short, else nil.
+local function shortSlot(kit: Kit): Slot?
+	local held = kit.slots[kit.held]
+	local def = if held then GadgetDefs.get(held.id) else nil
+	if held and def and held.charges < def.Charges then
+		return held
+	end
+	for _, slot in kit.slots do
+		local slotDef = GadgetDefs.get(slot.id)
+		if slotDef and slot.charges < slotDef.Charges then
+			return slot
+		end
+	end
+	return nil
+end
+
+-- Ticket 18c (Supply Cache): can the player take one more charge for one of their gadgets?
+function GadgetService.canAddCharge(player: Player): boolean
+	local kit = kits[player]
+	return kit ~= nil and shortSlot(kit) ~= nil
+end
+
+-- Gives back one charge, to the held gadget if it is short, else the first that is. Returns whether one was given.
+function GadgetService.addCharge(player: Player): boolean
+	local kit = kits[player]
+	local slot = if kit then shortSlot(kit) else nil
+	if not (kit and slot) then
+		return false
+	end
+	slot.charges += 1
+	send(player, kit)
+	return true
+end
+
 function GadgetService.heldSlot(player: Player): number
 	local kit = kits[player]
 	return if kit then kit.held else 0

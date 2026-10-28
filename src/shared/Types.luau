@@ -369,6 +369,20 @@ export type GadgetDef = {
 	Description: string,
 }
 
+-- Ticket 18c, the Supply Cache shop ("ShopState", to the shopper only). Sent when the shop opens, after every purchase or
+-- refusal, and with Open = false when it closes. Price is already this cache's price (discount included); Reason says why an
+-- item cannot be bought now ("", or for example "Armour is full"). While Buying names an item, its purchase runs for BuySeconds
+-- and breaks Cover; the shopper buys one thing at a time.
+export type ShopItemInfo = { Id: string, Name: string, Price: number, Available: boolean, Reason: string }
+export type ShopStateInfo = {
+	Open: boolean,
+	CacheId: string,
+	Intel: number,
+	Items: { ShopItemInfo },
+	Buying: string?,
+	BuySeconds: number,
+}
+
 -- Ticket 17d: where a player's standing Bug Cams are and the way each faces ("BugCamState", to the owner only); the view of each
 -- is taken from its CFrame. Sent whenever one is placed or goes.
 export type BugCamStateInfo = { Cams: { CFrame } }

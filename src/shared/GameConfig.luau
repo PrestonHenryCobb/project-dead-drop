@@ -1095,13 +1095,8 @@ local GameConfig = {
 		},
 	},
 
-	-- Spec 17: funds, pickups, shop.
+	-- Spec 17 (Funds are gone, SPEC_CHANGES: intel is the only currency): pickups and the shop.
 	Economy = {
-		StartFunds = 100,
-		FundsPickup = { Min = 25, Max = 75 },
-		FundsForDowning = 50,
-		FundsForElimination = 25,
-		FundsForCameraHack = 10,
 		MedKitHP = 30,
 		-- Ticket 18b: the wall stations, paid in the team's intel (Funds are gone). A Health Station heals to full and an Ammo Cache
 		-- fills the weapon in hand, each reusable; a Food Spot is free, heals Heal and is empty for PickupRespawnSeconds after.
@@ -1118,18 +1113,28 @@ local GameConfig = {
 		PickupGlintRange = 20,
 		-- Percent chance per PickupSpawn when it picks what to hold.
 		PickupWeights = { ArmorPlate = 35, AmmoBox = 30, Funds = 25, MedKit = 10 },
+		-- Ticket 18c, the Supply Cache shop (spec 17.3), priced in intel (owner prices 2026-10-28; the rescue price is
+		-- Downed.Rescue.Cost). Items lists them in the order shown. A cache in a zone of HigherTierMinTier or more is
+		-- HigherTierDiscount cheaper, rounded to the nearest intel and never below 1. Buying takes PurchaseSeconds near the
+		-- cache and breaks Cover; opening the shop is quiet. A cache serves one agent at a time and closes on them when they
+		-- are more than InteractStuds + SlackStuds away (checked CheckHz times a second). A Security Keycard has
+		-- SecurityKeycardUses uses; each opens a keycard door in KeycardSeconds, without breaking Cover.
 		Shop = {
 			PurchaseSeconds = 2,
-			Prices = {
-				ArmorPlate = 50,
-				AmmoRefill = 40,
-				HealToFull = 75,
-				GadgetCharge = 75,
-				AbilityCooldownReset = 100,
-				RescueTeammate = 150,
-				SecurityKeycard = 60,
+			OpenSeconds = 0.3,
+			InteractStuds = 6,
+			SlackStuds = 2,
+			CheckHz = 4,
+			Items = {
+				{ Id = "ArmorPlate", Name = "Armor Plate", Price = 3 },
+				{ Id = "AmmoRefill", Name = "Full ammo refill", Price = 2 },
+				{ Id = "HealToFull", Name = "Heal to full", Price = 3 },
+				{ Id = "GadgetCharge", Name = "Gadget charge", Price = 3 },
+				{ Id = "AbilityCooldownReset", Name = "Ability cooldown reset", Price = 4 },
+				{ Id = "SecurityKeycard", Name = "Security Keycard", Price = 3 },
 			},
 			SecurityKeycardUses = 3,
+			KeycardSeconds = 1,
 			-- SPEC-QUESTION: "higher-tier caches are 20% cheaper". Applied to caches in tier 1 and above.
 			HigherTierDiscount = 0.2,
 			HigherTierMinTier = 1,
@@ -1830,6 +1835,8 @@ local GameConfig = {
 			RequestAbility = { PerSecond = 2, Burst = 3 }, -- ticket 16: a key press; the server holds the cooldown
 			RequestSparrowMove = { PerSecond = 30, Burst = 30 }, -- ticket 16c: sent at Lattice.SparrowDrone.MoveHz
 			RequestAutoRecover = { PerSecond = 2, Burst = 3 }, -- a key press
+			RequestShopBuy = { PerSecond = 2, Burst = 4 }, -- ticket 18c: a button
+			RequestShopClose = { PerSecond = 2, Burst = 4 },
 			RequestGadget = { PerSecond = 6, Burst = 8 }, -- ticket 17: key presses (equip, deploy, alternate)
 			RequestSpectate = { PerSecond = 4, Burst = 8 },
 			RequestDronePosition = { PerSecond = 15, Burst = 15 },

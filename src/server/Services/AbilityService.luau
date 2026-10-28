@@ -88,6 +88,20 @@ local function onRequestAbility(player: Player)
 	sendCooldown(player, talent.Name, seconds, seconds)
 end
 
+-- Ticket 18c (Supply Cache): is the player's ability still cooling down?
+function AbilityService.onCooldown(player: Player): boolean
+	return os.clock() < (readyAt[player] or 0)
+end
+
+-- Ready at once; the player is told.
+function AbilityService.resetCooldown(player: Player)
+	local talent = talentOf(player)
+	if talent and AbilityService.onCooldown(player) then
+		readyAt[player] = nil
+		sendCooldown(player, talent.Name, talent.CooldownSeconds or 0, 0)
+	end
+end
+
 -- A new match: every ability is ready, and each player is told what theirs is.
 local function resetAll()
 	table.clear(readyAt)

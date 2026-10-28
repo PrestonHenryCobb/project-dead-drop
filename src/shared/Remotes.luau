@@ -52,6 +52,8 @@ local Remotes = {
 		-- Ticket 9c
 		"SpectateState", -- to a spectator only: who they watch, or the drone (Types.SpectateStateInfo)
 		"SpectatorChat", -- to spectators only: a filtered chat line (Types.SpectatorChatInfo)
+		-- Ticket 18c
+		"ShopState", -- to the shopper only: the Supply Cache shop they have open (Types.ShopStateInfo)
 		-- Ticket 17d
 		"BugCamState", -- to the owner only: where their Bug Cams are, to view them (Types.BugCamStateInfo)
 		-- Ticket auto-recover
@@ -93,6 +95,9 @@ local Remotes = {
 		"RequestSpectate", -- "Next", "Previous" or "Drone"; only honoured for an eliminated player
 		"RequestDronePosition", -- the drone camera's wanted position; the server limits speed and clamps it
 		"RequestSpectatorChat", -- a chat line for the other spectators
+		-- Ticket 18c
+		"RequestShopBuy", -- an item id of the open shop (a string)
+		"RequestShopClose", -- leave the open shop
 		-- Ticket auto-recover
 		"RequestAutoRecover", -- turn the Auto re-cover option on or off (a boolean)
 		-- Ticket 16c

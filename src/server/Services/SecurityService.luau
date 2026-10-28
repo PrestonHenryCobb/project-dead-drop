@@ -26,6 +26,7 @@ local IntelService = require(script.Parent.IntelService)
 local MatchService = require(script.Parent.MatchService)
 local ReachService = require(script.Parent.ReachService)
 local RemoteService = require(script.Parent.RemoteService)
+local SupplyService = require(script.Parent.SupplyService)
 local TeamService = require(script.Parent.TeamService)
 
 local SecurityService = {}
@@ -46,16 +47,24 @@ local function beginLockpick(player: Player, targetName: string): InteractServic
 	if not inReach() then
 		return nil
 	end
-	CoverService.noteHacking(player)
+	-- Ticket 18c: with a Security Keycard the door opens in KeycardSeconds and Cover is safe; otherwise it is picked.
+	local keycard = SupplyService.keycardUses(player) > 0
+	if not keycard then
+		CoverService.noteHacking(player)
+	end
 	return {
-		label = "Pick lock",
-		seconds = settings.LockpickSeconds,
+		label = if keycard then "Use keycard" else "Pick lock",
+		seconds = if keycard then GameConfig.Economy.Shop.KeycardSeconds else settings.LockpickSeconds,
 		stillValid = function()
-			CoverService.noteHacking(player)
+			if not keycard then
+				CoverService.noteHacking(player)
+			end
 			return not DownedService.isOut(player) and inReach() and DoorService.keycardDoor(targetName) ~= nil
 		end,
 		complete = function()
-			CoverService.expose(player, "Lockpick")
+			if not (keycard and SupplyService.useKeycard(player)) then
+				CoverService.expose(player, "Lockpick")
+			end
 			DoorService.openDoor(targetName, settings.OpenSeconds)
 		end,
 	}

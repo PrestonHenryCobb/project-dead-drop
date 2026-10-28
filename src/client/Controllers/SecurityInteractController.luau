@@ -77,6 +77,15 @@ local KINDS: { Kind } = {
 		end,
 	},
 	{
+		-- Ticket 18c: a Supply Cache opens its shop (the shop screen itself is the client's ShopState).
+		tag = Enums.Tag.SupplyCache,
+		kind = "SupplyCache",
+		idAttribute = "CacheId",
+		usable = function(part, from)
+			return (part:GetClosestPointOnSurface(from) - from).Magnitude <= GameConfig.Economy.Shop.InteractStuds
+		end,
+	},
+	{
 		-- Ticket 18b: the wall stations. The server decides whether you need it and can pay; the outline shows what Interact uses.
 		tag = Enums.Tag.HealthStation,
 		kind = "HealthStation",

@@ -29,8 +29,25 @@ with `IntelService.spend(teamId, amount)`. Server-authoritative; the client only
   Tested solo in Studio: Health Station took the team from 8 to 5 intel and healed 5 to 100 HP, then refused at full health; a Food
   Spot healed 1 to 16 HP once and refused at full health. Not tested: the Ammo Cache, food emptying and refilling.
 
+- **18c: Supply Cache shop.** `SupplyService`: each `SupplyCache` gets a `CacheId` ("S1"..). Hold kind `SupplyCache` (0.3 s, quiet)
+  opens the shop for the user (one agent at a time per cache): `ShopState` (to them only, `Types.ShopStateInfo`: Open, CacheId,
+  team Intel, Items {Id, Name, Price, Available, Reason}, Buying, BuySeconds). `RequestShopBuy(itemId)` (rate limit 2/s) starts
+  a purchase: refused (the shop is just resent) unless the item has a use now and the team can pay; it breaks Cover at once,
+  takes `Shop.PurchaseSeconds` (2) with the shopper near the cache, then takes the intel and applies the item. `RequestShopClose`
+  or walking more than 8 studs off, being downed or the match ending closes it. Items and intel prices (`Economy.Shop.Items`,
+  owner prices 2026-10-28): Armor Plate 3, Full ammo refill 2, Heal to full 3, Gadget charge 3 (`GadgetService.addCharge`),
+  Ability cooldown reset 4 (`AbilityService.resetCooldown`, only while cooling down), Security Keycard 3. A cache in a zone of
+  tier 1 or more is 20% cheaper (rounded, at least 1). A keycard has 3 uses: with one, the Lockpick hold on a keycard door takes
+  1 s, is labelled "Use keycard", and does not break Cover (`SupplyService.keycardUses/useKeycard`). The obsolete Funds numbers
+  were removed from `Economy`. Client: `SecurityInteractController` outlines a cache in reach and Interact opens it.
+  Tested solo in Studio: a tier 2 cache opened and listed discounted prices (2, 2, 2, 2, 3, 2) with the reasons items had no use;
+  Heal to full, Armor Plate and Security Keycard each bought (intel 12 to 6), an ability reset was refused while ready, close
+  worked, and the keycard made a keycard door hold "Use keycard" for 1 s. Not tested: Ammo refill, Gadget charge, Ability reset
+  when cooling down, two agents at one cache, walking off.
+
 ## Not built (Step 18 to do)
-- 18c: Supply Cache shop (6 caches): plate, ammo, heal, gadget charge, ability reset, Security Keycard, priced in intel.
+- The shop screen (a menu over `ShopState` with buy buttons calling `RequestShopBuy`): ticket 18c-hud for Codex. Until it
+  exists nobody can pick an item with a button.
 - 18d: Agent Tag drop, pickup and Rescue (10 intel) at a Supply Cache.
 - Elevator door hacks (`ElevatorDoor` HackCost) and the Package front door (10 intel) for human players; Tier 4 keycard printer.
 - Asset safes (12) and Assets (per-match perks in four rarities): needs a design pass first.
