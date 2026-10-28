@@ -14,6 +14,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Enums = require(Shared:WaitForChild("Enums"))
@@ -39,6 +40,12 @@ local bound = false
 local elapsed = 0
 local glints: { Highlight } = {}
 local glintFolder: Folder? = nil
+local phase: Types.Phase = "Lobby"
+local downed = false
+local eliminated = false
+local focused = true
+local extractionFrozen = false
+local heldStation: BasePart? = nil
 
 local sight = RaycastParams.new()
 sight.CollisionGroup = GameConfig.Rig.CollisionGroup
@@ -58,21 +65,62 @@ local function visible(from: Vector3, part: BasePart): boolean
 	return hit == nil or hit.Instance.Parent == part.Parent
 end
 
+local function eligibleRoot(): BasePart?
+	if
+		(phase ~= "Infiltration" and phase ~= "VaultBreach" and phase ~= "PackageHeist" and phase ~= "Overtime")
+		or downed
+		or eliminated
+		or not focused
+		or extractionFrozen
+		or UserInputService:GetFocusedTextBox() ~= nil
+	then
+		return nil
+	end
+	local character = localPlayer.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	return if humanoid and humanoid.Health > 0 and root and root:IsA("BasePart") then root else nil
+end
+
+local function cancelHold()
+	if holding then
+		holding = false
+		heldStation = nil
+		RemoteController.fire("RequestInteractCancel")
+	end
+end
+
 local function onInteract(_: string, state: Enum.UserInputState): Enum.ContextActionResult
 	if state == Enum.UserInputState.Begin then
 		local part = target
 		local id = part and idOf(part)
-		if id then
+		local root = eligibleRoot()
+		local camera = workspace.CurrentCamera
+		if
+			part
+			and id
+			and root
+			and camera
+			and stations[part]
+			and part.Parent
+			and not used[id]
+			and (part.Position - root.Position).Magnitude <= config.InteractStuds
+			and (part.Position - camera.CFrame.Position).Magnitude > 0
+			and (part.Position - camera.CFrame.Position).Unit:Dot(camera.CFrame.LookVector) >= math.cos(
+				math.rad(config.AimDegrees)
+			)
+			and visible(camera.CFrame.Position, part)
+		then
 			holding = true
+			heldStation = part
 			RemoteController.fire("RequestInteract", "Intel", id)
+			return Enum.ContextActionResult.Sink
 		end
-		return Enum.ContextActionResult.Sink
 	elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
 		if holding then
-			holding = false
-			RemoteController.fire("RequestInteractCancel")
+			cancelHold()
+			return Enum.ContextActionResult.Sink
 		end
-		return Enum.ContextActionResult.Sink
 	end
 	return Enum.ContextActionResult.Pass
 end
@@ -112,12 +160,15 @@ local function glintAt(index: number): Highlight
 end
 
 local function refresh()
-	local character = localPlayer.Character
-	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local root = eligibleRoot()
 	local camera = workspace.CurrentCamera
-	if not (root and root:IsA("BasePart") and camera) then
+	if not (root and camera) then
+		cancelHold()
 		target = nil
-		bindFor(holding)
+		bindFor(false)
+		for _, glint in glints do
+			glint.Adornee = nil
+		end
 		return
 	end
 	local minDot = math.cos(math.rad(config.AimDegrees))
@@ -167,35 +218,94 @@ function IntelController.Start()
 	local function untrack(instance: Instance)
 		if instance:IsA("BasePart") then
 			stations[instance] = nil
+			if heldStation == instance then
+				cancelHold()
+			end
+			refresh()
 		end
 	end
+	janitor:Add(CollectionService:GetInstanceAddedSignal(Enums.Tag.IntelSpawn):Connect(track))
+	janitor:Add(CollectionService:GetInstanceRemovedSignal(Enums.Tag.IntelSpawn):Connect(untrack))
 	for _, instance in CollectionService:GetTagged(Enums.Tag.IntelSpawn) do
 		track(instance)
 	end
-	CollectionService:GetInstanceAddedSignal(Enums.Tag.IntelSpawn):Connect(track)
-	CollectionService:GetInstanceRemovedSignal(Enums.Tag.IntelSpawn):Connect(untrack)
 
-	RemoteController.connect("IntelUpdate", function(info: Types.IntelUpdateInfo)
+	janitor:Add(RemoteController.connect("IntelUpdate", function(info: Types.IntelUpdateInfo)
 		balance = info.Balance
 		table.clear(used)
 		for _, id in info.Used do
 			used[id] = true
 		end
-	end)
+		refresh()
+	end))
 	-- A new match starts with nothing taken; the server sends the empty state, so this only guards a missed message.
-	RemoteController.connect("PhaseChanged", function(phase: Types.Phase)
-		if phase == "Lobby" then
+	janitor:Add(RemoteController.connect("PhaseChanged", function(nextPhase: Types.Phase)
+		phase = nextPhase
+		if nextPhase == "Lobby" then
 			balance = 0
 			table.clear(used)
 		end
-	end)
-	RunService.Heartbeat:Connect(function(dt)
+		if nextPhase == "Lobby" or nextPhase == "Insertion" then
+			extractionFrozen = false
+		end
+		refresh()
+	end))
+	janitor:Add(RemoteController.connect("ExtractionState", function(info: Types.ExtractionStateInfo)
+		extractionFrozen = info.State == "Extracted"
+		refresh()
+	end))
+	janitor:Add(RemoteController.connect("Downed", function()
+		downed = true
+		refresh()
+	end))
+	janitor:Add(RemoteController.connect("Eliminated", function()
+		eliminated = true
+		refresh()
+	end))
+	janitor:Add(RemoteController.connect("Revived", function()
+		downed = false
+		refresh()
+	end))
+	janitor:Add(RemoteController.connect("InteractState", function(info: Types.InteractStateInfo)
+		if info.Kind == "Hack" and not info.Active then
+			holding = false
+			heldStation = nil
+			refresh()
+		end
+	end))
+	janitor:Add(localPlayer.CharacterAdded:Connect(function()
+		cancelHold()
+		downed, eliminated = false, false
+		refresh()
+	end))
+	janitor:Add(UserInputService.TextBoxFocused:Connect(refresh))
+	janitor:Add(UserInputService.WindowFocusReleased:Connect(function()
+		focused = false
+		refresh()
+	end))
+	janitor:Add(UserInputService.WindowFocused:Connect(function()
+		focused = true
+		refresh()
+	end))
+	janitor:Add(RunService.Heartbeat:Connect(function(dt)
 		elapsed += dt
 		if elapsed >= CHECK_SECONDS then
 			elapsed = 0
 			refresh()
 		end
+	end))
+	janitor:Add(function()
+		cancelHold()
+		bindFor(false)
+		target, glintFolder = nil, nil
+		balance = 0
+		table.clear(stations)
+		table.clear(used)
+		table.clear(glints)
 	end)
+	janitor:Add(script.Destroying:Connect(function()
+		janitor:Destroy()
+	end))
 end
 
 return IntelController

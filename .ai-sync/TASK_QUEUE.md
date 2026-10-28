@@ -350,3 +350,13 @@ and window focus, extraction freeze and teardown. Server remains authoritative; 
 82 new actual-source input assertions pass; 1,159 total across input/data/weapons/match/objectives/Package/floors.
 StyLua, Selene and Rojo pass. Native input ordering/networking remains for Studio acceptance. No new SPEC-QUESTION.
 Files, later Studio checks and limits: docs/PACKAGE_INPUT_REVIEW_2026-10-28.md. Claude bot work needs no handoff.
+
+
+## Intel input continuation (Codex 11b, 2026-10-28)
+
+READY_FOR_REVIEW: Intel contextual E/glints now respect phase, local life state, input focus, camera/character loss
+and extraction freeze. Key press revalidates target; stream-out cancels held hacks; server-completed holds release
+without spurious cancellation. Janitor owns subscriptions, visuals, input and caches. Server timing/rewards/clearance
+and existing station LOS policy unchanged. 104 new actual-source assertions; 1,263 across all eight checked suites.
+StyLua, Selene and Rojo pass; native rendering/input/network acceptance pending. No new SPEC-QUESTION or bot handoff.
+Files and Studio checks: docs/INTEL_INPUT_REVIEW_2026-10-28.md.
