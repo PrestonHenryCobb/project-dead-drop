@@ -15,6 +15,8 @@ local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local Types = require(Shared:WaitForChild("Types"))
 local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"))
+local GadgetDefs = require(Shared.Defs.GadgetDefs)
+local GadgetCard = require(script.Parent.Parent.Parent.Combat.GadgetCard)
 local Menu = script.Parent.Parent
 local LobbyState = require(Menu:WaitForChild("LobbyState"))
 local MenuTheme = require(Menu:WaitForChild("MenuTheme"))
@@ -34,6 +36,7 @@ local timerText: TextLabel? = nil
 -- The player's draft: what they are looking at, which becomes their pick when they lock in.
 local draftAgent: string? = nil
 local draftHardware: string? = nil
+local draftGadgets: { string }? = nil
 
 local function me(state: Types.PreDeployState?): Types.PreDeployMember?
 	if not state then
@@ -278,16 +281,70 @@ local function buildRight(
 		})
 	end
 
+	local gadgets = panel(rail, "Gadgets", 3, "Brass")
+	local picks = draftGadgets or {}
+	MenuTheme.label({
+		Name = "GadgetsKicker",
+		Text = `GADGETS · {#picks}/{GameConfig.Gadgets.Slots} · SELECT TO ADD / REMOVE`,
+		Style = "Kicker",
+		Parent = gadgets,
+		LayoutOrder = 1,
+	})
+	for order, id in GadgetDefs.order do
+		local def = GadgetDefs.get(id)
+		if not def then
+			continue
+		end
+		local selected = table.find(picks, id)
+		local row = Instance.new("Frame")
+		row.Name = `GadgetRow_{id}`
+		row.BackgroundTransparency = 1
+		row.Size = UDim2.new(1, 0, 0, config.SecondaryHeightPixels)
+		row.LayoutOrder = order + 1
+		row.Parent = gadgets
+		local inset = config.PaddingPixels * 2 + GameConfig.UI.GraphicHud.IconPixels
+		local button = MenuTheme.secondaryButton({
+			Name = `GadgetPick_{id}`,
+			Text = `{if selected then `SLOT {selected} · ` else ""}{def.Name}\n{def.Category} · {def.Charges} charges`,
+			Parent = row,
+			Size = UDim2.new(1, -inset, 1, 0),
+			Position = UDim2.fromOffset(inset, 0),
+			Enabled = selected ~= nil or #picks < GameConfig.Gadgets.Slots,
+			OnActivated = function()
+				local current = draftGadgets
+				if not current then
+					return
+				end
+				local at = table.find(current, id)
+				if at then
+					table.remove(current, at)
+				elseif #current < GameConfig.Gadgets.Slots and GadgetDefs.get(id) then
+					table.insert(current, id)
+				else
+					return
+				end
+				redraw()
+			end,
+		})
+		button.SetSelected(selected ~= nil)
+		button.Instance.TextSize = config.TextSizes.Small
+		button.Instance.TextXAlignment = Enum.TextXAlignment.Left
+		local emblem = GadgetCard.emblem(row, def.Category, GameConfig.UI.GraphicHud.IconPixels)
+		emblem.AnchorPoint = Vector2.new(0, 0.5)
+		emblem.Position = UDim2.new(0, config.PaddingPixels, 0.5, 0)
+	end
+
 	local mine = me(state)
 	local matchesPick = mine ~= nil and mine.LockedIn and mine.AgentId == agentId and mine.HardwareId == draftHardware
 	MenuTheme.primaryButton({
 		Name = "LockIn",
-		Text = if matchesPick then "LOCKED IN" else "LOCK IN AGENT & HARDWARE",
+		Text = if matchesPick then "UPDATE LOADOUT" else "LOCK IN LOADOUT",
 		Parent = rail,
-		LayoutOrder = 3,
-		Enabled = not matchesPick and draftHardware ~= nil,
+		LayoutOrder = 4,
+		Enabled = draftHardware ~= nil and state.Active and workspace:GetServerTimeNow() < state.EndsAt,
 		OnActivated = function()
-			local request: Types.LoadoutRequest = { AgentId = agentId, HardwareId = draftHardware :: string }
+			local request: Types.LoadoutRequest =
+				{ AgentId = agentId, HardwareId = draftHardware :: string, GadgetIds = table.clone(draftGadgets or {}) }
 			RemoteController.fire("RequestLockInPreDeploy", request)
 		end,
 	})
@@ -304,6 +361,16 @@ function render()
 	content:Cleanup()
 	timerText = nil
 	local snapshot = navigator.snapshot()
+	if not draftGadgets then
+		local loadout = snapshot and snapshot.Loadout
+		local initial = if loadout and loadout.GadgetIds then loadout.GadgetIds else GameConfig.Gadgets.DefaultPicks
+		draftGadgets = {}
+		for _, id in initial do
+			if #draftGadgets < GameConfig.Gadgets.Slots and GadgetDefs.get(id) and not table.find(draftGadgets, id) then
+				table.insert(draftGadgets, id)
+			end
+		end
+	end
 
 	-- Start the draft from the server's view of this player: their pick, else their equipped loadout.
 	if not draftAgent then
@@ -338,6 +405,7 @@ function PreDeployView.Mount(stage: Frame, navigator: Types.MenuNavigator, _cont
 	stageFrame = stage
 	nav = navigator
 	draftAgent, draftHardware = nil, nil
+	draftGadgets = nil
 	janitor:Add(navigator.onSnapshot(render))
 	janitor:Add(LobbyState.onChanged(render))
 	-- The countdown is drawn from the server's cutoff, so it never drifts from it; only the text changes.
@@ -358,6 +426,7 @@ function PreDeployView.Unmount()
 	janitor:Cleanup()
 	stageFrame, nav, timerText = nil, nil, nil
 	draftAgent, draftHardware = nil, nil
+	draftGadgets = nil
 end
 
 return PreDeployView

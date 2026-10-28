@@ -12,7 +12,7 @@ Built against `.ai-sync/SECURITY_CONTRACT.md`. Client only; no server service, r
 - `src/client/Controllers/SecurityHudController.luau`: HudTheme/HudKit prompts for Hack camera, Cut power, Camera Room
   and Pick lock. Exact server InteractState labels drive hold progress, with unrelated holds suppressed. A nearby
   CameraTerminal shows up to four working camera views during gameplay. Disabled/destroyed/streamed-out cameras are
-  removed. Pages cycle every 8 s, or manually via F6 / DPadRight / the Next Cameras button. Reduce Motion disables
+  removed. Pages cycle every 8 s, or manually via F6 / ButtonR1 / the Next Cameras button. Reduce Motion disables
   automatic page changes; functional live views remain. Life/phase/cinematic/menu visibility gates and cleanup included.
 - `src/client/Combat/SecurityFeeds.luau`: bounded ViewportFrame scenes and cameras follow the existing camera props.
   Streamed map parts and nearby models use identical visual-copy rules, without identifying player/NPC/team roles.
@@ -39,10 +39,10 @@ gating, source immutability, clone sanitization/occlusion/pooling/budgets and vi
    doors need the existing temporary test prop because the current generated map has none; no test door was added.
 3. Approach the Camera Room terminal within CameraRoom.InteractStuds during gameplay. Up to four views appear on the
    left, showing local streamed surroundings from working camera positions with live sweep and actor transforms.
-   Wait 8 s or press F6 / DPadRight to change pages. Hack/destroy cameras: those signals must disappear. Disable all:
+   Wait 8 s or press F6 / ButtonR1 to change pages. Hack/destroy cameras: those signals must disappear. Disable all:
    NO WORKING SIGNAL must replace the views. Leave terminal reach: panel and scene copies disappear.
 4. Turn on Roblox Reduce Motion: pages stay fixed until manually changed, with no fades/flashes. Verify F6 works with
-   the first-person mouse locked, DPadRight works with a controller, and typing cannot change pages. Check at 1280x720
+   the first-person mouse locked, ButtonR1 works with a controller, and typing cannot change pages. Check at 1280x720
    and a larger viewport; feed panel must not cover essential state or the contextual action bar.
 5. Two players: down/eliminate the viewer and finish a match. Prompts/feeds must close; respawn/revive restores only
    eligible live gameplay. Watch a disguised player and an NPC in feeds: neither gets an identifying label or highlight.

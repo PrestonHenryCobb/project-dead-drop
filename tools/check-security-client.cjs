@@ -24,7 +24,7 @@ cm.__mul=function(a,b)return cf(a.Position.X+b.Position.X,a.Position.Y+b.Positio
 local CFrame={new=cf}
 local UDim2={new=function(...)return {...}end,fromScale=function(...)return {...}end,fromOffset=function(...)return {...}end}
 local Color3={fromRGB=function(...)return {...}end}
-local Enum={KeyCode={F6={Name="F6"},DPadRight={Name="DPadRight"}},TextXAlignment={Left=1},UserInputState={Begin="Begin"},ContextActionResult={Sink="Sink",Pass="Pass"}}
+local Enum={KeyCode={F6={Name="F6"},DPadRight={Name="DPadRight"},ButtonR1={Name="ButtonR1"}},TextXAlignment={Left=1},UserInputState={Begin="Begin"},ContextActionResult={Sink="Sink",Pass="Pass"}}
 local GameConfig={Security={Camera={ConeDegrees=60},CameraRoom={Feeds=4,InteractStuds=8},Alarm={MaxLevel=3}},Rig={CollisionGroup="Bodies"},Controls={Interact={Name="E"},InteractPad={Name="X"}}}
 GameConfig.SecurityHud=({${config}}).SecurityHud
 ${uiFixture}

@@ -46,6 +46,7 @@ local GameConfig={Controls={Interact="E",InteractPad="A"},Rig={CollisionGroup="B
 local hit=nil
 local camera={CFrame={Position=v(0,0,0),LookVector=v(1,0,0)}}
 local workspace={CurrentCamera=camera,Raycast=function()return hit end}
+local DroneController={part=function()return nil end} -- existing tests exercise on-foot input
 local Controller=(function()
 ${body}
 end)()

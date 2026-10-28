@@ -229,7 +229,7 @@ they differ (see MENU_CONTRACT.md "Where the handoffs were corrected").
 | 16f | Agents: Feint (Double decoy NPC, Smoke and Mirrors ping offset and 0.3 s disguise). Completes the six agents. Contract: .ai-sync/ABILITY_CONTRACT.md. **Tested solo in Studio except the ping offset.** | CLAUDE_CODE | 16e | READY_FOR_REVIEW |
 | 17a | Gadgets: GadgetService + GadgetController (keys 1 to 3, equip/deploy/alternate through HeldItemController), GadgetDefs, loadout GadgetIds, Med Injector, Plate Pack (and Plated's faster plates). Contract: .ai-sync/GADGET_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 16f | READY_FOR_REVIEW |
 | 17b | Gadgets, Evasion: Spring Pad (LaunchController), Noise Maker (NPC noise reaction), Disguise Kit; Gadgets/Spot. Contract: .ai-sync/GADGET_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 17a | READY_FOR_REVIEW |
-| 17-hud | Gadget bar HUD (the two gadgets by `GadgetDefs` category shape and accent from docs/GADGETS_DRAFT.md, charges, which is held, from `GadgetController.state()`), and a gadget picker in agent select that sends `GadgetIds` in the lock-in `LoadoutRequest`. Client only; read GADGET_CONTRACT.md. | CODEX | 17a | IN_PROGRESS (CODEX) |
+| 17-hud | Confirmed gadget bar with category shapes/accents, keys, charges and held state; distinct capped gadget draft in agent select sent as GadgetIds with lock-in/revisions. Client only; no server changes. docs/GADGET_HUD_REVIEW_2026-10-28.md. | CODEX | 17a | READY_FOR_REVIEW |
 | 16-hud | Ability cooldown HUD (name, ready/countdown from `AbilityController.cooldown()`) and every disguise slot, including empty entries. Server-time deadline, static Reduce Motion-safe presentation and one/two-slot layout checks. Client only. | CODEX | 16a | READY_FOR_REVIEW |
 | 15 | Security NPC combat (spec 18.5): GuardService (engage rules, pursuit, accuracy falloff, chase limit, recall), camera alert to the 2 nearest guards, Alert speed 14, Heightened extra guards, Lockdown engagement. Contract: .ai-sync/GUARD_CONTRACT.md. **Tested solo in Studio: engage, shots with falloff, give-up, Alert speed, Heightened extras.** | CLAUDE_CODE | 14 | READY_FOR_REVIEW |
 
@@ -402,3 +402,13 @@ and hides outside matches or before fresh confirmed data. DisguiseController ren
 including false/empty slots, with reusable numbered rows and dynamic badge height. No server/shared-contract changes.
 50 new actual-source assertions; 1,456 across eleven checked client suites. StyLua, Selene and Rojo pass.
 Native Studio typography/timing acceptance remains. No new SPEC-QUESTION. docs/ABILITY_HUD_REVIEW_2026-10-28.md.
+
+## Gadget HUD/picker handoff (Codex 17-hud, 2026-10-28)
+
+READY_FOR_REVIEW: GadgetHudController reads confirmed GadgetController.state(); GadgetCard supplies the four UI-only
+category shapes/accents. PreDeployView selects ordered distinct built gadgets up to Gadgets.Slots, preserves drafts,
+and sends GadgetIds with existing lock-in requests, including empty lists and revisions. No server changes.
+55 gadget source assertions; 1,511 across twelve checked suites. StyLua, Selene and Rojo pass. Native acceptance remains.
+Integration: camera pages use R1 (PC F6), preserving DPadRight gadget cycling. PreDeployState has no GadgetIds echo:
+the picker does not claim confirmation; optional private accepted-list echo is a future Claude handoff, not added here.
+No new SPEC-QUESTION. Full files/checks/limits: docs/GADGET_HUD_REVIEW_2026-10-28.md.
