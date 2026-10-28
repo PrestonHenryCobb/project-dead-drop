@@ -87,6 +87,7 @@ local rng = Random.new()
 local states: { [Player]: State } = {}
 local carriers: { [Player]: boolean } = {} -- ticket 13a: holds the Package: slower, and cannot disguise
 local frozen: { [Player]: boolean } = {} -- ticket 10a: Insertion; set before the character (and its State) exists
+local noSprint: { [Player]: boolean } = {} -- ticket 17e: holding the Briefcase Shield
 local npcLookup: ((string) -> NpcInfo?)? = nil
 local coverHooks: CoverHooks? = nil
 local swapListeners: { (Player) -> () } = {}
@@ -203,7 +204,7 @@ local function speedFor(state: State): number
 	end
 	if state.crouching then
 		return walk * GameConfig.Speeds.CrouchMult * slow
-	elseif state.sprinting then
+	elseif state.sprinting and not noSprint[state.player] then
 		return GameConfig.Speeds.Sprint * slow
 	end
 	return walk * slow
@@ -661,6 +662,16 @@ function DisguiseService.setCarrier(player: Player, carrying: boolean)
 	end
 end
 
+-- Ticket 17e: while true the player cannot sprint (their sprint request still stands, but they walk).
+function DisguiseService.setSprintBlocked(player: Player, cannotSprint: boolean)
+	noSprint[player] = if cannotSprint then true else nil
+	local state = states[player]
+	local humanoid = aliveRoot(player)
+	if state and humanoid then
+		humanoid.WalkSpeed = speedFor(state)
+	end
+end
+
 -- Ticket 10a: no walking while frozen (the Insertion phase). Safe to call before the player's character exists.
 function DisguiseService.setFrozen(player: Player, isFrozen: boolean)
 	frozen[player] = if isFrozen then true else nil
@@ -711,6 +722,7 @@ function DisguiseService.Start()
 		frozen[player] = nil
 		carriers[player] = nil
 		autoRecover[player] = nil
+		noSprint[player] = nil
 	end)
 	RunService.Heartbeat:Connect(function(dt)
 		validateAccumulator += dt

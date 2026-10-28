@@ -14,6 +14,13 @@ type GadgetDef = Types.GadgetDef
 
 local defs: { GadgetDef } = {
 	{
+		Id = "BriefcaseShield",
+		Name = "Briefcase Shield",
+		Category = "Support",
+		Charges = 1,
+		Description = "Hold an armoured briefcase (80 HP) in front of you for up to 5 s. You walk at 70%, can't sprint or shoot. Breaks Cover.",
+	},
+	{
 		Id = "ScannerPulse",
 		Name = "Scanner Pulse",
 		Category = "Recon",

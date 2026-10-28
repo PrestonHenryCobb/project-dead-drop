@@ -67,8 +67,17 @@ Sub-gadgets (docs/GADGETS_DRAFT.md, SPEC_CHANGES 16.1). Server-authoritative; th
   it; the Scanner Pulse spent its charge. Not tested (they need a rival): the pulse glow and warning, a tripwire crossing, a Bug Cam
   tag; also the Y key view (a scripted key press is not allowed in Studio), the recall, the Jammer on the new deployables.
 
+- **17e: Briefcase Shield (1).** `Shields.create(owner, root, carried?)` now takes any carried-shield spec (the Riot Wall by
+  default). The gadget holds a 3 x 3.2 shield 2 studs ahead (lifted 0.8) with 80 HP for up to 5 s: the user walks at 70%
+  (`DisguiseService.applySlow`), cannot sprint (`DisguiseService.setSprintBlocked`) or shoot (`CombatService.setFrozen`), and it
+  breaks Cover. It ends when shot to pieces, at 5 s, on the aim button, or when the user is downed or leaves.
+  Tested solo in Studio: held it (speed 16 x 0.7 = 11.2 as Exposed), an outside shot stopped at it with 80 HP, 30 damage left 50,
+  the aim button put it away and the speed came back. Not tested: the 5 s expiry, sprint being refused, shooting being refused.
+
+All 12 sub-gadgets of docs/GADGETS_DRAFT.md are built. 
+
 ## Not built
-- The Briefcase Shield (the last gadget).
+- Gadget charge refills at Supply Caches and the loadout perks of spec 15.10 (replaced by Assets): Step 18 and 21.
 - While viewing a Bug Cam the body is not held still, and the view has no frame or HUD (client, Codex).
 - The "you've been scanned" warning is plain text for now (a subtler HUD cue is Codex's).
 - Long Lens on the vault terminals and on tier doors, and Keycard Clone on tier doors: tier-door hacks arrive in Step 18. The

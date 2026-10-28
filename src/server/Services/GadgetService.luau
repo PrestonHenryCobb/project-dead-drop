@@ -43,6 +43,7 @@ local gadgets: { [string]: Gadget.Gadget } = {
 	ScannerPulse = require(script.Parent.Parent.Gadgets.ScannerPulse),
 	BugCam = require(script.Parent.Parent.Gadgets.BugCam),
 	Tripwire = require(script.Parent.Parent.Gadgets.Tripwire),
+	BriefcaseShield = require(script.Parent.Parent.Gadgets.BriefcaseShield),
 }
 local kits: { [Player]: Kit } = {}
 

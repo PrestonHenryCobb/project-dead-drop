@@ -1493,6 +1493,21 @@ local GameConfig = {
 		-- Med Injector: Heal HP over Seconds, self; it stops when damage is taken. HealHz is how often a bit is given.
 		MedInjector = { Heal = 35, Seconds = 4, HealHz = 4 },
 		-- Plate Pack: one plate onto the player, or the nearest teammate within ReachStuds who has room for one, in Seconds.
+		-- Briefcase Shield: a briefcase held Offset studs in front of the user, Lift above their middle (covering head and chest),
+		-- for up to Seconds (the aim button puts it away sooner), taking HP damage from other people's shots. The user walks at
+		-- SpeedMult, cannot sprint or shoot meanwhile, and it breaks Cover. Parapet's Riot Wall is far stronger.
+		BriefcaseShield = {
+			Size = Vector3.new(3, 3.2, 0.3),
+			Offset = 2,
+			Lift = 0.8,
+			HP = 80,
+			Seconds = 5,
+			SpeedMult = 0.7,
+			CheckSeconds = 0.25,
+			Color = Color3.fromRGB(40, 42, 48),
+			Material = Enum.Material.SmoothPlastic,
+			Transparency = { Full = 0.1, Worn = 0.5 },
+		},
 		-- Scanner Pulse: every enemy agent within RadiusStuds, disguised or not, glows for the user alone for GlowSeconds; each
 		-- of them is told only that they have been scanned. Nothing shows where from.
 		ScannerPulse = { RadiusStuds = 20, GlowSeconds = 2 },

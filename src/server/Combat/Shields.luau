@@ -3,7 +3,7 @@
 -- Drone (spec 15.3, 40 HP, can be shot down). A shield is a part; a ray from anyone but its owner ends where it hits it, and the
 -- shot's damage is taken off its HP. The owner's own shots pass through. Nothing about it is put on a character.
 --
---   Shields.create(owner, root) -> Shield              a Riot Wall welded in front of the owner's root
+--   Shields.create(owner, root, carried?) -> Shield    a shield welded in front of the owner's root (the Riot Wall unless given)
 --   Shields.adopt(owner, part, hp, onBreak?) -> Shield  a part someone else made (a drone); onBreak runs when shots destroy it
 --   Shields.raycast(shooter, origin, direction, reach) -> (Shield?, number?)   the nearest shield, not the shooter's, within reach
 --   Shields.damage(shield, amount)     wears it down; destroys it at 0 HP
@@ -14,12 +14,26 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("GameConfig"))
 
+export type Fade = { Full: number, Worn: number }
+
+-- A shield carried in front of its owner: Offset studs ahead of the root and Lift above it. Transparency runs from Full at full
+-- HP to Worn at none.
+export type Carried = {
+	Size: Vector3,
+	Offset: number,
+	Lift: number?,
+	HP: number,
+	Color: Color3,
+	Material: Enum.Material,
+	Transparency: Fade,
+}
+
 export type Shield = {
 	part: Part,
 	owner: Player,
 	hp: number,
 	maxHp: number,
-	fades: boolean, -- the part grows more see-through as it wears (a Riot Wall)
+	fade: Fade?, -- the part grows more see-through as it wears (a carried shield)
 	onBreak: (() -> ())?,
 	up: boolean,
 }
@@ -41,38 +55,39 @@ local function container(): Folder
 end
 
 local function look(shield: Shield)
-	if shield.fades then
+	local fade = shield.fade
+	if fade then
 		local worn = 1 - math.clamp(shield.hp / shield.maxHp, 0, 1)
-		shield.part.Transparency = config.Transparency.Full
-			+ (config.Transparency.Worn - config.Transparency.Full) * worn
+		shield.part.Transparency = fade.Full + (fade.Worn - fade.Full) * worn
 	end
 end
 
 function Shields.adopt(owner: Player, part: Part, hp: number, onBreak: (() -> ())?): Shield
 	part.Parent = container()
-	local shield: Shield =
-		{ part = part, owner = owner, hp = hp, maxHp = hp, fades = false, onBreak = onBreak, up = true }
+	local shield: Shield = { part = part, owner = owner, hp = hp, maxHp = hp, fade = nil, onBreak = onBreak, up = true }
 	shields[part] = shield
 	return shield
 end
 
-function Shields.create(owner: Player, root: BasePart): Shield
+-- A shield welded in front of the owner's root; `carried` defaults to Parapet's Riot Wall.
+function Shields.create(owner: Player, root: BasePart, carried: Carried?): Shield
+	local spec: Carried = carried or config
 	local part = Instance.new("Part")
 	part.Name = "Shield"
-	part.Size = config.Size
-	part.Color = config.Color
-	part.Material = config.Material
+	part.Size = spec.Size
+	part.Color = spec.Color
+	part.Material = spec.Material
 	part.CanCollide = false
 	part.CanTouch = false
 	part.Massless = true
 	part.CastShadow = false
-	part.CFrame = root.CFrame * CFrame.new(0, 0, -config.Offset)
+	part.CFrame = root.CFrame * CFrame.new(0, spec.Lift or 0, -spec.Offset)
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0 = root
 	weld.Part1 = part
 	weld.Parent = part
-	local shield = Shields.adopt(owner, part, config.HP, nil)
-	shield.fades = true
+	local shield = Shields.adopt(owner, part, spec.HP, nil)
+	shield.fade = spec.Transparency
 	look(shield)
 	return shield
 end
