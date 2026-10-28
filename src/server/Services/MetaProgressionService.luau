@@ -18,6 +18,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local AgentDefs = require(Shared:WaitForChild("Defs"):WaitForChild("AgentDefs"))
+local GadgetDefs = require(Shared:WaitForChild("Defs"):WaitForChild("GadgetDefs"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"))
@@ -139,7 +140,25 @@ function MetaProgressionService.validateLoadout(player: Player, request: unknown
 			return nil, "MasteryTooLow"
 		end
 	end
-	return { AgentId = agent.Id, HardwareId = hardwareId }, nil
+	-- Ticket 17: the gadgets, if the request names any: at most Gadgets.Slots built gadgets, none twice.
+	local gadgetIds: { string }? = nil
+	local requested = (request :: any).GadgetIds
+	if requested ~= nil then
+		if type(requested) ~= "table" or #requested > GameConfig.Gadgets.Slots then
+			return nil, "BadRequest"
+		end
+		local picked: { string } = {}
+		local seen: { [string]: boolean } = {}
+		for _, id in requested do
+			if type(id) ~= "string" or not GadgetDefs.get(id) or seen[id] then
+				return nil, "GadgetUnavailable"
+			end
+			seen[id] = true
+			table.insert(picked, id)
+		end
+		gadgetIds = picked
+	end
+	return { AgentId = agent.Id, HardwareId = hardwareId, GadgetIds = gadgetIds }, nil
 end
 
 function MetaProgressionService.setLoadout(player: Player, loadout: PlayerLoadout)

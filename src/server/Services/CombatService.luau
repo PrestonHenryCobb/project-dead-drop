@@ -1125,6 +1125,33 @@ function CombatService.heal(player: Player, amount: number)
 	sendHealth(player, state)
 end
 
+-- Ticket 17 (Med Injector): is the player hurt (alive, on their feet, below full health)?
+function CombatService.isHurt(player: Player): boolean
+	local state = states[player]
+	return state ~= nil and not state.dead and not isDowned(player) and state.hp < config.MaxHP
+end
+
+-- Ticket 17 (Plate Pack): puts one armour plate on the player, if they have room for it (MaxPlates). A downed or dead player
+-- takes none. Returns whether it went on.
+function CombatService.addPlate(player: Player): boolean
+	local state = states[player]
+	if not state or not CombatService.canTakePlate(player) then
+		return false
+	end
+	state.armor = math.min(config.MaxPlates * config.PlateHP, state.armor + config.PlateHP)
+	sendHealth(player, state)
+	return true
+end
+
+-- Ticket 17: can the player take a plate now (alive, on their feet, and short of MaxPlates)?
+function CombatService.canTakePlate(player: Player): boolean
+	local state = states[player]
+	return state ~= nil
+		and not state.dead
+		and not isDowned(player)
+		and state.armor <= (config.MaxPlates - 1) * config.PlateHP
+end
+
 -- Ticket 16e: how long since the player last took damage (a very long time if never).
 function CombatService.secondsSinceDamaged(player: Player): number
 	local state = states[player]

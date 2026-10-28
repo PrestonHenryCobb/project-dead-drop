@@ -52,6 +52,8 @@ local Remotes = {
 		-- Ticket 9c
 		"SpectateState", -- to a spectator only: who they watch, or the drone (Types.SpectateStateInfo)
 		"SpectatorChat", -- to spectators only: a filtered chat line (Types.SpectatorChatInfo)
+		-- Ticket 17
+		"GadgetState", -- to the owner only: their gadgets, charges and what is held (Types.GadgetStateInfo)
 		-- Ticket 16c
 		"SparrowState", -- to Lattice only: her drone took off or ended (Types.SparrowStateInfo)
 		-- Ticket menu-phase0

@@ -1452,6 +1452,7 @@ local GameConfig = {
 		},
 		Parapet = {
 			ExtraStartPlates = 1,
+			PlateMult = 0.5, -- Plated: a Plate Pack takes half the time (ticket 17)
 			RiotWall = {
 				Size = Vector3.new(8, 6, 0.4),
 				Offset = 4.5,
@@ -1466,8 +1467,24 @@ local GameConfig = {
 		},
 	},
 
+	-- Spec 16 and docs/GADGETS_DRAFT.md, ticket 17: each agent carries Slots sub-gadgets, used with keys 2 and 3. Charges refill at
+	-- Supply Caches for intel (Step 18). DefaultPicks are carried until agent select can pick (a loadout without GadgetIds).
+	Gadgets = {
+		Slots = 2,
+		DefaultPicks = { "MedInjector", "PlatePack" },
+		-- Med Injector: Heal HP over Seconds, self; it stops when damage is taken. HealHz is how often a bit is given.
+		MedInjector = { Heal = 35, Seconds = 4, HealHz = 4 },
+		-- Plate Pack: one plate onto the player, or the nearest teammate within ReachStuds who has room for one, in Seconds.
+		-- SlackStuds: how far the two may drift apart while it goes on.
+		PlatePack = { Seconds = 1.5, ReachStuds = 4, SlackStuds = 2 },
+	},
+
 	-- Spec 24: default keys. Rebinding comes with the settings menu.
 	Controls = {
+		Weapon = Enum.KeyCode.One, -- ticket 17: equip the weapon; the gadgets are Gadget1 and Gadget2
+		Gadget1 = Enum.KeyCode.Two,
+		Gadget2 = Enum.KeyCode.Three,
+		GadgetNextPad = Enum.KeyCode.DPadRight, -- the gamepad cycles weapon, gadget 1, gadget 2
 		Ability = Enum.KeyCode.Q, -- the agent's ability (spec 15)
 		AbilityPad = Enum.KeyCode.ButtonY,
 		Scan = Enum.KeyCode.F,
@@ -1658,6 +1675,7 @@ local GameConfig = {
 			RequestDropPackage = { PerSecond = 1, Burst = 2 }, -- ticket 13a
 			RequestAbility = { PerSecond = 2, Burst = 3 }, -- ticket 16: a key press; the server holds the cooldown
 			RequestSparrowMove = { PerSecond = 30, Burst = 30 }, -- ticket 16c: sent at Lattice.SparrowDrone.MoveHz
+			RequestGadget = { PerSecond = 6, Burst = 8 }, -- ticket 17: key presses (equip, deploy, alternate)
 			RequestSpectate = { PerSecond = 4, Burst = 8 },
 			RequestDronePosition = { PerSecond = 15, Burst = 15 },
 			RequestSpectatorChat = { PerSecond = 1, Burst = 3 },

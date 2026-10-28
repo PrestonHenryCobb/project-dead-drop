@@ -372,6 +372,20 @@ local function witnessShare(target: Vector3): (number, number, number, number, n
 	return math.min(all, config.WitnessCap), math.min(guards, config.WitnessCap), security, npc, camera
 end
 
+-- Ticket 17 (docs/GADGETS_DRAFT.md): a Discreet gadget use is fine unless a Security NPC or a camera sees the player do it, and
+-- then it breaks Cover like any cover-breaking action (spec 7.3). Seen by a civilian or an enemy agent does not count yet.
+function CoverService.useDiscreetly(player: Player, reason: string)
+	local state = states[player]
+	local _, root = aliveRoot(player)
+	if not state or not root or state.cover == "Exposed" then
+		return
+	end
+	local _, _, security, _, camera = witnessShare(root.Position)
+	if security + camera > 0 then
+		CoverService.expose(player, reason)
+	end
+end
+
 -- Ticket 16d: how suspicious the player is, 0 to Cover.SuspicionMax (Reticle's Tracer Glass shows anyone over half).
 function CoverService.suspicionOf(player: Player): number
 	local state = states[player]

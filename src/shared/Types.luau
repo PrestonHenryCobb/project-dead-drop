@@ -350,10 +350,27 @@ export type AgentDef = {
 	Instincts: { AgentKitItem },
 }
 
--- What a player takes into a match. Gadgets (Step 17) and cosmetics (Step 21) join this when their defs exist.
+-- A sub-gadget (docs/GADGETS_DRAFT.md): carried two to a player, used with keys 2 and 3.
+export type GadgetCategory = "Recon" | "Infiltration" | "Evasion" | "Support"
+export type GadgetDef = {
+	Id: string,
+	Name: string,
+	Category: GadgetCategory,
+	Charges: number,
+	Description: string,
+}
+
+-- Ticket 17: a player's gadgets for the HUD ("GadgetState", to the owner only). Held is 0 for the weapon, else the slot.
+export type GadgetStateInfo = {
+	Slots: { { Id: string, Charges: number } },
+	Held: number,
+}
+
+-- What a player takes into a match. Cosmetics (Step 21) join this when their defs exist.
 export type PlayerLoadout = {
 	AgentId: AgentId,
 	HardwareId: string, -- must be one of AgentId's Hardware, built, and unlocked by mastery
+	GadgetIds: { string }?, -- up to Gadgets.Slots built gadgets (GadgetDefs); nil takes Gadgets.DefaultPicks
 }
 
 export type AgentMastery = { Level: number, XP: number }
@@ -397,7 +414,7 @@ export type QueueInfo = { Mode: QueueMode, Available: { QueueMode } }
 export type MetaSnapshot = { Profile: MetaProfile, Loadout: PlayerLoadout?, Queue: QueueInfo }
 
 -- RequestEquipLoadout and RequestLockInPreDeploy send this; the server checks every field.
-export type LoadoutRequest = { AgentId: string, HardwareId: string }
+export type LoadoutRequest = { AgentId: string, HardwareId: string, GadgetIds: { string }? }
 
 -- Agent select (META_DRAFT: the full 30 seconds, picks revisable until the cutoff, no duplicate agent on a team).
 -- Sent only to the members of one team, so no rival learns a team's agents (CLAUDE.md rule 3).
