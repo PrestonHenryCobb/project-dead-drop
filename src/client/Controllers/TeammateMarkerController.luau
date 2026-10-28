@@ -8,10 +8,11 @@ local GameConfig = require(Shared.GameConfig)
 local Types = require(Shared.Types)
 local Janitor = require(Shared.Util.Janitor)
 local RemoteController = require(script.Parent.RemoteController)
+local Floors = require(script.Parent.FloorMarkerController)
 local TeammateMarkerController = {}
 local janitor = Janitor.new()
 local config = GameConfig.MatchHud
-type Marker = { diamond: Frame, gui: BillboardGui, outline: Highlight }
+type Marker = { diamond: Frame, gui: BillboardGui, outline: Highlight, floor: TextLabel }
 local markers: { [Player]: Marker } = {}
 local active = not GameConfig.Debug.MenuOnJoin
 
@@ -56,26 +57,38 @@ function TeammateMarkerController.Start()
 				gui.Name = "Teammate"
 				gui.AlwaysOnTop = true
 				gui.Enabled = false
-				gui.Size = UDim2.fromOffset(config.MarkerSizePixels * 2, config.MarkerSizePixels * 2)
+				gui.Size = UDim2.fromOffset(config.MarkerSizePixels * 4, config.MarkerSizePixels * 3)
 				gui.StudsOffsetWorldSpace = Vector3.new(0, config.MarkerHeightStuds, 0)
 				gui.Parent = folder
 				local diamond = Instance.new("Frame")
 				diamond.AnchorPoint = Vector2.new(0.5, 0.5)
-				diamond.Position = UDim2.fromScale(0.5, 0.5)
+				diamond.Position = UDim2.fromScale(0.5, 1 / 3)
 				diamond.Size = UDim2.fromOffset(config.MarkerSizePixels, config.MarkerSizePixels)
 				diamond.Rotation = 45
 				diamond.BorderSizePixel = 0
 				diamond.Parent = gui
+				local floor = Instance.new("TextLabel")
+				floor.Name = "FloorHint"
+				floor.AnchorPoint = Vector2.new(0.5, 1)
+				floor.Position = UDim2.fromScale(0.5, 1)
+				floor.Size = UDim2.new(1, 0, 0, config.BodySize)
+				floor.BackgroundTransparency = 1
+				floor.Font = GameConfig.UI.Font
+				floor.TextSize = config.BodySize
+				floor.TextStrokeTransparency = 0.5
+				floor.Visible = false
+				floor.Parent = gui
 				local outline = Instance.new("Highlight")
 				outline.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 				outline.Enabled = false
 				outline.FillTransparency = config.MarkerFillTransparency
 				outline.OutlineTransparency = config.MarkerOutlineTransparency
 				outline.Parent = folder
-				marker = { diamond = diamond, gui = gui, outline = outline }
+				marker = { diamond = diamond, gui = gui, outline = outline, floor = floor }
 				markers[member] = marker
 			end
 			marker.diamond.BackgroundColor3 = teamColor.Color
+			marker.floor.TextColor3 = teamColor.Color
 			marker.outline.FillColor, marker.outline.OutlineColor = teamColor.Color, teamColor.Color
 		end
 	end
@@ -93,6 +106,9 @@ function TeammateMarkerController.Start()
 			marker.gui.Enabled, marker.outline.Enabled = visible, visible
 			marker.gui.Adornee = if visible then root :: BasePart else nil
 			marker.outline.Adornee = if visible then character else nil
+			local hint = if visible then Floors.hint((root :: BasePart).Position) else ""
+			marker.floor.Text = hint
+			marker.floor.Visible = hint ~= ""
 		end
 	end))
 	janitor:Add(function()

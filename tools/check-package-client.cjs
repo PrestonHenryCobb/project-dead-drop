@@ -71,12 +71,16 @@ local RunService={RenderStepped=signal()}
 local workspace={GetServerTimeNow=function()return now end}
 local script={Destroying=signal()}
 local Aircraft=(function()local config=GameConfig.ExtractionVisuals ${aircraft}end)()
+local floorCalls=0
+local Floors={hint=function()floorCalls+=1 return "↑ M"end}
 local Controller=(function()${hud}end)()
 Controller.Init()Controller.Start()
 events.PhaseChanged("PackageHeist")events.PackageState(resting)RunService.RenderStepped:fire()
 check(find("PackageMarker").Enabled and find("Status").Text=="PACKAGE AVAILABLE","Resting HUD")
 events.PackageState(pulse)now=101 RunService.RenderStepped:fire()check(find("PackageMarker").Enabled,"Pulse marker")
+floorCalls=0
 now=102 RunService.RenderStepped:fire()check(not find("PackageMarker").Enabled,"HUD does not hold expired pulse")
+check(floorCalls==0,"Expired carrier pulse is not queried for floor data")
 events.PackageState({State="Carried",YouCarry=true,TeamCarries=true})RunService.RenderStepped:fire()
 check(find("Status").Text=="YOU HAVE THE PACKAGE" and find("Hint").Text=="[ X ] DROP PACKAGE","Carrier drop hint")
 events.ExtractionState({State="Countdown",EndsAt=147,Position=v(10,0,0),ByYourTeam=true})RunService.RenderStepped:fire()

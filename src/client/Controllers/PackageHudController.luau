@@ -12,6 +12,7 @@ local Presentation = require(script.Parent.Parent.Combat.PackagePresentation)
 local Aircraft = require(script.Parent.Parent.Combat.ExtractionAircraft)
 local Clock = require(script.Parent.Parent.Combat.MatchPresentation)
 local RemoteController = require(script.Parent.RemoteController)
+local Floors = require(script.Parent.FloorMarkerController)
 local PackageHudController = {}
 local janitor = Janitor.new()
 local state = Presentation.new()
@@ -171,6 +172,10 @@ function PackageHudController.Start()
 			packageMarker.caption.Text = if package and package.State == "Carried"
 				then "◇ CARRIER PING"
 				else "◇ PACKAGE"
+			local floor = Floors.hint(view.point)
+			if floor ~= "" then
+				packageMarker.caption.Text ..= "\n" .. floor
+			end
 		end
 		local extraction = view.extraction
 		extractionRoot.Visible = extraction ~= nil and extraction.State ~= "Idle"
@@ -188,6 +193,8 @@ function PackageHudController.Start()
 			and extraction.State ~= "Extracted"
 		if extraction and extraction.Position then
 			extractionMarker.point.Position = extraction.Position
+			local floor = Floors.hint(extraction.Position)
+			extractionMarker.caption.Text = `◇ EXTRACTION{if floor ~= "" then "\n" .. floor else ""}`
 		end
 		holdRoot.Visible = view.holdLabel ~= nil
 		holdText.Text = view.holdLabel or ""

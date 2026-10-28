@@ -9,6 +9,7 @@ local HudKit = require(Shared.Util.HudKit)
 local HudTheme = require(Shared.Util.HudTheme)
 local Presentation = require(script.Parent.Parent.Combat.ObjectivePresentation)
 local RemoteController = require(script.Parent.RemoteController)
+local Floors = require(script.Parent.FloorMarkerController)
 local VaultHudController = {}
 local janitor = Janitor.new()
 local state = Presentation.new()
@@ -92,7 +93,8 @@ function VaultHudController.Start()
 				slot.fill.BackgroundColor3 = color
 				slot.fill.Size = UDim2.new(progress, -config.PaddingPixels * 2 * progress, 0, theme.ReloadBarPixels)
 				slot.point.Position = terminal.Position
-				slot.caption.Text = `◇ VAULT {terminal.VaultId}`
+				local floor = Floors.hint(terminal.Position)
+				slot.caption.Text = `◇ VAULT {terminal.VaultId}{if floor ~= "" then "\n" .. floor else ""}`
 				slot.caption.TextColor3 = color
 			else
 				slot.label.Text = ""

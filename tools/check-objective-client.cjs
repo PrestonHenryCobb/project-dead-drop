@@ -89,6 +89,7 @@ check(not seen,"Taken station marker respects line of sight")wall=nil
 events.PhaseChanged("Results",{StartedAt=now})RunService.RenderStepped:fire()
 check(not find("TeamIntel").Visible,"Intel HUD hidden outside match")
 script.Destroying:fire()check(events.IntelUpdate==nil and #RunService.Heartbeat.listeners==0,"Intel listeners cleaned")
+local Floors={hint=function()return ""end}
 local Vault=(function()${vault}end)()
 Vault.Init()Vault.Start()
 events.VaultProgress({Terminals={terminal}})RunService.RenderStepped:fire()
@@ -104,6 +105,9 @@ for _,obj in objects do
 end
 check(firstLabel and firstLabel.Text=="VAULT V1 · 25% · CONTESTED","Contested terminal snapshot")
 check(firstMarker and firstMarker.AlwaysOnTop,"Revealed terminal world marker")
+Floors.hint=function()return "↑ M"end
+RunService.RenderStepped:fire()
+check(firstMarker:FindFirstChild("Vault").Text=="◇ VAULT V1\\n↑ M","Vault floor annotation")
 terminal.Hacked=true terminal.Progress=1 terminal.Contested=false events.VaultProgress({Terminals={terminal}})RunService.RenderStepped:fire()
 check(not firstMarker.Enabled,"Hacked terminal loses marker")
 events.PhaseChanged("Lobby",{StartedAt=now})RunService.RenderStepped:fire()

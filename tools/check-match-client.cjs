@@ -124,6 +124,7 @@ check(find("Result").Text=="MISSION FAILED","Rival winner does not become own su
 script.Destroying:fire()
 check(events.PhaseChanged==nil and #RunService.RenderStepped.listeners==0,"Controller listeners cleaned")
 local Players={LocalPlayer={},PlayerRemoving=signal()}
+local Floors={hint=function()return ""end}
 local Vector3={new=function(...)return {...}end}
 local MarkerController=(function()${markers}end)()
 MarkerController.Init()MarkerController.Start()
@@ -144,6 +145,9 @@ check(diamond.Parent.Name=="PrivateTeamMarkers" and outline.Parent==diamond.Pare
 RunService.RenderStepped:fire()check(not diamond.Enabled,"No markers in lobby")
 events.PhaseChanged("Insertion",{})RunService.RenderStepped:fire()
 check(diamond.Enabled and diamond.Adornee==body and outline.Adornee==rig,"Living teammate marker")
+Floors.hint=function()return "↑ M"end
+RunService.RenderStepped:fire()check(find("FloorHint").Text=="↑ M" and find("FloorHint").Visible,"Teammate floor annotation")
+Floors.hint=function()return ""end
 check(diamond.AlwaysOnTop and outline.DepthMode==Enum.HighlightDepthMode.AlwaysOnTop,"Authorized through-wall visibility")
 check(outline.Adornee~=enemy.Character,"Enemy cannot be discovered from world population")
 local count=0 for _,obj in objects do if obj.ClassName=="BillboardGui"and not obj.destroyed then count+=1 end end

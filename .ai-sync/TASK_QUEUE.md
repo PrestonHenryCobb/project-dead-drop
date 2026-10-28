@@ -143,7 +143,7 @@ setting Combat.DefaultWeapon in Studio only before Play. No new selection UI or 
 | 19-menu-structure | Two original interactive layouts (Field desk / Agency rail) cover the approved six sections and Stocks -> Mint. Browser navigation/state/four-width checks passed; no fabricated account data or game integration. docs/mockups/main-menu-review.html and client review report. | CODEX | Owner navigation-layout choice; real gameplay/profile/commerce contracts | READY_FOR_REVIEW |
 | 22-range-feedback | Lobby firing range uses actual server-confirmed damage, current body damage for limbs, no new limb multiplier/imported sample numbers. Keep existing plated-target/damage-screen plan. | CLAUDE_CODE server + CODEX UI | Lobby/range implementation in Step 22 | BLOCKED |
 | 10-selection-window | Final owner correction: always allow full 30-second selection, no early all-ready deploy; permit loadout revisions before cutoff under team-agent rules and server validation. Mastery 1–10 displays existing roughly ten-match unlock pace, not extra grind. | CODEX UI + CLAUDE_CODE server | Agent-select/mastery contracts | TODO |
-| 19-vertical-markers | Use actual generated-map named floor bands; arrows for different floors rather than 10-stud same-room height changes. Preserve existing marker visibility/range/lifetime permissions, with no extra enemy detection. | CODEX with CLAUDE_CODE floor-data support | Authored floor definitions and authorized marker data | TODO |
+| 19-vertical-markers | Use actual generated-map named floor bands; arrows for different floors rather than 10-stud same-room height changes. Preserve existing marker visibility/range/lifetime permissions, with no extra enemy detection. | CODEX with CLAUDE_CODE floor-data support | Authored floor definitions and authorized marker data | READY_FOR_REVIEW |
 | 19-traversal-warnings | Clear Cover-break badge for vents, ziplines and moving gondola, with no extra confirmation press; preserve actual Cover rules. | CODEX | Existing traversal prompt integration | READY_FOR_REVIEW |
 | 19-coverbreak-feedback | Prebuilt 0.2-second peripheral exposure geometry and compact themed notice; preserves authorized pings and respects Reduce Motion. Source tests and native Studio GUI checks passed: 17 prebuilt descendants, 100 pulses, reduced motion and teardown. Gameplay visual acceptance remains; docs/CLIENT_REVIEW_2026-10-25.md. | CODEX | Studio acceptance; shared replacement of obsolete flash fields for review | READY_FOR_REVIEW |
 | 19-client-preview | Two HUD design directions in docs/mockups/combat-hud-review.html: Field notes and Control strip. Preview only; no unbuilt gameplay UI added to src. See .ai-sync/CODEX_CLIENT_HANDOFF.md for commits, API integration, exact Studio checks and remaining server-effect handoffs. | CODEX | Owner design review; gameplay contracts for later features | READY_FOR_REVIEW |
@@ -331,3 +331,13 @@ now catch both historical Hardware ID boot failures and validate all 16 register
 Changed-file StyLua/Selene, 998 source assertions and Rojo build pass. Full-source StyLua initially saw Claude's
 concurrent NPCService formatting; that WIP was not changed. New native visual acceptance remains pending.
 Files, validation, later visual checks and next Claude prompt: docs/CLIENT_READABILITY_REVIEW_2026-10-28.md.
+
+
+## Named-floor marker handoff (Codex, 2026-10-28)
+
+19-vertical-markers: FloorBands/FloorMarkerController read existing generated Zone_<level>_T<tier>_<room> bounds;
+private teammate and revealed vault/Package/extraction captions show arrows only across distinct authored floors.
+Same-storey height changes, unknown/ambiguous data and expired pulses never invent a floor or new disclosure.
+No server changes, character decoration or marker permission/range/lifetime changes. Source checks and Rojo pass;
+1,077 assertions across floor/data/weapon/match/objective/Package suites pass. Native visuals remain unverified.
+Full files/limits/acceptance: docs/FLOOR_MARKER_REVIEW_2026-10-28.md. Claude bot work is independent; no handoff needed.
