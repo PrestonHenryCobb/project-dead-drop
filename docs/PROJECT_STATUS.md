@@ -47,6 +47,7 @@ changes); build plan in `docs/BUILD_ORDER.md`.
   and elimination (`InteractService`, `DownedService`, `DownedController`) are done. Tested solo; crawling, bleed-out,
   revive and executing a player need two players. **Left:** 9b-hud (Codex), 9c spectating, 9d Agent Tag and rescue
   (blocked on Step 18 and a cost now that Funds are gone).
+- **Match loop (2026-10-27, Steps 10 to 13, all server code built but never run in Studio):** MatchService phases, IntelService, VaultService (3 of 5 terminals, Sanctum), PackageService, ExtractionService, Overtime. Contracts: `.ai-sync/MATCH_CONTRACT.md`, `INTEL_CONTRACT.md`, `VAULT_CONTRACT.md`, `PACKAGE_CONTRACT.md`. HUD and presentation tickets for Codex: 10b/10c done, 11b, 12b, 13b, 13c. **First job on return: one full solo match in Studio** (steps in each contract), then 8.4 and the two-player tests.
 - **Next, in order:** the two-player test session (8.4 plus everything marked "needs 2 players"), 9c spectating, then
   Step 10 onward as in `BUILD_ORDER.md`, with **13B** (bots that fill empty slots) and **13C** (a first-run tutorial).
 - **Waiting on the owner:** the Deceive Inc. tutorial videos (files or links) so the tutorial can be shaped by them;
