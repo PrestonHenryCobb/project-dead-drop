@@ -211,9 +211,9 @@ they differ (see MENU_CONTRACT.md "Where the handoffs were corrected").
 | 10b | MatchController: phase banner, black screen and briefing card on Insertion, main timer, results scoreboard, lobby wait text. Read MATCH_CONTRACT.md first; server complete, no server change needed. | CODEX | 10a | READY_FOR_REVIEW |
 | 10c | Teammate markers: coloured diamond over living teammates through walls plus outline, from TeamRoster and Lobby.TeamColors, client only, nothing on characters. | CODEX | 10a | READY_FOR_REVIEW |
 | 11a | IntelService + IntelController (Step 11): station ids, hold-to-hack through InteractService with per-team once-only use and 20 s saved progress, tier and sight checks, Suspicious-if-witnessed, team balance + spend(). Intel no longer unlocks the vault (re-layout; see 12a). Contract: .ai-sync/INTEL_CONTRACT.md. **Built, untested in Studio.** | CLAUDE_CODE | 10a | READY_FOR_REVIEW |
-| 11b | Intel HUD: team balance, taken-station state, hold progress. Read INTEL_CONTRACT.md; no server change. | CODEX | 11a | TODO |
+| 11b | Intel HUD: team balance, taken-station state, hold progress. Read INTEL_CONTRACT.md; no server change. | CODEX | 11a | READY_FOR_REVIEW |
 | 12a | VaultService (Step 12, re-layout rules): 3 of 5 vaults active per match with a terminal on each dais, server-wide per-terminal hack by standing on the dais (1.25 %/s, x1.25 with 3 intel, paused when contested, Exposed on the dais), Vault Breach on the first hack or at 6:00, all 3 hacked unlocks the Sanctum elevator and starts the Package Heist. Contract: .ai-sync/VAULT_CONTRACT.md. **Built, untested in Studio.** | CLAUDE_CODE | 10a, 11a | READY_FOR_REVIEW |
-| 12b | Vault HUD: terminal progress bars with CONTESTED, markers at the terminals during Vault Breach. Read VAULT_CONTRACT.md; no server change. | CODEX | 12a | TODO |
+| 12b | Vault HUD: terminal progress bars with CONTESTED, markers at the terminals during Vault Breach. Read VAULT_CONTRACT.md; no server change. | CODEX | 12a | READY_FOR_REVIEW |
 | 13a | PackageService + ExtractionService + PackageController (Step 13): Package pickup/carrier rules/pass/drop/return/pings, extraction sites (call, 45 s or 20 s countdown, beacon, hover, green zone, 3 s channel), win via MatchService.finish, Overtime (90 s cap, 10 s drop grace) from the main timer when the Package is held. Contract: .ai-sync/PACKAGE_CONTRACT.md. **Built, untested in Studio.** | CLAUDE_CODE | 12a | READY_FOR_REVIEW |
 | 13b | Package/extraction/overtime HUD: package and ping markers, extraction countdown, zone and channel, overtime timer. Read PACKAGE_CONTRACT.md; no server change. | CODEX | 13a | TODO |
 | 13c | Extraction presentation: helicopter at Hover, 5 s cinematic at Extracted, MISSION SUCCESS/FAILED. | CODEX | 13a | TODO |
@@ -283,3 +283,15 @@ prediction and clears held attacks without changing downed/eliminated state. Mat
 Changed files pass StyLua/Selene; 39 match and 225 weapon actual-source assertions pass; Rojo build passes.
 No Studio playtest per owner. Full files/acceptance/gaps: docs/MATCH_CLIENT_REVIEW_2026-10-27.md.
 Next: queued Intel/Vault client HUD from Claude's published contracts; keep server work and locks with Claude.
+
+
+## Intel/Vault HUD handoff (Codex 11b/12b, 2026-10-27; no playtest)
+
+IntelHudController shows the private balance, taken count, LOS/range-limited taken-station checkmarks and acknowledged
+Hack progress. VaultHudController shows only disclosed VaultBreach terminal snapshots, contested/hacked bars and
+world markers until hacked; bars wait out the phase banner. ObjectivePresentation does not predict objective progress
+or advance phases and clears prior-round secrets on Lobby. DownedHud filters unrelated interaction holds.
+Changed-file StyLua/Selene clean; 28 objective actual-source assertions and Rojo build pass. No Studio playtest.
+Known limits: native layout/replication acceptance remains unverified; server contracts own station availability,
+terminal positions/rate and match transitions. No new gameplay decision or additional shared contract was introduced.
+Next: Package/extraction HUD and presentation against .ai-sync/PACKAGE_CONTRACT.md.

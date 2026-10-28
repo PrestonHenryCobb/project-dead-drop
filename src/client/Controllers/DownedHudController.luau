@@ -21,6 +21,7 @@ local eliminated = false
 local holdAt: number? = nil
 local holdSeconds = 0
 local holdKind = ""
+local otherInteraction = false
 
 local function meter(parent: Instance): Frame
 	local back = Instance.new("Frame")
@@ -38,6 +39,7 @@ end
 
 local function reset()
 	bleedOutAt, eliminated, holdAt = nil, false, nil
+	otherInteraction = false
 end
 
 function DownedHudController.Init() end
@@ -94,6 +96,12 @@ function DownedHudController.Start()
 		bleedOutAt, eliminated, holdAt = nil, true, nil
 	end))
 	janitor:Add(RemoteController.connect("InteractState", function(info: Types.InteractStateInfo)
+		if info.Kind ~= "Revive" and info.Kind ~= "Execute" then
+			holdAt = nil
+			otherInteraction = info.Active
+			return -- Intel and extraction have their own progress HUDs.
+		end
+		otherInteraction = false
 		holdAt = if info.Active then os.clock() else nil
 		holdSeconds, holdKind = info.Seconds, info.Kind
 	end))
@@ -110,7 +118,10 @@ function DownedHudController.Start()
 			bleedFill.Size = UDim2.fromScale(0, 1)
 		end
 		local started = holdAt
-		actionRoot.Visible = (started ~= nil or DownedController.hasBodyTarget()) and not eliminated and deadline == nil
+		actionRoot.Visible = (started ~= nil or DownedController.hasBodyTarget())
+			and not otherInteraction
+			and not eliminated
+			and deadline == nil
 		if started then
 			actionText.Text = string.upper(holdKind)
 			holdFill.BackgroundColor3 = if holdKind == "Revive" then ui.CoverColors.Covered else ui.CoverColors.Exposed
