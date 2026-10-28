@@ -1376,6 +1376,23 @@ local GameConfig = {
 	-- Guise (Two Faces): two disguise slots and a scan of 0.6 s instead of 1.2 s.
 	Agents = {
 		Guise = { DisguiseSlots = 2, ScanSeconds = 0.6 },
+		-- Parapet: Plated (one more starting plate than the usual 1, or 2 in Solos: 2, or 3) and Riot Wall, a shield carried
+		-- Offset studs in front of him: Size wide x tall x thick, it takes HP damage from shots (not his own) and ends after
+		-- Seconds. Its see-through look fades as it is worn down. SPEC-QUESTION: putting it up breaks Cover.
+		Parapet = {
+			ExtraStartPlates = 1,
+			RiotWall = {
+				Size = Vector3.new(8, 6, 0.4),
+				Offset = 4.5,
+				HP = 400,
+				Seconds = 8,
+				CheckSeconds = 0.25,
+				Color = Color3.fromRGB(90, 190, 255),
+				Material = Enum.Material.ForceField,
+				Transparency = { Full = 0.35, Worn = 0.8 },
+				OwnerFade = 0.6, -- the owner's own view of it is this much clearer (client)
+			},
+		},
 	},
 
 	-- Spec 24: default keys. Rebinding comes with the settings menu.

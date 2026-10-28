@@ -40,6 +40,7 @@ local Death = require(script.Parent.Parent.NPC.Death)
 local NpcTypes = require(script.Parent.Parent.NPC.NpcTypes)
 local FireRate = require(script.Parent.Parent.Combat.FireRate)
 local History = require(script.Parent.Parent.Combat.History)
+local Shields = require(script.Parent.Parent.Combat.Shields)
 local CoverService = require(script.Parent.CoverService)
 local DisguiseService = require(script.Parent.DisguiseService)
 local NPCService = require(script.Parent.NPCService)
@@ -119,6 +120,7 @@ local downedHooks: DownedHooks? = nil
 local projectileHooks: ProjectileHooks? = nil
 local worldHitListener: ((Vector3, Player) -> ())? = nil -- ticket 14: a shot ended on the map (cameras)
 local provokeHooks: ProvokeHooks? = nil -- ticket 15: guards
+local extraPlates: ((Player) -> number)? = nil -- ticket 16b: plates an agent starts every life with beyond the usual
 local glintAccumulator = 0
 local rng = Random.new()
 local sweep = 0
@@ -528,9 +530,12 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 	local tallyOrder: { Target } = {}
 	local smoke = def.Smoke
 	for _, ray in directions do
-		local hits, endPoint, hitWall = Ballistics.trace(player, origin, ray, timestamp, maxHits)
+		local hits, endPoint, hitWall, shield = Ballistics.trace(player, origin, ray, timestamp, maxHits)
 		if hitWall and worldHitListener then
 			worldHitListener(endPoint, player)
+		end
+		if shield then
+			Shields.damage(shield, def.Damage * falloffMult(def, (endPoint - origin).Magnitude)) -- ticket 16b
 		end
 		for index, hit in hits do
 			-- A disguised agent (Covered or Suspicious) always takes body damage, even on the head; headshots count once
@@ -962,7 +967,9 @@ local function onCharacterAdded(player: Player, character: Model)
 	local state: State = {
 		weapon = def,
 		hp = config.MaxHP,
-		armor = (if TeamService.isSolos() then config.SoloStartPlates else config.StartPlates) * config.PlateHP,
+		armor = ((if TeamService.isSolos() then config.SoloStartPlates else config.StartPlates) + (if extraPlates
+			then extraPlates(player)
+			else 0)) * config.PlateHP,
 		mag = def.MagSize,
 		reserve = def.ReserveAmmo,
 		reloadEndsAt = 0,
@@ -1083,6 +1090,11 @@ end
 -- Ticket 15: GuardService registers itself here at Start.
 function CombatService.setProvokeHooks(hooks: ProvokeHooks)
 	provokeHooks = hooks
+end
+
+-- Ticket 16b: AbilityService says how many plates beyond the usual an agent starts a life with (Parapet's Plated).
+function CombatService.setExtraPlates(lookup: (Player) -> number)
+	extraPlates = lookup
 end
 
 function CombatService.setProjectileHooks(hooks: ProjectileHooks)

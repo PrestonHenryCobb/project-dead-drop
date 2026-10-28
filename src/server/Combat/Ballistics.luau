@@ -2,8 +2,9 @@
 -- Where one ray of a shot goes (spec 13.3). The map stops it; before that, every person whose rewound pose the ray
 -- crosses is a hit. Poses are rewound to the continuous moment the shooter's screen showed (History).
 --
---   Ballistics.trace(shooter, origin, direction, timestamp, maxHits, limit?) -> (hits, endPoint, hitWall)
+--   Ballistics.trace(shooter, origin, direction, timestamp, maxHits, limit?) -> (hits, endPoint, hitWall, shield)
 --     hits: up to maxHits people the ray passes through, nearest first (more than one only for a piercing weapon).
+--     shield: the Riot Wall that stopped the ray (not the shooter's own), if one did; the ray ends there and is not hitWall.
 --     limit: stop the ray after this many studs (a projectile's step); default MaxShotStuds.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,6 +13,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local History = require(script.Parent.History)
 local Hitbox = require(script.Parent.Hitbox)
+local Shields = require(script.Parent.Shields)
 
 export type Hit = { target: History.Target, distance: number, head: boolean }
 
@@ -31,11 +33,16 @@ function Ballistics.trace(
 	timestamp: number,
 	maxHits: number,
 	limit: number?
-): ({ Hit }, Vector3, boolean)
+): ({ Hit }, Vector3, boolean, Shields.Shield?)
 	local serverNow = workspace:GetServerTimeNow()
 	local range = limit or config.MaxShotStuds
 	local wall = workspace:Raycast(origin, direction * range, mapParams)
 	local reach = if wall then wall.Distance else range
+	-- Ticket 16b: another agent's Riot Wall stops the ray before the map does.
+	local shield, shieldDistance = Shields.raycast(shooter, origin, direction, reach)
+	if shield and shieldDistance then
+		reach = shieldDistance
+	end
 	local cull = config.Hitbox.CullStuds
 	local hits: { Hit } = {}
 	for _, target in History.targets do
@@ -72,7 +79,10 @@ function Ballistics.trace(
 	local last = hits[#hits]
 	local stoppedInPerson = last ~= nil and #hits == maxHits
 	local endDistance = if stoppedInPerson then last.distance else reach
-	return hits, origin + direction * endDistance, wall ~= nil and not stoppedInPerson
+	return hits,
+		origin + direction * endDistance,
+		wall ~= nil and shield == nil and not stoppedInPerson,
+		if stoppedInPerson then nil else shield
 end
 
 return Ballistics

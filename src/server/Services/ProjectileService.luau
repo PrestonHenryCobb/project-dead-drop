@@ -232,7 +232,7 @@ local function step(flight: Flight, dt: number)
 	local length = delta.Magnitude
 	if length > 1e-4 then
 		local direction = delta / length
-		local hits, endPoint, hitWall =
+		local hits, endPoint, hitWall, shield =
 			Ballistics.trace(flight.shooter, from, direction, workspace:GetServerTimeNow(), 4, length)
 		for _, hit in hits do
 			local player = hit.target.player
@@ -242,7 +242,7 @@ local function step(flight: Flight, dt: number)
 				return
 			end
 		end
-		if hitWall then
+		if hitWall or shield then -- ticket 16b: a Riot Wall stops a flare or a knife like a wall
 			local wall = workspace:Raycast(from, direction * length, mapParams)
 			finish(flight, "Wall", endPoint, if wall then wall.Normal else nil, nil)
 			return

@@ -11,8 +11,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local AgentDefs = require(Shared:WaitForChild("Defs"):WaitForChild("AgentDefs"))
+local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local Ability = require(script.Parent.Parent.Abilities.Ability)
+local CombatService = require(script.Parent.CombatService)
 local DisguiseService = require(script.Parent.DisguiseService)
 local DownedService = require(script.Parent.DownedService)
 local MatchService = require(script.Parent.MatchService)
@@ -24,6 +26,7 @@ local AbilityService = {}
 -- Agents with an ability built so far (an agent is added here as its step lands).
 local abilities: { [string]: Ability.Ability } = {
 	Guise = require(script.Parent.Parent.Abilities.Guise),
+	Parapet = require(script.Parent.Parent.Abilities.Parapet),
 }
 
 local readyAt: { [Player]: number } = {} -- os.clock() when the ability can next be used
@@ -85,6 +88,11 @@ function AbilityService.Init() end
 
 function AbilityService.Start()
 	DisguiseService.setAgentLookup(AbilityService.agentOf)
+	CombatService.setExtraPlates(function(player)
+		local agentId = AbilityService.agentOf(player)
+		local rules = if agentId then (GameConfig.Agents :: { [string]: any })[agentId] else nil
+		return if rules and rules.ExtraStartPlates then rules.ExtraStartPlates else 0
+	end)
 	RemoteService.onRequest("RequestAbility", onRequestAbility)
 	MatchService.onPhaseChanged(function(phase)
 		if phase == "Insertion" then

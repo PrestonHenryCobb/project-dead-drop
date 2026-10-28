@@ -23,7 +23,19 @@ Agent abilities (spec 15, key Q). Server-authoritative; the client only asks.
   stored looks then the insertion outfit.
 - Tested in Studio solo: both slots fill, a scan takes 0.6 s, G cycles, Q re-covers in lockout, second Q refused on cooldown.
 
+- **16b Parapet.** Riot Wall (35 s): `Abilities/Parapet` puts up `Combat/Shields`, a see-through part welded 4.5 studs in front
+  of his root (8 x 6 x 0.4, 400 HP, 8 s, in `workspace.Shields`, nothing on the character). `Ballistics.trace` stops other
+  shooters' rays at it (4th return value `shield`); his own pass; `CombatService` wears it down by the shot's damage (falloff
+  included); `ProjectileService` stops flares and knives at it. Ends on expiry, 0 HP, his death, downing, or the match
+  ending. Putting it up breaks Cover. `ShieldController` (client) only makes your own shield clearer to you.
+  Plated: `Agents.Parapet.ExtraStartPlates = 1` (2 plates, 3 in Solos) via `CombatService.setExtraPlates`.
+  Tested solo in Studio: armour 50 at spawn, an outside shot is stopped at the shield, his own shot passes, 400 HP breaks it.
+  Not tested: two players (a real second shooter), the owner's clearer view.
+
 ## Not built
+- Plated's "plates on twice as fast": no plate-applying action exists yet (it comes with the economy/pickups), so there is
+  nothing to speed up. When it is built, read `Agents.Parapet`.
+- Guards' and bots' shots (`CombatService.botFire`) ignore the shield; so do melee and explosions.
 - Ability cooldown HUD and the second disguise slot in the HUD (`DisguiseController` shows slot 1 only): ticket 16-hud for Codex.
 - The other five agents (16b to 16f).
 
