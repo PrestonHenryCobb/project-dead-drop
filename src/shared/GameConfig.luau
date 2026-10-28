@@ -1372,8 +1372,16 @@ local GameConfig = {
 		MeterHeightPixels = 8,
 	},
 
+	-- Spec 15, ticket 16: what an agent changes about the common rules. The ability's name and cooldown are in AgentDefs.
+	-- Guise (Two Faces): two disguise slots and a scan of 0.6 s instead of 1.2 s.
+	Agents = {
+		Guise = { DisguiseSlots = 2, ScanSeconds = 0.6 },
+	},
+
 	-- Spec 24: default keys. Rebinding comes with the settings menu.
 	Controls = {
+		Ability = Enum.KeyCode.Q, -- the agent's ability (spec 15)
+		AbilityPad = Enum.KeyCode.ButtonY,
 		Scan = Enum.KeyCode.F,
 		ScanPad = Enum.KeyCode.DPadUp,
 		Disguise = Enum.KeyCode.G,
@@ -1560,6 +1568,7 @@ local GameConfig = {
 			RequestCrawl = { PerSecond = 15, Burst = 15 }, -- sent at Downed.CrawlRequestHz
 			-- Ticket 9c: switching view is a key press; the drone sends at Spectate.DroneSendHz; chat is slow on purpose.
 			RequestDropPackage = { PerSecond = 1, Burst = 2 }, -- ticket 13a
+			RequestAbility = { PerSecond = 2, Burst = 3 }, -- ticket 16: a key press; the server holds the cooldown
 			RequestSpectate = { PerSecond = 4, Burst = 8 },
 			RequestDronePosition = { PerSecond = 15, Burst = 15 },
 			RequestSpectatorChat = { PerSecond = 1, Burst = 3 },

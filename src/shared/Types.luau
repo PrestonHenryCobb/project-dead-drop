@@ -69,6 +69,14 @@ export type DisguiseUpdate = {
 	Slots: { string | boolean },
 }
 
+-- Ticket 16: an agent's ability cooldown ("CooldownUpdate", to the owner only). ReadyAt is server time
+-- (workspace:GetServerTimeNow()); the ability can be used once it has passed. Sent at match start and on each use.
+export type AbilityCooldownInfo = {
+	Name: string,
+	Seconds: number, -- the full cooldown
+	ReadyAt: number,
+}
+
 -- Spec 7: a player's own cover. Sent only to that player; enemies never learn it (spec 25.7).
 export type CoverInfo = {
 	State: CoverState,

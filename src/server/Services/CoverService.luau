@@ -155,7 +155,7 @@ end
 
 -- What stops an Exposed player re-covering right now (spec 7.5), or "" if nothing does. The client shows it so the
 -- reason is never a guess.
-local function recoverBlocker(player: Player, now: number): string
+local function recoverBlocker(player: Player, now: number, ignoreLockout: boolean?): string
 	local state = states[player]
 	local _, root = aliveRoot(player)
 	if not (state and root) or state.cover ~= "Exposed" then
@@ -163,7 +163,7 @@ local function recoverBlocker(player: Player, now: number): string
 	end
 	if state.carrying then
 		return "Package"
-	elseif isLockedOut(state, now) then
+	elseif not ignoreLockout and isLockedOut(state, now) then
 		return "Lockout"
 	elseif now < state.exposedMinUntil then
 		return "Minimum"
@@ -490,6 +490,19 @@ function CoverService.Start()
 			return canRecover(player, os.clock())
 		end,
 		onRecovered = onRecovered,
+		-- Ticket 16a (Guise's Quick Change, spec 15.1): ignores the combat lockout, but not being tracked by Security,
+		-- carrying the Package or an Exposed minimum.
+		canQuickChange = function(player)
+			local state = states[player]
+			if not state or state.carrying then
+				return false
+			end
+			local now = os.clock()
+			if state.cover == "Exposed" then
+				return recoverBlocker(player, now, true) == ""
+			end
+			return now - state.lastSeenBySecurity >= config.ReCoverTrackingSeconds
+		end,
 	})
 
 	local function track(player: Player)

@@ -1,0 +1,99 @@
+--!strict
+-- Ticket 16: agent abilities (spec 15, key Q). The client asks (RequestAbility); the server checks that the player is alive
+-- and in a match, that the cooldown has run out, and then lets the agent's ability decide whether it can be used right now
+-- (src/server/Abilities). A used ability starts its cooldown (AgentDefs Talent.CooldownSeconds), sent to the owner only
+-- as CooldownUpdate; cooldowns reset when a match begins.
+--
+--   AbilityService.agentOf(player) -> AgentId?    the agent the player picked for this match
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local AgentDefs = require(Shared:WaitForChild("Defs"):WaitForChild("AgentDefs"))
+local Types = require(Shared:WaitForChild("Types"))
+local Ability = require(script.Parent.Parent.Abilities.Ability)
+local DisguiseService = require(script.Parent.DisguiseService)
+local DownedService = require(script.Parent.DownedService)
+local MatchService = require(script.Parent.MatchService)
+local MetaProgressionService = require(script.Parent.MetaProgressionService)
+local RemoteService = require(script.Parent.RemoteService)
+
+local AbilityService = {}
+
+-- Agents with an ability built so far (an agent is added here as its step lands).
+local abilities: { [string]: Ability.Ability } = {
+	Guise = require(script.Parent.Parent.Abilities.Guise),
+}
+
+local readyAt: { [Player]: number } = {} -- os.clock() when the ability can next be used
+
+function AbilityService.agentOf(player: Player): Types.AgentId?
+	local loadout = MetaProgressionService.getLoadout(player)
+	return if loadout then loadout.AgentId else nil
+end
+
+local function talentOf(player: Player): (Types.AgentKitItem?, Ability.Ability?)
+	local agentId = AbilityService.agentOf(player)
+	local def = if agentId then AgentDefs.get(agentId) else nil
+	return def and def.Talents[1], if agentId then abilities[agentId] else nil
+end
+
+local function sendCooldown(player: Player, name: string, seconds: number, remaining: number)
+	local info: Types.AbilityCooldownInfo = {
+		Name = name,
+		Seconds = seconds,
+		ReadyAt = workspace:GetServerTimeNow() + remaining,
+	}
+	RemoteService.fireClient("CooldownUpdate", player, info)
+end
+
+local function onRequestAbility(player: Player)
+	if not MatchService.isInMatch() or DownedService.isOut(player) then
+		return
+	end
+	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	local talent, ability = talentOf(player)
+	local now = os.clock()
+	if not (humanoid and humanoid.Health > 0 and talent and ability) or now < (readyAt[player] or 0) then
+		return
+	end
+	local used, reason = ability.activate(player)
+	if not used then
+		if reason then
+			RemoteService.fireClient("Notification", player, reason)
+		end
+		return
+	end
+	local seconds = talent.CooldownSeconds or 0
+	readyAt[player] = now + seconds
+	sendCooldown(player, talent.Name, seconds, seconds)
+end
+
+-- A new match: every ability is ready, and each player is told what theirs is.
+local function resetAll()
+	table.clear(readyAt)
+	for _, player in Players:GetPlayers() do
+		local talent = talentOf(player)
+		if talent then
+			sendCooldown(player, talent.Name, talent.CooldownSeconds or 0, 0)
+		end
+	end
+end
+
+function AbilityService.Init() end
+
+function AbilityService.Start()
+	DisguiseService.setAgentLookup(AbilityService.agentOf)
+	RemoteService.onRequest("RequestAbility", onRequestAbility)
+	MatchService.onPhaseChanged(function(phase)
+		if phase == "Insertion" then
+			resetAll()
+		end
+	end)
+	Players.PlayerRemoving:Connect(function(player)
+		readyAt[player] = nil
+	end)
+end
+
+return AbilityService

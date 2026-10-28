@@ -52,6 +52,7 @@ export type CoverHooks = {
 	canScan: (Player) -> boolean, -- not in combat lockout (spec 6.3)
 	canRecover: (Player) -> boolean, -- an Exposed player may put a disguise back on (spec 7.5)
 	onRecovered: (Player) -> (), -- the disguise is back on
+	canQuickChange: (Player) -> boolean, -- ticket 16a: Quick Change is allowed (not tracked, not carrying the Package)
 }
 
 type Scan = {
@@ -66,7 +67,7 @@ type State = {
 	worn: OutfitDef, -- the look on the character now (TrueForm while Exposed)
 	lastDisguise: OutfitDef, -- the last NPC disguise worn; what an Exposed player is scanned as, and the re-cover tier
 	exposed: boolean,
-	slot: OutfitDef?, -- one slot for now (Cover.DisguiseSlots); the second slot comes with Vesper in Step 16
+	slots: { OutfitDef }, -- stored disguises, filled in order, up to slotLimit (Cover.DisguiseSlots; Guise has two)
 	scan: Scan?,
 	applyId: number, -- bumped whenever a disguise change starts or is cancelled
 	swapEndsAt: number, -- when the disguise change in progress finishes; 0 when none is
@@ -88,6 +89,7 @@ local npcLookup: ((string) -> NpcInfo?)? = nil
 local coverHooks: CoverHooks? = nil
 local swapListeners: { (Player) -> () } = {}
 local actionBlocker: ((Player) -> boolean)? = nil
+local agentLookup: ((Player) -> string?)? = nil -- ticket 16a: AbilityService says which agent a player is
 local validateAccumulator = 0
 
 -- Rays in the character group skip characters and only meet the map.
@@ -112,6 +114,22 @@ end
 -- re-cover).
 function DisguiseService.setActionBlocker(blocker: (Player) -> boolean)
 	actionBlocker = blocker
+end
+
+function DisguiseService.setAgentLookup(lookup: (Player) -> string?)
+	agentLookup = lookup
+end
+
+-- The agent's own disguise numbers (GameConfig.Agents), or the usual ones.
+local function agentRules(player: Player): { DisguiseSlots: number?, ScanSeconds: number? }
+	local lookup = agentLookup
+	local agentId = if lookup then lookup(player) else nil
+	local rules = if agentId then (GameConfig.Agents :: { [string]: any })[agentId] else nil
+	return rules or {}
+end
+
+local function slotLimit(player: Player): number
+	return agentRules(player).DisguiseSlots or config.DisguiseSlots
 end
 
 local function blocked(player: Player): boolean
@@ -182,11 +200,16 @@ local function speedFor(state: State): number
 end
 
 local function sendUpdate(player: Player, state: State)
+	local slots: { string | boolean } = {}
+	for index = 1, slotLimit(player) do
+		local stored = state.slots[index]
+		slots[index] = if stored then stored.OutfitId else false
+	end
 	local update: Types.DisguiseUpdate = {
 		Exposed = state.exposed,
 		Worn = state.worn.OutfitId,
 		Insertion = state.insertion.OutfitId,
-		Slots = { if state.slot then state.slot.OutfitId else false },
+		Slots = slots,
 	}
 	RemoteService.fireClient("DisguiseUpdate", player, update)
 end
@@ -259,14 +282,26 @@ local function startScan(player: Player, state: State, targetId: string)
 	end
 	cancelScan(player, state)
 	state.applyId += 1 -- starting a scan cancels a disguise change in progress
-	local seconds = target.scanSeconds or config.ScanSeconds
+	local seconds = target.scanSeconds or agentRules(player).ScanSeconds or config.ScanSeconds
 	state.scan = { targetId = targetId, startedAt = os.clock(), seconds = seconds }
 	RemoteService.fireClient("ScanState", player, { State = "Started", Seconds = seconds })
 end
 
 local function finishScan(player: Player, state: State, target: NpcInfo)
 	state.scan = nil
-	state.slot = target.outfit
+	-- A free slot first; when all are full the newest scan replaces a stored look that is not the one being worn.
+	if #state.slots < slotLimit(player) then
+		table.insert(state.slots, target.outfit)
+	else
+		local replace = #state.slots
+		for index = #state.slots, 1, -1 do
+			if state.slots[index] ~= state.worn then
+				replace = index
+				break
+			end
+		end
+		state.slots[replace] = target.outfit
+	end
 	RemoteService.fireClient("ScanState", player, { State = "Done" })
 	sendUpdate(player, state)
 end
@@ -351,6 +386,19 @@ function DisguiseService.expose(player: Player)
 	sendUpdate(player, state)
 end
 
+-- The look goes on: no puff on a disguise change, rivals nearby see a swap marker instead (brief Q6).
+local function commit(player: Player, state: State, target: OutfitDef, humanoid: Humanoid, root: BasePart)
+	local feet = root.Position - Vector3.new(0, humanoid.HipHeight + root.Size.Y / 2, 0)
+	SwapMarkerService.place(player, feet, target.Tier)
+	local wasExposed = state.exposed
+	state.exposed = false
+	state.lastDisguise = target
+	wear(player, state, target, humanoid.Parent :: Model, humanoid)
+	if wasExposed and coverHooks then
+		coverHooks.onRecovered(player)
+	end
+end
+
 local function onRequestDisguise(player: Player)
 	local state = states[player]
 	local humanoid, root = aliveRoot(player)
@@ -367,10 +415,11 @@ local function onRequestDisguise(player: Player)
 		-- Re-covering gives a new random outfit of the same tier as the last disguise (STEP7_QUESTIONS E2).
 		target = OutfitDefs.randomForTier(state.lastDisguise.Tier, rng)
 	else
-		target = state.insertion
-		if state.slot and state.slot ~= state.worn then
-			target = state.slot
-		end
+		-- Cycles through the stored looks, then the insertion outfit, to the one after the look worn now.
+		local options: { OutfitDef } = table.clone(state.slots)
+		table.insert(options, state.insertion)
+		local worn = table.find(options, state.worn) or 0
+		target = options[worn % #options + 1]
 		if target == state.worn then
 			return
 		end
@@ -400,17 +449,41 @@ local function onRequestDisguise(player: Player)
 		if state.exposed and not (coverHooks and coverHooks.canRecover(player)) then
 			return
 		end
-		-- No puff on a disguise change; rivals nearby see a swap marker instead (brief Q6).
-		local feet = stillRoot.Position - Vector3.new(0, stillHumanoid.HipHeight + stillRoot.Size.Y / 2, 0)
-		SwapMarkerService.place(player, feet, target.Tier)
-		local wasExposed = state.exposed
-		state.exposed = false
-		state.lastDisguise = target
-		wear(player, state, target, stillHumanoid.Parent :: Model, stillHumanoid)
-		if wasExposed and coverHooks then
-			coverHooks.onRecovered(player)
-		end
+		commit(player, state, target, stillHumanoid, stillRoot)
 	end)
+end
+
+-- Ticket 16a (Guise's Quick Change, spec 15.1): switches to a stored look at once, ignoring the combat lockout. Refused while
+-- Security is tracking the player or they carry the Package, when no stored look differs from the one worn, or where the
+-- look's tier is below the zone. Returns false and a reason to show when refused.
+function DisguiseService.quickChange(player: Player): (boolean, string?)
+	local state = states[player]
+	local humanoid, root = aliveRoot(player)
+	if not (state and humanoid and root) or blocked(player) then
+		return false, nil
+	end
+	local target: OutfitDef? = nil
+	for _, stored in state.slots do
+		if stored ~= state.worn then
+			target = stored
+			break
+		end
+	end
+	if not target then
+		return false, "No stored disguise to change into"
+	elseif not (coverHooks and coverHooks.canQuickChange(player)) then
+		return false, "You can't change right now"
+	elseif ZoneService.tierAt(root.Position) > target.Tier then
+		return false, "You can't change into that here"
+	end
+	cancelScan(player, state)
+	state.applyId += 1 -- cancels a disguise change in progress
+	state.swapEndsAt = 0
+	for _, listener in swapListeners do
+		listener(player)
+	end
+	commit(player, state, target, humanoid, root)
+	return true, nil
 end
 
 local function onRequestScan(player: Player, targetId: unknown)
@@ -512,7 +585,7 @@ function DisguiseService.spawn(player: Player, character: Model)
 		worn = insertion,
 		lastDisguise = insertion,
 		exposed = false,
-		slot = nil,
+		slots = {},
 		scan = nil,
 		applyId = 0,
 		swapEndsAt = 0,
@@ -528,9 +601,7 @@ function DisguiseService.spawn(player: Player, character: Model)
 	sendUpdate(player, state)
 end
 
-function DisguiseService.Init()
-	assert(config.DisguiseSlots == 1, "DisguiseService has one slot until the second slot is built in Step 16")
-end
+function DisguiseService.Init() end
 
 function DisguiseService.Start()
 	RemoteService.onRequest("RequestScan", onRequestScan)
