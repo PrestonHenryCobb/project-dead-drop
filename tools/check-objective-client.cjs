@@ -4,6 +4,7 @@ const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p
 function after(text,mark){const a=text.indexOf(mark);if(a<0)throw Error(mark);return text.slice(a);}
 function between(text,a,b){const start=text.indexOf(a),end=text.indexOf(b,start);if(start<0||end<0)throw Error(a);return text.slice(start,end);}
 const projection=after(read('src/client/Combat/ObjectivePresentation.luau'),'local ObjectivePresentation =');
+const layout=after(read('src/client/Combat/HudLayout.luau'),'local HudLayout =');
 const intel=after(read('src/client/Controllers/IntelHudController.luau'),'local IntelHudController =');
 const vault=after(read('src/client/Controllers/VaultHudController.luau'),'local VaultHudController =');
 const uiFixture=between(read('tools/check-match-client.cjs'),'local objects={}','local Accessibility=');
@@ -23,7 +24,7 @@ vector.__index=function(a,k)if k=="Magnitude"then return math.sqrt(a.X*a.X+a.Y*a
 local Vector3={new=v}
 local UDim2={new=function(...)return {...}end,fromScale=function(...)return {...}end,fromOffset=function(...)return {...}end}
 local Enum={TextXAlignment={Left=1}}
-local GameConfig={Match={BannerSeconds=3,TickSeconds=.25},Rig={CollisionGroup="Character"},Vault={ActiveVaults=3},Intel={GlintMax=6,GlintRange=25},UI={WarningColor={}}}
+local GameConfig={Match={BannerSeconds=3,TickSeconds=.25},Rig={CollisionGroup="Character"},Vault={ActiveVaults=3},Intel={GlintMax=6,GlintRange=25},UI={WarningColor={},CoverBreak={BannerWidthPixels=172,BannerHeightPixels=36}}}
 GameConfig.MatchHud=({${config}}).MatchHud
 local Presentation=(function()${projection}end)()
 local state=Presentation.new()
@@ -49,6 +50,8 @@ check(state.view(110,110).balance==nil and #state.view(110,110).terminals==0,"Ne
 ${uiFixture}
 theme.MarginPixels=16 theme.PaddingPixels=12 theme.CoverWidthPixels=248 theme.CoverHeightPixels=60 theme.NumberSize=28
 theme.CaptionSize=12 theme.ActionWidthPixels=252 theme.ActionHeightPixels=58 theme.ActionOffsetPixels=112 theme.AccentColor={}
+theme.VitalsWidthPixels=224
+local HudLayout=(function()${layout}end)()
 local function signal()
  local s={listeners={}}
  function s:Connect(fn)table.insert(self.listeners,fn)return {Disconnect=function()for i,f in self.listeners do if f==fn then table.remove(self.listeners,i)break end end end}end

@@ -25,12 +25,15 @@ local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local PoseAnimation = require(Shared:WaitForChild("Util"):WaitForChild("PoseAnimation"))
 local RemoteController = require(script.Parent.RemoteController)
 local WeaponController = require(script.Parent.WeaponController)
+local HudLayout = require(script.Parent.Parent.Combat.HudLayout)
+local HudScale = require(Shared.Util.HudScale)
 
 local DisguiseController = {}
 local janitor = Janitor.new()
 
 local ui = GameConfig.UI
 local graphics = HudTheme.get()
+local layout = HudLayout.regions(graphics)
 local controls = GameConfig.Controls
 local localPlayer = Players.LocalPlayer
 
@@ -121,8 +124,19 @@ local function buildHud()
 	storedBadge.TextColor3 = graphics.DimTextColor
 	storedBadge.TextXAlignment = Enum.TextXAlignment.Left
 
-	local toastText =
-		HudKit.text(gui, "Toast", UDim2.new(0.5, 0, 0, 80), Vector2.new(0.5, 0), UDim2.fromOffset(420, 24))
+	local toastText = HudKit.text(
+		gui,
+		"Toast",
+		HudLayout.position(layout.Toast),
+		HudLayout.anchor(layout.Toast),
+		UDim2.fromOffset(layout.Toast.Width, layout.Toast.Height)
+	)
+	toastText.Visible = false
+	toastText.TextWrapped = true
+	toastText.TextColor3 = graphics.TextColor
+	toastText.BackgroundColor3 = graphics.PanelColor
+	toastText.BackgroundTransparency = graphics.PanelTransparency
+	HudScale.bind(toastText)
 	toastText.TextTransparency = 1
 	toastText.TextStrokeTransparency = 1
 	toast = toastText
@@ -136,10 +150,12 @@ local function showToast(text: string)
 	toastToken += 1
 	local token = toastToken
 	toastText.Text = text
+	toastText.Visible = true
 	toastText.TextTransparency = 0
-	toastText.TextStrokeTransparency = 0.5
+	toastText.TextStrokeTransparency = 1
 	task.delay(ui.ToastSeconds, function()
-		if token == toastToken then
+		if token == toastToken and toastText.Parent then
+			toastText.Visible = false
 			toastText.TextTransparency = 1
 			toastText.TextStrokeTransparency = 1
 		end

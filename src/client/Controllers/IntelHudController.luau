@@ -9,12 +9,14 @@ local Enums = require(Shared.Enums)
 local Janitor = require(Shared.Util.Janitor)
 local HudKit = require(Shared.Util.HudKit)
 local HudTheme = require(Shared.Util.HudTheme)
+local HudLayout = require(script.Parent.Parent.Combat.HudLayout)
 local Presentation = require(script.Parent.Parent.Combat.ObjectivePresentation)
 local RemoteController = require(script.Parent.RemoteController)
 local IntelHudController = {}
 local janitor = Janitor.new()
 local state = Presentation.new()
 local theme = HudTheme.get()
+local layout = HudLayout.regions(theme)
 local config = GameConfig.MatchHud
 local stations: { [BasePart]: boolean } = {}
 local checks: { BillboardGui } = {}
@@ -30,8 +32,8 @@ function IntelHudController.Start()
 	local panel = HudKit.panel(
 		gui,
 		"TeamIntel",
-		UDim2.fromOffset(theme.MarginPixels, theme.MarginPixels),
-		Vector2.zero,
+		HudLayout.position(layout.Intel),
+		HudLayout.anchor(layout.Intel),
 		UDim2.fromOffset(theme.CoverWidthPixels, theme.CoverHeightPixels)
 	)
 	local panelRoot = panel.Parent :: Frame

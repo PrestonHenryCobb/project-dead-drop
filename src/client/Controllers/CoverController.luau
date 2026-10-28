@@ -15,6 +15,8 @@ local Types = require(Shared:WaitForChild("Types"))
 local HudKit = require(Shared:WaitForChild("Util"):WaitForChild("HudKit"))
 local HudTheme = require(Shared:WaitForChild("Util"):WaitForChild("HudTheme"))
 local UiAccessibility = require(Shared.Util.UiAccessibility)
+local HudScale = require(Shared.Util.HudScale)
+local HudLayout = require(script.Parent.Parent.Combat.HudLayout)
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local RemoteController = require(script.Parent.RemoteController)
 local CoverBreakFx = require(script.Parent.Parent.Combat.CoverBreakFx)
@@ -26,6 +28,7 @@ local janitor = Janitor.new()
 
 local ui = GameConfig.UI
 local graphics = HudTheme.get()
+local layout = HudLayout.regions(graphics)
 local cover = GameConfig.Cover
 local localPlayer = Players.LocalPlayer
 
@@ -148,12 +151,13 @@ local function build()
 	local warningText = HudKit.text(
 		screen,
 		"Warning",
-		UDim2.new(0.5, 0, 0, 120),
-		Vector2.new(0.5, 0),
-		UDim2.fromOffset(graphics.ActionWidthPixels, graphics.PaddingPixels * 3)
+		HudLayout.position(layout.Warning),
+		HudLayout.anchor(layout.Warning),
+		UDim2.fromOffset(layout.Warning.Width, layout.Warning.Height)
 	)
 	warningText.TextColor3 = graphics.TextColor
 	warningText.TextSize = ui.TextSize
+	warningText.TextWrapped = true
 	warningText.Visible = false
 	warning = warningText
 
@@ -167,6 +171,7 @@ local function build()
 	promptText.Visible = false
 	prompt = promptText
 	for _, text in { warningText, promptText } do
+		HudScale.bind(text)
 		text.BackgroundColor3 = graphics.PanelColor
 		text.BackgroundTransparency = graphics.PanelTransparency
 		text.TextStrokeTransparency = 1
@@ -178,8 +183,8 @@ local function build()
 	local exposedPanel = HudKit.panel(
 		screen,
 		"ExposureNotice",
-		UDim2.new(0.5, 0, 0, graphics.MarginPixels),
-		Vector2.new(0.5, 0),
+		HudLayout.position(layout.Exposure),
+		HudLayout.anchor(layout.Exposure),
 		UDim2.fromOffset(ui.CoverBreak.BannerWidthPixels, ui.CoverBreak.BannerHeightPixels)
 	)
 	local noticeRoot = exposedPanel.Parent :: Frame

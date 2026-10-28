@@ -136,7 +136,7 @@ setting Combat.DefaultWeapon in Studio only before Play. No new selection UI or 
 | 8.17 | Generic takedown proximity hint: nearest visible upright rig within current server melee reach/front cone/rear cone; same NPC/player geometry, no identity labels/character decoration; hide while incapacitated, wall-tucked or holding an action. Advisory only; no server reach change. | CODEX | Studio acceptance; range/animation handoff below | READY_FOR_REVIEW |
 | 19-client-hud | Owner authorized importing functional HUD now: original drawn icons, shadowed dark panels, health/armor easing and damage pulse, reload progress, compact role/tier/stored-disguise badge, cover/short warnings and alarm pips. Default diagnostics hidden. Uses existing events only; no unbuilt menus/objective/economy state. Report: docs/CLIENT_REVIEW_2026-10-25.md. | CODEX | Owner visual acceptance | READY_FOR_REVIEW |
 | 19-map-skins | Shared HudTheme resolver over base layout/behavior, Gala charcoal/brass Field notes skin, startup skin ID and neutral fallback. Palette-only validated immutable overrides; all graphical controllers use the same resolved skin. No runtime map-switch contract invented. | CODEX | Studio owner review | READY_FOR_REVIEW |
-| 19-hud-readability | Persistent essentials, contextual prompts/warnings, clear numbers/body text with pixel headings, event-driven feedback and reduced motion. Minimum 1280x720 with readable larger-display scaling. Preserve critical state/timers and gameplay recoil across skins. | CODEX | Typography and motion-setting implementation/review | TODO |
+| 19-hud-readability | Persistent essentials, contextual prompts/warnings, clear numbers/body text with pixel headings, event-driven feedback and reduced motion. Minimum 1280x720 with readable larger-display scaling. Preserve critical state/timers and gameplay recoil across skins. | CODEX | Typography and motion-setting implementation/review | READY_FOR_REVIEW |
 | 19-hud-motion | Follow Roblox Reduce Motion for decorative HUD easing/flashes, preserve authoritative feedback and weapon recoil. | CODEX | Existing HUD and native accessibility preference | READY_FOR_REVIEW |
 | 19-hud-scale | Scale panel text/icons/borders and edge spacing together from the approved 1280x720 baseline; preserve angular aiming/marker coordinates and map-skin behavior. | CODEX | 19-hud-readability; owner authorized parallel client work | READY_FOR_REVIEW |
 | 19-camera-comfort | Light optional cosmetic camera shake during damage/takedowns, no forced roll/blur. Actual weapon recoil unchanged; respect comfort settings. | CODEX | Settings/feedback implementation and review | TODO |
@@ -316,3 +316,17 @@ Contract detail for Claude: InteractState.Kind is the handler label (Take the Pa
 extraction / Extract), not the RequestInteract kind. Extracted has no new cinematic timestamp and retains the previous
 Open EndsAt; cosmetic fade therefore starts at event receipt for configured CinematicSeconds and stops on Results.
 Do not use that stale EndsAt as a cinematic deadline. Optional server timestamp handoff for tighter visual sync.
+
+
+Owner continuation 2026-10-28: playtest reported complete; individual checks/outcomes were not specified. Codex is continuing queued HUD readability and full-registry bootstrap regression coverage. No tickets automatically marked DONE.
+
+
+## Client readability continuation (Codex, 2026-10-28)
+
+Owner reports playtest complete; individual outcomes not specified and no prior ticket automatically marked DONE.
+Source-confirmed collisions fixed: Intel below Alarm; exposure/cover warnings in the right stack; wrapped/scaled
+disguise toasts in the left stack. No gameplay/server changes. Full-module agent/weapon registry cold-load checks
+now catch both historical Hardware ID boot failures and validate all 16 registered models/definitions.
+Changed-file StyLua/Selene, 998 source assertions and Rojo build pass. Full-source StyLua initially saw Claude's
+concurrent NPCService formatting; that WIP was not changed. New native visual acceptance remains pending.
+Files, validation, later visual checks and next Claude prompt: docs/CLIENT_READABILITY_REVIEW_2026-10-28.md.
