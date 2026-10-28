@@ -1814,6 +1814,40 @@ local GameConfig = {
 	-- the nearest node within ConnectStuds (and ConnectFloorStuds up or down). A vent is hidden: the route may enter a grate only
 	-- after the player has come within SeenStuds of it in sight (checked SeenHz times a second). SPEC-QUESTION: discovery is
 	-- per player and a grate shows only that grate's own way through; secret exits are not built yet, so no route uses them.
+	-- gps-client: presentation only; route authority stays in RouteService.
+	RouteHud = {
+		MapKey = Enum.KeyCode.M,
+		MapPad = Enum.KeyCode.ButtonSelect,
+		TargetKey = Enum.KeyCode.N,
+		TargetPad = Enum.KeyCode.ButtonL1,
+		ModeKey = Enum.KeyCode.J,
+		ModePad = Enum.KeyCode.ButtonR1,
+		FloorUpKey = Enum.KeyCode.PageUp,
+		FloorDownKey = Enum.KeyCode.PageDown,
+		RequestSeconds = 1,
+		RefreshSeconds = 0.2,
+		WidthPixels = 304,
+		MapPixels = 272,
+		TopPixels = 208,
+		LinePixels = 2,
+		SelectedLinePixels = 4,
+		FlagPixels = 18,
+		SummaryPixels = 108,
+		StepsPixels = 88,
+		MapMarginStuds = 8,
+		ZoneTransparency = 0.65,
+		AlternateTransparency = 0.45,
+		CleanColor = Color3.fromRGB(65, 155, 160),
+		FastColor = Color3.fromRGB(190, 125, 70),
+		ArrowSpacingStuds = 12,
+		ArrowRangeStuds = 60,
+		ArrowMax = 16,
+		ArrowLengthStuds = 1.4,
+		ArrowWidthStuds = 0.12,
+		ArrowLiftStuds = 0.08,
+		ArrowProbeUpStuds = 4,
+		ArrowProbeDownStuds = 10,
+	},
 	Route = {
 		NodeSnapStuds = 40,
 		FootStuds = 3, -- a player's root is this far above the floor
