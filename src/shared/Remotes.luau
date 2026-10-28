@@ -64,6 +64,7 @@ local Remotes = {
 		"RequestDisguise",
 		"RequestInteract",
 		"RequestInteractCancel",
+		"RequestDropPackage", -- ticket 13a: the carrier drops the Package (spec 11)
 		"FireRequest",
 		"ReloadRequest",
 		"RequestAbility",

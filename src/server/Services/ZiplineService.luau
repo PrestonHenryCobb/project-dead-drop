@@ -4,7 +4,6 @@
 -- at GameConfig.Traversal.Zipline.Speed, and lets go at the bottom.
 --
 -- The map tags each end ZiplineAnchor with ZiplineId and End ("Top" or "Bottom"); the cable runs between their tops.
--- SPEC-QUESTION: the Package carrier may not use ziplines (spec 11.2); that check joins when the Package exists (Step 13).
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -15,6 +14,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local CoverService = require(script.Parent.CoverService)
+local PackageService = require(script.Parent.PackageService)
 
 type Line = { id: string, top: Vector3, bottom: Vector3, prompt: ProximityPrompt }
 
@@ -114,6 +114,9 @@ end
 function ZiplineService.Start()
 	for _, line in lines do
 		line.prompt.Triggered:Connect(function(player)
+			if PackageService.isCarrier(player) then
+				return -- spec 11: the Package cannot ride a zipline
+			end
 			ride(player, line)
 		end)
 	end

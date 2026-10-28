@@ -73,6 +73,7 @@ local matchTeams: { [number]: { Player } } = {} -- the teams of the match in pro
 local out: { [Player]: boolean } = {}
 local listeners: { (Types.Phase) -> () } = {}
 local tickElapsed = 0
+local packageHeld: (() -> boolean)? = nil
 
 local function now(): number
 	return workspace:GetServerTimeNow()
@@ -266,6 +267,11 @@ function MatchService.canQueue(): boolean
 	return phase == "Lobby"
 end
 
+-- Ticket 13a: how the main timer asks whether someone is carrying the Package (spec 19: then Overtime begins).
+function MatchService.setPackageCheck(check: () -> boolean)
+	packageHeld = check
+end
+
 function MatchService.onPhaseChanged(listener: (Types.Phase) -> ())
 	table.insert(listeners, listener)
 end
@@ -283,7 +289,7 @@ function MatchService.advance(to: Types.Phase): boolean
 		mainEndsAt = start + config.MainTimerSeconds
 		forcedVaultAt = start + config.ForcedVaultUnlockElapsed
 	end
-	setPhase(to, nil)
+	setPhase(to, if to == "Overtime" then GameConfig.Overtime.CapSeconds else nil)
 	return true
 end
 
@@ -345,11 +351,18 @@ local function tick()
 		if endsAt and clock >= endsAt then
 			MatchService.advance("Infiltration")
 		end
+	elseif phase == "Overtime" then
+		if endsAt and clock >= endsAt then
+			MatchService.finish(nil) -- the hard cap (spec 19)
+		end
 	elseif MatchService.isInMatch() then
 		if mainEndsAt and clock >= mainEndsAt then
-			-- SPEC-QUESTION: spec 19 starts Overtime here when the Package is held; the Package exists from Step 13, which
-			-- adds that check. Until then the main timer ending is Mission Failed.
-			MatchService.finish(nil)
+			local check = packageHeld
+			if phase == "PackageHeist" and check and check() then
+				MatchService.advance("Overtime")
+			else
+				MatchService.finish(nil)
+			end
 		elseif phase == "Infiltration" and forcedVaultAt and clock >= forcedVaultAt then
 			MatchService.advance("VaultBreach")
 		end

@@ -21,6 +21,7 @@
 --   CoverService.expose(player, reason, minExposedSeconds?)   cover-breaking actions (spec 7.2) call this
 --   CoverService.startLockout(player)                         starts or refreshes the combat lockout (spec 7.6)
 --   CoverService.onNpcKilled(player)                          a player killed an NPC (spec 5.5, 7.2 #11)
+--   CoverService.setPackageCarrier(player, carrying)         the Package carrier stays Exposed (spec 11)
 --   CoverService.noteHacking(player)                          an Intel station hold is running (spec 9.2)
 --   CoverService.setWeaponDrawn(player, drawn)                the player is aiming their weapon (spec 7.3: 40 percent a second, doubled)
 --   CoverService.isExposed(player)
@@ -59,6 +60,7 @@ type State = {
 	lastSeenBySecurity: number,
 	pendingJumps: number,
 	weaponDrawn: boolean, -- aiming the weapon (CombatService)
+	carrying: boolean, -- ticket 13a: holds the Package: permanently Exposed (spec 11)
 	hackingUntil: number, -- os.clock(): an Intel station hold (IntelService) is running until this time
 	-- what was last sent, so only changes go over the network
 	sentCover: string,
@@ -113,6 +115,7 @@ local function newState(): State
 		pendingJumps = 0,
 		weaponDrawn = false,
 		hackingUntil = 0,
+		carrying = false,
 		sentCover = "",
 		sentCanRecover = false,
 		sentBlocker = "",
@@ -150,7 +153,9 @@ local function recoverBlocker(player: Player, now: number): string
 	if not (state and root) or state.cover ~= "Exposed" then
 		return ""
 	end
-	if isLockedOut(state, now) then
+	if state.carrying then
+		return "Package"
+	elseif isLockedOut(state, now) then
 		return "Lockout"
 	elseif now < state.exposedMinUntil then
 		return "Minimum"
@@ -248,6 +253,18 @@ function CoverService.noteHacking(player: Player)
 	local state = states[player]
 	if state then
 		state.hackingUntil = os.clock() + config.HackingGraceSeconds
+	end
+end
+
+-- Ticket 13a: the Package carrier is Exposed for as long as they hold it and cannot re-cover (spec 11).
+function CoverService.setPackageCarrier(player: Player, carrying: boolean)
+	local state = states[player]
+	if not state then
+		return
+	end
+	state.carrying = carrying
+	if carrying then
+		CoverService.expose(player, "Package")
 	end
 end
 

@@ -18,6 +18,7 @@
 --
 --   DisguiseService.spawn(player, character)   dresses a freshly spawned character in a random Guest insertion outfit
 --   DisguiseService.applySlow(player, mult, seconds)   walking speed times mult for a while (stagger)
+--   DisguiseService.setCarrier(player, carrying)       the Package carrier: 90 percent speed, no disguise actions (13a)
 --   DisguiseService.setFrozen(player, frozen)          walking speed 0 while true (Insertion, ticket 10a)
 --   DisguiseService.setNpcLookup(function(id) -> NpcInfo?)   how scans find NPCs; NPCService provides it
 --   DisguiseService.setCoverHooks(hooks)       how CoverService limits scanning and re-covering
@@ -81,6 +82,7 @@ local DisguiseService = {}
 local config = GameConfig.Cover
 local rng = Random.new()
 local states: { [Player]: State } = {}
+local carriers: { [Player]: boolean } = {} -- ticket 13a: holds the Package: slower, and cannot disguise
 local frozen: { [Player]: boolean } = {} -- ticket 10a: Insertion; set before the character (and its State) exists
 local npcLookup: ((string) -> NpcInfo?)? = nil
 local coverHooks: CoverHooks? = nil
@@ -114,7 +116,7 @@ end
 
 local function blocked(player: Player): boolean
 	local blocker = actionBlocker
-	return blocker ~= nil and blocker(player)
+	return carriers[player] == true or (blocker ~= nil and blocker(player))
 end
 
 -- Is a disguise change under way?
@@ -168,6 +170,9 @@ local function speedFor(state: State): number
 	end
 	local walk = if state.exposed then GameConfig.Speeds.ExposedWalk else GameConfig.NPC.WalkSpeed[state.worn.Role]
 	local slow = if os.clock() < state.slowUntil then state.slowMult else 1
+	if carriers[state.player] then
+		slow *= GameConfig.Package.CarrierSpeedMult
+	end
 	if state.crouching then
 		return walk * GameConfig.Speeds.CrouchMult * slow
 	elseif state.sprinting then
@@ -478,6 +483,16 @@ function DisguiseService.applySlow(player: Player, mult: number, seconds: number
 	end)
 end
 
+-- Ticket 13a: the Package carrier walks at CarrierSpeedMult and cannot scan, change or re-cover (spec 11).
+function DisguiseService.setCarrier(player: Player, carrying: boolean)
+	carriers[player] = if carrying then true else nil
+	local state = states[player]
+	local humanoid = aliveRoot(player)
+	if state and humanoid then
+		humanoid.WalkSpeed = speedFor(state)
+	end
+end
+
 -- Ticket 10a: no walking while frozen (the Insertion phase). Safe to call before the player's character exists.
 function DisguiseService.setFrozen(player: Player, isFrozen: boolean)
 	frozen[player] = if isFrozen then true else nil
@@ -526,6 +541,7 @@ function DisguiseService.Start()
 	Players.PlayerRemoving:Connect(function(player)
 		states[player] = nil
 		frozen[player] = nil
+		carriers[player] = nil
 	end)
 	RunService.Heartbeat:Connect(function(dt)
 		validateAccumulator += dt

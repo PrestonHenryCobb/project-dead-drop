@@ -4,7 +4,8 @@
 --
 -- The map tags the inside of each duct VentDuct. At GameConfig.Traversal.Vent.CheckHz this service looks for players
 -- inside one and exposes each on the way in.
--- SPEC-QUESTION: the Package carrier may not enter vents (spec 11.2); that check joins when the Package exists (Step 13).
+-- SPEC-QUESTION: the Package carrier may not enter vents (spec 11.2). A duct cannot refuse a body, and the carrier is
+-- Exposed anyway (PackageService), so nothing is blocked here.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")

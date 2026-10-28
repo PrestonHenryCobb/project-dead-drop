@@ -609,6 +609,7 @@ local GameConfig = {
 			NearBody = 20,
 			VaultLinger = 30,
 		},
+		HackingGraceSeconds = 0.4, -- ticket 11a: a hold counts as hacking this long after IntelService's last check of it
 		NearBodyRadius = 6,
 		VaultLingerRadius = 5,
 		VaultLingerSeconds = 3,
@@ -631,7 +632,6 @@ local GameConfig = {
 		IdleTurnDeadband = 25, -- degrees between body and camera before it turns at all
 		-- The puff when a disguise is stripped on exposure (spec 7.2). A disguise change has no puff (brief Q6).
 		DisguisePuffParticles = 20,
-		HackingGraceSeconds = 0.4, -- ticket 11a: a hold counts as hacking this long after IntelService's last check of it
 		DisguisePuffSeconds = 1.5,
 		-- Brief Q6 (SPEC_CHANGES 6.4): where someone changes disguise, rival agents see a marker for longer the higher
 		-- the tier put on. The server tells a rival only once they come within SwapMarkerRange, so nobody learns of
@@ -689,7 +689,13 @@ local GameConfig = {
 			[2] = { Name = "Server rack", Points = 6, HackSeconds = 11, MinRoomTier = 0 },
 			[3] = { Name = "Wall safe", Points = 10, HackSeconds = 16, MinRoomTier = 2 },
 		},
+		-- Ticket 11a: SPEC_CHANGES scaled the map to 36 stations and never limited how many are live, so every station is
+		-- usable. SPEC-QUESTION: ActiveSpawns (spec 9.2: 10 per match) is therefore not used.
 		ActiveSpawns = 10,
+		InteractStuds = 5, -- how close you stand to work a station
+		InteractSlackStuds = 1.5, -- allowance for lag while the hold runs
+		AimDegrees = 40, -- a station this far off the crosshair can be picked (client)
+		GlintMax = 6, -- at most this many stations glint at once (client)
 		TerminalSeconds = 6,
 		TerminalProgressKeepSeconds = 20, -- per team
 		BriefcaseSeconds = 1,
@@ -698,6 +704,9 @@ local GameConfig = {
 		ServerRackSeconds = 10,
 		ServerRackValue = 2,
 		GlintRange = 25,
+		GlintColor = Color3.fromRGB(255, 205, 80), -- ticket 11a: the faint glint on a station you could still take
+		GlintFillTransparency = 0.8,
+		GlintOutlineTransparency = 0.35,
 		-- 9.3: team thresholds.
 		Thresholds = {
 			FundsAt1 = 100,
@@ -709,22 +718,23 @@ local GameConfig = {
 			ExtraIntelFunds = 50, -- at 5 and above, per extra Intel
 			ExtraIntelFrom = 5,
 		},
-		-- Ticket 11a: SPEC_CHANGES scaled the map to 36 stations and never limited how many are live, so every station is
-		-- usable. SPEC-QUESTION: ActiveSpawns (spec 9.2: 10 per match) is therefore not used.
 	},
-		InteractStuds = 5, -- how close you stand to work a station
-		InteractSlackStuds = 1.5, -- allowance for lag while the hold runs
-		AimDegrees = 40, -- a station this far off the crosshair can be picked (client)
-		GlintMax = 6, -- at most this many stations glint at once (client)
 
 	-- Spec 10: vault.
-		GlintColor = Color3.fromRGB(255, 205, 80), -- ticket 11a: the faint glint on a station you could still take
-		GlintFillTransparency = 0.8,
-		GlintOutlineTransparency = 0.35,
 	Vault = {
 		BaseRate = 1.25, -- percent per second, regardless of how many agents are in the zone
 		BonusMult = 1.25, -- team with HackBonusAt+ intel
 		HackZoneSize = 10,
+		-- Ticket 12a (SPEC_CHANGES 2026-10-25: 3 of the 5 vaults are active and hacking their terminals opens the Sanctum).
+		-- BaseRate and BonusMult now apply to each terminal. SPEC-QUESTION: 1.25 percent a second (80 s a terminal) is the
+		-- old single-bar rate; tune in play.
+		ActiveVaults = 3,
+		CheckHz = 5,
+		BroadcastSeconds = 0.5,
+		TerminalHeightStuds = 6, -- how far above or below the dais a hacker may stand
+		TerminalSize = Vector3.new(2, 3.2, 1.2),
+		TerminalColor = Color3.fromRGB(70, 200, 255),
+		SanctumShaftId = "E5", -- the elevator that stays locked until every active terminal is hacked
 		OpenAnimSeconds = 4,
 		ExtraSecurityOnOpen = 2,
 	},
@@ -738,28 +748,41 @@ local GameConfig = {
 		PingPulseSeconds = 2,
 		PassRange = 6,
 		PassSeconds = 0.5,
+		-- Ticket 13a: implementation values. SPEC-QUESTION: SPEC_CHANGES 11 asks for a ping meter that fills faster while
+		-- sprinting or jumping and a rival-reveal key; the fixed PingInterval is built, the meter and the key are not.
+		CarrierSpeedMult = 0.9,
+		PickupSlackStuds = 1.5,
+		MinY = -60, -- a dropped Package below this falls out of the map and returns to the pedestal
+		CheckHz = 10,
+		Size = Vector3.new(1.6, 1.1, 2.4),
+		Color = Color3.fromRGB(255, 200, 60),
+		LiftStuds = 2.5, -- how far above the pedestal's top it floats
+		LightRange = 14,
+		CarryOffset = CFrame.new(0, -0.2, 1.1), -- on the carrier's back
+		DropForwardStuds = 2,
+		DropLiftStuds = 1.5,
 	},
 
 	-- Spec 12: extraction.
 	Extraction = {
 		CallSeconds = 2,
 		CallRange = 10, -- a teammate within this many studs of the carrier may also call
-		-- Ticket 12a (SPEC_CHANGES 2026-10-25: 3 of the 5 vaults are active and hacking their terminals opens the Sanctum).
-		-- BaseRate and BonusMult now apply to each terminal. SPEC-QUESTION: 1.25 percent a second (80 s a terminal) is the
-		-- old single-bar rate; tune in play.
-		ActiveVaults = 3,
-		CheckHz = 5,
-		BroadcastSeconds = 0.5,
-		TerminalHeightStuds = 6, -- how far above or below the dais a hacker may stand
-		TerminalSize = Vector3.new(2, 3.2, 1.2),
-		TerminalColor = Color3.fromRGB(70, 200, 255),
-		SanctumShaftId = "E5", -- the elevator that stays locked until every active terminal is hacked
 		Countdown = 45,
 		HoverSeconds = 2,
 		ZoneSize = 16,
 		ChannelSeconds = 3,
 		LingerAfterFailSeconds = 20,
 		CinematicSeconds = 5,
+		-- Ticket 13a: implementation values.
+		CallReachStuds = 6, -- how close to a terminal to call
+		SlackStuds = 1.5,
+		CheckHz = 10,
+		TerminalSize = Vector3.new(2, 3.2, 1.2),
+		TerminalColor = Color3.fromRGB(255, 215, 0),
+		BeaconSize = Vector3.new(6, 400, 6),
+		BeaconColor = Color3.fromRGB(255, 215, 0),
+		ZoneColor = Color3.fromRGB(60, 255, 120),
+		ZoneHeightStuds = 6, -- how far above or below the pad the carrier may stand and still count as in the zone
 	},
 
 	-- Spec 19: overtime.
@@ -1243,6 +1266,7 @@ local GameConfig = {
 		AimPad = Enum.KeyCode.ButtonL2,
 		Reload = Enum.KeyCode.R,
 		ReloadPad = Enum.KeyCode.ButtonX,
+		DropPackage = Enum.KeyCode.X, -- spec 11: the carrier drops the Package
 		Melee = Enum.KeyCode.V, -- tap to strike; from behind, hold to take down (spec 13.4)
 		MeleePad = Enum.KeyCode.ButtonR3,
 		-- Step 8B.5: walking is ours (MovementController), so its keys live here too. The gamepad uses the left stick.
@@ -1413,6 +1437,7 @@ local GameConfig = {
 			FireRequest = { PerSecond = 30, Burst = 30 },
 			RequestCrawl = { PerSecond = 15, Burst = 15 }, -- sent at Downed.CrawlRequestHz
 			-- Ticket 9c: switching view is a key press; the drone sends at Spectate.DroneSendHz; chat is slow on purpose.
+			RequestDropPackage = { PerSecond = 1, Burst = 2 }, -- ticket 13a
 			RequestSpectate = { PerSecond = 4, Burst = 8 },
 			RequestDronePosition = { PerSecond = 15, Burst = 15 },
 			RequestSpectatorChat = { PerSecond = 1, Burst = 3 },

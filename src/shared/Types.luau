@@ -400,6 +400,23 @@ export type PreDeployState = {
 	Members: { PreDeployMember },
 }
 
+-- Ticket 13a: the Package (PackageState) and the extraction (ExtractionState), each sent per player.
+export type PackageStateInfo = {
+	State: "Hidden" | "Pedestal" | "Carried" | "Dropped",
+	Position: Vector3?, -- Pedestal and Dropped: where it lies; Carried: only to rivals during a ping pulse
+	YouCarry: boolean,
+	TeamCarries: boolean, -- the receiver's team has it
+	PulseUntil: number?, -- server clock: a ping pulse runs until then
+	ReturnsAt: number?, -- Dropped: when it goes back to the pedestal
+}
+export type ExtractionStateInfo = {
+	State: "Idle" | "Countdown" | "Hover" | "Open" | "Extracted",
+	SiteId: string?,
+	Position: Vector3?,
+	EndsAt: number?, -- server clock: Countdown end, Hover end, or the Open window's expiry once a channel failed
+	ByYourTeam: boolean, -- your team called it
+}
+
 -- Ticket 12a: the vault terminals (VaultProgress, to everyone once the Vault Breach begins). Progress is 0 to 1 and global:
 -- one bar per terminal that every team's hacking adds to.
 export type VaultTerminalInfo = {
