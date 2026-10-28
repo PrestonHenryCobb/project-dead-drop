@@ -220,7 +220,7 @@ they differ (see MENU_CONTRACT.md "Where the handoffs were corrected").
 | 13B-a | Bots, first slice (owner chose crowd-NPC bots): BotService/BotRegistry fill the lobby with rival teams that take Intel stations and stand on vault terminals (contesting humans); no shooting, Package or win yet. Contract: .ai-sync/BOT_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 13a | READY_FOR_REVIEW |
 | 13B-b | Bots fight and extract: bots carry the Package (paying the Package door in Intel), call and complete extraction (a bot team can win), and shoot Exposed humans in sight (CombatService.botFire). Contract: .ai-sync/BOT_CONTRACT.md. **A bots-only match ran to a bot win in Studio.** | CLAUDE_CODE | 13B-a | READY_FOR_REVIEW |
 | 14 | Security (spec 18): AlarmService, CameraService (sweep, lock-on, hack, shoot, Camera Room terminal), LaserService (grids, fuse boxes), keycard door lockpicking and Lockdown seal, camera and interact controllers. Contract: .ai-sync/SECURITY_CONTRACT.md. Tested in Studio except shooting a camera. | CLAUDE_CODE | 13B-b | READY_FOR_REVIEW |
-| 14b | Security HUD: alarm level pips and Lockdown banner, Camera Room 4-feed view, hold prompts for camera/fuse box/terminal/lockpick. Read SECURITY_CONTRACT.md; no server change. | CODEX | 14 | TODO |
+| 14b | Security HUD: alarm level pips and Lockdown banner, Camera Room 4-feed view, hold prompts for camera/fuse box/terminal/lockpick. Read SECURITY_CONTRACT.md; no server change. | CODEX | 14 | READY_FOR_REVIEW |
 
 ## Waiting on the owner
 
@@ -372,3 +372,14 @@ Held actions cancel once; server completion releases locally. All subscriptions/
 delayed death poses cannot survive respawn/round end/teardown. Existing generic NPC/player body discovery preserved.
 93 new actual-source assertions; 1,356 across nine checked suites. StyLua, Selene and Rojo pass. Native animation,
 network/input acceptance remains for Studio. No SPEC-QUESTION or security handoff. docs/BODY_INPUT_REVIEW_2026-10-28.md.
+
+
+## Security client (owner-requested 14b, 2026-10-28)
+
+14b READY_FOR_REVIEW: four cumulative alarm pips (0–3) and persistent Lockdown in the existing HudLayout slot;
+contextual security target prompts and server-acknowledged hold progress; up to four working-camera ViewportFrames
+near CameraTerminal, with automatic/manual pages and Reduce Motion. Live streamed visual copies are sanitized,
+bounded, occlusion-checked and fully released when hidden. No server files/remotes or character metadata changed.
+50 security source assertions and all 1,406 assertions across ten suites pass; StyLua, Selene and Rojo pass.
+Native appearance, streaming completeness and performance need Studio acceptance. No new SPEC-QUESTION.
+Full files, limitations and Studio checks: docs/SECURITY_CLIENT_REVIEW_2026-10-28.md.

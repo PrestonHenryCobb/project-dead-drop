@@ -183,6 +183,14 @@ end
 
 function SecurityInteractController.Init() end
 
+-- Ticket 14b: HUD reads the same contextual target; it never selects or requests a different action.
+function SecurityInteractController.currentTarget(): (BasePart?, string?)
+	if not eligibleRoot() then
+		return nil, nil
+	end
+	return target, if targetKind then targetKind.kind else nil
+end
+
 function SecurityInteractController.Start()
 	local janitor = Janitor.new()
 	local highlight = Instance.new("Highlight")

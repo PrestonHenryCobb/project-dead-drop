@@ -1114,6 +1114,23 @@ local GameConfig = {
 		},
 	},
 
+	-- Ticket 14b: client-only security presentation and bounded streamed camera scenes.
+	SecurityHud = {
+		FeedWidthPixels = 360,
+		FeedHeightPixels = 280,
+		FeedTopPixels = 260,
+		SceneRadius = 75,
+		MaxPartsPerFeed = 350,
+		SceneSeconds = 0.5,
+		RefreshSeconds = 0.1,
+		CycleSeconds = 8,
+		NextFeedKey = Enum.KeyCode.F6,
+		NextFeedPad = Enum.KeyCode.DPadRight,
+		FeedNearOffset = 0.6,
+		Ambient = Color3.fromRGB(145, 145, 155),
+		LightColor = Color3.fromRGB(220, 220, 210),
+	},
+
 	-- Spec 18: security systems.
 	Security = {
 		Camera = {

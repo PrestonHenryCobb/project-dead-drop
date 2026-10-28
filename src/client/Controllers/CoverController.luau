@@ -35,6 +35,7 @@ local localPlayer = Players.LocalPlayer
 local gui: ScreenGui? = nil
 local panel: TextLabel? = nil
 local alarmLabel: TextLabel? = nil
+local lockdownBanner: TextLabel? = nil
 local alarmPips: { Frame } = {}
 local coverRoot: Frame? = nil
 local alive = true
@@ -78,9 +79,9 @@ local function build()
 	local alarmPanel = HudKit.panel(
 		screen,
 		"Alarm",
-		UDim2.fromOffset(graphics.MarginPixels, graphics.MarginPixels),
-		Vector2.zero,
-		UDim2.fromOffset(graphics.VitalsWidthPixels, graphics.CoverHeightPixels)
+		HudLayout.position(layout.Alarm),
+		HudLayout.anchor(layout.Alarm),
+		UDim2.fromOffset(layout.Alarm.Width, layout.Alarm.Height)
 	)
 	HudKit.icon(
 		alarmPanel,
@@ -97,7 +98,13 @@ local function build()
 		UDim2.new(1, -graphics.PaddingPixels * 3 - graphics.IconPixels, 0, graphics.IconPixels)
 	)
 	alarmLabel.TextSize = graphics.CaptionSize
-	local alarmLevels = GameConfig.Security.Alarm.MaxLevel
+	local banner = HudKit.text(alarmPanel, "Lockdown", alarmLabel.Position, Vector2.zero, alarmLabel.Size)
+	banner.Text = "LOCKDOWN"
+	banner.TextSize = graphics.CaptionSize
+	banner.TextColor3 = ui.WarningColor
+	banner.Visible = false
+	lockdownBanner = banner
+	local alarmLevels = GameConfig.Security.Alarm.MaxLevel + 1
 	for index = 1, alarmLevels do
 		local pip = Instance.new("Frame")
 		pip.BorderSizePixel = 0
@@ -213,9 +220,13 @@ local function refreshText(now: number)
 	label.TextColor3 = graphics.TextColor
 	if alarmLabel then
 		alarmLabel.Text = `ALARM {alarm}`
+		alarmLabel.Visible = alarm < GameConfig.Security.Alarm.MaxLevel
+	end
+	if lockdownBanner then
+		lockdownBanner.Visible = alarm == GameConfig.Security.Alarm.MaxLevel
 	end
 	for index, pip in alarmPips do
-		pip.BackgroundColor3 = if index <= alarm then ui.WarningColor else ui.ScanRingDimColor
+		pip.BackgroundColor3 = if index <= alarm + 1 then ui.WarningColor else ui.ScanRingDimColor
 	end
 
 	local lockout = math.max(0, lockoutEndsAt - now)
