@@ -118,8 +118,8 @@ with `IntelService.spend(teamId, amount)`. Server-authoritative; the client only
 
 ## Not built (Step 18 to do)
 - Asset UI (client, Codex): the four-slot loadout screen, an in-match strip from `AssetState`, safe colours from `Rarity` and
-  `Opened`: ticket 18e-hud. SPEC-QUESTIONs: Field Medic does nothing for Health Stations (they heal to full); Duct Rat's "quiet"
-  is read as no Cover break from Black Ops.
+  `Opened`: ticket 18e-hud. Decided by the owner 2026-10-28: Field Medic shortens the Health Station hold; Duct Rat's "quiet"
+  is no Cover break entering a vent from Black Ops (kept as built).
 - The shop screen (a menu over `ShopState` with buy buttons calling `RequestShopBuy`): ticket 18c-hud for Codex. Until it
   exists nobody can pick an item with a button.
 - 18d: Agent Tag drop, pickup and Rescue (10 intel) at a Supply Cache.
