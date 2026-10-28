@@ -7,16 +7,13 @@
 --   * Hold Interact on a station (InteractService kind "Intel") for its HackSeconds. Progress is kept per team for
 --     Intel.TerminalProgressKeepSeconds if the hold is broken. You must be close and in sight of it, and your disguise
 --     must clear the room's tier. The hold is Suspicious if witnessed (CoverService.noteHacking).
---   * Intel belongs to the team. It is also the currency (doors, healing and ammo spend it in Step 18): spending lowers
---     the team's balance and so the unlock progress. The match-wide total is the sum of the balances.
---   * When the total reaches min(Cap, Base + teams * PerTeam) during Infiltration the Vault Breach begins.
+--   * Intel belongs to the team and is the currency (doors, healing and ammo spend it in Step 18). It no longer unlocks the
+--     vault: the Sanctum opens when the vault terminals are hacked (SPEC_CHANGES 2026-10-25, VaultService).
 --
--- A team's balance goes to that team alone (IntelUpdate); the total and its threshold go to everyone (GlobalIntelUpdate).
+-- A team's balance goes to that team alone (IntelUpdate).
 --
 --   IntelService.balance(teamId) -> number
 --   IntelService.spend(teamId, amount) -> boolean   false when the team cannot afford it
---   IntelService.globalTotal() -> number
---   IntelService.threshold() -> number
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -54,19 +51,6 @@ function IntelService.balance(teamId: number): number
 	return balances[teamId] or 0
 end
 
-function IntelService.globalTotal(): number
-	local total = 0
-	for _, balance in balances do
-		total += balance
-	end
-	return total
-end
-
-function IntelService.threshold(): number
-	local unlock = config.Unlock
-	return math.min(unlock.Cap, unlock.Base + MatchService.teamCount() * unlock.PerTeam)
-end
-
 local function sendTeam(teamId: number)
 	local ids: { string } = {}
 	for id in used[teamId] or {} do
@@ -77,29 +61,12 @@ local function sendTeam(teamId: number)
 	RemoteService.fireClients("IntelUpdate", TeamService.members(teamId), info)
 end
 
-local function sendGlobal()
-	local info: Types.GlobalIntelInfo = { Current = IntelService.globalTotal(), Threshold = IntelService.threshold() }
-	RemoteService.fireAllClients("GlobalIntelUpdate", info)
-end
-
-local function checkUnlock()
-	if MatchService.phase() == "Infiltration" and IntelService.globalTotal() >= IntelService.threshold() then
-		MatchService.advance("VaultBreach")
-	end
-end
-
-local function changed(teamId: number)
-	sendTeam(teamId)
-	sendGlobal()
-	checkUnlock()
-end
-
 function IntelService.spend(teamId: number, amount: number): boolean
 	if amount <= 0 or IntelService.balance(teamId) < amount then
 		return false
 	end
 	balances[teamId] = IntelService.balance(teamId) - amount
-	changed(teamId)
+	sendTeam(teamId)
 	return true
 end
 
@@ -113,7 +80,7 @@ local function take(teamId: number, station: Station)
 	if GameConfig.Debug.PrintEvents then
 		print(`[Intel] team {teamId} took {station.id} (+{station.points}): {balances[teamId]}`)
 	end
-	changed(teamId)
+	sendTeam(teamId)
 end
 
 local function beginStation(player: Player, targetName: string): InteractService.Interaction?
@@ -179,7 +146,6 @@ local function reset()
 	table.clear(balances)
 	table.clear(used)
 	table.clear(saved)
-	sendGlobal()
 end
 
 function IntelService.Init() end

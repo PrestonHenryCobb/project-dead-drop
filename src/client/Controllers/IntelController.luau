@@ -5,10 +5,9 @@
 --     RequestInteract("Intel", id). The server times the hold and checks everything again.
 --   * A station you could still take glints faintly gold when it is within Intel.GlintRange and in sight (spec 9.2).
 --     A station your team has taken stops glinting. Only the stations (map props) are marked, never a character.
---   * The balance and the match-wide total are kept for the HUD: IntelController.balance() and .global().
+--   * The team's balance is kept for the HUD: IntelController.balance().
 --
 --   IntelController.balance() -> number
---   IntelController.global() -> Types.GlobalIntelInfo?
 
 local CollectionService = game:GetService("CollectionService")
 local ContextActionService = game:GetService("ContextActionService")
@@ -34,7 +33,6 @@ local CHECK_SECONDS = 0.1
 local stations: { [BasePart]: boolean } = {}
 local used: { [string]: boolean } = {}
 local balance = 0
-local globalInfo: Types.GlobalIntelInfo? = nil
 local target: BasePart? = nil
 local holding = false
 local bound = false
@@ -48,10 +46,6 @@ sight.RespectCanCollide = true
 
 function IntelController.balance(): number
 	return balance
-end
-
-function IntelController.global(): Types.GlobalIntelInfo?
-	return globalInfo
 end
 
 local function idOf(part: BasePart): string?
@@ -188,13 +182,10 @@ function IntelController.Start()
 			used[id] = true
 		end
 	end)
-	RemoteController.connect("GlobalIntelUpdate", function(info: Types.GlobalIntelInfo)
-		globalInfo = info
-	end)
 	-- A new match starts with nothing taken; the server sends the empty state, so this only guards a missed message.
 	RemoteController.connect("PhaseChanged", function(phase: Types.Phase)
 		if phase == "Lobby" then
-			balance, globalInfo = 0, nil
+			balance = 0
 			table.clear(used)
 		end
 	end)

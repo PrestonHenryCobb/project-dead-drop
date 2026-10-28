@@ -609,8 +609,8 @@ local GameConfig = {
 		IdleTurnDeadband = 25, -- degrees between body and camera before it turns at all
 		-- The puff when a disguise is stripped on exposure (spec 7.2). A disguise change has no puff (brief Q6).
 		DisguisePuffParticles = 20,
-		DisguisePuffSeconds = 1.5,
 		HackingGraceSeconds = 0.4, -- ticket 11a: a hold counts as hacking this long after IntelService's last check of it
+		DisguisePuffSeconds = 1.5,
 		-- Brief Q6 (SPEC_CHANGES 6.4): where someone changes disguise, rival agents see a marker for longer the higher
 		-- the tier put on. The server tells a rival only once they come within SwapMarkerRange, so nobody learns of
 		-- swaps across the map. SPEC-QUESTION: the range was left to tune in play; 60 matches the exposed ping.
@@ -687,17 +687,18 @@ local GameConfig = {
 			ExtraIntelFunds = 50, -- at 5 and above, per extra Intel
 			ExtraIntelFrom = 5,
 		},
-		-- 9.4: vault unlocks when GlobalIntel >= min(Cap, Base + teams * PerTeam).
-		Unlock = { Base = 5, PerTeam = 5, Cap = 35 },
-	},
 		-- Ticket 11a: SPEC_CHANGES scaled the map to 36 stations and never limited how many are live, so every station is
 		-- usable. SPEC-QUESTION: ActiveSpawns (spec 9.2: 10 per match) is therefore not used.
-
+	},
 		InteractStuds = 5, -- how close you stand to work a station
 		InteractSlackStuds = 1.5, -- allowance for lag while the hold runs
 		AimDegrees = 40, -- a station this far off the crosshair can be picked (client)
 		GlintMax = 6, -- at most this many stations glint at once (client)
+
 	-- Spec 10: vault.
+		GlintColor = Color3.fromRGB(255, 205, 80), -- ticket 11a: the faint glint on a station you could still take
+		GlintFillTransparency = 0.8,
+		GlintOutlineTransparency = 0.35,
 	Vault = {
 		BaseRate = 1.25, -- percent per second, regardless of how many agents are in the zone
 		BonusMult = 1.25, -- team with HackBonusAt+ intel
@@ -705,9 +706,6 @@ local GameConfig = {
 		OpenAnimSeconds = 4,
 		ExtraSecurityOnOpen = 2,
 	},
-		GlintColor = Color3.fromRGB(255, 205, 80), -- ticket 11a: the faint glint on a station you could still take
-		GlintFillTransparency = 0.8,
-		GlintOutlineTransparency = 0.35,
 
 	-- Spec 11: package.
 	Package = {
@@ -724,6 +722,16 @@ local GameConfig = {
 	Extraction = {
 		CallSeconds = 2,
 		CallRange = 10, -- a teammate within this many studs of the carrier may also call
+		-- Ticket 12a (SPEC_CHANGES 2026-10-25: 3 of the 5 vaults are active and hacking their terminals opens the Sanctum).
+		-- BaseRate and BonusMult now apply to each terminal. SPEC-QUESTION: 1.25 percent a second (80 s a terminal) is the
+		-- old single-bar rate; tune in play.
+		ActiveVaults = 3,
+		CheckHz = 5,
+		BroadcastSeconds = 0.5,
+		TerminalHeightStuds = 6, -- how far above or below the dais a hacker may stand
+		TerminalSize = Vector3.new(2, 3.2, 1.2),
+		TerminalColor = Color3.fromRGB(70, 200, 255),
+		SanctumShaftId = "E5", -- the elevator that stays locked until every active terminal is hacked
 		Countdown = 45,
 		HoverSeconds = 2,
 		ZoneSize = 16,

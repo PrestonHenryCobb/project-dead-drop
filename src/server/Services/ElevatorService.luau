@@ -15,6 +15,7 @@
 --   ElevatorService.board(shaft, rider, toY): boolean
 --   ElevatorService.position(shaft, rider): Vector3?   where a rider stands, nil once it has left the cab
 --   ElevatorService.arrived(shaft, rider): boolean     the cab is at the rider's stop with its doors open (the rider is released)
+--   ElevatorService.setLocked(shaftId, locked)  VaultService opens the Sanctum elevator (ticket 12a)
 --   ElevatorService.leave(shaft, rider)         a rider that cannot ride on (downed) leaves the list
 
 local CollectionService = game:GetService("CollectionService")
@@ -207,6 +208,14 @@ end
 
 function ElevatorService.Start()
 	RunService.Heartbeat:Connect(step)
+end
+
+-- Ticket 12a: VaultService locks the Sanctum elevator at the start of a match and opens it when the terminals are hacked.
+function ElevatorService.setLocked(shaftId: string, locked: boolean)
+	local shaft = shafts[shaftId]
+	if shaft then
+		shaft.locked = locked
+	end
 end
 
 -- True while a shaft is locked (the Sanctum elevator until its terminals are hacked): no cab comes.

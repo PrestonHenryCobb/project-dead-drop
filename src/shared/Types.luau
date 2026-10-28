@@ -400,9 +400,19 @@ export type PreDeployState = {
 	Members: { PreDeployMember },
 }
 
--- Ticket 11a: a team's Intel (IntelUpdate, to that team only) and the match-wide unlock counter (GlobalIntelUpdate, to all).
+-- Ticket 12a: the vault terminals (VaultProgress, to everyone once the Vault Breach begins). Progress is 0 to 1 and global:
+-- one bar per terminal that every team's hacking adds to.
+export type VaultTerminalInfo = {
+	VaultId: string,
+	Position: Vector3,
+	Progress: number,
+	Contested: boolean, -- agents of two or more teams stand on it, so it is paused
+	Hacked: boolean,
+}
+export type VaultProgressInfo = { Terminals: { VaultTerminalInfo } }
+
+-- Ticket 11a: a team's Intel (IntelUpdate, to that team only).
 export type IntelUpdateInfo = { Balance: number, Used: { string } } -- Used: the station ids this team has already taken
-export type GlobalIntelInfo = { Current: number, Threshold: number }
 
 -- Ticket 10a: the match phases (spec 2). PhaseChanged(phase, PhaseData) goes to every client on each transition, and to
 -- the players in the lobby whenever the wait for the match changes. All times are on the server clock
