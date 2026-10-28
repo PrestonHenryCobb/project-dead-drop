@@ -215,8 +215,8 @@ they differ (see MENU_CONTRACT.md "Where the handoffs were corrected").
 | 12a | VaultService (Step 12, re-layout rules): 3 of 5 vaults active per match with a terminal on each dais, server-wide per-terminal hack by standing on the dais (1.25 %/s, x1.25 with 3 intel, paused when contested, Exposed on the dais), Vault Breach on the first hack or at 6:00, all 3 hacked unlocks the Sanctum elevator and starts the Package Heist. Contract: .ai-sync/VAULT_CONTRACT.md. **Built, untested in Studio.** | CLAUDE_CODE | 10a, 11a | READY_FOR_REVIEW |
 | 12b | Vault HUD: terminal progress bars with CONTESTED, markers at the terminals during Vault Breach. Read VAULT_CONTRACT.md; no server change. | CODEX | 12a | READY_FOR_REVIEW |
 | 13a | PackageService + ExtractionService + PackageController (Step 13): Package pickup/carrier rules/pass/drop/return/pings, extraction sites (call, 45 s or 20 s countdown, beacon, hover, green zone, 3 s channel), win via MatchService.finish, Overtime (90 s cap, 10 s drop grace) from the main timer when the Package is held. Contract: .ai-sync/PACKAGE_CONTRACT.md. **Built, untested in Studio.** | CLAUDE_CODE | 12a | READY_FOR_REVIEW |
-| 13b | Package/extraction/overtime HUD: package and ping markers, extraction countdown, zone and channel, overtime timer. Read PACKAGE_CONTRACT.md; no server change. | CODEX | 13a | TODO |
-| 13c | Extraction presentation: helicopter at Hover, 5 s cinematic at Extracted, MISSION SUCCESS/FAILED. | CODEX | 13a | TODO |
+| 13b | Package/extraction/overtime HUD: package and ping markers, extraction countdown, zone and channel, overtime timer. Read PACKAGE_CONTRACT.md; no server change. | CODEX | 13a | READY_FOR_REVIEW |
+| 13c | Extraction presentation: helicopter at Hover, 5 s cinematic at Extracted, MISSION SUCCESS/FAILED. | CODEX | 13a | READY_FOR_REVIEW |
 
 ## Waiting on the owner
 
