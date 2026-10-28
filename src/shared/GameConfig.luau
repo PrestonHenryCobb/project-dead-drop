@@ -1092,6 +1092,11 @@ local GameConfig = {
 			Plates = 1,
 			AbilityCooldownMult = 0.5,
 			MaxPerPlayer = 1,
+			-- Ticket 18d: how the Agent Tag looks in the world (a small glowing badge) and how high above the floor it floats.
+			TagSize = Vector3.new(1.2, 0.2, 1.2),
+			TagColor = Color3.fromRGB(255, 214, 90),
+			TagLiftStuds = 0.6,
+			SpawnLiftStuds = 4, -- a rescued agent is put this high above their Insertion Point and drops to the floor
 		},
 	},
 
@@ -1132,6 +1137,8 @@ local GameConfig = {
 				{ Id = "GadgetCharge", Name = "Gadget charge", Price = 3 },
 				{ Id = "AbilityCooldownReset", Name = "Ability cooldown reset", Price = 4 },
 				{ Id = "SecurityKeycard", Name = "Security Keycard", Price = 3 },
+				-- Ticket 18d: priced by Downed.Rescue.Cost (Price here is not used) and takes Downed.Rescue.CacheSeconds.
+				{ Id = "RescueTeammate", Name = "Rescue teammate", Price = 0 },
 			},
 			SecurityKeycardUses = 3,
 			KeycardSeconds = 1,

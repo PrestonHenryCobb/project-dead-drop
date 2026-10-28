@@ -229,8 +229,9 @@ they differ (see MENU_CONTRACT.md "Where the handoffs were corrected").
 | 16f | Agents: Feint (Double decoy NPC, Smoke and Mirrors ping offset and 0.3 s disguise). Completes the six agents. Contract: .ai-sync/ABILITY_CONTRACT.md. **Tested solo in Studio except the ping offset.** | CLAUDE_CODE | 16e | READY_FOR_REVIEW |
 | 17a | Gadgets: GadgetService + GadgetController (keys 1 to 3, equip/deploy/alternate through HeldItemController), GadgetDefs, loadout GadgetIds, Med Injector, Plate Pack (and Plated's faster plates). Contract: .ai-sync/GADGET_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 16f | READY_FOR_REVIEW |
 | 17b | Gadgets, Evasion: Spring Pad (LaunchController), Noise Maker (NPC noise reaction), Disguise Kit; Gadgets/Spot. Contract: .ai-sync/GADGET_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 17a | READY_FOR_REVIEW |
+| 18d | Economy: Agent Tag drop and pickup, and Rescue as a Supply Cache item (RescueService; MatchService.reinstate; AbilityService.setCooldownFraction). Contract: .ai-sync/ECONOMY_CONTRACT.md. **Only the tag drop and the respawn steps were tested solo; pickup and the shop item need a teammate.** | CLAUDE_CODE | 18c | READY_FOR_REVIEW |
 | 18c | Economy: Supply Cache shop (SupplyService: sessions, discount, 2 s purchases that break Cover, six intel-priced items, Security Keycard use at keycard doors). Contract: .ai-sync/ECONOMY_CONTRACT.md. **Tested solo in Studio except ammo/gadget/ability items.** | CLAUDE_CODE | 18b | READY_FOR_REVIEW |
-| 18c-hud | Supply Cache shop screen: while `ShopState.Open` show the items (name, price, Reason when not Available), the team Intel balance and a progress bar while `Buying` (BuySeconds); a click calls `RequestShopBuy(itemId)`, a close button or Escape calls `RequestShopClose`. Client only; read ECONOMY_CONTRACT.md. | CODEX | 18c | TODO |
+| 18c-hud | Supply Cache shop screen: while `ShopState.Open` show the items (name, price, Reason when not Available), the team Intel balance and a progress bar while `Buying` (BuySeconds); a click calls `RequestShopBuy(itemId)`, a close button or Escape calls `RequestShopClose`. Client only; read ECONOMY_CONTRACT.md. | CODEX | 18c | IN_PROGRESS (CODEX) |
 | 18b | Economy: wall stations (Health Station 3 intel, Ammo Cache 2 intel, free Food Spots +15 HP) via StationService. Contract: .ai-sync/ECONOMY_CONTRACT.md. **Tested solo in Studio except the Ammo Cache.** | CLAUDE_CODE | 18a | READY_FOR_REVIEW |
 | 18a | Economy: hack a shut tier door open with intel (DoorHack hold, price HackCost, Wired discount, Long Lens and Keycard Clone on tier doors, door ids). Contract: .ai-sync/ECONOMY_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 17e | READY_FOR_REVIEW |
 | 17e | Gadgets, Support: Briefcase Shield (Shields.create takes a carried spec; DisguiseService.setSprintBlocked). Completes the 12 gadgets and Step 17. Contract: .ai-sync/GADGET_CONTRACT.md. **Tested solo in Studio.** | CLAUDE_CODE | 17d | READY_FOR_REVIEW |
@@ -432,8 +433,3 @@ No optimistic preference, new main tab, server change or persistence. H remains 
 and multiplayer timing acceptance remain. No new SPEC-QUESTION. docs/AUTO_RECOVER_HUD_REVIEW_2026-10-28.md.
 
 
-## Supply Cache client (owner continuation, 2026-10-28)
-
-| Id | Work | Owner | Status |
-|---|---|---|---|
-| 18c-ui | ShopState-driven Supply Cache purchase UI; client only. Follow with 18d UI after Claude publishes its contract. | CODEX | IN_PROGRESS (CODEX) |

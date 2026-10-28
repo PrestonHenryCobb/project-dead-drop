@@ -77,6 +77,15 @@ local KINDS: { Kind } = {
 		end,
 	},
 	{
+		-- Ticket 18d: an Agent Tag; the server lets only a living teammate of the fallen agent take it.
+		tag = Enums.Tag.AgentTag,
+		kind = "AgentTag",
+		idAttribute = "TagId",
+		usable = function(part, from)
+			return (part.Position - from).Magnitude <= GameConfig.Downed.InteractStuds
+		end,
+	},
+	{
 		-- Ticket 18c: a Supply Cache opens its shop (the shop screen itself is the client's ShopState).
 		tag = Enums.Tag.SupplyCache,
 		kind = "SupplyCache",

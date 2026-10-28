@@ -102,6 +102,16 @@ function AbilityService.resetCooldown(player: Player)
 	end
 end
 
+-- Ticket 18d: a rescued agent's ability comes back on a cooldown of `fraction` of its length.
+function AbilityService.setCooldownFraction(player: Player, fraction: number)
+	local talent = talentOf(player)
+	if talent then
+		local seconds = (talent.CooldownSeconds or 0) * fraction
+		readyAt[player] = os.clock() + seconds
+		sendCooldown(player, talent.Name, talent.CooldownSeconds or 0, seconds)
+	end
+end
+
 -- A new match: every ability is ready, and each player is told what theirs is.
 local function resetAll()
 	table.clear(readyAt)

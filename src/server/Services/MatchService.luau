@@ -392,6 +392,11 @@ local function tick()
 	end
 end
 
+-- Ticket 18d: a rescued agent is back in the match (RescueService).
+function MatchService.reinstate(player: Player)
+	out[player] = nil
+end
+
 function MatchService.Init() end
 
 function MatchService.Start()

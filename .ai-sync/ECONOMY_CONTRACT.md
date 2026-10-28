@@ -45,6 +45,19 @@ with `IntelService.spend(teamId, amount)`. Server-authoritative; the client only
   worked, and the keycard made a keycard door hold "Use keycard" for 1 s. Not tested: Ammo refill, Gadget charge, Ability reset
   when cooling down, two agents at one cache, walking off.
 
+- **18d: Agent Tag and Rescue.** `RescueService`: an eliminated agent (not in Solos) drops an Agent Tag part (tag `AgentTag`,
+  attribute `TagId` only, a small neon badge) at their body for `AgentTagSeconds` (90). A living teammate holds Interact on it
+  (kind `AgentTag`, `Rescue.TagPickupSeconds` 1, quiet) to carry it; a carrier who is eliminated drops what they carried. At a
+  Supply Cache the shop item "Rescue teammate" (`Downed.Rescue.Cost` 10 intel, tier discount applies, `CacheSeconds` 3, breaks Cover)
+  is available to a carrier (reasons: "No rescue in Solos", "Rescue is off during Overtime", "Carry an Agent Tag", "Nobody left
+  to rescue"). Buying it takes the first carried agent who is still out and has been rescued fewer than `MaxPerPlayer` (1) times:
+  `MatchService.reinstate`, `LoadCharacter` (a random Guest look, 100 HP, the usual plates and ammo), put at the Insertion Point
+  nearest the cache, ability on half its cooldown (`AbilityService.setCooldownFraction`). Tags and carried tags are cleared at
+  Insertion. Client: `SecurityInteractController` outlines a tag in reach.
+  Tested solo in Studio: the whole team out dropped a tag at the body with only a `TagId`; `LoadCharacter` plus the placement
+  at the nearest Insertion Point worked after an elimination. Not tested (they need a living teammate): the pickup and the carry,
+  the shop item, the one-rescue limit, Overtime, the half cooldown.
+
 ## Not built (Step 18 to do)
 - The shop screen (a menu over `ShopState` with buy buttons calling `RequestShopBuy`): ticket 18c-hud for Codex. Until it
   exists nobody can pick an item with a button.

@@ -10,7 +10,8 @@
 --   * A cache in a zone of HigherTierMinTier or more is HigherTierDiscount cheaper (spec 17.3).
 --   * Items: an armour plate, a full ammo refill, healing to full, a gadget charge, an ability cooldown reset, and a Security
 --     Keycard of SecurityKeycardUses uses. Each use of a keycard opens a keycard door in KeycardSeconds without breaking Cover
---     (SecurityService asks keycardUses and useKeycard). Rescuing a teammate is Step 18d.
+--     (SecurityService asks keycardUses and useKeycard). Rescue teammate (RescueService, ticket 18d) costs
+--     Downed.Rescue.Cost and takes Downed.Rescue.CacheSeconds.
 -- The shop's screen is the client's (ShopState); nothing here draws anything.
 --
 --   SupplyService.keycardUses(player) -> number
@@ -34,6 +35,7 @@ local IntelService = require(script.Parent.IntelService)
 local InteractService = require(script.Parent.InteractService)
 local MatchService = require(script.Parent.MatchService)
 local RemoteService = require(script.Parent.RemoteService)
+local RescueService = require(script.Parent.RescueService)
 local TeamService = require(script.Parent.TeamService)
 local ZoneService = require(script.Parent.ZoneService)
 
@@ -60,6 +62,17 @@ function SupplyService.useKeycard(player: Player): boolean
 	return true
 end
 
+local RESCUE = "RescueTeammate"
+
+-- The base price in intel: the rescue is Downed.Rescue.Cost, the rest are in the shop's item list.
+local function baseOf(item: { Id: string, Name: string, Price: number }): number
+	return if item.Id == RESCUE then GameConfig.Downed.Rescue.Cost else item.Price
+end
+
+local function secondsOf(itemId: string): number
+	return if itemId == RESCUE then GameConfig.Downed.Rescue.CacheSeconds else config.PurchaseSeconds
+end
+
 local function priceOf(cache: Cache, base: number): number
 	if cache.tier == nil then
 		cache.tier = ZoneService.tierAt(cache.part.Position) -- read when first needed: the zones are made at boot
@@ -84,11 +97,14 @@ local function unavailable(player: Player, itemId: string): string?
 		return if AbilityService.onCooldown(player) then nil else "Ability is ready"
 	elseif itemId == "SecurityKeycard" then
 		return if SupplyService.keycardUses(player) < config.SecurityKeycardUses then nil else "Keycard is full"
+	elseif itemId == RESCUE then
+		local _, reason = RescueService.canRescue(player)
+		return reason
 	end
 	return "Unknown item"
 end
 
-local function apply(player: Player, itemId: string)
+local function apply(player: Player, itemId: string, cache: Cache)
 	if itemId == "ArmorPlate" then
 		CombatService.addPlate(player)
 	elseif itemId == "AmmoRefill" then
@@ -101,6 +117,8 @@ local function apply(player: Player, itemId: string)
 		AbilityService.resetCooldown(player)
 	elseif itemId == "SecurityKeycard" then
 		keycards[player] = config.SecurityKeycardUses
+	elseif itemId == RESCUE then
+		RescueService.rescue(player, cache.part.Position)
 	end
 end
 
@@ -126,7 +144,7 @@ local function send(player: Player, session: Session?, open: boolean)
 		Intel = if teamId then IntelService.balance(teamId) else 0,
 		Items = {},
 		Buying = if session then session.buying else nil,
-		BuySeconds = config.PurchaseSeconds,
+		BuySeconds = if session and session.buying then secondsOf(session.buying) else config.PurchaseSeconds,
 	}
 	if open and session then
 		for _, item in config.Items do
@@ -134,7 +152,7 @@ local function send(player: Player, session: Session?, open: boolean)
 			table.insert(info.Items, {
 				Id = item.Id,
 				Name = item.Name,
-				Price = priceOf(session.cache, item.Price),
+				Price = priceOf(session.cache, baseOf(item)),
 				Available = reason == nil,
 				Reason = reason or "",
 			})
@@ -194,7 +212,7 @@ local function onBuy(player: Player, itemId: unknown)
 	local price: number? = nil
 	for _, item in config.Items do
 		if item.Id == itemId then
-			price = priceOf(session.cache, item.Price)
+			price = priceOf(session.cache, baseOf(item))
 		end
 	end
 	if not price or unavailable(player, itemId) or IntelService.balance(teamId) < price then
@@ -206,7 +224,7 @@ local function onBuy(player: Player, itemId: unknown)
 	local buyId = session.buyId
 	CoverService.expose(player, "Shop") -- buying breaks Cover (spec 17.3)
 	send(player, session, true)
-	task.delay(config.PurchaseSeconds, function()
+	task.delay(secondsOf(itemId), function()
 		if sessions[player] ~= session or session.buyId ~= buyId then
 			return
 		end
@@ -218,7 +236,7 @@ local function onBuy(player: Player, itemId: unknown)
 			and unavailable(player, itemId) == nil
 			and IntelService.spend(teamId, price :: number)
 		then
-			apply(player, itemId)
+			apply(player, itemId, session.cache)
 		end
 		send(player, session, true)
 	end)
