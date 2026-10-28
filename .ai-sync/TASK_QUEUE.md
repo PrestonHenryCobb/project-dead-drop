@@ -480,3 +480,11 @@ added without a KeycardState contract; Notifications are not treated as inventor
 | Id | Ticket | Owner | Needs | Status |
 |---|---|---|---|---|
 | elevator-selector | Cab selector from Stops/State/Level, exact floor requests, mouse/gamepad controls and lifecycle cleanup; elevator/printer prompts and acknowledged hold labels. StyLua/Selene/Rojo and 82 actual-source assertions pass. Client only; Studio review pending. | CODEX | Glass elevators contract | READY_FOR_REVIEW |
+
+## GPS (owner design 2026-10-28, docs/GPS_DESIGN.md)
+
+| Id | Work | Owner | Status |
+|---|---|---|---|
+| gps-1 | RouteService: `RequestRoute`, clean and fast routes, targets, hidden vents. Contract: .ai-sync/ROUTE_CONTRACT.md. **Tested solo in Studio** except teammate and extraction targets and the zipline, gondola and ladder legs. | CLAUDE_CODE | READY_FOR_REVIEW |
+| gps-2 | CarrierTrackService: the Package carrier's tap (nearest rival, 1 intel) and hold (all rivals within 60 studs, 1 intel a second), the cue to the tracked rival. | CLAUDE_CODE | TODO |
+| gps-client | Minimap, route line (clean and fast, flagged steps), target cycling, floor arrows, carrier tracking controls and the vignette and whisper cue. Read ROUTE_CONTRACT.md. | CODEX | TODO (gps-1 is ready; gps-2 first for the carrier parts) |

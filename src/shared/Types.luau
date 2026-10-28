@@ -559,6 +559,34 @@ export type MenuView = {
 	Unmount: () -> (),
 }
 
+-- GPS (docs/GPS_DESIGN.md): the answer to RequestRoute. Targets are what the match has revealed to this player; Selected is the
+-- one the routes lead to. Clean keeps the current disguise's clearance and Cover; Fast may hack tier doors and use the ways that
+-- break Cover. Either is nil when there is no such route. Points is the polyline from the player to the target; each Step names
+-- what happens at the point Index (a floor change, a hack with its intel price, a Cover-breaking way).
+export type RouteStepInfo = {
+	Index: number,
+	Kind: string, -- "Hack", "Restricted", "Stair", "Elevator", "Vent", "Zipline", "Gondola" or "Ladder"
+	Detail: string?, -- "Door" or "Elevator" for a Hack
+	Intel: number?, -- the intel a Hack costs
+	CoverBreak: boolean,
+}
+export type RouteInfo = {
+	Points: { Vector3 },
+	Length: number,
+	HackIntel: number,
+	CoverBreaks: number,
+	Affordable: boolean, -- the team's intel pays for every hack on it
+	Steps: { RouteStepInfo },
+}
+export type RouteTargetInfo = { Id: string, Name: string, Kind: string } -- Kind: "Terminal", "Extraction" or "Teammate"
+export type RouteResult = {
+	Targets: { RouteTargetInfo },
+	Selected: string?,
+	Clean: RouteInfo?,
+	Fast: RouteInfo?,
+	Intel: number, -- the team's intel now
+}
+
 -- Token-bucket limits for one client -> server remote (GameConfig.Network).
 export type RateLimit = {
 	PerSecond: number,

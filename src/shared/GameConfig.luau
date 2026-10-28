@@ -1806,6 +1806,31 @@ local GameConfig = {
 		CharactersCollideWithEachOther = false,
 	},
 
+	-- GPS routes (docs/GPS_DESIGN.md, owner answers 2026-10-28). RouteService searches the NPC lane graph twice for a player: the
+	-- clean route keeps to the doors and zones the current disguise may enter; the fast route may also hack tier doors (an intel
+	-- price counts as HackStudsPerIntel studs of walking), cross a zone above the clearance (RestrictedStuds), and use the ways
+	-- that break Cover. A traversal's cost is its length times the multiplier, plus a wait for the gondola. NodeSnapStuds is how
+	-- far a start or target may be from the nearest lane node (a storey of height counts FloorWeight times); a traversal end joins
+	-- the nearest node within ConnectStuds (and ConnectFloorStuds up or down). A vent is hidden: the route may enter a grate only
+	-- after the player has come within SeenStuds of it in sight (checked SeenHz times a second). SPEC-QUESTION: discovery is
+	-- per player and a grate shows only that grate's own way through; secret exits are not built yet, so no route uses them.
+	Route = {
+		NodeSnapStuds = 40,
+		FootStuds = 3, -- a player's root is this far above the floor
+		FloorWeight = 3,
+		HackStudsPerIntel = 20,
+		RestrictedStuds = 80,
+		VentCostMult = 2.5,
+		ZiplineCostMult = 0.35,
+		LadderCostMult = 2,
+		GondolaWaitStuds = 120,
+		ConnectStuds = 40,
+		JoinChestStuds = 2, -- the height of the line that must be clear between a traversal end and its lane node
+		ConnectFloorStuds = 6,
+		SeenStuds = 14,
+		SeenHz = 2,
+	},
+
 	-- Ziplines, vents and the gondola (BUILD_ORDER Step 7B pass 2b). Using any of them breaks Cover (spec 7.2).
 	Traversal = {
 		Zipline = {
@@ -1907,6 +1932,7 @@ local GameConfig = {
 			RequestAbility = { PerSecond = 2, Burst = 3 }, -- ticket 16: a key press; the server holds the cooldown
 			RequestSparrowMove = { PerSecond = 30, Burst = 30 }, -- ticket 16c: sent at Lattice.SparrowDrone.MoveHz
 			RequestAutoRecover = { PerSecond = 2, Burst = 3 }, -- a key press
+			RequestRoute = { PerSecond = 2, Burst = 4 }, -- GPS: the client asks about once a second while a route shows
 			RequestElevatorFloor = { PerSecond = 2, Burst = 4 }, -- ticket 7B-glass-elevators: a key press in the cab
 			RequestShopBuy = { PerSecond = 2, Burst = 4 }, -- ticket 18c: a button
 			RequestShopClose = { PerSecond = 2, Burst = 4 },

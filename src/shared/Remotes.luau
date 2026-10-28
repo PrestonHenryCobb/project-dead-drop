@@ -116,6 +116,7 @@ local Remotes = {
 	-- unless noted. Rate-limited like the events; a limited call returns (false, "RateLimited").
 	ClientToServerFunctions = {
 		"GetPlayerMetaProfile", -- returns Types.MetaSnapshot
+		"RequestRoute", -- GPS (docs/GPS_DESIGN.md): (targetId?) returns Types.RouteResult
 		"RequestEquipLoadout", -- (Types.LoadoutRequest)
 		"RequestClaimStarterAgent", -- (agentId): the free first-launch pick for that agent's class
 		"RequestClaimDossierTier", -- (dossierId, tierIndex)
