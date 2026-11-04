@@ -1,21 +1,38 @@
 # Weapon server contracts (tickets 8.5a, 8.5b, 8.5e, 8.5f)
 
-Written by Claude Code, 2026-10-27, for Codex. Everything below is built on the server and **lint-clean but not yet
-run in Studio** (no place was open). The six weapons are **not** in `WeaponDefs`: their entries live in
-`src/server/Tools/PendingWeaponDefs.luau` with the owner-approved numbers. Each one is registered when its client side
-(model, handling, prediction, effects) works; then move its entry from that file into `WeaponDefs` (replace the
-placeholder `Spread`, `Recoil`, `AimZoom`) and delete it from the pending file. Agent hardware slots live in
-`AgentDefs`; a weapon is only offered once `WeaponDefs.byId` has it.
+Written by Claude Code, 2026-10-27, for Codex. **Update 2026-11-03:** all six weapons are now registered in
+`WeaponDefs` (Codex, commit 90df8d0) and `PendingWeaponDefs.luau` is empty. The server rules were run in Studio for the
+first time on 2026-11-03 against NPC targets; see "Studio results 2026-11-03" below for what passed and what still needs
+a second player. The sections after it are the original contracts.
 
-To try one on the server alone (Server Command Bar, playtest, one player):
+To select one on the server alone (playtest, one player) use the real selector so the client agrees:
+`CombatService.testCycle(player, "All")` repeatedly until `getTestWeaponId(player)` is the weapon wanted (a Script created
+from `execute_luau` shares the live module cache; a Command Bar `require` does not). Then fire from the Client side with
+`FireRequest:FireServer(origin, direction, serverTime, weaponId)` (a list of 8 directions for the pump) and
+`RequestMelee:FireServer("Press"/"Release", look)`. `testEquip` still exists but leaves the client on the old weapon, which
+makes the real `WeaponController` cancel scripted melee holds.
 
-```lua
-local Pending = require(game.ServerScriptService.Server.Tools.PendingWeaponDefs)
-require(game.ServerScriptService.Server.Services.CombatService).testEquip(game.Players:GetPlayers()[1], Pending.ParapetPump)
-```
+## Studio results 2026-11-03 (solo, NPC targets, Guests frozen with `NPCService.setHeld`)
 
-`testEquip` is Studio-only and gives full ammo. The client's own state will not know the weapon, so fire from a script on
-the Client side with `FireRequest:FireServer(origin, direction, serverTime, weaponId)` (a list of 8 directions for the pump).
+| Weapon | Checked and passed |
+|---|---|
+| Pump | One pull = one `HitConfirm`; 8 x 11 x 1.5 head multiplier on an NPC (132). Per-shell reload: Mag 3 to 6 in steps of 0.5 s, Reserve 12 to 9, last `AmmoUpdate` has `ReloadSeconds = 0`. Firing mid-reload keeps the shells already loaded and stops the reload. Empty magazine reloads six shells (Reserve 8 to 2). |
+| Hammer | Tap 70 (HP 50 to -20). Hold 1.0 s then release 100 (HP 50 to -50). A second press 0.4 s after a swing is refused; one 1.3 s later is accepted. A rear press starts the default 1.2 s takedown. |
+| Garrote | Swing 40 (two swings, HP 50 to -30). Rear takedown: `MeleeState` Seconds 0.8, Strike `Result = Downed` after 0.8 s, 100 damage. |
+| Guise pistol | First shot while Covered does 33 (22 x 1.5); a shot while Exposed does 22. |
+| Flare | `ProjectileLaunched` to the shooter, `ProjectileImpact` 0.19 s later (`Reason` Npc or Wall), `LightUntil` = impact + 5.0 s. Direct hit 55 (HP 50 to -5), `TargetGlow` `ExpiresAt` = impact + 4.0 s to the shooter's team. Landing 3 studs from another NPC: that NPC takes 15 (50 to 35). One loaded round, reload 1.6 s. |
+| Smoke SMG | 32 rounds at 750 RPM into the floor: exactly 5 `SmokeCloud` events (rounds 28 to 32), `Radius` 2, none before. |
+| Knives | Chest 45 (50 to 5), NPC head 90 (50 to -40). Six throws; the seventh is refused with `AmmoUpdate Mag = 0`. Six `LandedKnife` parts in `workspace.LandedKnives`, no attributes, none named for the thrower. |
+
+**Not run (needs a second human, or a real prompt):** the pump's 1 HP floor and Stagger on a player; the hammer shove of a
+player; `TargetGlow` not reaching an opponent; knife pickup (a `ProximityPrompt` cannot be triggered under remote control,
+`InputHoldBegin` did nothing; the handler `onPickup` was read: one step checks `landed[part]`, reach and room, then
+destroys the part); the garrote's silence towards witnesses; Ambush while Suspicious (code reads `isCovered` only).
+
+**Harness note, not a server bug:** scripted `Press` holds were cancelled about 0.35 s in by a `RequestMelee Cancel` sent
+by the real `WeaponController` (it calls `cancelLocalMelee()` every frame while `attackBlocked(camera)` is true, the
+wall tuck). A takedown completed in 4 of 8 tries; short swings were unaffected. Codex may want to confirm that a takedown
+held from behind an NPC is not cancelled by the tuck when the target stands 3 to 6 studs away in open space.
 
 ## Shared fields (Types.WeaponDef, all optional)
 
@@ -135,7 +152,7 @@ Client command bar by firing the remote with a script, or wait for Codex's clien
 
 ## Gaps and SPEC-QUESTIONs
 
-- **Not run in Studio.** Only lint and parse checks have run.
+- Run in Studio against NPCs on 2026-11-03 (see the results table above); player-victim effects still untested.
 - NPCs take hammer and pump damage but are **not shoved or slowed** (their position comes from the crowd's route). The
   difference could be seen by an observer comparing a shoved player with an unshoved NPC. Needs the NPC movement owner
   (me) and a decision; not built.
