@@ -112,6 +112,14 @@ with `IntelService.spend(teamId, amount)`. Server-authoritative; the client only
   with a keycard, a second player tailgating, the Sanctum elevator, an NPC and a player sharing a cab.
   SPEC-QUESTIONs: the call panel is public (anyone can call a cab; only the doors need clearance); a cab with a rider who got off
   stays where it is until an NPC or player calls it, and NPC trips may take a cab a player is standing in (the player is carried).
+  **Studio 2026-11-03 (solo, real lobby flow, holds started with `InteractService.start`):** the Package front door (`D62`, Tier 4,
+  `HackCost` 10) hacked by a player: 3 s, intel 36 to 26, the blocker opened 3.2 s in and shut 4 s later. With a Tier 4 keycard:
+  opened in 1.1 s, no intel spent, card spent. The Sanctum elevator stop door (`L16`, E5 level S, 8 intel): refused while the shaft was
+  locked (in reach, 52 intel); after `ElevatorService.setLocked("E5", false)` the hack cost 8 (52 to 44) and the doors opened 3.1 s in and
+  shut 4 s later; with a card it cost no intel and the card was spent. The printer printed a card in 20 s for 10 intel, twice.
+  Still not tested: a player with Staff clearance calling a cab, a second player tailgating, an NPC and a player sharing a cab, the
+  Tier 4 terrace doors, the card lost on elimination, and the real unlock from the third terminal. Harness note: a hold started with
+  the `RequestInteract` remote was cancelled after about 1.9 s by the real client controller; start holds from the server instead.
   **For Codex (client):** a real level selector (levels and current level from the cab part's `Stops`, `State`, `Level` attributes, sending
   `RequestElevatorFloor`), and the HUD labels "Call elevator" / "Print keycard" in `SecurityHudController` (they are not in its `validLabels`
   yet, so those holds show no progress bar), plus kind prompts for `ElevatorCall`, `ElevatorHack`, `KeycardPrinter`.
