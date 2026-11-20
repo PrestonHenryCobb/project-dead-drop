@@ -13,3 +13,4 @@ ServerPackages/
 # OS / editor
 .DS_Store
 Thumbs.db
+tools/.magic-candidates.txt
