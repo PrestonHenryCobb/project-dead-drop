@@ -7,10 +7,9 @@
   - `kind` is one of `GameConfig.Ping.Kinds`: `Look`, `Suspect`, `Intel`, `Danger`.
   - `position` is where the marker goes (a world point the player aimed at). It is refused if not finite, or further than
     `Ping.RangeStuds` (400) from the player.
-  - `Suspect` needs `targetId`: the name of a model the client can see (an NPC's name, or a player's character name as the
-    client knows it, which is the same id the combat code uses: `P<UserId>` is **not** a model name, so the client must send the
-    model's `Name`). The server looks it up in `Combat/History` (living bodies only), refuses your own body, and uses the body's
-    current position instead of `position`.
+  - `Suspect` needs `targetId`: the `Name` of a character or NPC model the client can see (an NPC and a player's character look
+    the same). The server finds the living body with that model name in `Combat/History`, refuses your own body, uses the body's
+    current position instead of `position`, and echoes only that same name back (never the internal `P<UserId>` id).
   - Refused outside a match, while downed or eliminated.
 - Server to client, to the pinger and their team only (the pinger alone in Solos):
   - `PingPlaced` payload `Types.PingInfo { Id, Kind, Position, TargetId?, ExpiresAt (server clock), From (display name) }`.

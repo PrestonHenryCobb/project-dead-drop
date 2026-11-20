@@ -68,6 +68,22 @@ local function rootOf(player: Player): BasePart?
 	return if root and root:IsA("BasePart") then root else nil
 end
 
+-- A body by the model name the client sees. History keys an NPC by that name but a player as "P" and a UserId, which must never
+-- reach a client (it would say the body is a player), so players are matched by their character model's name instead.
+local function findBody(modelName: string): History.Target?
+	local direct = History.targets[modelName]
+	if direct and direct.kind == "Npc" then
+		return direct
+	end
+	for _, target in History.targets do
+		local model = target.rootPart.Parent
+		if target.kind == "Agent" and model and model.Name == modelName then
+			return target
+		end
+	end
+	return nil
+end
+
 local function onRequest(player: Player, kind: unknown, position: unknown, targetId: unknown)
 	if not MatchService.isInMatch() or DownedService.isOut(player) then
 		return
@@ -83,7 +99,7 @@ local function onRequest(player: Player, kind: unknown, position: unknown, targe
 	local seconds = config.Seconds
 	local marked: string? = nil
 	if kind == "Suspect" then
-		local target = if type(targetId) == "string" then History.targets[targetId] else nil
+		local target = if type(targetId) == "string" then findBody(targetId) else nil
 		if
 			not target
 			or target.player == player
@@ -92,7 +108,7 @@ local function onRequest(player: Player, kind: unknown, position: unknown, targe
 			return
 		end
 		at = target.rootPart.Position
-		marked = target.id
+		marked = targetId :: string -- the model name the client sent, never the History id
 		seconds = GameConfig.UI.SuspectPingSeconds
 	end
 
