@@ -1947,6 +1947,12 @@ local GameConfig = {
 		SeenStuds = 14,
 		SeenHz = 2,
 	},
+		-- Owner request 2026-11-20: the map is a small corner minimap by default (M cycles it: small, full panel, off; the shape key
+		-- switches square and round). The minimap shows a window MiniPixels wide onto a plan drawn MiniZoomPixels wide, slid so the
+		-- player stays in the middle.
+		MiniPixels = 176,
+		MiniZoomPixels = 960,
+		ShapeKey = Enum.KeyCode.Comma,
 
 	-- Ziplines, vents and the gondola (BUILD_ORDER Step 7B pass 2b). Using any of them breaks Cover (spec 7.2).
 	Traversal = {

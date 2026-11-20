@@ -39,12 +39,15 @@ function RouteMap.segments(points: { Vector3 }, floor: string, floorAt: (number)
 	return segments
 end
 
-function RouteMap.new(parent: Frame)
+-- pixelsOf gives the side, in pixels, of the square the whole plan is drawn into (the controller changes it between the small
+-- minimap, which draws a big plan and slides it so you stay centred, and the full panel); nil keeps GameConfig.RouteHud.MapPixels.
+function RouteMap.new(parent: Frame, pixelsOf: (() -> number)?)
 	local content = Janitor.new()
 	local tracked = Janitor.new()
 	local projectMark: ((Vector3) -> Vector2)? = nil
 	local markFloor: string? = nil
 	local markFloorAt: ((number) -> string?)? = nil
+	local youMark: TextLabel? = nil
 	local theme = HudTheme.get()
 	local function frame(name: string, position: UDim2, size: UDim2, color: Color3): Frame
 		local item = Instance.new("Frame")
@@ -90,6 +93,7 @@ function RouteMap.new(parent: Frame)
 			content:Cleanup()
 			tracked:Cleanup()
 			projectMark = nil
+			youMark = nil
 			markFloor, markFloorAt = floor, floorAt
 			local lowX, lowZ, highX, highZ = math.huge, math.huge, -math.huge, -math.huge
 			for _, zone in zones do
@@ -106,14 +110,12 @@ function RouteMap.new(parent: Frame)
 			if lowX == math.huge or not floor then
 				return
 			end
+			local pixels = if pixelsOf then pixelsOf() else config.MapPixels
 			local extent = math.max(highX - lowX, highZ - lowZ) + config.MapMarginStuds * 2
-			local scale = config.MapPixels / extent
+			local scale = pixels / extent
 			local center = Vector2.new((lowX + highX) / 2, (lowZ + highZ) / 2)
 			local function project(p: Vector3): Vector2
-				return Vector2.new(
-					config.MapPixels / 2 + (p.X - center.X) * scale,
-					config.MapPixels / 2 + (p.Z - center.Y) * scale
-				)
+				return Vector2.new(pixels / 2 + (p.X - center.X) * scale, pixels / 2 + (p.Z - center.Y) * scale)
 			end
 			projectMark = project
 			for _, zone in zones do
@@ -183,8 +185,22 @@ function RouteMap.new(parent: Frame)
 				line(if mode == "Clean" then result.Clean else result.Fast, mode)
 			end
 			if floorAt(origin.Y) == floor then
-				caption("You", "▲", project(origin), theme.TextColor)
+				youMark = caption("You", "▲", project(origin), theme.TextColor)
 			end
+		end,
+		-- Moves the "you" marker to where the player is now (no redraw) and returns that point on the drawn plan, so the minimap can
+		-- slide the plan to keep it centred. nil before the first draw.
+		follow = function(origin: Vector3): Vector2?
+			local project = projectMark
+			if not project then
+				return nil
+			end
+			local point = project(origin)
+			local mark = youMark
+			if mark then
+				mark.Position = UDim2.fromOffset(point.X, point.Y)
+			end
+			return point
 		end,
 		marks = function(points: { Vector3 })
 			tracked:Cleanup()
