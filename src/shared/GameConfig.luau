@@ -2141,6 +2141,7 @@ local GameConfig = {
 	-- Spec 25.6: client -> server remotes are rate-limited. Overrides are by remote name.
 	Network = {
 		DefaultRateLimit = { PerSecond = 20, Burst = 20 },
+		MaxIdLength = 40, -- the longest target or item id string a request may carry (RequestRoute); longer is refused
 		RateLimits = {
 			-- Ticket studio-test-loadout: separate from gameplay input budgets.
 			RequestTestLoadout = { PerSecond = 2, Burst = 4 },

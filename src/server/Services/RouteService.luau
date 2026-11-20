@@ -518,7 +518,10 @@ local function targetsFor(player: Player): { Target }
 end
 
 local function answer(player: Player, requested: unknown): any
-	if (requested ~= nil and type(requested) ~= "string") or (type(requested) == "string" and #requested > 40) then
+	if
+		(requested ~= nil and type(requested) ~= "string")
+		or (type(requested) == "string" and #requested > GameConfig.Network.MaxIdLength)
+	then
 		return false, "BadTarget"
 	end
 	local root = rootOf(player)
