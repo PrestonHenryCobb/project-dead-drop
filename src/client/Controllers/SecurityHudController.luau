@@ -5,7 +5,6 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ContextActionService = game:GetService("ContextActionService")
-local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared.GameConfig)
 local InputHints = require(Shared:WaitForChild("Util"):WaitForChild("InputHints"))
@@ -18,6 +17,7 @@ local Accessibility = require(Shared.Util.UiAccessibility)
 local Feeds = require(script.Parent.Parent.Combat.SecurityFeeds)
 local Targets = require(script.Parent.SecurityInteractController)
 local RemoteController = require(script.Parent.RemoteController)
+local DroneController = require(script.Parent.DroneController)
 local SecurityHudController = {}
 local theme = HudTheme.get()
 local config = GameConfig.SecurityHud
@@ -116,18 +116,17 @@ function SecurityHudController.Start()
 	janitor:Add(InputHints.onChange(function()
 		nextPage.Text = InputHints.bracket(config.NextFeedKey, config.NextFeedPad, "NEXT CAMERAS")
 	end))
+	local function canPage(): boolean
+		return gui.Enabled and panelRoot.Visible and nextPage.Visible and not DroneController.inputBlocked()
+	end
 	janitor:Add(nextPage.Activated:Connect(function()
-		page += 1
-		cycleAt = os.clock()
+		if canPage() then
+			page += 1
+			cycleAt = os.clock()
+		end
 	end))
 	ContextActionService:BindAction("SecurityNextFeeds", function(_, inputState)
-		if
-			inputState == Enum.UserInputState.Begin
-			and gui.Enabled
-			and panelRoot.Visible
-			and nextPage.Visible
-			and UserInputService:GetFocusedTextBox() == nil
-		then
+		if inputState == Enum.UserInputState.Begin and canPage() then
 			page += 1
 			cycleAt = os.clock()
 			return Enum.ContextActionResult.Sink

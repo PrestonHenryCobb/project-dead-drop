@@ -81,3 +81,11 @@ Source review and StyLua only. Native checks remain: inside near/facing versus o
 keyboard E and gamepad X hints/hold, look-away cancellation, streamed panel/lever arrival, already-open doorway,
 and settings/Sparrow suppression. Server tuning questions remain the contract's 1.5 s hold, 12 s open and 4-stud/
 50-degree reach/facing. NPC/GPS routing and door audio/animation remain outside this client ticket.
+
+## Camera-feed foreground input follow-up
+
+A second client source pass found Camera Room feed paging checked only text-box focus. Both the feed button and
+its keyboard/gamepad shortcut now use the shared remote-aware input gate, so Settings, native menus, lost window
+focus and newer dialogs block manual paging. Sparrow's authorized remote interaction path remains usable.
+Automatic feed rotation and all server feed permissions/timers remain unchanged. StyLua/source inspection only;
+native check: try the feed shortcut with Settings open, close it, then try it while using the Sparrow terminal path.
