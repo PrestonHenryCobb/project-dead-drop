@@ -5,7 +5,6 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared.GameConfig)
 local Enums = require(Shared.Enums)
@@ -19,6 +18,7 @@ local RouteArrows = require(script.Parent.Parent.Combat.RouteArrows)
 local FloorBands = require(script.Parent.Parent.Combat.FloorBands)
 local Remote = require(script.Parent.RemoteController)
 local CarrierTrack = require(script.Parent.CarrierTrackController)
+local HeldItemController = require(script.Parent.HeldItemController)
 local RouteHudController = {}
 
 function RouteHudController.Init() end
@@ -36,7 +36,9 @@ function RouteHudController.Start()
 	local mode = "Clean"
 	local phase: Types.Phase = "Lobby"
 	local unavailable = false
-	local shown = true
+	local view = "Mini" -- "Mini" (a small corner plan, the default), "Full" (the whole GPS panel) or "Off"
+	local circle = false -- the minimap is round instead of square
+	local planPixels = config.MapPixels -- the side of the plan the renderer draws into; the minimap draws a bigger one
 	local browsing: string? = nil
 	local inFlight = false
 	local alive = true
@@ -87,7 +89,11 @@ function RouteHudController.Start()
 		item.Size = UDim2.new(1, -theme.PaddingPixels * 2, 0, rowHeight)
 		item.Position = UDim2.fromOffset(theme.PaddingPixels, y)
 		item.Parent = panel
-		janitor:Add(item.Activated:Connect(callback))
+		janitor:Add(item.Activated:Connect(function()
+			if gui.Enabled and not HeldItemController.isInputBlocked() then
+				callback()
+			end
+		end))
 		return item
 	end
 	local function cycle()
@@ -109,7 +115,15 @@ function RouteHudController.Start()
 	map.Position = UDim2.fromOffset((config.WidthPixels - config.MapPixels) / 2, floorY + rowHeight)
 	map.Size = UDim2.fromOffset(config.MapPixels, config.MapPixels)
 	map.Parent = panel
-	local renderer = RouteMap.new(map)
+	local canvas = Instance.new("Frame") -- the plan itself; the minimap slides it inside the clipped window so you stay centred
+	canvas.Name = "Plan"
+	canvas.BackgroundTransparency = 1
+	canvas.BorderSizePixel = 0
+	canvas.Size = UDim2.fromOffset(config.MapPixels, config.MapPixels)
+	canvas.Parent = map
+	local renderer = RouteMap.new(canvas, function()
+		return planPixels
+	end)
 	local arrows = RouteArrows.new()
 	janitor:Add(renderer)
 	janitor:Add(arrows)
@@ -139,7 +153,51 @@ function RouteHudController.Start()
 	flags.Parent = steps
 	local footer = text("RouteHelp", summaryY + config.SummaryPixels + config.StepsPixels, rowHeight)
 	footer.Text =
-		`[ {config.MapKey.Name} / {config.MapPad.Name} ] Map · [ {config.FloorUpKey.Name} / {config.FloorDownKey.Name} ] Floor`
+		`[ {config.MapKey.Name} / {config.MapPad.Name} ] Map size · [ {config.ShapeKey.Name} ] Round or square · [ {config.FloorUpKey.Name} / {config.FloorDownKey.Name} ] Floor`
+	local detail: { GuiObject } = { title, target, choice, floorLabel, summary, steps, footer }
+	local fullMapPosition = map.Position
+	local backdropCorner = panel:FindFirstChildOfClass("UICorner")
+	local shadow = panelRoot:FindFirstChild("Shadow")
+	local shadowCorner = if shadow then shadow:FindFirstChildOfClass("UICorner") else nil
+	local squareRadius = if backdropCorner then backdropCorner.CornerRadius else UDim.new(0, 0)
+	local miniInner = config.MiniPixels
+	local drawnLayout = "" -- which view and shape the plan on screen was drawn for
+	local function setRadius(radius: UDim)
+		if backdropCorner then
+			backdropCorner.CornerRadius = radius
+		end
+		if shadowCorner then
+			shadowCorner.CornerRadius = radius
+		end
+	end
+	-- Lays the panel out for the current view: the small plan alone (a circle shows the square plan inscribed in it, so nothing
+	-- pokes out of the corners), the whole GPS panel, or nothing (Visible is set where the route is refreshed).
+	local function applyView()
+		local full = view == "Full"
+		for _, item in detail do
+			item.Visible = full
+		end
+		if full then
+			panelRoot.Size = UDim2.fromOffset(config.WidthPixels, height)
+			map.Position = fullMapPosition
+			map.Size = UDim2.fromOffset(config.MapPixels, config.MapPixels)
+			planPixels = config.MapPixels
+			canvas.Position = UDim2.new()
+			setRadius(squareRadius)
+		else
+			local box = config.MiniPixels
+			local pad = theme.PaddingPixels
+			panelRoot.Size = UDim2.fromOffset(box + pad * 2, box + pad * 2)
+			miniInner = if circle then math.floor(box / math.sqrt(2)) else box
+			local inset = pad + (box - miniInner) / 2
+			map.Position = UDim2.fromOffset(inset, inset)
+			map.Size = UDim2.fromOffset(miniInner, miniInner)
+			planPixels = config.MiniZoomPixels
+			setRadius(if circle then UDim.new(0.5, 0) else squareRadius)
+		end
+		canvas.Size = UDim2.fromOffset(planPixels, planPixels)
+	end
+	applyView()
 	local function active(): boolean
 		local character = player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -230,7 +288,7 @@ function RouteHudController.Start()
 	end
 	local function bind(name: string, key: Enum.KeyCode, callback: () -> ())
 		ContextActionService:BindAction(name, function(_, input)
-			if input ~= Enum.UserInputState.Begin or not active() or UserInputService:GetFocusedTextBox() then
+			if input ~= Enum.UserInputState.Begin or not active() or HeldItemController.isInputBlocked() then
 				return Enum.ContextActionResult.Pass
 			end
 			callback()
@@ -240,8 +298,14 @@ function RouteHudController.Start()
 			ContextActionService:UnbindAction(name)
 		end)
 	end
-	bind("RouteToggleMap", config.MapKey, function()
-		shown = not shown
+	local function cycleView()
+		view = if view == "Mini" then "Full" elseif view == "Full" then "Off" else "Mini"
+		applyView()
+	end
+	bind("RouteToggleMap", config.MapKey, cycleView)
+	bind("RouteToggleShape", config.ShapeKey, function()
+		circle = not circle
+		applyView()
 	end)
 	bind("RouteNextTarget", config.TargetKey, cycle)
 	bind("RouteSwitchMode", config.ModeKey, switch)
@@ -251,16 +315,14 @@ function RouteHudController.Start()
 	bind("RouteFloorDown", config.FloorDownKey, function()
 		changeFloor(-1)
 	end)
-	bind("RouteToggleMapPad", config.MapPad, function()
-		shown = not shown
-	end)
+	bind("RouteToggleMapPad", config.MapPad, cycleView)
 	bind("RouteNextTargetPad", config.TargetPad, function()
-		if shown then
+		if view == "Full" then
 			cycle()
 		end
 	end)
 	bind("RouteSwitchModePad", config.ModePad, function()
-		if shown then
+		if view == "Full" then
 			switch()
 		end
 	end)
@@ -369,14 +431,16 @@ function RouteHudController.Start()
 			end
 		end
 		flags.Text = if #descriptions > 0 then table.concat(descriptions, "\n") else "No flagged steps"
-		panelRoot.Visible = shown
+		panelRoot.Visible = view ~= "Off"
+		local layout = `{view}{circle}`
 		if
-			shown
+			view ~= "Off"
 			and (
 				not Presentation.sameMap(drawnResult, result)
 				or drawnFloor ~= floor
 				or drawnMode ~= drawnModeNow
 				or drawnZones ~= zonesVersion
+				or drawnLayout ~= layout
 			)
 		then
 			local visibleZones = {}
@@ -385,10 +449,11 @@ function RouteHudController.Start()
 			end
 			renderer.draw(visibleZones, floor, bands.nameAt, result, drawnModeNow, root.Position)
 			drawnResult, drawnFloor, drawnMode, drawnZones = result, floor, drawnModeNow, zonesVersion
+			drawnLayout = layout
 			drawnMarks = -1
 		end
 		local trackedMarks, marksRevision = CarrierTrack.marks()
-		if shown and drawnMarks ~= marksRevision then
+		if view ~= "Off" and drawnMarks ~= marksRevision then
 			renderer.marks(trackedMarks)
 			drawnMarks = marksRevision
 		end
@@ -399,6 +464,21 @@ function RouteHudController.Start()
 			bands.nameAt,
 			if drawnModeNow == "Clean" then config.CleanColor else config.FastColor
 		)
+	end))
+	-- Every frame: the "you" marker follows the player, and in the minimap the plan slides so they stay in the middle.
+	janitor:Add(RunService.RenderStepped:Connect(function()
+		if view == "Off" or not panelRoot.Visible then
+			return
+		end
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		if not root or not root:IsA("BasePart") then
+			return
+		end
+		local point = renderer.follow(root.Position)
+		if point and view == "Mini" then
+			canvas.Position = UDim2.fromOffset(miniInner / 2 - point.X, miniInner / 2 - point.Y)
+		end
 	end))
 	janitor:Add(function()
 		alive = false
