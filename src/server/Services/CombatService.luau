@@ -47,6 +47,7 @@ local CoverService = require(script.Parent.CoverService)
 local DisguiseService = require(script.Parent.DisguiseService)
 local NPCService = require(script.Parent.NPCService)
 local RemoteService = require(script.Parent.RemoteService)
+local RewardService = require(script.Parent.RewardService)
 local TeamService = require(script.Parent.TeamService)
 local VentService = require(script.Parent.VentService)
 
@@ -302,6 +303,11 @@ local function applyDamage(
 			result = "Downed"
 		elseif victimState and victimState.dead then
 			result = "Eliminated"
+		end
+		if result == "Downed" then
+			RewardService.award(shooter, "EnemyDowned")
+		elseif result == "Eliminated" then
+			RewardService.award(shooter, "EnemyEliminated")
 		end
 		confirm = { Kind = "Agent", Head = head }
 	end

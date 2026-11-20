@@ -30,11 +30,11 @@ Dossiers, ActiveDossierId, Career). Nothing else is saved yet: settings, XP and 
 deployed with gains `Mastery.MatchXP` (100) plus `WinBonusXP` (50) on a win, and levels up every `XPPerLevel` (100) to `MaxLevel` 10:
 one match is one level, so Hardware slot 2 (level 3) opens after two matches, slot 3 (level 6) after five, level 10 after nine
 (SPEC_CHANGES: about ten matches, the second item after about two). `Career.Matches` always rises, `Career.Extractions` only for a winning-team member who was still in at the end.
-SPEC-QUESTIONs: objectives (intel, vault, Package) add nothing yet; account Level, Credits and the spec 20.1 XP table are not
-awarded (the owner replaced account XP with mastery); a player who left early still counts if they were on the roster.
+SPEC-QUESTIONs: objectives (intel, vault, Package) add nothing to mastery; a player who left early still counts if they were on the
+roster. Account Level, XP and Credits are separate and are awarded by RewardService (REWARDS_CONTRACT.md).
 
 ## Not built
-- Account Level, XP and Credits are never awarded (no design says how they combine with mastery).
+- Nothing to spend Credits on yet (agents, Black Market and Dossiers have no catalogue).
 - Dossiers, Black Market, Mint and Stocks have no catalogue, so there is nothing to save for them.
 - Saved settings (graphics quality, auto re-cover): Codex's client keeps them locally; no remote carries them.
 - A kicked "Locked" join has no retry screen.

@@ -36,6 +36,7 @@ local DisguiseService = require(script.Parent.DisguiseService)
 local DownedService = require(script.Parent.DownedService)
 local MetaProgressionService = require(script.Parent.MetaProgressionService)
 local RemoteService = require(script.Parent.RemoteService)
+local RewardService = require(script.Parent.RewardService)
 local RigService = require(script.Parent.RigService)
 local SpectateService = require(script.Parent.SpectateService)
 local TeamService = require(script.Parent.TeamService)
@@ -180,6 +181,7 @@ end
 
 local function startInsertion()
 	matchTeams, ready, fillEndsAt = ready, {}, nil
+	RewardService.reset()
 	table.clear(out)
 	results = nil
 	mainEndsAt, forcedVaultAt = nil, nil
@@ -235,9 +237,11 @@ function MatchService.finish(winnerTeamId: number?)
 	end
 	mainEndsAt, forcedVaultAt = nil, nil
 	results = buildResults(winnerTeamId)
+	local rewarded: { RewardService.Entry } = {}
 	for teamId, members in matchTeams do
 		for _, member in members do
 			if member.Parent then
+				table.insert(rewarded, { player = member, won = teamId == winnerTeamId, survived = not out[member] })
 				MetaProgressionService.recordMatch(
 					member,
 					teamId == winnerTeamId,
@@ -246,6 +250,7 @@ function MatchService.finish(winnerTeamId: number?)
 			end
 		end
 	end
+	RewardService.finishMatch(rewarded) -- ticket 21-rewards: account XP, levels and Credits
 	if GameConfig.Debug.PrintEvents then
 		print("[Match] ended, winner team: " .. tostring(winnerTeamId))
 	end

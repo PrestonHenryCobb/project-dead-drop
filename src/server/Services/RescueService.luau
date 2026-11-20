@@ -23,6 +23,7 @@ local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local AbilityService = require(script.Parent.AbilityService)
 local DownedService = require(script.Parent.DownedService)
 local InteractService = require(script.Parent.InteractService)
+local RewardService = require(script.Parent.RewardService)
 local MatchService = require(script.Parent.MatchService)
 local TeamService = require(script.Parent.TeamService)
 
@@ -176,6 +177,7 @@ function RescueService.rescue(player: Player, near: Vector3)
 		return
 	end
 	table.remove(carrying[player], index)
+	RewardService.award(player, "TeammateRescued")
 	task.spawn(revive, owner, near)
 end
 

@@ -453,7 +453,9 @@ export type CareerStats = {
 
 -- A player's meta profile, sent only to that player. String keys throughout so every table crosses a remote intact.
 export type MetaProfile = {
-	Level: number,
+	Level: number, -- the account level (spec 20.2)
+	XP: number, -- account XP toward the next level
+	LastWinDay: number, -- the UTC day number of the last win, for the daily first-win bonus (spec 20.3); 0 for never
 	Credits: number, -- earned in play
 	Stocks: number, -- premium, bought in the Mint
 	OwnedAgents: { [string]: boolean }, -- keyed by AgentId
@@ -463,6 +465,21 @@ export type MetaProfile = {
 	ActiveDossierId: string?,
 	Dossiers: { [string]: DossierProgress },
 	Career: CareerStats,
+}
+
+-- Ticket 21-rewards (spec 20.1 to 20.3): what a finished match gave one player, sent to that player alone. Lines is the XP
+-- breakdown in the order earned. LevelAfter, XpIntoLevel and XpForLevel place them on the level bar after the match.
+export type MatchRewardLine = { Event: string, Xp: number }
+export type MatchRewardsInfo = {
+	Lines: { MatchRewardLine },
+	TotalXp: number,
+	LevelBefore: number,
+	LevelAfter: number,
+	XpIntoLevel: number,
+	XpForLevel: number,
+	LevelCredits: number, -- 250 for each level gained
+	WinCredits: number, -- the win bonus, 0 on a loss
+	DailyCredits: number, -- the first win of the day, 0 otherwise
 }
 
 -- The modes a player can queue for on this server. Until matchmaking (Step 22) a server plays one mode, so Available

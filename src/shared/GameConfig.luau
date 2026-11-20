@@ -192,6 +192,35 @@ local GameConfig = {
 		ChannelWaitSeconds = 15, -- how long ChatService waits for TextChatService to create its default channel
 	},
 
+	-- Ticket 21-rewards (spec 20.1 to 20.3): account XP, levels and Credits. The numbers are the spec's. XP to the next level is
+	-- LevelBase + LevelStep x level, never more than LevelCap; each level pays CreditsPerLevel; a win pays WinCredits and the first
+	-- win of each UTC day DailyFirstWinCredits more. SPEC-QUESTIONs: Intel stations count per player who completes the hold; the
+	-- Package pickup XP is paid once a match and a vault terminal's participation XP once a match (so they cannot be farmed).
+	Rewards = {
+		Xp = {
+			MatchPlayed = 100,
+			IntelCollected = 25, -- each station the player finishes
+			VaultParticipation = 50, -- once a match, after VaultParticipationSeconds on a terminal's dais
+			PackagePickedUp = 50, -- once a match
+			PackageCarried = 10, -- for every CarryTickSeconds holding it
+			EnemyDowned = 30,
+			EnemyEliminated = 20,
+			TeammateRevived = 30,
+			TeammateRescued = 50,
+			ExtractionWin = 500, -- every member of the winning team
+			SurvivedToEnd = 50, -- only a player still up when the match ends (OPEN_QUESTIONS: not a downed or eliminated one)
+		},
+		VaultParticipationSeconds = 10,
+		CarryTickSeconds = 10,
+		LevelBase = 500,
+		LevelStep = 100,
+		LevelCap = 3000,
+		CreditsPerLevel = 250,
+		WinCredits = 200,
+		DailyFirstWinCredits = 300,
+		SecondsPerDay = 86400,
+	},
+
 	-- Ticket 19-pings (spec 21.3): team pings. How many a player may have up (UI.MaxPingsPerPlayer) and how long a Suspect ping
 	-- lasts (UI.SuspectPingSeconds) are in UI. SPEC-QUESTION: the other kinds last Seconds, which the spec does not give.
 	Ping = {

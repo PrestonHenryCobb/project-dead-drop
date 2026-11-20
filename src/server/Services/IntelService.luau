@@ -31,6 +31,7 @@ local InteractService = require(script.Parent.InteractService)
 local MatchService = require(script.Parent.MatchService)
 local ReachService = require(script.Parent.ReachService)
 local RemoteService = require(script.Parent.RemoteService)
+local RewardService = require(script.Parent.RewardService)
 local TeamService = require(script.Parent.TeamService)
 local ZoneService = require(script.Parent.ZoneService)
 
@@ -169,6 +170,7 @@ local function beginStation(player: Player, targetName: string): InteractService
 		complete = function()
 			if not (used[teamId] and used[teamId][station.id]) then
 				take(teamId, station)
+				RewardService.award(player, "IntelCollected")
 			end
 		end,
 	}

@@ -34,6 +34,7 @@ local DownedService = require(script.Parent.DownedService)
 local InteractService = require(script.Parent.InteractService)
 local MatchService = require(script.Parent.MatchService)
 local RemoteService = require(script.Parent.RemoteService)
+local RewardService = require(script.Parent.RewardService)
 local TeamService = require(script.Parent.TeamService)
 
 type Status = "Hidden" | "Pedestal" | "Carried" | "Dropped"
@@ -198,6 +199,7 @@ local function grant(player: Player)
 		setFree(carrier)
 	end
 	carrier = player
+	RewardService.awardOnce(player, "PackagePickedUp")
 	status = "Carried"
 	graceEndsAt = nil
 	package.Anchored = false
@@ -423,6 +425,7 @@ local function check()
 			drop(lastCarrierPosition + Vector3.new(0, config.DropLiftStuds, 0)) -- where they went down
 		else
 			lastCarrierPosition = root.Position
+			RewardService.carrying(who)
 			if clock >= nextPulseAt then
 				nextPulseAt = clock + config.PingInterval
 				pulseUntil = clock + config.PingPulseSeconds

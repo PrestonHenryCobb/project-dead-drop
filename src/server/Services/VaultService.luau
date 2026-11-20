@@ -31,6 +31,7 @@ local ElevatorService = require(script.Parent.ElevatorService)
 local IntelService = require(script.Parent.IntelService)
 local MatchService = require(script.Parent.MatchService)
 local RemoteService = require(script.Parent.RemoteService)
+local RewardService = require(script.Parent.RewardService)
 local TeamService = require(script.Parent.TeamService)
 
 type Terminal = {
@@ -181,6 +182,7 @@ local function check(dt: number)
 	for _, terminal in terminals do
 		if not terminal.hacked then
 			local teams, present = presence(terminal)
+			RewardService.vaultPresence(present, dt)
 			for _, player in present do
 				if not CoverService.isExposed(player) then
 					CoverService.expose(player, "Vault terminal") -- spec 7.2 #8

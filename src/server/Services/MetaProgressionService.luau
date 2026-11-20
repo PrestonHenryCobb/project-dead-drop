@@ -12,6 +12,7 @@
 --   MetaProgressionService.validateLoadout(player, request) -> (Types.PlayerLoadout?, reason?)
 --   MetaProgressionService.setLoadout(player, loadout)   equips a loadout validateLoadout returned, and tells the player
 --   MetaProgressionService.ownedAgents(player) -> { AgentId } in menu order
+--   MetaProgressionService.settleAccount(player, xp, won) -> Types.MatchRewardsInfo?   account XP, levels and Credits (RewardService)
 --   MetaProgressionService.recordMatch(player, won, extracted)   a finished match: mastery XP for the agent played (a team win adds
 --     the bonus), career counters (Extractions only if this player was still in at the end)
 --   MetaProgressionService.queueInfo() -> Types.QueueInfo     the modes this server can deploy into
@@ -54,6 +55,8 @@ local function newProfile(): MetaProfile
 	end
 	return {
 		Level = 1,
+		XP = 0,
+		LastWinDay = 0,
 		Credits = 0,
 		Stocks = 0,
 		OwnedAgents = {},
@@ -98,6 +101,8 @@ local function reconcile(saved: any): MetaProfile
 		return profile
 	end
 	profile.Level = math.max(1, bounded(saved.Level, 1, dataConfig.MaxStat))
+	profile.XP = bounded(saved.XP, 0, dataConfig.MaxStat)
+	profile.LastWinDay = bounded(saved.LastWinDay, 0, dataConfig.MaxStat)
 	profile.Credits = bounded(saved.Credits, 0, dataConfig.MaxCredits)
 	profile.Stocks = bounded(saved.Stocks, 0, dataConfig.MaxCredits)
 	if type(saved.OwnedAgents) == "table" then
@@ -321,6 +326,52 @@ function MetaProgressionService.recordMatch(player: Player, won: boolean, extrac
 	end
 	dirty[player] = true
 	push(player)
+end
+
+-- Ticket 21-rewards (spec 20.2, 20.3): XP to go from this level to the next.
+local function xpForLevel(level: number): number
+	local rewards = GameConfig.Rewards
+	return math.min(rewards.LevelBase + rewards.LevelStep * level, rewards.LevelCap)
+end
+
+-- Adds a finished match's XP to the account: level-ups pay Credits, and a win pays the win bonus and, once a UTC day, the daily
+-- first-win bonus. Returns what the player gets to see (RewardService fills in the XP lines), or nil without a profile.
+function MetaProgressionService.settleAccount(player: Player, xp: number, won: boolean): Types.MatchRewardsInfo?
+	local profile = profiles[player]
+	if not profile then
+		return nil
+	end
+	local rewards = GameConfig.Rewards
+	local before = profile.Level
+	profile.XP += xp
+	while profile.XP >= xpForLevel(profile.Level) do
+		profile.XP -= xpForLevel(profile.Level)
+		profile.Level += 1
+	end
+	local levelCredits = (profile.Level - before) * rewards.CreditsPerLevel
+	local winCredits, dailyCredits = 0, 0
+	if won then
+		winCredits = rewards.WinCredits
+		local day = math.floor(os.time() / rewards.SecondsPerDay)
+		if profile.LastWinDay ~= day then
+			profile.LastWinDay = day
+			dailyCredits = rewards.DailyFirstWinCredits
+		end
+	end
+	profile.Credits = math.min(profile.Credits + levelCredits + winCredits + dailyCredits, dataConfig.MaxCredits)
+	dirty[player] = true
+	push(player)
+	return {
+		Lines = {},
+		TotalXp = xp,
+		LevelBefore = before,
+		LevelAfter = profile.Level,
+		XpIntoLevel = profile.XP,
+		XpForLevel = xpForLevel(profile.Level),
+		LevelCredits = levelCredits,
+		WinCredits = winCredits,
+		DailyCredits = dailyCredits,
+	}
 end
 
 local function onEquip(player: Player, request: unknown): (boolean, string?)

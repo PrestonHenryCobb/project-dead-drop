@@ -39,6 +39,7 @@ local DisguiseService = require(script.Parent.DisguiseService)
 local InteractService = require(script.Parent.InteractService)
 local NPCService = require(script.Parent.NPCService)
 local RemoteService = require(script.Parent.RemoteService)
+local RewardService = require(script.Parent.RewardService)
 local TeamService = require(script.Parent.TeamService)
 
 type Downed = {
@@ -341,11 +342,13 @@ local function beginBody(player: Player, targetName: string): InteractService.In
 			label = "Revive"
 			complete = function()
 				revive(victim)
+				RewardService.award(player, "TeammateRevived")
 			end
 		else
 			label = "Execute"
 			complete = function()
 				eliminate(victim)
+				RewardService.award(player, "EnemyEliminated")
 			end
 		end
 	else

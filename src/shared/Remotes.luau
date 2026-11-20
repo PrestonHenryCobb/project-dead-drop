@@ -60,6 +60,8 @@ local Remotes = {
 		-- Ticket 19-pings
 		"PingPlaced", -- to the pinger and their team only: a marker to draw (Types.PingInfo)
 		"PingCleared", -- the id (a number) of a marker that ended early
+		-- Ticket 21-rewards
+		"MatchRewards", -- to one player after a match: their XP breakdown, level and Credits (Types.MatchRewardsInfo)
 		-- Ticket 18c
 		"ShopState", -- to the shopper only: the Supply Cache shop they have open (Types.ShopStateInfo)
 		-- Ticket 17d
