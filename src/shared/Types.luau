@@ -157,7 +157,7 @@ export type WeaponDef = {
 	ReserveAmmo: number,
 	ReloadSeconds: number,
 	Falloff: Falloff?, -- nil: no falloff
-	Quiet: boolean, -- heard only GameConfig.Combat.QuietHearStuds away (spec 23), and no muzzle flash
+	Quiet: boolean, -- heard only GameConfig.Audio.SuppressedWeaponRadius away (spec 23), and no muzzle flash
 	Spread: WeaponSpread,
 	Recoil: WeaponRecoil,
 	AimZoom: number, -- the field of view is multiplied by this while aiming

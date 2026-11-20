@@ -155,7 +155,7 @@ Taser:
   `Combat/Lockout` for 3 s (`AbilityService` and `GadgetService` refuse requests while it runs) and
   `CombatStatus { Kind = "Taser", Seconds = 1.5, SlowMult = 0.4, From }` to the victim only. NPCs take the damage and nothing else.
   A downed or eliminated target takes no status; teammates are not hit (the existing team rule).
-- Owner answer 2026-11-19: the dart is **quiet** (`Quiet = true` in WeaponDefs: heard only `Combat.QuietHearStuds` away, no
+- Owner answer 2026-11-19: the dart is **quiet** (`Quiet = true` in WeaponDefs: heard only `Audio.SuppressedWeaponRadius` (25 studs) away, no
   muzzle flash or tracer). SPEC-QUESTION still open: no head bonus (`HeadshotMult = 1`).
 
 **For Codex:** register both when ready. Burst rifle: the client must send each round of a burst on the `FireRate` timing (it already
