@@ -92,6 +92,7 @@ local npcLookup: ((string) -> NpcInfo?)? = nil
 local coverHooks: CoverHooks? = nil
 local swapListeners: { (Player) -> () } = {}
 local actionBlocker: ((Player) -> boolean)? = nil
+local swapBlocker: ((Player) -> boolean)? = nil
 local autoRecover: { [Player]: boolean } = {} -- ticket auto-recover: the option where the player has changed it
 local autoElapsed = 0
 local agentLookup: ((Player) -> string?)? = nil -- ticket 16a: AbilityService says which agent a player is
@@ -121,6 +122,12 @@ function DisguiseService.setActionBlocker(blocker: (Player) -> boolean)
 	actionBlocker = blocker
 end
 
+-- Something that stops only a disguise swap (LaserService: no changing inside a laser beam, spec 27 #23). Scanning,
+-- sprinting and crouching are not affected.
+function DisguiseService.setSwapBlocker(blocker: (Player) -> boolean)
+	swapBlocker = blocker
+end
+
 function DisguiseService.setAgentLookup(lookup: (Player) -> string?)
 	agentLookup = lookup
 end
@@ -140,6 +147,11 @@ end
 local function blocked(player: Player): boolean
 	local blocker = actionBlocker
 	return carriers[player] == true or (blocker ~= nil and blocker(player))
+end
+
+local function swapBlocked(player: Player): boolean
+	local blocker = swapBlocker
+	return blocked(player) or (blocker ~= nil and blocker(player))
 end
 
 -- Is a disguise change under way?
@@ -413,7 +425,7 @@ end
 local function onRequestDisguise(player: Player)
 	local state = states[player]
 	local humanoid, root = aliveRoot(player)
-	if not (state and humanoid and root) or blocked(player) then
+	if not (state and humanoid and root) or swapBlocked(player) then
 		return
 	end
 	cancelScan(player, state)
@@ -474,7 +486,7 @@ end
 function DisguiseService.kitChange(player: Player): (boolean, string?)
 	local state = states[player]
 	local humanoid, root = aliveRoot(player)
-	if not (state and humanoid and root) or blocked(player) then
+	if not (state and humanoid and root) or swapBlocked(player) then
 		return false, nil
 	end
 	if not (coverHooks and coverHooks.canKit(player)) then
@@ -503,7 +515,7 @@ end
 function DisguiseService.quickChange(player: Player): (boolean, string?)
 	local state = states[player]
 	local humanoid, root = aliveRoot(player)
-	if not (state and humanoid and root) or blocked(player) then
+	if not (state and humanoid and root) or swapBlocked(player) then
 		return false, nil
 	end
 	local target: OutfitDef? = nil
@@ -552,7 +564,7 @@ local function checkAuto()
 		local ready = state.exposed
 			and autoEnabled(player)
 			and now >= state.swapEndsAt
-			and not blocked(player)
+			and not swapBlocked(player)
 			and coverHooks ~= nil
 			and coverHooks.canRecover(player)
 		if ready and not state.autoSince then

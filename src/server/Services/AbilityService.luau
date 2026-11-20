@@ -68,7 +68,8 @@ local function sendCooldown(player: Player, name: string, seconds: number, remai
 end
 
 local function onRequestAbility(player: Player)
-	if not MatchService.isInMatch() or DownedService.isOut(player) then
+	-- Spec 27 #13: nothing is used during Insertion (everyone is frozen behind the briefing).
+	if not MatchService.isInMatch() or MatchService.phase() == "Insertion" or DownedService.isOut(player) then
 		return
 	end
 	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")

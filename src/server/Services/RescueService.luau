@@ -184,6 +184,7 @@ function RescueService.Init() end
 function RescueService.Start()
 	InteractService.register("AgentTag", beginPickup)
 	DownedService.onEliminated(onEliminated)
+	DownedService.onLeftDowned(onEliminated) -- spec 27 #4: a downed player who leaves drops their tag too
 	MatchService.onPhaseChanged(function(phase)
 		if phase == "Insertion" then
 			for _, tag in tags do

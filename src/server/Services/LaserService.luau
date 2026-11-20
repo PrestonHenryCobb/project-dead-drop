@@ -80,6 +80,21 @@ local function across(grid: Grid, position: Vector3): boolean
 	return true
 end
 
+-- Is this player standing in a live beam? (Spec 27 #23: a disguise cannot be changed there.)
+function LaserService.inBeam(player: Player): boolean
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not (root and root:IsA("BasePart")) then
+		return false
+	end
+	for _, grid in grids do
+		if isOn(grid) and across(grid, root.Position) then
+			return true
+		end
+	end
+	return false
+end
+
 local function tick()
 	if not MatchService.isInMatch() then
 		return
@@ -176,6 +191,7 @@ end
 function LaserService.Init() end
 
 function LaserService.Start()
+	DisguiseService.setSwapBlocker(LaserService.inBeam)
 	local folder = workspace:FindFirstChild("SecurityObjects") or Instance.new("Folder")
 	folder.Name = "SecurityObjects"
 	folder.Parent = workspace

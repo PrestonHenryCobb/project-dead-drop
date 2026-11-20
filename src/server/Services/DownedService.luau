@@ -20,6 +20,7 @@
 --   DownedService.isDowned(player) -> boolean
 --   DownedService.isOut(player) -> boolean       downed, eliminated, or without a living character
 --   DownedService.onEliminated(listener)         listener(player) when a player is eliminated
+--   DownedService.onLeftDowned(listener)         listener(player) when a downed player leaves the game (their character still exists)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -69,6 +70,7 @@ local WALL_CLEARANCE = 1 -- studs left between a crawling body and a wall
 local downed: { [Player]: Downed } = {}
 local eliminated: { [Player]: boolean } = {} -- for this life; cleared when a new character spawns
 local eliminatedListeners: { (Player) -> () } = {}
+local leftDownedListeners: { (Player) -> () } = {}
 
 -- Rays in the character group skip characters and meet only the map.
 local mapParams = RaycastParams.new()
@@ -90,6 +92,12 @@ end
 
 function DownedService.onEliminated(listener: (Player) -> ())
 	table.insert(eliminatedListeners, listener)
+end
+
+-- Spec 27 #4: leaving while downed counts as eliminated. This fires before the body is removed, for what the body leaves
+-- behind (RescueService drops the Agent Tag).
+function DownedService.onLeftDowned(listener: (Player) -> ())
+	table.insert(leftDownedListeners, listener)
 end
 
 local function floorBelow(position: Vector3): Vector3?
@@ -379,6 +387,9 @@ function DownedService.Start()
 	Players.PlayerRemoving:Connect(function(player)
 		local body = downed[player]
 		if body then
+			for _, listener in leftDownedListeners do
+				task.spawn(listener, player)
+			end
 			Death.removePlayerBody(body.character)
 		end
 		downed[player] = nil
