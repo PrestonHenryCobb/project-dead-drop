@@ -32,6 +32,10 @@ design, not read this pass).
 | 26 | Same-team scan | NOT RE-CHECKED | `startScan` resolves a target id; teammate rules were not read |
 | 27 | Low-end mobile | N/A | mobile is not a target |
 
+**Debug default changed:** `Debug.AutoRespawn` was `true`, which reloaded an eliminated player after 3 s and stopped `MatchService`
+ending the match when everyone was out, so elimination, spectating (case 15, 16) and Mission Failed could not happen in a real match.
+It is now `false`. In Studio a player who dies is now eliminated, spectates, and the match ends and returns to the lobby as designed.
+
 Also added in the same pass: `RequestDropPackage` duplicate fix and finite-vector validation (docs/ANTI_EXPLOIT_AUDIT.md).
 
 ## What the owner should check in Studio

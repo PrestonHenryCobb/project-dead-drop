@@ -2016,7 +2016,10 @@ local GameConfig = {
 		CostReportSeconds = 10,
 		PrintShots = false, -- enable temporarily when diagnosing FireRequest validation
 		PrintEvents = true, -- cover, guards and doors print a line when they act (exposures, investigations, door holds)
-		AutoRespawn = true, -- RigService respawns a dead player (replaced by the match flow in Step 10)
+		-- RigService reloads a dead player after AutoRespawnSeconds and MatchService stops ending the match when everyone is out.
+		-- Off since 2026-11-19: elimination, spectating and Mission Failed are the real match flow (Steps 9 and 10). Turn it on only to
+		-- test something that needs a body back quickly.
+		AutoRespawn = false,
 		AutoRespawnSeconds = 3,
 		-- Ticket menu-shell: open the menu on join and spawn only after agent select. false: spawn straight in, as before.
 		MenuOnJoin = true,
