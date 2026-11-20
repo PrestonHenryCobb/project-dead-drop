@@ -67,7 +67,7 @@ local function newProfile(): MetaProfile
 		Mastery = {},
 		OwnedCosmetics = {},
 		ActiveDossierId = DossierDefs.order[1], -- the first Dossier is active from the start, so match XP is never lost
-		Dossiers = {},
+		Dossiers = { [DossierDefs.order[1]] = { XP = 0, Premium = false, Claimed = {} } }, -- the active Dossier exists from the start, so the menu can show it
 		Career = {
 			Matches = 0,
 			Extractions = 0,
@@ -162,7 +162,14 @@ local function reconcile(saved: any): MetaProfile
 				if type(progress.Claimed) == "table" then
 					local top = GameConfig.Dossier.PremiumClaimOffset + GameConfig.Dossier.Tiers
 					for _, tier in progress.Claimed do
-						if type(tier) == "number" and tier == tier and tier >= 1 and tier <= top then
+						if
+							type(tier) == "number"
+							and tier == tier
+							and (
+								(tier >= 1 and tier <= GameConfig.Dossier.Tiers)
+								or (tier > GameConfig.Dossier.PremiumClaimOffset and tier <= top)
+							)
+						then
 							table.insert(claimed, math.floor(tier))
 						end
 					end
@@ -177,6 +184,10 @@ local function reconcile(saved: any): MetaProfile
 	end
 	if type(saved.ActiveDossierId) == "string" and DossierDefs.get(saved.ActiveDossierId) then
 		profile.ActiveDossierId = saved.ActiveDossierId
+	end
+	local active = profile.ActiveDossierId
+	if active and not profile.Dossiers[active] then
+		profile.Dossiers[active] = { XP = 0, Premium = false, Claimed = {} }
 	end
 	if type(saved.Career) == "table" then
 		local career: { [string]: number } = profile.Career :: any
