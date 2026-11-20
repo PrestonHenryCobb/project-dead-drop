@@ -2003,6 +2003,22 @@ local GameConfig = {
 		FastMatchStart = true,
 	},
 
+	-- Ticket 23-audit (spec 26): the server watches each player's real speed against the WalkSpeed it set. Zipline, gondola,
+	-- elevator, spring pad and vent motion are driven by the client, so those can look like speeding: Kick stays false
+	-- until a playtest's log shows the flags are only real exploits (MovementGuard.grace is the hook for known traversals).
+	MovementGuard = {
+		SampleSeconds = 0.25,
+		Tolerance = 0.2, -- spec 26: 20 percent over the server's WalkSpeed
+		SlackStuds = 3, -- added to the distance allowed per sample (network jitter, a shove, a step up)
+		TeleportStuds = 30, -- one sample moving further than this is a teleport, not speed
+		GraceSeconds = 4, -- after a character spawns
+		ViolationsToFlag = 4, -- bad samples inside one window before the player counts as flagged
+		ResetSeconds = 10, -- clean time that clears the count
+		Kick = false,
+		KickMessage = "Disconnected: movement did not match the server.",
+		WarnEverySeconds = 5, -- per player, so a log cannot be flooded
+	},
+
 	-- Spec 25.6: client -> server remotes are rate-limited. Overrides are by remote name.
 	Network = {
 		DefaultRateLimit = { PerSecond = 20, Burst = 20 },
