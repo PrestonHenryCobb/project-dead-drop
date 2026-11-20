@@ -130,7 +130,9 @@ local Remotes = {
 		"RequestClaimStarterAgent", -- (agentId): the free first-launch pick for that agent's class
 		"RequestClaimDossierTier", -- (dossierId, tierIndex)
 		"RequestSelectActiveDossier", -- (dossierId)
-		"RequestBlackMarketPurchase", -- (offerId)
+		"RequestBlackMarketPurchase", -- (offerId): a daily offer id, or the featured bundle id; returns (ok, reason?)
+		"GetBlackMarketOffers", -- returns Types.BlackMarketState (ticket shop-skeleton)
+		"RequestBuyAgent", -- (agentId): buy a locked agent with Credits (ticket shop-skeleton)
 		-- (packageId) Studio-only mock grant for testing the Mint; real Stocks come from Robux purchases (Step 21).
 		"RequestMintStrikeStocks",
 	},

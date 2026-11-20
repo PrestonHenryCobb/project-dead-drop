@@ -490,6 +490,30 @@ export type QueueInfo = { Mode: QueueMode, Available: { QueueMode } }
 -- (first launch: the free picks come first).
 export type MetaSnapshot = { Profile: MetaProfile, Loadout: PlayerLoadout?, Queue: QueueInfo }
 
+-- Ticket shop-skeleton: one Black Market item. Attire is made for one agent (META_DRAFT). Owning it only marks it in the profile
+-- until the art exists. Currency says what it costs; Tier picks the price in GameConfig.Shop.TierPrices.
+export type CosmeticOffer = {
+	Id: string,
+	Name: string,
+	Kind: string, -- "Attire"
+	AgentId: string,
+	Tier: string, -- "Everyday" | "Premium" | "Legendary"
+	Currency: string, -- "Credits" | "Stocks"
+	Price: number,
+}
+-- The weekly featured bundle: several items for Stocks at a discount.
+export type CosmeticBundle = { Id: string, Name: string, ItemIds: { string }, Items: { CosmeticOffer }, Price: number }
+-- GetBlackMarketOffers' result. Daily and Featured are what the server will sell right now; ResetsAt is the server clock
+-- (workspace:GetServerTimeNow) time the day's list changes, FeaturedResetsAt the bundle's.
+export type BlackMarketState = {
+	Daily: { CosmeticOffer },
+	Featured: CosmeticBundle,
+	ResetsAt: number,
+	FeaturedResetsAt: number,
+}
+-- The Mint's package list (shown by the client from GameConfig.Shop.Mint; this is the shape of its entries).
+export type MintPackage = { Id: string, Stocks: number, Robux: number, ProductId: number }
+
 -- RequestEquipLoadout and RequestLockInPreDeploy send this; the server checks every field.
 export type LoadoutRequest = { AgentId: string, HardwareId: string, GadgetIds: { string }?, AssetIds: { string }? }
 

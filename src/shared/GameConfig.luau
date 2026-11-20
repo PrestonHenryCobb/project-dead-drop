@@ -158,6 +158,32 @@ local GameConfig = {
 	},
 
 	-- Ticket menu-phase0: agent mastery (SPEC_CHANGES 2026-10-25: levels 1 to 10 over about ten matches with an agent).
+	-- Ticket shop-skeleton (owner answers 2026-11-20): agents cost Credits, the Black Market sells cosmetics, the Mint sells Stocks.
+	-- SPEC-QUESTION: every price below is a first guess. No cosmetic has art yet, so owning one only marks it in the profile.
+	Shop = {
+		AgentCredits = 2500, -- one locked agent, about 12 matches of Credits (owner answer 2026-11-20)
+		-- Cosmetic price by tier. Everyday items cost Credits (META_DRAFT: Credits buy some cosmetics), the rest cost Stocks.
+		TierPrices = {
+			Everyday = { Currency = "Credits", Price = 1200 },
+			Premium = { Currency = "Stocks", Price = 400 },
+			Legendary = { Currency = "Stocks", Price = 900 },
+		},
+		DailyOffers = 4, -- Black Market items on show each UTC day, drawn from the pool in a fixed order for that day
+		FeaturedDays = 7, -- the weekly featured bundle changes this often
+		BundleStocksMult = 0.8, -- a bundle costs this share of its items' Stocks prices added together
+		SecondsPerDay = 86400,
+		Mint = {
+			-- Real Stocks come from Robux purchases once ProductId is set (a Developer Product id the owner creates; 0 = not created).
+			-- Until then a purchase is refused, except the Studio-only test grant. SPEC-QUESTION: sizes and Robux prices are guesses.
+			StudioGrantEnabled = true,
+			Packages = {
+				{ Id = "Stocks500", Stocks = 500, Robux = 100, ProductId = 0 },
+				{ Id = "Stocks1200", Stocks = 1200, Robux = 230, ProductId = 0 },
+				{ Id = "Stocks2600", Stocks = 2600, Robux = 480, ProductId = 0 },
+			},
+		},
+	},
+
 	Mastery = {
 		MaxLevel = 10,
 		-- The mastery level that opens each Hardware slot, W1 to W3. IDEAS brief Q8: the second item after about two matches.
@@ -2172,6 +2198,8 @@ local GameConfig = {
 			RequestSelectActiveDossier = { PerSecond = 1, Burst = 3 },
 			RequestBlackMarketPurchase = { PerSecond = 1, Burst = 2 },
 			RequestMintStrikeStocks = { PerSecond = 1, Burst = 2 },
+			RequestBuyAgent = { PerSecond = 1, Burst = 2 }, -- ticket shop-skeleton: a button
+			GetBlackMarketOffers = { PerSecond = 1, Burst = 3 },
 			RequestQueueMode = { PerSecond = 2, Burst = 4 },
 			RequestStartPreDeploy = { PerSecond = 1, Burst = 2 },
 			RequestLockInPreDeploy = { PerSecond = 3, Burst = 6 },

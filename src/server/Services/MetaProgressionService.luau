@@ -15,6 +15,7 @@
 --   MetaProgressionService.settleAccount(player, xp, won) -> Types.MatchRewardsInfo?   account XP, levels and Credits (RewardService)
 --   MetaProgressionService.recordMatch(player, won, extracted)   a finished match: mastery XP for the agent played (a team win adds
 --     the bonus), career counters (Extractions only if this player was still in at the end)
+--   MetaProgressionService.transact(player, fn(profile) -> (ok, reason?)) -> (ok, reason?)   a validated profile change from the shop; saved and pushed on ok
 --   MetaProgressionService.queueInfo() -> Types.QueueInfo     the modes this server can deploy into
 
 local Players = game:GetService("Players")
@@ -25,6 +26,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local AgentDefs = require(Shared:WaitForChild("Defs"):WaitForChild("AgentDefs"))
 local AssetDefs = require(Shared:WaitForChild("Defs"):WaitForChild("AssetDefs"))
 local GadgetDefs = require(Shared:WaitForChild("Defs"):WaitForChild("GadgetDefs"))
+local ShopDefs = require(Shared:WaitForChild("Defs"):WaitForChild("ShopDefs"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"))
@@ -139,7 +141,7 @@ local function reconcile(saved: any): MetaProfile
 	end
 	if type(saved.OwnedCosmetics) == "table" then
 		for cosmeticId, owned in saved.OwnedCosmetics do
-			if owned == true and type(cosmeticId) == "string" then
+			if owned == true and type(cosmeticId) == "string" and ShopDefs.byId[cosmeticId] then
 				profile.OwnedCosmetics[cosmeticId] = true
 			end
 		end
@@ -411,14 +413,58 @@ local function onClaimStarter(player: Player, agentId: unknown): (boolean, strin
 	return true, nil
 end
 
--- SPEC-QUESTION: Dossiers, Black Market offers and Stocks packages have no designed content yet (names, tiers, rewards,
--- prices), so these requests are refused rather than answered from invented data. Each gets its rules once its
--- catalogue is decided (Step 21).
+-- Buying a locked agent with Credits (ticket shop-skeleton, GameConfig.Shop.AgentCredits). The free first-launch pick of the agent's
+-- class must be used first, since it costs nothing. The new agent starts at mastery level 1 with its first Hardware free.
+local function onBuyAgent(player: Player, agentId: unknown): (boolean, string?)
+	local profile = profiles[player]
+	if not profile then
+		return false, "NoProfile"
+	end
+	local agent = if type(agentId) == "string" then AgentDefs.get(agentId) else nil
+	if not agent then
+		return false, "UnknownAgent"
+	end
+	if profile.OwnedAgents[agent.Id] then
+		return false, "AlreadyOwned"
+	end
+	if profile.StarterPicksLeft[agent.Class] then
+		return false, "UseFreePick" -- the free pick for this class is still open
+	end
+	local price = GameConfig.Shop.AgentCredits
+	if profile.Credits < price then
+		return false, "NotEnoughCredits"
+	end
+	profile.Credits -= price
+	profile.OwnedAgents[agent.Id] = true
+	profile.Mastery[agent.Id] = { Level = startingMastery(), XP = 0 }
+	dirty[player] = true
+	push(player)
+	return true, nil
+end
+
+-- Runs a change to the player's profile that another service has already validated (a Black Market purchase, a Mint grant): fn
+-- edits the profile and answers (ok, reason). On ok the profile is saved at the next autosave and the player is told.
+function MetaProgressionService.transact(
+	player: Player,
+	fn: (Types.MetaProfile) -> (boolean, string?)
+): (boolean, string?)
+	local profile = profiles[player]
+	if not profile then
+		return false, "NoProfile"
+	end
+	local ok, reason = fn(profile)
+	if ok then
+		dirty[player] = true
+		push(player)
+	end
+	return ok, reason
+end
+
+-- SPEC-QUESTION: Dossiers have no designed content yet (names, tiers, rewards), so these requests are refused rather than
+-- answered from invented data. (The Black Market and the Mint are StorefrontService.)
 local NO_CATALOGUE = {
 	"RequestClaimDossierTier",
 	"RequestSelectActiveDossier",
-	"RequestBlackMarketPurchase",
-	"RequestMintStrikeStocks",
 }
 
 -- Persistence (ticket 21-data) -------------------------------------------------------------------------------------
@@ -505,6 +551,7 @@ function MetaProgressionService.Start()
 	end)
 	RemoteService.onInvoke("RequestEquipLoadout", onEquip)
 	RemoteService.onInvoke("RequestClaimStarterAgent", onClaimStarter)
+	RemoteService.onInvoke("RequestBuyAgent", onBuyAgent)
 	for _, name in NO_CATALOGUE do
 		RemoteService.onInvoke(name, function()
 			return false, "NoCatalogue"
