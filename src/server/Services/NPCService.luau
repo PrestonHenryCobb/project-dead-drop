@@ -765,6 +765,13 @@ function NPCService.getNpcs(): { Npc }
 	return npcs
 end
 
+-- A stagger or taser hit slows an NPC's walk like a player's (ticket 8.5c-server); it does nothing to one that is standing still or down.
+function NPCService.slow(npc: Npc, mult: number, seconds: number)
+	if not Death.isDown(npc) then
+		Movement.slow(npc, mult, seconds)
+	end
+end
+
 -- An NPC takes damage; at 0 HP it goes down (spec 5.5, OPEN_QUESTIONS A7). Returns true if this hit downed it.
 function NPCService.hitNpc(npc: Npc, amount: number, from: Vector3): boolean
 	if Death.isDown(npc) then

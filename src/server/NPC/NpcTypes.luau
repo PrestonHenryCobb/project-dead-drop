@@ -59,6 +59,8 @@ export type Npc = {
 	legs: { NavGraph.Leg }, -- the rest of a trip that rides an elevator: the legs after the one being walked
 	ride: NavGraph.Ride?, -- the elevator ride this walk ends at
 	riding: string?, -- the shaft whose cab the NPC is in
+	slowUntil: number?, -- os.clock(): a pump stagger or a taser holds its walking speed to slowMult until then
+	slowMult: number?,
 	waitUntil: number, -- an NPC waiting for a cab gives up at this time
 	tripFrom: number, -- the node an elevator trip began at (it returns there if the cab never comes)
 	holds: { { state: NavGraph.LinkState, releaseAt: number } }, -- room reserved on the links a trip uses

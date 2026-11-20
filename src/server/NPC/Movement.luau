@@ -44,7 +44,8 @@ end
 -- The speed for this tick (step 8B.5): it eases up from a stop over Movement.AccelSeconds and eases down to a stop over
 -- DecelSeconds, braking in time to stand at the end of the path. Players ease with the same two numbers.
 local function easedSpeed(npc: Npc, path: { Vector3 }, dt: number): number
-	local cruise = npc.speed
+	local slowUntil = npc.slowUntil
+	local cruise = if slowUntil and os.clock() < slowUntil then npc.speed * (npc.slowMult or 1) else npc.speed
 	local accel = cruise / movement.AccelSeconds
 	local decel = cruise / movement.DecelSeconds
 	local brakeStuds = cruise * cruise / (2 * decel)
@@ -58,6 +59,15 @@ local function easedSpeed(npc: Npc, path: { Vector3 }, dt: number): number
 	end
 	-- Never stall short of the end: the last fraction of a stud is walked at a crawl rather than not at all.
 	return math.max(speed, math.min(cruise, accel * dt))
+end
+
+-- A pump stagger or a taser slows the walk, as it slows a player (the same multiplier and time), so a hit never tells an NPC from
+-- an agent by who keeps running. A stronger slow already running is kept.
+function Movement.slow(npc: Npc, mult: number, seconds: number)
+	local now = os.clock()
+	local current = if npc.slowUntil and now < npc.slowUntil then npc.slowMult or 1 else 1
+	npc.slowMult = math.min(current, mult)
+	npc.slowUntil = math.max(npc.slowUntil or 0, now + seconds)
 end
 
 -- Walks along the NPC's path for dt seconds. Returns true when the end of the path was reached.

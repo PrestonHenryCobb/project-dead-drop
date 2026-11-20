@@ -85,7 +85,8 @@ Pump:
 - Stagger: 5 or more pellets on one player within 12 studs of the shooter: the server slows their `WalkSpeed` by 25 percent for 0.35 s
   (`DisguiseService.applySlow`) and sends them `CombatStatus {Kind="Stagger", Seconds, SlowMult, AimBumpDegrees=1.5, From}`.
   **Codex draws the aim bump** (the client moves the view `AimBumpDegrees` away from `From`; Studio tuning). It does not
-  interrupt firing. NPCs take the damage but no slow.
+  interrupt firing. An NPC hit the same way (5 pellets within 12 studs) walks slower for the same time (`NPCService.slow`,
+  2026-11-19), so a stagger never tells an NPC from an agent; it gets no aim bump (it has no aim).
 
 Hammer:
 - V press near nothing starts a charge; releasing swings. Under `ChargeSeconds` (1.0): 70. At or over it: 100 and a shove.
@@ -184,9 +185,9 @@ Client command bar by firing the remote with a script, or wait for Codex's clien
 ## Gaps and SPEC-QUESTIONs
 
 - Run in Studio against NPCs on 2026-11-03 (see the results table above); player-victim effects still untested.
-- NPCs take hammer and pump damage but are **not shoved or slowed** (their position comes from the crowd's route). The
-  difference could be seen by an observer comparing a shoved player with an unshoved NPC. Needs the NPC movement owner
-  (me) and a decision; not built.
+- NPCs are now **slowed** by the pump stagger and the taser (`Movement.slow`: the same multiplier and seconds as a player), but
+  still **not shoved** by the hammer (their position comes from the crowd's route). An observer comparing a shoved player with an
+  unshoved NPC could still see the difference; a shove for NPCs is not built.
 - Smoke blocks sight checks on the server (see the smoke SMG section) but not shots, sound, Bug Cams or the Long Lens.
 - Landed knives and flights in the air are cleared when the match goes to Lobby or Insertion (ProjectileService, 2026-11-19).
 - SPEC-QUESTION: the hammer's "sideways in the direction of the swing" is implemented as the swinger's right.

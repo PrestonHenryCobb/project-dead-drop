@@ -616,6 +616,9 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 			else
 				local result = applyDamage(player, target, amount, head, origin)
 				local victim = target.player
+				if result == "Hit" and def.Taser and target.npc then
+					NPCService.slow(target.npc, def.Taser.SlowMult, def.Taser.SlowSeconds)
+				end
 				if result ~= nil and victim then
 					struckAgent = target
 					local taser = def.Taser
@@ -692,6 +695,17 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 				From = origin,
 			}
 			RemoteService.fireClient("CombatStatus", victim, status)
+		end
+		-- An NPC staggers the same way (a slower walk), so who is hit never tells an NPC from an agent.
+		local npc = target.npc
+		if
+			stagger
+			and result ~= nil
+			and npc
+			and tally.pellets >= stagger.MinPellets
+			and (target.rootPart.Position - origin).Magnitude <= stagger.WithinStuds
+		then
+			NPCService.slow(npc, stagger.SlowMult, stagger.Seconds)
 		end
 	end
 	if def.Tracker then
