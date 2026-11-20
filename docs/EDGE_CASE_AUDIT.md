@@ -15,8 +15,8 @@ design, not read this pass).
 | 8 | Lockdown while in a Tier 2 disguise | NOT RE-CHECKED | |
 | 9 | Downed agent in a hack zone | OK | `VaultService` skips `DownedService.isOut` |
 | 10 | Vault at 100 percent while contested | OK | contested pauses (VAULT_CONTRACT) |
-| 11 | Extraction by a carrier of another team | NOT RE-CHECKED | PACKAGE_CONTRACT says the win goes to the carrier's team |
-| 12 | Pass to a teammate in a vent | NOT RE-CHECKED | `PackageService.beginPass` picks the nearest living teammate in `PassRange`; vent eligibility was not read |
+| 11 | Extraction by a carrier of another team | **OK (read 2026-11-20)** | ExtractionService takes its team from PackageService.carrierTeam and every step re-checks the carrier, so the win goes to the carrier's team |
+| 12 | Pass to a teammate in a vent | **GAP, accepted** | nearestTeammate checks only PassRange (6 studs), alive and same team: a pass works to a teammate in a vent or behind a thin wall. Harmless (they are within 6 studs) and the spec forbids neither; add a sight check if play shows abuse |
 | 13 | Ability during Insertion | **FIXED** | `AbilityService.onRequestAbility` now refuses in Insertion (gadgets already did) |
 | 14 | Enemy takes an Agent Tag | OK | `RescueService.beginPickup` requires `areTeammates` |
 | 15, 16 | Last team standing / everyone eliminated | OK | `MatchService.checkAllOut` ends the match only when nobody is left, with no winner |
@@ -29,7 +29,7 @@ design, not read this pass).
 | 23 | Disguise inside a laser grid | **FIXED** | `LaserService.inBeam` feeds `DisguiseService.setSwapBlocker`; the request, Disguise Kit, Quick Change and auto re-cover all refuse inside a live beam. Scanning, sprint and crouch are unaffected |
 | 24 | Timer expires during the extraction channel | OK | Overtime covers it (PACKAGE_CONTRACT) |
 | 25 | Team with 0 alive keeps Intel | N/A | |
-| 26 | Same-team scan | NOT RE-CHECKED | `startScan` resolves a target id; teammate rules were not read |
+| 26 | Same-team scan | **OK (read 2026-11-20)** | canScan and resolveTarget do not exclude teammates; scanning one copies the look they wear, same as a rival. Scanning yourself is refused |
 | 27 | Low-end mobile | N/A | mobile is not a target |
 
 **Debug default changed:** `Debug.AutoRespawn` was `true`, which reloaded an eliminated player after 3 s and stopped `MatchService`
