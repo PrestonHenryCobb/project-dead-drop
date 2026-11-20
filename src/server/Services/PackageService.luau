@@ -135,6 +135,7 @@ local function clearWeld()
 end
 
 local function setFree(player: Player)
+	RewardService.stopCarrying(player)
 	CoverService.setPackageCarrier(player, false)
 	DisguiseService.setCarrier(player, false)
 end

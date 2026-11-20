@@ -8,6 +8,7 @@
 --   RewardService.awardOnce(player, key, event?)  the same, but only the first time this match for that key
 --   RewardService.awardFor(player, event, other)  once per other player a match (a down, an execution, a revive)
 --   RewardService.carrying(player)                called each check while they hold the Package; pays PackageCarried every tick
+--   RewardService.stopCarrying(player)            they no longer hold the Package; the next carry starts its timer afresh
 --   RewardService.vaultPresence(players, dt)      players on a terminal's dais for dt seconds; pays VaultParticipation once a match
 --   RewardService.finishMatch(entries)            the match is over: settle everyone
 --   RewardService.reset()                         a new match: forget the last one's tallies
@@ -82,6 +83,16 @@ function RewardService.carrying(player: Player)
 	while tally.carrySeconds >= config.CarryTickSeconds do
 		tally.carrySeconds -= config.CarryTickSeconds
 		RewardService.award(player, "PackageCarried")
+	end
+end
+
+-- The Package left their hands (dropped, stolen, returned): the next pickup starts a fresh carry timer, so dropping and re-taking
+-- it cannot bank time they were not holding it.
+function RewardService.stopCarrying(player: Player)
+	local tally = tallies[player]
+	if tally then
+		tally.carryAt = 0
+		tally.carrySeconds = 0
 	end
 end
 

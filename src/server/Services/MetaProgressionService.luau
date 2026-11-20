@@ -452,7 +452,7 @@ end
 
 local function loadProfile(player: Player)
 	while releasing[player.UserId] do
-		task.wait(0.2) -- they just left this server and the save that lets go of the lock is still running
+		task.wait(dataConfig.ReleaseWaitSeconds) -- they just left this server and the save that lets go of the lock is still running
 	end
 	local status, saved = ProfileStore.load(player.UserId)
 	if not player.Parent then

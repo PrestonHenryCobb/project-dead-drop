@@ -15,7 +15,7 @@ past session ran it solo in Studio (see the contracts in `.ai-sync/`). Status: D
 | Only one team can win; no-winner endings work | BUILT | `MatchService.finish` once per match; all-out ends with no winner (`checkAllOut`, which only works since `Debug.AutoRespawn` was turned off on 2026-11-19). Bots won a whole match alone (tested). Human no-winner path not run. |
 | All 27 edge cases handled | PARTIAL | `docs/EDGE_CASE_AUDIT.md`: 4 gaps found and fixed, one accepted change (Riot Wall), several not re-checked. |
 | Every client request is validated on the server | PARTIAL | `docs/ANTI_EXPLOIT_AUDIT.md`: every handler read; one real bug and three leaks fixed; the movement guard only logs. |
-| All numbers come from GameConfig | DONE (scan) | A scan of `src/server` (not the Studio-only generators) found 30 tunable-looking literals: epsilons, hash constants, particle settings and named local constants, and two real tunables (a target-id length cap in `RouteService`, a poll interval in `MetaProgressionService`) that are listed for GameConfig. |
+| All numbers come from GameConfig | DONE (scan) | A scan of `src/server` (not the Studio-only generators) found 30 tunable-looking literals: epsilons, hash constants, particle settings and named local constants, and two real tunables (a target-id length cap in `RouteService`, a poll interval in `MetaProgressionService`), both now in GameConfig (`Route`, `Data.ReleaseWaitSeconds`). |
 
 ## Milestones
 | Milestone | Status | Notes |

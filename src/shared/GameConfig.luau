@@ -287,6 +287,7 @@ local GameConfig = {
 		LockStaleSeconds = 360,
 		LockWaitSeconds = 25, -- how long a join waits for another server to let go before taking the lock or giving up
 		LockRetrySeconds = 2,
+		ReleaseWaitSeconds = 0.2, -- a join polls this often while the same player's save from their last visit is still letting go of the lock
 		Retries = 5, -- DataStore calls that fail are tried this many times with the backoff below
 		RetryBaseSeconds = 1,
 		RetryMaxSeconds = 8,
