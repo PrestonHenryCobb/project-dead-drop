@@ -290,7 +290,43 @@ function MetaProgressionService.validateLoadout(player: Player, request: unknown
 		end
 		assetIds = pickedAssets
 	end
-	return { AgentId = agent.Id, HardwareId = hardwareId, GadgetIds = gadgetIds, AssetIds = assetIds }, nil
+	-- Ticket kits-24: the Talent and Instinct, if the request names them: one of the agent's own, with mastery high enough for its slot.
+	-- Left out, the agent's first of each (always unlocked) is taken.
+	local talentId: string = agent.Talents[1].Id
+	local requestedTalent = (request :: any).TalentId
+	if requestedTalent ~= nil then
+		local slot = if type(requestedTalent) == "string" then AgentDefs.talentSlot(agent.Id, requestedTalent) else nil
+		if not slot then
+			return nil, "TalentUnavailable"
+		end
+		if masteryLevel(profile, agent.Id) < GameConfig.Mastery.TalentUnlockLevels[slot] then
+			return nil, "MasteryTooLow"
+		end
+		talentId = requestedTalent
+	end
+	local instinctId: string = agent.Instincts[1].Id
+	local requestedInstinct = (request :: any).InstinctId
+	if requestedInstinct ~= nil then
+		local slot = if type(requestedInstinct) == "string"
+			then AgentDefs.instinctSlot(agent.Id, requestedInstinct)
+			else nil
+		if not slot then
+			return nil, "InstinctUnavailable"
+		end
+		if masteryLevel(profile, agent.Id) < GameConfig.Mastery.InstinctUnlockLevels[slot] then
+			return nil, "MasteryTooLow"
+		end
+		instinctId = requestedInstinct
+	end
+	return {
+		AgentId = agent.Id,
+		HardwareId = hardwareId,
+		GadgetIds = gadgetIds,
+		AssetIds = assetIds,
+		TalentId = talentId,
+		InstinctId = instinctId,
+	},
+		nil
 end
 
 function MetaProgressionService.setLoadout(player: Player, loadout: PlayerLoadout)

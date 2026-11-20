@@ -23,6 +23,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
+local KitRules = require(script.Parent.Parent.Combat.KitRules)
 local CoverService = require(script.Parent.CoverService)
 local DisguiseService = require(script.Parent.DisguiseService)
 local DownedService = require(script.Parent.DownedService)
@@ -73,13 +74,13 @@ function IntelService.spend(teamId: number, amount: number): boolean
 	return true
 end
 
-local function take(teamId: number, station: Station)
+local function take(teamId: number, station: Station, bonus: number?)
 	used[teamId] = used[teamId] or {}
 	used[teamId][station.id] = true
 	if saved[teamId] then
 		saved[teamId][station.id] = nil
 	end
-	balances[teamId] = IntelService.balance(teamId) + station.points
+	balances[teamId] = IntelService.balance(teamId) + station.points + (bonus or 0)
 	if GameConfig.Debug.PrintEvents then
 		print(`[Intel] team {teamId} took {station.id} (+{station.points}): {balances[teamId]}`)
 	end
@@ -169,7 +170,7 @@ local function beginStation(player: Player, targetName: string): InteractService
 		end,
 		complete = function()
 			if not (used[teamId] and used[teamId][station.id]) then
-				take(teamId, station)
+				take(teamId, station, KitRules.of(player).IntelBonus) -- Data Miner
 				RewardService.award(player, "IntelCollected")
 			end
 		end,

@@ -34,6 +34,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local Effects = require(script.Parent.Parent.Combat.Effects)
 local Smoke = require(script.Parent.Parent.Combat.Smoke)
 local Types = require(Shared:WaitForChild("Types"))
 local AlarmService = require(script.Parent.AlarmService)
@@ -224,6 +225,12 @@ local function assetValue(player: Player, assetId: string): number
 	return if lookup then lookup(player, assetId) else 0
 end
 
+-- Ticket kits-24: an Instinct's multiplier on one source of suspicion (Social Climber, Low Profile), 1 if none.
+local function suspicionMult(player: Player, action: string): number
+	local table_ = rulesOf(player).SuspicionMult
+	return if type(table_) == "table" and type(table_[action]) == "number" then table_[action] else 1
+end
+
 -- Enemies within ExposedPingRadius get a ping where the player was exposed (spec 7.2). Until teams exist (Step 10),
 -- every other player is an enemy. Feint's ping is shown PingOffset.Min to Max studs from where she is (ticket 16f).
 local function pingEnemies(exposed: Player, position: Vector3)
@@ -241,7 +248,7 @@ local function pingEnemies(exposed: Player, position: Vector3)
 				RemoteService.fireClient(
 					"ExposedPing",
 					other,
-					{ Position = shown, Seconds = config.ExposedPingSeconds }
+					{ Position = shown, Seconds = config.ExposedPingSeconds * (rulesOf(exposed).ExposedPingMult or 1) } -- Ghost Trail
 				)
 			end
 		end
@@ -285,7 +292,7 @@ function CoverService.startLockout(player: Player)
 		return
 	end
 	local now = os.clock()
-	state.lockoutUntil = now + config.CombatLockout
+	state.lockoutUntil = now + config.CombatLockout * (rulesOf(player).CombatLockoutMult or 1) -- Deep Cover
 	sendCover(player, state, now)
 end
 
@@ -440,7 +447,7 @@ local function suspiciousRates(
 	local sprinting, crouching = DisguiseService.getMovement(player)
 	local noticed, rate = 0, 0
 	if sprinting then
-		local sprintGain = gain.Sprint * (1 + assetValue(player, "LightFeet")) -- Light Feet
+		local sprintGain = gain.Sprint * (1 + assetValue(player, "LightFeet")) * suspicionMult(player, "Sprint") -- Light Feet
 		if config.CivilianNotices.Sprint then
 			noticed += sprintGain
 		else
@@ -451,7 +458,7 @@ local function suspiciousRates(
 		rate += gain.Crouch
 	end
 	if zoneTier >= 1 and os.clock() < state.hackingUntil then
-		rate += gain.Terminal
+		rate += gain.Terminal * suspicionMult(player, "Terminal")
 	end
 	if zoneTier >= 1 and state.weaponDrawn and not rulesOf(player).QuietScope then -- Reticle's Still Water
 		rate += gain.WeaponDrawn
@@ -483,15 +490,21 @@ local function step(player: Player, state: State, dt: number, now: number)
 
 	if state.cover ~= "Exposed" then
 		local noticedRate, guardRate = suspiciousRates(player, state, root.Position, zoneTier, clearance)
-		local jumpGain = state.pendingJumps * config.SuspicionGain.Jump * (1 + assetValue(player, "LightFeet"))
+		local jumpGain = state.pendingJumps
+			* config.SuspicionGain.Jump
+			* (1 + assetValue(player, "LightFeet"))
+			* suspicionMult(player, "Jump")
 		state.pendingJumps = 0
 		local jumpShare = if config.CivilianNotices.Jump then allShare else guardShare
-		local gain = noticedRate * dt * allShare + guardRate * dt * guardShare + jumpGain * jumpShare
+		local gain = (noticedRate * dt * allShare + guardRate * dt * guardShare + jumpGain * jumpShare)
+			* Effects.get(player, "SuspicionGain", 1) -- Face Value
 		if gain > 0 then
 			state.suspicion = math.min(state.suspicion + gain, config.SuspicionMax)
 			state.lastSuspiciousAt = now
 		elseif now - state.lastSuspiciousAt >= config.SuspicionDecayDelay then
-			local drain = config.SuspicionDecayPerSecond * (1 + assetValue(player, "SteadyNerves")) -- Steady Nerves
+			local drain = config.SuspicionDecayPerSecond
+				* (1 + assetValue(player, "SteadyNerves")) -- Steady Nerves
+				* (rulesOf(player).SuspicionDecayMult or 1) -- Cold Blood
 			state.suspicion = math.max(state.suspicion - drain * dt, 0)
 		end
 		state.cover = if state.suspicion > 0 then "Suspicious" else "Covered"

@@ -30,6 +30,8 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local Effects = require(script.Parent.Parent.Combat.Effects)
+local KitRules = require(script.Parent.Parent.Combat.KitRules)
 local Smoke = require(script.Parent.Parent.Combat.Smoke)
 local OutfitDefs = require(Shared:WaitForChild("Defs"):WaitForChild("OutfitDefs"))
 local Types = require(Shared:WaitForChild("Types"))
@@ -96,7 +98,6 @@ local actionBlocker: ((Player) -> boolean)? = nil
 local swapBlocker: ((Player) -> boolean)? = nil
 local autoRecover: { [Player]: boolean } = {} -- ticket auto-recover: the option where the player has changed it
 local autoElapsed = 0
-local agentLookup: ((Player) -> string?)? = nil -- ticket 16a: AbilityService says which agent a player is
 local validateAccumulator = 0
 
 -- Rays in the character group skip characters and only meet the map.
@@ -129,16 +130,9 @@ function DisguiseService.setSwapBlocker(blocker: (Player) -> boolean)
 	swapBlocker = blocker
 end
 
-function DisguiseService.setAgentLookup(lookup: (Player) -> string?)
-	agentLookup = lookup
-end
-
--- The agent's own disguise numbers (GameConfig.Agents), or the usual ones.
+-- The selected Instinct's disguise numbers (GameConfig.Instincts), or the usual ones.
 local function agentRules(player: Player): { DisguiseSlots: number?, ScanSeconds: number?, DisguiseSeconds: number? }
-	local lookup = agentLookup
-	local agentId = if lookup then lookup(player) else nil
-	local rules = if agentId then (GameConfig.Agents :: { [string]: any })[agentId] else nil
-	return rules or {}
+	return KitRules.of(player)
 end
 
 local function slotLimit(player: Player): number
@@ -279,7 +273,10 @@ local function canScan(scanner: Player, target: NpcInfo): boolean
 		return false
 	end
 	local offset = target.position - root.Position
-	if Vector3.new(offset.X, 0, offset.Z).Magnitude > config.ScanRange + config.ScanRangeSlack then
+	if
+		Vector3.new(offset.X, 0, offset.Z).Magnitude
+		> config.ScanRange * Effects.get(scanner, "ScanRange", 1) + config.ScanRangeSlack
+	then
 		return false
 	end
 	local lift = Vector3.new(0, config.ScanSightHeight, 0)
@@ -306,7 +303,8 @@ local function startScan(player: Player, state: State, targetId: string)
 	end
 	cancelScan(player, state)
 	state.applyId += 1 -- starting a scan cancels a disguise change in progress
-	local seconds = target.scanSeconds or agentRules(player).ScanSeconds or config.ScanSeconds
+	local seconds = (target.scanSeconds or agentRules(player).ScanSeconds or config.ScanSeconds)
+		* Effects.get(player, "ScanTime", 1) -- Cold Read
 	state.scan = { targetId = targetId, startedAt = os.clock(), seconds = seconds }
 	RemoteService.fireClient("ScanState", player, { State = "Started", Seconds = seconds })
 end
@@ -652,6 +650,7 @@ function DisguiseService.applySlow(player: Player, mult: number, seconds: number
 	if not state or not humanoid then
 		return
 	end
+	seconds *= KitRules.of(player).StatusMult or 1 -- Anchor
 	state.slowId += 1
 	local id = state.slowId
 	state.slowUntil, state.slowMult = os.clock() + seconds, mult

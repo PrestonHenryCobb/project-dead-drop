@@ -205,6 +205,10 @@ local GameConfig = {
 		-- The mastery level that opens each Hardware slot, W1 to W3. IDEAS brief Q8: the second item after about two matches.
 		-- SPEC-QUESTION: W3 at level 6 is from the menu handoff; the decided pace only says "everything in about ten matches".
 		HardwareUnlockLevels = { 1, 3, 6 },
+		-- Ticket kits-24: the Talent and Instinct slots open at the same mastery levels as the Hardware (IDEAS brief Q8: each agent starts with
+		-- one of each, the second after about two matches, all three after about ten). SPEC-QUESTION: the same {1, 3, 6} pace as Hardware.
+		TalentUnlockLevels = { 1, 3, 6 },
+		InstinctUnlockLevels = { 1, 3, 6 },
 		-- Ticket 21-mastery: what a finished match gives the agent the player used (SPEC_CHANGES 2026-10-25: about ten matches
 		-- to level 10, the second Hardware after about two, wins and objectives speed it up). One match is one level, so level 3
 		-- comes after two matches and level 10 after nine; a win adds half a level. SPEC-QUESTION: objectives add nothing yet.
@@ -1624,17 +1628,21 @@ local GameConfig = {
 
 	-- Spec 15, ticket 16: what an agent changes about the common rules. The ability's name and cooldown are in AgentDefs.
 	-- Guise (Two Faces): two disguise slots and a scan of 0.6 s instead of 1.2 s.
-	Agents = {
-		Guise = { DisguiseSlots = 2, ScanSeconds = 0.6 },
-		-- Parapet: Plated (one more starting plate than the usual 1, or 2 in Solos: 2, or 3) and Riot Wall, a shield carried
-		-- Offset studs in front of him: Size wide x tall x thick, it takes HP damage from shots (not his own) and ends after
-		-- Seconds. Its see-through look fades as it is worn down. SPEC-QUESTION: putting it up breaks Cover.
-		-- Lattice: Wired makes the hold kinds in HackKinds take HackMult of their time (tier doors cost 1 less intel when they
-		-- exist, Step 18). Sparrow Drone: she flies it for Seconds from a spot HeightAbove her head, up to MaxRangeStuds from her
-		-- body at Speed, ClearanceStuds off walls; it has HP and any shot at it counts; it hacks Intel stations and cameras
-		-- where it hovers (the usual reach); every TagCheckSeconds it tags enemy agents in True Form it can see within TagRange
-		-- for her team for TagSeconds. Her body stands still and cannot fire, and damage to it ends the flight.
-		Lattice = {
+	-- Ticket kits-24 (owner answer 2026-11-20: Claude designs the 24 new items): the numbers of every Instinct (a passive), by Instinct id. The
+	-- selected Instinct's table is what AbilityService.rulesOf hands to the systems that read an agent's rules. Every key is read in one place:
+	-- DisguiseSlots, ScanSeconds, DisguiseSeconds, StatusMult (DisguiseService); ExtraStartPlates, FallDamageMult, DamageTakenMult,
+	-- ExposedDamageBonus (CombatService); QuietScope, PingOffset, ExposedPingMult, CombatLockoutMult, SuspicionMult, SuspicionDecayMult
+	-- (CoverService); HackMult and HackKinds, ReviveMult (AbilityService); TierDoorDiscount (SecurityService); PlateMult (PlatePack);
+	-- IntelBonus (IntelService); BleedOutMult (DownedService); SelfRegen and CooldownMult (AbilityService). SPEC-QUESTION: every new number
+	-- is a first guess to tune in play.
+	Instincts = {
+		TwoFaces = { DisguiseSlots = 2, ScanSeconds = 0.6 },
+		DeepCover = { CombatLockoutMult = 0.6 }, -- the combat lockout after firing is 40 percent shorter
+		SocialClimber = { SuspicionMult = { Sprint = 0.65, Jump = 0.65 } }, -- sprinting and jumping raise suspicion a third more slowly
+		Plated = { ExtraStartPlates = 1, PlateMult = 0.5 }, -- one more starting plate; a Plate Pack takes half the time
+		ThickSkin = { DamageTakenMult = 0.9 }, -- every hit hurts a tenth less
+		Anchor = { StatusMult = 0.5 }, -- stagger, shove and slows last half as long
+		Wired = {
 			HackMult = 0.75,
 			HackKinds = {
 				Intel = true,
@@ -1645,7 +1653,49 @@ local GameConfig = {
 				DoorHack = true,
 				ElevatorHack = true,
 			},
-			TierDoorDiscount = 1, -- Wired: a tier door costs 1 less intel, never below 1
+			TierDoorDiscount = 1, -- a tier door costs 1 less intel, never below 1
+		},
+		DataMiner = { IntelBonus = 1 }, -- every Intel station she finishes pays her team 1 more intel
+		LowProfile = { SuspicionMult = { Terminal = 0.5 } }, -- hacking raises suspicion half as fast
+		StillWater = { QuietScope = true, FallDamageMult = 0.5 },
+		PatientHunter = { ExposedDamageBonus = 0.1 }, -- her shots hurt an Exposed agent a tenth more
+		ColdBlood = { SuspicionDecayMult = 1.5 }, -- her suspicion meter drains half again as fast
+		Triage = { ReviveMult = 0.5 },
+		SecondWind = { BleedOutMult = 1.3 }, -- he bleeds out 30 percent slower when downed
+		SelfCare = { SelfRegen = { PerSecond = 1.5, OutOfCombatSeconds = 6, TickHz = 4 } }, -- he regains health once out of combat
+		SmokeAndMirrors = { PingOffset = { Min = 8, Max = 15 }, DisguiseSeconds = 0.3 },
+		CheapTricks = { CooldownMult = 0.8 }, -- every Talent cools down 20 percent faster
+		GhostTrail = { ExposedPingMult = 0.5 }, -- the ping rivals get when she is exposed lasts half as long
+	},
+
+	-- Ticket kits-24: the numbers of the 12 new Talents, by Talent id (each is an Ability module in src/server/Abilities). The six Talents
+	-- that came first keep their numbers in Agents below.
+	Talents = {
+		FaceValue = { Seconds = 8, SuspicionMult = 0.4 }, -- Guise: witnesses fill the suspicion meter at 40 percent
+		ColdRead = { Seconds = 8, ScanTimeMult = 0.4, ScanRangeMult = 1.6 }, -- Guise: scans take 40 percent of the time, from further
+		Brace = { Seconds = 5, DamageTakenMult = 0.5 }, -- Parapet: half damage
+		PlateSlam = {}, -- Parapet: one armour plate at once (no numbers)
+		Overclock = { Seconds = 10, HackTimeMult = 0.6 }, -- Lattice: hacks take 60 percent of the time
+		SignalJam = { RadiusStuds = 45, Seconds = 8 }, -- Lattice: cameras within the radius go dark
+		Focus = { Seconds = 8, DamageMult = 1.2 }, -- Reticle: her shots hurt 20 percent more
+		MarkedMan = { RangeStuds = 100, Seconds = 6 }, -- Reticle: the nearest Exposed agent she can see glows for her
+		Adrenaline = { Heal = 40 }, -- Suture: heals him now and clears any slow
+		Screen = { Radius = 5, Seconds = 6, Ahead = 3 }, -- Suture: a smoke cloud set ahead of him
+		Lure = { Ahead = 25, RadiusStuds = 40 }, -- Feint: a noise this far ahead; guards investigate, NPCs look
+		TwinDouble = { AngleDegrees = 25 }, -- Feint: two Doubles walking apart (the Double's own numbers apply)
+	},
+
+	-- The numbers of the six first Talents (the Instincts' are in Instincts above).
+	Agents = {
+		-- Parapet: Plated (one more starting plate than the usual 1, or 2 in Solos: 2, or 3) and Riot Wall, a shield carried
+		-- Offset studs in front of him: Size wide x tall x thick, it takes HP damage from shots (not his own) and ends after
+		-- Seconds. Its see-through look fades as it is worn down. SPEC-QUESTION: putting it up breaks Cover.
+		-- Lattice: Wired makes the hold kinds in HackKinds take HackMult of their time (tier doors cost 1 less intel when they
+		-- exist, Step 18). Sparrow Drone: she flies it for Seconds from a spot HeightAbove her head, up to MaxRangeStuds from her
+		-- body at Speed, ClearanceStuds off walls; it has HP and any shot at it counts; it hacks Intel stations and cameras
+		-- where it hovers (the usual reach); every TagCheckSeconds it tags enemy agents in True Form it can see within TagRange
+		-- for her team for TagSeconds. Her body stands still and cannot fire, and damage to it ends the flight.
+		Lattice = {
 			SparrowDrone = {
 				Seconds = 15,
 				HP = 40,
@@ -1670,8 +1720,6 @@ local GameConfig = {
 		-- meter inside a ConeDegrees cone ahead of her, to RangeStuds, glows for her alone (through walls), refreshed every
 		-- CheckSeconds. SPEC-QUESTION: the cone follows her body's facing, not the camera's pitch.
 		Reticle = {
-			QuietScope = true,
-			FallDamageMult = 0.5,
 			TracerGlass = {
 				Seconds = 6,
 				ConeDegrees = 45,
@@ -1686,7 +1734,6 @@ local GameConfig = {
 		-- that heals his team, himself included, HealPerSecond within Radius for Seconds. In a Tier 1+ zone setting it down breaks
 		-- his Cover; in a public zone it looks like any first-aid kit. SPEC-QUESTION: it is set down, not thrown.
 		Suture = {
-			ReviveMult = 0.5,
 			Triage = { Radius = 12, PerSecond = 2, OutOfCombatSeconds = 6, TickHz = 4 },
 			MendField = {
 				Seconds = 8,
@@ -1705,13 +1752,9 @@ local GameConfig = {
 		-- for Seconds, stepping the floor every StepStuds, then goes; one hit pops it with the hitmarker of an agent.
 		-- SPEC-QUESTION: it is an ordinary NPC rig, not a see-through hologram, so nothing tells it from the crowd.
 		Feint = {
-			PingOffset = { Min = 8, Max = 15 },
-			DisguiseSeconds = 0.3,
 			Double = { Seconds = 8, StepStuds = 2, Ahead = 2 },
 		},
 		Parapet = {
-			ExtraStartPlates = 1,
-			PlateMult = 0.5, -- Plated: a Plate Pack takes half the time (ticket 17)
 			RiotWall = {
 				Size = Vector3.new(8, 6, 0.4),
 				Offset = 4.5,

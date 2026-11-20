@@ -14,28 +14,43 @@ local AgentDefs = require(Shared:WaitForChild("Defs"):WaitForChild("AgentDefs"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local Ability = require(script.Parent.Parent.Abilities.Ability)
+local Effects = require(script.Parent.Parent.Combat.Effects)
+local KitRules = require(script.Parent.Parent.Combat.KitRules)
 local Lockout = require(script.Parent.Parent.Combat.Lockout)
 local AssetService = require(script.Parent.AssetService)
 local CombatService = require(script.Parent.CombatService)
 local CoverService = require(script.Parent.CoverService)
-local DisguiseService = require(script.Parent.DisguiseService)
 local DownedService = require(script.Parent.DownedService)
 local InteractService = require(script.Parent.InteractService)
 local MatchService = require(script.Parent.MatchService)
 local MetaProgressionService = require(script.Parent.MetaProgressionService)
 local ReachService = require(script.Parent.ReachService)
 local RemoteService = require(script.Parent.RemoteService)
+local RunService = game:GetService("RunService")
 
 local AbilityService = {}
 
--- Agents with an ability built so far (an agent is added here as its step lands).
+-- Every Talent, by Talent id (AgentDefs). The first of each agent came first (steps 16a to 16f); the other twelve are ticket kits-24.
+local modules = script.Parent.Parent.Abilities
 local abilities: { [string]: Ability.Ability } = {
-	Guise = require(script.Parent.Parent.Abilities.Guise),
-	Parapet = require(script.Parent.Parent.Abilities.Parapet),
-	Lattice = require(script.Parent.Parent.Abilities.Lattice),
-	Reticle = require(script.Parent.Parent.Abilities.Reticle),
-	Suture = require(script.Parent.Parent.Abilities.Suture),
-	Feint = require(script.Parent.Parent.Abilities.Feint),
+	QuickChange = require(modules.Guise),
+	FaceValue = require(modules.FaceValue),
+	ColdRead = require(modules.ColdRead),
+	RiotWall = require(modules.Parapet),
+	Brace = require(modules.Brace),
+	PlateSlam = require(modules.PlateSlam),
+	SparrowDrone = require(modules.Lattice),
+	Overclock = require(modules.Overclock),
+	SignalJam = require(modules.SignalJam),
+	TracerGlass = require(modules.Reticle),
+	Focus = require(modules.Focus),
+	MarkedMan = require(modules.MarkedMan),
+	MendField = require(modules.Suture),
+	Adrenaline = require(modules.Adrenaline),
+	Screen = require(modules.Screen),
+	Double = require(modules.Feint),
+	Lure = require(modules.Lure),
+	TwinDouble = require(modules.TwinDouble),
 }
 
 local readyAt: { [Player]: number } = {} -- os.clock() when the ability can next be used
@@ -47,16 +62,47 @@ end
 
 local NO_RULES: { [string]: any } = {}
 
--- The GameConfig.Agents numbers of the player's agent (empty for an agent with none).
+-- The kit item the player selected (their loadout's TalentId or InstinctId), or the agent's first of that kind.
+local function selected(list: { Types.AgentKitItem }, id: string?): Types.AgentKitItem?
+	if id then
+		for _, item in list do
+			if item.Id == id then
+				return item
+			end
+		end
+	end
+	return list[1]
+end
+
+function AbilityService.instinctOf(player: Player): string?
+	local loadout = MetaProgressionService.getLoadout(player)
+	if not loadout then
+		return nil
+	end
+	local def = AgentDefs.get(loadout.AgentId)
+	local item = if def then selected(def.Instincts, loadout.InstinctId) else nil
+	return if item then item.Id else nil
+end
+
+-- The GameConfig.Instincts numbers of the player's selected Instinct (empty for none).
 function AbilityService.rulesOf(player: Player): { [string]: any }
-	local agentId = AbilityService.agentOf(player)
-	return if agentId then (GameConfig.Agents :: { [string]: any })[agentId] or NO_RULES else NO_RULES
+	local id = AbilityService.instinctOf(player)
+	return if id then (GameConfig.Instincts :: { [string]: any })[id] or NO_RULES else NO_RULES
 end
 
 local function talentOf(player: Player): (Types.AgentKitItem?, Ability.Ability?)
-	local agentId = AbilityService.agentOf(player)
-	local def = if agentId then AgentDefs.get(agentId) else nil
-	return def and def.Talents[1], if agentId then abilities[agentId] else nil
+	local loadout = MetaProgressionService.getLoadout(player)
+	if not loadout then
+		return nil, nil
+	end
+	local def = AgentDefs.get(loadout.AgentId)
+	local talent = if def then selected(def.Talents, loadout.TalentId) else nil
+	return talent, if talent then abilities[talent.Id] else nil
+end
+
+-- The talent's cooldown for this player: Cheap Tricks (an Instinct) shortens it.
+local function cooldownOf(player: Player, talent: Types.AgentKitItem): number
+	return (talent.CooldownSeconds or 0) * (AbilityService.rulesOf(player).CooldownMult or 1)
 end
 
 local function sendCooldown(player: Player, name: string, seconds: number, remaining: number)
@@ -91,7 +137,7 @@ local function onRequestAbility(player: Player)
 		end
 		return
 	end
-	local seconds = talent.CooldownSeconds or 0
+	local seconds = cooldownOf(player, talent)
 	readyAt[player] = now + seconds
 	sendCooldown(player, talent.Name, seconds, seconds)
 end
@@ -106,7 +152,7 @@ function AbilityService.resetCooldown(player: Player)
 	local talent = talentOf(player)
 	if talent and AbilityService.onCooldown(player) then
 		readyAt[player] = nil
-		sendCooldown(player, talent.Name, talent.CooldownSeconds or 0, 0)
+		sendCooldown(player, talent.Name, cooldownOf(player, talent), 0)
 	end
 end
 
@@ -114,19 +160,21 @@ end
 function AbilityService.setCooldownFraction(player: Player, fraction: number)
 	local talent = talentOf(player)
 	if talent then
-		local seconds = (talent.CooldownSeconds or 0) * fraction
+		local full = cooldownOf(player, talent)
+		local seconds = full * fraction
 		readyAt[player] = os.clock() + seconds
-		sendCooldown(player, talent.Name, talent.CooldownSeconds or 0, seconds)
+		sendCooldown(player, talent.Name, full, seconds)
 	end
 end
 
 -- A new match: every ability is ready, and each player is told what theirs is.
 local function resetAll()
 	table.clear(readyAt)
+	Effects.clearAll()
 	for _, player in Players:GetPlayers() do
 		local talent = talentOf(player)
 		if talent then
-			sendCooldown(player, talent.Name, talent.CooldownSeconds or 0, 0)
+			sendCooldown(player, talent.Name, cooldownOf(player, talent), 0)
 		end
 	end
 end
@@ -136,13 +184,16 @@ function AbilityService.Init() end
 function AbilityService.Start()
 	for _, ability in abilities do
 		if ability.start then
-			ability.start(AbilityService.agentOf)
+			ability.start(AbilityService.agentOf, AbilityService.instinctOf)
 		end
 	end
-	DisguiseService.setAgentLookup(AbilityService.agentOf)
+	KitRules.set(AbilityService.rulesOf)
 	InteractService.setSecondsMult(function(player, kind, label)
 		local rules = AbilityService.rulesOf(player)
 		local mult = if rules.HackKinds and rules.HackKinds[kind] then rules.HackMult else 1 -- Lattice's Wired
+		if GameConfig.Instincts.Wired.HackKinds[kind] then
+			mult *= Effects.get(player, "HackTime", 1) -- Lattice's Overclock
+		end
 		if label == "Revive" and rules.ReviveMult then
 			mult *= rules.ReviveMult -- Suture's Triage
 		end
@@ -167,6 +218,26 @@ function AbilityService.Start()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		readyAt[player] = nil
+		Effects.clear(player)
+	end)
+	-- Self-Care (an Instinct): health comes back once the player has been out of combat for a while.
+	local elapsed = 0
+	RunService.Heartbeat:Connect(function(dt)
+		elapsed += dt
+		local interval = 1 / GameConfig.Instincts.SelfCare.SelfRegen.TickHz
+		if elapsed < interval then
+			return
+		end
+		elapsed = 0
+		if not MatchService.isInMatch() then
+			return
+		end
+		for _, player in Players:GetPlayers() do
+			local regen = AbilityService.rulesOf(player).SelfRegen
+			if regen and CombatService.secondsSinceDamaged(player) >= regen.OutOfCombatSeconds then
+				CombatService.heal(player, regen.PerSecond * interval)
+			end
+		end
 	end)
 end
 

@@ -358,6 +358,7 @@ export type AgentHardware = {
 
 -- A Talent (ability, CooldownSeconds set) or an Instinct (passive, no cooldown). Text from AGENTS_DRAFT.
 export type AgentKitItem = {
+	Id: string, -- a Talent's Id names its Ability module and its GameConfig.Talents entry; an Instinct's names GameConfig.Instincts
 	Name: string,
 	Description: string,
 	CooldownSeconds: number?,
@@ -431,6 +432,8 @@ export type PlayerLoadout = {
 	HardwareId: string, -- must be one of AgentId's Hardware, built, and unlocked by mastery
 	GadgetIds: { string }?, -- up to Gadgets.Slots built gadgets (GadgetDefs); nil takes Gadgets.DefaultPicks
 	AssetIds: { string }?, -- four different Assets (AssetDefs), one for each rarity slot in order; nil takes Assets.DefaultPicks
+	TalentId: string?, -- one of AgentId's Talents, unlocked by mastery; nil takes the first (ticket kits-24)
+	InstinctId: string?, -- one of AgentId's Instincts, unlocked by mastery; nil takes the first
 }
 
 export type AgentMastery = { Level: number, XP: number }
@@ -519,7 +522,14 @@ export type BlackMarketState = {
 export type MintPackage = { Id: string, Stocks: number, Robux: number, ProductId: number }
 
 -- RequestEquipLoadout and RequestLockInPreDeploy send this; the server checks every field.
-export type LoadoutRequest = { AgentId: string, HardwareId: string, GadgetIds: { string }?, AssetIds: { string }? }
+export type LoadoutRequest = {
+	AgentId: string,
+	HardwareId: string,
+	GadgetIds: { string }?,
+	AssetIds: { string }?,
+	TalentId: string?,
+	InstinctId: string?,
+}
 
 -- Agent select (META_DRAFT: the full 30 seconds, picks revisable until the cutoff, no duplicate agent on a team).
 -- Sent only to the members of one team, so no rival learns a team's agents (CLAUDE.md rule 3).

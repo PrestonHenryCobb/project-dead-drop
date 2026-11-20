@@ -37,6 +37,7 @@ local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"
 local TestLoadout = require(Shared.Util.TestLoadout)
 local Ballistics = require(script.Parent.Parent.Combat.Ballistics)
 local Death = require(script.Parent.Parent.NPC.Death)
+local Effects = require(script.Parent.Parent.Combat.Effects)
 local NpcTypes = require(script.Parent.Parent.NPC.NpcTypes)
 local FireRate = require(script.Parent.Parent.Combat.FireRate)
 local History = require(script.Parent.Parent.Combat.History)
@@ -241,6 +242,8 @@ local function damagePlayer(victim: Player, amount: number, from: Vector3, attac
 	if not state or not humanoid or state.dead or isDowned(victim) then
 		return -- a downed body takes no more damage: it is executed or bleeds out (spec 14.1)
 	end
+	-- Ticket kits-24: Thick Skin (an Instinct) and Brace (a Talent) cut what the victim takes.
+	amount *= (rulesOf(victim).DamageTakenMult or 1) * Effects.get(victim, "DamageTaken", 1)
 	local absorbed = math.min(state.armor, amount)
 	state.armor -= absorbed
 	state.hp = math.max(0, state.hp - (amount - absorbed))
@@ -278,6 +281,11 @@ local function applyDamage(
 	-- Ticket 8.22: spec 13.6 also applies to melee/takedowns and all other damage routed here.
 	if target.player and TeamService.areTeammates(shooter, target.player) then
 		return nil
+	end
+	-- Ticket kits-24: Focus (a Talent) raises what the shooter deals; Patient Hunter (an Instinct) adds to hits on an Exposed agent.
+	amount *= Effects.get(shooter, "DamageDealt", 1)
+	if target.player and CoverService.isExposed(target.player) then
+		amount *= 1 + (rulesOf(shooter).ExposedDamageBonus or 0)
 	end
 	local confirm: Types.HitConfirm
 	local result: Types.MeleeResult = "Hit"

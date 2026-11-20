@@ -110,7 +110,7 @@ local Suture: Ability.Ability = {
 	end,
 
 	-- Triage: teammates (not himself) within Radius regain PerSecond once they have been out of combat OutOfCombatSeconds.
-	start = function(agentOf: (Player) -> string?)
+	start = function(_agentOf: (Player) -> string?, instinctOf: (Player) -> string?)
 		local interval = 1 / triage.TickHz
 		local elapsed = 0
 		RunService.Heartbeat:Connect(function(dt)
@@ -123,7 +123,7 @@ local Suture: Ability.Ability = {
 				return
 			end
 			for _, medic in Players:GetPlayers() do
-				local medicRoot = if agentOf(medic) == "Suture" then bodyOf(medic) else nil
+				local medicRoot = if instinctOf(medic) == "Triage" then bodyOf(medic) else nil
 				local teamId = if medicRoot then TeamService.teamOf(medic) else nil
 				if medicRoot and teamId then
 					for _, mate in Players:GetPlayers() do

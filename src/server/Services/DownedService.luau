@@ -34,6 +34,7 @@ local Knockdown = require(Shared:WaitForChild("Util"):WaitForChild("Knockdown"))
 local Validate = require(Shared:WaitForChild("Util"):WaitForChild("Validate"))
 local Death = require(script.Parent.Parent.NPC.Death)
 local CombatService = require(script.Parent.CombatService)
+local KitRules = require(script.Parent.Parent.Combat.KitRules)
 local CoverService = require(script.Parent.CoverService)
 local DisguiseService = require(script.Parent.DisguiseService)
 local InteractService = require(script.Parent.InteractService)
@@ -239,7 +240,7 @@ local function down(player: Player, from: Vector3)
 	CombatService.setTargetable(player, false)
 	InteractService.cancel(player)
 	local body = layDown(character, humanoid, root, from)
-	body.bleedAt = workspace:GetServerTimeNow() + config.BleedOutSeconds
+	body.bleedAt = workspace:GetServerTimeNow() + config.BleedOutSeconds * (KitRules.of(player).BleedOutMult or 1) -- Second Wind
 	downed[player] = body
 	local info: Types.DownedInfo = { BleedOutAt = body.bleedAt, Fall = body.fall, Posture = body.posture }
 	RemoteService.fireClient("Downed", player, info)
