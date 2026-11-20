@@ -176,6 +176,17 @@ local GameConfig = {
 		StarterAgentsPerClass = 1,
 	},
 
+	-- Ticket 7B-secret-exits (SPEC_CHANGES 2026-10-25): the lever opens a wall panel for anyone to pass. SPEC-QUESTIONs: the hold time,
+	-- how long it stays open and how close and how straight on you must be are not specified.
+	SecretExit = {
+		InteractStuds = 4, -- from the lever
+		FacingDegrees = 50, -- how far off straight at the lever you may face
+		HoldSeconds = 1.5,
+		OpenSeconds = 12,
+		ClearStuds = 1, -- the doorway is checked this far beyond the panel before it closes
+		ClearCheckSeconds = 0.5, -- how often a still-occupied doorway is checked
+	},
+
 	-- Ticket 21.4-chat (spec 21.4): match chat is team-only (ChatService).
 	Chat = {
 		ChannelWaitSeconds = 15, -- how long ChatService waits for TextChatService to create its default channel
