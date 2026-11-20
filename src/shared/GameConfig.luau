@@ -176,6 +176,11 @@ local GameConfig = {
 		StarterAgentsPerClass = 1,
 	},
 
+	-- Ticket 21.4-chat (spec 21.4): match chat is team-only (ChatService).
+	Chat = {
+		ChannelWaitSeconds = 15, -- how long ChatService waits for TextChatService to create its default channel
+	},
+
 	-- Ticket 19-pings (spec 21.3): team pings. How many a player may have up (UI.MaxPingsPerPlayer) and how long a Suspect ping
 	-- lasts (UI.SuspectPingSeconds) are in UI. SPEC-QUESTION: the other kinds last Seconds, which the spec does not give.
 	Ping = {
