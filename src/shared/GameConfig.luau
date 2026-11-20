@@ -302,6 +302,22 @@ local GameConfig = {
 		CombatVolumeStep = 0.1,
 	},
 
+	-- Ticket audio-defs (Step 20, spec 23): when each non-weapon cue plays. The sounds themselves are in Defs/AudioDefs.
+	AudioCues = {
+		FootstepRadiusStuds = 45, -- bodies this near the camera step audibly; the same rule for every body, NPC or agent (rule 3)
+		FootstepStrideStuds = 4.5, -- distance between two steps
+		FootstepSprintSpeed = 15, -- studs a second: above it the heavier sprint set plays (an alerted guard is 14, a sprinting agent 18)
+		FootstepCheckSeconds = 0.1,
+		FootstepMaxSpeed = 40, -- a faster move is a teleport or a ride, not walking: no step sound
+		FootstepEmitterRange = 40, -- studs a step is heard
+		AmbientCheckSeconds = 0.25, -- how often the player's tier is looked up for the ambience
+		AmbientFadeSeconds = 2,
+		CrowdRadiusStuds = 40, -- NPCs within this of the camera set the murmur's volume
+		CrowdFullCount = 25, -- this many nearby makes it full volume
+		CrowdCheckSeconds = 0.5,
+		TickSeconds = 1,
+	},
+
 	-- Ticket 21-data (spec 20.4): the saved profile. One DataStore key per player, a session lock so two servers never
 	-- hold the same profile, and a save every AutosaveSeconds, on leave and when the server closes.
 	Data = {
