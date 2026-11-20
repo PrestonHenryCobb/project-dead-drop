@@ -26,8 +26,8 @@ past session ran it solo in Studio (see the contracts in `.ai-sync/`). Status: D
 | 4 Combat | PARTIAL | All 18 Hardware weapons are registered; the server rules of six were run solo on NPCs (WEAPON_SERVER_CONTRACTS). Player-victim effects, downed crawl, bleed-out and revive between two players are untested. |
 | 5 Objective loop | DONE (tested with bots) | Bots played a full match to extraction. A human run is the owner's checklist (docs/TWO_PLAYER_TEST.md). |
 | 6 Security | DONE (tested solo) | Cameras, lasers, keycard doors, alarm, Camera Room, guard combat (SECURITY and GUARD contracts). Shooting a camera untested. |
-| 7 Content | PARTIAL | **Six** agents (not eight; SPEC_CHANGES), 12 gadgets, Assets, Supply Caches, Agent Tag and Rescue are built. The 12 new Talents and 12 Instincts (brief Q8) are not designed, so only the first of each exists. |
-| 8 Polish and persistence | PARTIAL | HUD, minimap, settings, pings, spectating, chat rules: BUILT (client in review). Saved profiles and XP, levels and Credits: BUILT, never run. **Open:** audio (Step 20), matchmaking and the lobby place (Step 22), cosmetics and the shop catalogue (Step 21), the tutorial (13C, waits for reference videos), the Robux pass and Mint. |
+| 7 Content | PARTIAL | **Six** agents (not eight; SPEC_CHANGES), 12 gadgets, Assets, Supply Caches, Agent Tag and Rescue are built. The 12 new Talents and 12 Instincts (brief Q8) are designed and built server-side (KITS_CONTRACT; picker UI and every number untested). |
+| 8 Polish and persistence | PARTIAL | HUD, minimap, settings, pings, spectating, chat rules: BUILT (client in review). Saved profiles and XP, levels and Credits: BUILT, never run. Shop skeleton, audio cue system (silent, no ids) and matchmaking (dormant) are BUILT, never run. **Open:** audio ids, publishing the lobby place, Dossiers and real Robux products (Mint), the tutorial (13C, waits for reference videos). |
 
 ## What would move this furthest, in order
 1. The owner's solo and two-player runs (docs/TWO_PLAYER_TEST.md): everything marked BUILT is untested.
