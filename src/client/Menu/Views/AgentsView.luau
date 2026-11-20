@@ -10,6 +10,7 @@ local Janitor = require(Shared.Util.Janitor)
 local Kit = require(script.Parent.Parent.Components.ViewKit)
 local Preview = require(script.Parent.Parent.Components.WeaponPreview)
 local Art = require(script.Parent.Parent.Components.DecoArt)
+local KitPicker = require(script.Parent.Parent.Components.KitPicker)
 local cleanup = Janitor.new()
 local content = Janitor.new()
 local view = { Tab = "Agents" } :: Types.MenuView
@@ -30,6 +31,8 @@ function view.Mount(stage, navigator, context)
 		then initial.Loadout.HardwareId
 		else ""
 	local session = Kit.session(stage, "AGENTS / CHOOSE YOUR COVER", navigator)
+	local talentId: string? = nil
+	local instinctId: string? = nil
 	cleanup:Add(session.destroy)
 	local function draw()
 		local restoreFocus = Kit.rememberFocus(session.Body)
@@ -50,10 +53,26 @@ function view.Mount(stage, navigator, context)
 		local owned = data and data.Profile.OwnedAgents[agentId] == true
 		local mastery = if data then data.Profile.Mastery[agentId] else nil
 		local level = if mastery then mastery.Level else 0
+		local loadout = data and data.Loadout
+		local sameAgent = loadout and loadout.AgentId == agentId
+		talentId = KitPicker.resolve(
+			agent.Talents,
+			GameConfig.Mastery.TalentUnlockLevels,
+			level,
+			talentId or (if sameAgent and loadout then loadout.TalentId else nil)
+		)
+		instinctId = KitPicker.resolve(
+			agent.Instincts,
+			GameConfig.Mastery.InstinctUnlockLevels,
+			level,
+			instinctId or (if sameAgent and loadout then loadout.InstinctId else nil)
+		)
 		local equipped = data
 			and data.Loadout
 			and data.Loadout.AgentId == agentId
 			and data.Loadout.HardwareId == selected.Id
+			and (data.Loadout.TalentId or agent.Talents[1].Id) == talentId
+			and (data.Loadout.InstinctId or agent.Instincts[1].Id) == instinctId
 		local allowed = owned and selected.Def ~= nil and level >= selected.UnlockMasteryLevel
 		local left = Kit.scroll(area, "Roster", UDim2.new(), UDim2.new(0.24, -12, 1, 0))
 		Kit.text(left, string.upper(agentId), 0, 42, true)
@@ -72,6 +91,7 @@ function view.Mount(stage, navigator, context)
 				function()
 					agentId = id
 					weaponId = ""
+					talentId, instinctId = nil, nil
 					draw()
 				end
 			)
@@ -82,7 +102,12 @@ function view.Mount(stage, navigator, context)
 				session.request("RequestClaimStarterAgent", agentId)
 			end, true, true)
 		end
-		Kit.text(left, "One free operative per class. Claims are confirmed by the server.", 586, 80)
+		if data and not owned then
+			Kit.button(left, `BUY AGENT · {GameConfig.Shop.AgentCredits} CREDITS`, 566, function()
+				session.request("RequestBuyAgent", agentId)
+			end, true, true)
+		end
+		Kit.text(left, "One free operative per class. Claims and purchases are confirmed by the server.", 636, 80)
 		-- Transparent centre preserves the shell's large native rig and sculpted stage artwork.
 		local center = Kit.frame(area, "OperativeStage", UDim2.fromScale(0.25, 0), UDim2.new(0.41, -12, 1, 0))
 		local caption = Kit.panel(center, "Mastery", UDim2.new(0, 0, 1, -180), UDim2.new(1, 0, 0, 180))
@@ -127,21 +152,29 @@ function view.Mount(stage, navigator, context)
 			if equipped then "EQUIPPED" elseif allowed then "EQUIP OPERATIVE + HARDWARE" else "LOCKED / UNAVAILABLE",
 			426,
 			function()
-				session.request("RequestEquipLoadout", { AgentId = agentId, HardwareId = weaponId })
+				session.request("RequestEquipLoadout", {
+					AgentId = agentId,
+					HardwareId = weaponId,
+					TalentId = talentId,
+					InstinctId = instinctId,
+					GadgetIds = if loadout then loadout.GadgetIds else GameConfig.Gadgets.DefaultPicks,
+					AssetIds = if loadout then loadout.AssetIds else GameConfig.Assets.DefaultPicks,
+				})
 			end,
 			allowed == true and not equipped,
 			true
 		)
-		local y = 510
-		Kit.text(side, "TALENTS + INSTINCTS", y, 44)
-		for _, talent in agent.Talents do
-			Kit.text(side, talent.Name .. ` · {talent.CooldownSeconds or 0}s\n` .. talent.Description, y + 48, 130)
-			y += 140
-		end
-		for _, instinct in agent.Instincts do
-			Kit.text(side, instinct.Name .. " · PASSIVE\n" .. instinct.Description, y + 48, 130)
-			y += 140
-		end
+		local picker = Kit.frame(side, "KitChoices", UDim2.fromOffset(0, 510), UDim2.new(1, 0, 0, 0))
+		picker.AutomaticSize = Enum.AutomaticSize.Y
+		Kit.stack(picker)
+		KitPicker.mount(picker, agent, level, talentId, instinctId, function(kind, id)
+			if kind == "Talent" then
+				talentId = id
+			else
+				instinctId = id
+			end
+			draw()
+		end, owned == true)
 		restoreFocus(area)
 	end
 	draw()

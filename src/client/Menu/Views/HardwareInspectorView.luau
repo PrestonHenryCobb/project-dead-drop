@@ -6,7 +6,8 @@ local Types = require(Shared.Types)
 local Agents = require(Shared.Defs.AgentDefs)
 local Weapons = require(Shared.Defs.WeaponDefs)
 local Janitor = require(Shared.Util.Janitor)
-local config = require(Shared.GameConfig).Menu
+local GameConfig = require(Shared.GameConfig)
+local config = GameConfig.Menu
 local Kit = require(script.Parent.Parent.Components.ViewKit)
 local Preview = require(script.Parent.Parent.Components.WeaponPreview)
 local cleanup = Janitor.new()
@@ -135,7 +136,17 @@ function view.Mount(stage, navigator, context)
 				else "LOCKED / UNAVAILABLE",
 			0,
 			function()
-				session.request("RequestEquipLoadout", { AgentId = selected.Agent, HardwareId = selected.Id })
+				local agent = assert(Agents.get(selected.Agent))
+				local saved = data and data.Loadout
+				local sameAgent = saved and saved.AgentId == selected.Agent
+				session.request("RequestEquipLoadout", {
+					AgentId = selected.Agent,
+					HardwareId = selected.Id,
+					GadgetIds = if saved then saved.GadgetIds else GameConfig.Gadgets.DefaultPicks,
+					AssetIds = if saved then saved.AssetIds else GameConfig.Assets.DefaultPicks,
+					TalentId = (if sameAgent and saved then saved.TalentId else nil) or agent.Talents[1].Id,
+					InstinctId = (if sameAgent and saved then saved.InstinctId else nil) or agent.Instincts[1].Id,
+				})
 			end,
 			allowed == true and not equipped,
 			true

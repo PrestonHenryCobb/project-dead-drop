@@ -6,7 +6,7 @@ local messages: { [string]: string } = {
 	BadRequest = "That selection could not be submitted. Choose it again.",
 	UnknownAgent = "That agent is currently unavailable.",
 	AgentLocked = "Choose an agent you own.",
-	AlreadyOwned = "That agent is already in your roster.",
+	AlreadyOwned = "You already own this.",
 	NoFreePick = "Your free pick for that class has already been used.",
 	HardwareUnavailable = "That Hardware is currently unavailable.",
 	MasteryTooLow = "Earn more Agent Mastery to equip that Hardware.",
@@ -14,6 +14,15 @@ local messages: { [string]: string } = {
 	AssetUnavailable = "Fill all four slots with different Assets.",
 	NoCatalogue = "This collection is not available yet.",
 	RateLimited = "Please wait a moment before trying again.",
+	UseFreePick = "Claim your free pick first",
+	NotEnoughCredits = "Not enough Credits.",
+	NotEnoughStocks = "Not enough Stocks. Visit the Mint to view packages.",
+	AgentNotOwned = "Own this agent before buying their Attire.",
+	UnknownOffer = "That offer is no longer available. Refresh the Black Market.",
+	NotOnSale = "That offer has rotated out. Refresh the Black Market.",
+	NotAvailable = "Coming soon.",
+	TalentUnavailable = "Choose one of this agent's available Talents.",
+	InstinctUnavailable = "Choose one of this agent's available Instincts.",
 }
 
 function RequestFeedback.declined(reason: any): string

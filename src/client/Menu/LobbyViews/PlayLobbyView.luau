@@ -21,6 +21,7 @@ local Kit = require(Menu.Components.ViewKit)
 local RequestFeedback = require(Menu.RequestFeedback)
 local Art = require(Menu.Components.DecoArt)
 local RemoteController = require(Menu.Parent:WaitForChild("Controllers"):WaitForChild("RemoteController"))
+local Matchmaking = require(Menu.Parent.Controllers.MatchmakingController)
 
 local config = GameConfig.Menu
 local colors = MenuTheme.Colors
@@ -39,6 +40,7 @@ local retryThread: thread? = nil
 local claiming: string? = nil
 local claimNotice: string? = nil
 local claimGeneration = 0
+local queueMode: Types.QueueMode? = nil
 
 local function hardwareName(agentId: string, hardwareId: string): (string, number)
 	for _, item in WeaponDefs.getForAgent(agentId) do
@@ -211,7 +213,10 @@ local function buildLeft(
 	MenuTheme.stack(modes, true).Padding = UDim.new(0, config.GapPixels / 2)
 	local anyUnavailable = false
 	for order, mode in QUEUE_MODES do
-		local available = table.find(snapshot.Queue.Available, mode) ~= nil
+		local matchmaking = Matchmaking.available()
+		local available = if matchmaking
+			then table.find(GameConfig.Matchmaking.Modes, mode) ~= nil
+			else table.find(snapshot.Queue.Available, mode) ~= nil
 		anyUnavailable = anyUnavailable or not available
 		local button = MenuTheme.secondaryButton({
 			Name = mode,
@@ -219,14 +224,27 @@ local function buildLeft(
 			Parent = modes,
 			Size = UDim2.new(0.5, -config.GapPixels / 4, 1, 0),
 			LayoutOrder = order,
-			Enabled = available,
+			Enabled = available
+				and (
+					not matchmaking
+					or (
+						Matchmaking.state().State ~= "Searching"
+						and Matchmaking.state().State ~= "Found"
+						and not Matchmaking.busy()
+					)
+				),
 			OnActivated = function()
-				RemoteController.fire("RequestQueueMode", mode)
+				if matchmaking then
+					queueMode = mode
+					onRetry()
+				else
+					RemoteController.fire("RequestQueueMode", mode)
+				end
 			end,
 		})
-		button.SetSelected(mode == snapshot.Queue.Mode)
+		button.SetSelected(mode == (if matchmaking then queueMode or snapshot.Queue.Mode else snapshot.Queue.Mode))
 	end
-	if anyUnavailable then
+	if anyUnavailable and not Matchmaking.available() then
 		MenuTheme.label({
 			Name = "Note",
 			Text = `This session plays {snapshot.Queue.Mode}. Other modes are currently unavailable.`,
@@ -293,14 +311,68 @@ local function buildLeft(
 		})
 	end
 	local deploy: MenuTheme.Button
+	local matchmaking = Matchmaking.available()
+	local search = Matchmaking.state()
+	if matchmaking then
+		local line = Matchmaking.notice()
+		if line == "" then
+			line = if search.State == "Searching"
+				then `SEARCHING · {search.Mode or queueMode or snapshot.Queue.Mode}`
+				elseif search.State == "Found" then "MATCH FOUND · CONNECTING…"
+				elseif Matchmaking.busy() then "CONTACTING MATCHMAKING…"
+				else "Find a match in the selected mode."
+		end
+		MenuTheme.label({ Name = "MatchmakingStatus", Text = line, Style = "Small", Parent = queue, LayoutOrder = 4 })
+		if search.State ~= "Idle" or Matchmaking.busy() or Matchmaking.notice() ~= "" then
+			MenuTheme.label({
+				Name = "QueueActionStatus",
+				Text = line,
+				Style = "Small",
+				Parent = actions,
+				LayoutOrder = 0,
+			})
+		end
+	end
 	deploy = MenuTheme.primaryButton({
 		Name = "Deploy",
-		Text = if deploying then "DEPLOYING…" else `DEPLOY · {string.upper(snapshot.Queue.Mode)}`,
+		Text = if matchmaking
+			then (if search.State == "Searching"
+				then (if Matchmaking.cancelling() then "CANCELLING…" else "CANCEL SEARCH")
+				elseif search.State == "Found" then "MATCH FOUND"
+				elseif Matchmaking.busy() then "SUBMITTING…"
+				else "FIND MATCH")
+			elseif deploying then "DEPLOYING…"
+			else `DEPLOY · {string.upper(snapshot.Queue.Mode)}`,
 		Parent = actions,
 		LayoutOrder = 3,
-		Enabled = assets ~= nil and loadout ~= nil and not deploying,
+		Enabled = if matchmaking and search.State == "Searching"
+			then not Matchmaking.busy()
+			else assets ~= nil
+				and loadout ~= nil
+				and not deploying
+				and (
+					not matchmaking
+					or (search.State ~= "Searching" and search.State ~= "Found" and not Matchmaking.busy())
+				),
 		OnActivated = function()
+			if matchmaking and search.State == "Searching" then
+				Matchmaking.cancel()
+				return
+			end
 			if deploying or not AssetDraft.selection() or not loadout then
+				return
+			end
+			if matchmaking then
+				local agent = AgentDefs.byId[loadout.AgentId]
+				-- The next place starts a fresh client: persist the complete local Asset draft before queueing.
+				Matchmaking.find(queueMode or snapshot.Queue.Mode, {
+					AgentId = loadout.AgentId,
+					HardwareId = loadout.HardwareId,
+					GadgetIds = table.clone(loadout.GadgetIds or GameConfig.Gadgets.DefaultPicks),
+					AssetIds = AssetDraft.selection(),
+					TalentId = loadout.TalentId or agent.Talents[1].Id,
+					InstinctId = loadout.InstinctId or agent.Instincts[1].Id,
+				})
 				return
 			end
 			deploying = true
@@ -376,6 +448,12 @@ function render()
 				then 0
 				else config.SecondaryHeightPixels + config.TextSizes.Small * 3 + config.GapPixels * 3
 		)
+	if
+		Matchmaking.available()
+		and (Matchmaking.state().State ~= "Idle" or Matchmaking.busy() or Matchmaking.notice() ~= "")
+	then
+		actionHeight += config.TextSizes.Small * 3 + config.GapPixels
+	end
 	left.Size = UDim2.new(0, config.LeftRailPixels, 1, -config.GapPixels * 5 - actionHeight)
 	local actions = content:Add(Instance.new("Frame"))
 	actions.Name = "DeployActions"
@@ -421,6 +499,7 @@ function PlayLobbyView.Mount(stage: Frame, navigator: Types.MenuNavigator, _cont
 	nav = navigator
 	janitor:Add(navigator.onSnapshot(render))
 	janitor:Add(LobbyState.onChanged(render))
+	janitor:Add(Matchmaking.onChanged(render))
 	render()
 end
 

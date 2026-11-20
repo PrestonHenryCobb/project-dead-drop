@@ -24,6 +24,7 @@ local AssetDraft = require(Menu.AssetDraft)
 local AssetDefs = require(Shared.Defs.AssetDefs)
 local AssetStyle = require(Menu.Parent.Combat.AssetStyle)
 local Kit = require(Menu.Components.ViewKit)
+local KitPicker = require(Menu.Components.KitPicker)
 local RemoteController = require(Menu.Parent:WaitForChild("Controllers"):WaitForChild("RemoteController"))
 
 local config = GameConfig.Menu
@@ -43,6 +44,8 @@ local selectionClosed = false
 local draftAgent: string? = nil
 local draftHardware: string? = nil
 local draftGadgets: { string }? = nil
+local draftTalent: string? = nil
+local draftInstinct: string? = nil
 
 local function me(state: Types.PreDeployState?): Types.PreDeployMember?
 	if not state then
@@ -241,6 +244,7 @@ local function buildRoster(frame: Frame, state: Types.PreDeployState, snapshot: 
 			OnActivated = function()
 				draftAgent = agentId
 				draftHardware = usableHardware(snapshot, agentId, nil)
+				draftTalent, draftInstinct = nil, nil
 				redraw()
 			end,
 		})
@@ -293,33 +297,29 @@ local function buildRight(
 		button.SetSelected(item.Id == draftHardware)
 	end
 
+	local loadout = snapshot and snapshot.Loadout
+	local sameAgent = loadout and loadout.AgentId == agentId
+	draftTalent = KitPicker.resolve(
+		agent.Talents,
+		GameConfig.Mastery.TalentUnlockLevels,
+		mastery,
+		draftTalent or (if sameAgent and loadout then loadout.TalentId else nil)
+	)
+	draftInstinct = KitPicker.resolve(
+		agent.Instincts,
+		GameConfig.Mastery.InstinctUnlockLevels,
+		mastery,
+		draftInstinct or (if sameAgent and loadout then loadout.InstinctId else nil)
+	)
 	local kit = panel(rail, "Kit", 2, "Focus")
-	for index, entry in
-		{ { Kind = "TALENT", Item = agent.Talents[1] }, { Kind = "INSTINCT", Item = agent.Instincts[1] } }
-	do
-		local cooldown = entry.Item.CooldownSeconds
-		MenuTheme.label({
-			Name = `{entry.Kind}Kicker`,
-			Text = if cooldown then `{entry.Kind} · {cooldown} S COOLDOWN` else `{entry.Kind} · PASSIVE`,
-			Style = "Kicker",
-			Parent = kit,
-			LayoutOrder = index * 3,
-		})
-		MenuTheme.label({
-			Name = `{entry.Kind}Name`,
-			Text = entry.Item.Name,
-			Style = "Title",
-			Parent = kit,
-			LayoutOrder = index * 3 + 1,
-		})
-		MenuTheme.label({
-			Name = `{entry.Kind}Body`,
-			Text = entry.Item.Description,
-			Style = "Small",
-			Parent = kit,
-			LayoutOrder = index * 3 + 2,
-		})
-	end
+	KitPicker.mount(kit, agent, mastery, draftTalent, draftInstinct, function(kind, id)
+		if kind == "Talent" then
+			draftTalent = id
+		else
+			draftInstinct = id
+		end
+		redraw()
+	end)
 
 	local gadgets = panel(rail, "Gadgets", 3, "Brass")
 	local picks = draftGadgets or {}
@@ -408,6 +408,8 @@ local function buildRight(
 			local request: Types.LoadoutRequest = {
 				AgentId = agentId,
 				HardwareId = draftHardware :: string,
+				TalentId = draftTalent,
+				InstinctId = draftInstinct,
 				GadgetIds = table.clone(draftGadgets or {}),
 				AssetIds = selection,
 			}
@@ -496,6 +498,7 @@ function PreDeployView.Mount(stage: Frame, navigator: Types.MenuNavigator, _cont
 	nav = navigator
 	draftAgent, draftHardware = nil, nil
 	draftGadgets = nil
+	draftTalent, draftInstinct = nil, nil
 	janitor:Add(navigator.onSnapshot(render))
 	janitor:Add(LobbyState.onChanged(render))
 	-- The countdown is drawn from the server's cutoff, so it never drifts from it; only the text changes.
@@ -528,6 +531,7 @@ function PreDeployView.Unmount()
 	lockInButton = nil
 	draftAgent, draftHardware = nil, nil
 	draftGadgets = nil
+	draftTalent, draftInstinct = nil, nil
 end
 
 return PreDeployView

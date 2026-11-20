@@ -1,6 +1,8 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GuiService = game:GetService("GuiService")
+local RunService = game:GetService("RunService")
+local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local Types = require(ReplicatedStorage.Shared.Types)
 local Janitor = require(ReplicatedStorage.Shared.Util.Janitor)
 local Kit = require(script.Parent.Parent.Components.ViewKit)
@@ -70,10 +72,9 @@ function view.Mount(stage, navigator)
 	Kit.flowText(
 		left,
 		"TreasuryNotice",
-		"Stocks are the premium cosmetic currency. Roblox purchases are not connected yet. No certificates or prices have been published.",
+		"Stocks buy cosmetics. Robux purchases are coming soon; no Robux payment is available here yet.",
 		3
 	)
-	Kit.button(left, "PURCHASES UNAVAILABLE", 0, nil, false, true).Instance.LayoutOrder = 4
 	Kit.button(left, "BACK TO BLACK MARKET", 0, function()
 		navigator.navigateTo("BlackMarket")
 	end).Instance.LayoutOrder =
@@ -82,11 +83,30 @@ function view.Mount(stage, navigator)
 		view.OpenInspection(
 			session.Root,
 			"THE MINT",
-			"Stock packages are not published. No purchase or currency grant is available from this inspection."
+			"The listed packages show planned prices. Robux purchases are coming soon. Studio preview grants are confirmed by the server."
 		)
 	end).Instance.LayoutOrder =
 		6
-	Kit.documentArt(session.Body, "THE MINT\nSTOCKS", UDim2.fromScale(0.44, 0), UDim2.fromScale(0.56, 0.78))
+	local packages = Kit.scroll(session.Body, "StockPackages", UDim2.fromScale(0.44, 0), UDim2.fromScale(0.56, 1))
+	Kit.stack(packages)
+	for order, package in GameConfig.Shop.Mint.Packages do
+		local card = Kit.flowPanel(packages, package.Id)
+		card.LayoutOrder = order
+		Kit.flowText(card, "Stocks", `{package.Stocks} STOCKS`, 1, true)
+		Kit.flowText(card, "Price", `PLANNED PRICE · {package.Robux} ROBUX`, 2)
+		Kit.flowText(
+			card,
+			"Availability",
+			if RunService:IsStudio()
+				then "Studio preview only. No Robux charge."
+				else "COMING SOON · Robux purchases are not available yet.",
+			3
+		)
+		Kit.button(card, if RunService:IsStudio() then "PREVIEW STOCKS IN STUDIO" else "COMING SOON", 0, function()
+			session.request("RequestMintStrikeStocks", package.Id)
+		end, true, true).Instance.LayoutOrder =
+			4
+	end
 	session.watch(function(data: Types.MetaSnapshot)
 		balance.Text = tostring(data.Profile.Stocks) .. " STOCKS"
 	end)
