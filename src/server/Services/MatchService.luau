@@ -186,12 +186,12 @@ local function startInsertion()
 	table.clear(out)
 	results = nil
 	mainEndsAt, forcedVaultAt = nil, nil
+	local spots = SpawnService.assign(matchTeams) -- one Insertion Point per team (spec 11); first, so the bot teams get the next points
 	local spawner = botSpawner
 	if spawner then
 		spawner(teamCount(matchTeams)) -- before the briefing, so it counts the bot teams
 	end
 	setPhase("Insertion", config.InsertionSeconds)
-	local spots = SpawnService.assign(matchTeams) -- one Insertion Point per team (spec 11)
 	for _, member in playersIn(matchTeams) do
 		task.spawn(function()
 			freeze(member, true) -- before the character exists, so there is no moment of walking

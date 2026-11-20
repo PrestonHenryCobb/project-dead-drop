@@ -31,6 +31,7 @@ local ExtractionService = require(script.Parent.ExtractionService)
 local IntelService = require(script.Parent.IntelService)
 local MatchService = require(script.Parent.MatchService)
 local NPCService = require(script.Parent.NPCService)
+local SpawnService = require(script.Parent.SpawnService)
 local PackageService = require(script.Parent.PackageService)
 local TeamService = require(script.Parent.TeamService)
 local VaultService = require(script.Parent.VaultService)
@@ -95,7 +96,8 @@ local function spawnBots(humanTeams: number)
 	local teams = math.min(math.max(0, config.TargetTeams - humanTeams), math.floor(room / mode.TeamSize))
 	for index = 1, teams do
 		local teamId = config.TeamIdBase + index
-		for _, npc in pickNpcs(mode.TeamSize) do
+		local members = pickNpcs(mode.TeamSize)
+		for slot, npc in members do
 			local bot: BotRegistry.Bot = {
 				teamId = teamId,
 				npc = npc,
@@ -110,6 +112,11 @@ local function spawnBots(humanTeams: number)
 				bot.sentAt = 0 -- arrived: the next think decides what to do here
 			end)
 			BotRegistry.add(bot)
+			-- Spec 11: a bot team starts at an Insertion Point of its own, like a human team, instead of wherever its crowd NPCs were.
+			local spot = SpawnService.botSpot(index, slot, #members)
+			if spot then
+				NPCService.warpBot(npc, spot)
+			end
 		end
 	end
 	if GameConfig.Debug.PrintEvents then

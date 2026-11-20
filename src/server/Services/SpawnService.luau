@@ -3,8 +3,10 @@
 -- every human, and this hands out one InsertionPoint per team in a shuffled order (so a team does not always start in the same place), with teammates
 -- standing in a small ring around the point. With more teams than points the points are reused in turn. With no points on the map (nothing is tagged)
 -- it returns no spots and the players keep the ordinary spawn.
+-- Bot teams (BotService) take the points after the human teams', so every team of either kind starts at its own point and nothing marks which is which.
 --
---   SpawnService.assign(teams) -> { [Player]: CFrame }      teams is { [teamId]: { Player } }
+--   SpawnService.assign(teams) -> { [Player]: CFrame }      teams is { [teamId]: { Player } }; also fixes the points the bot teams will use
+--   SpawnService.botSpot(botTeamIndex, slot, size) -> Vector3?   the floor position for member `slot` of `size` in the Nth bot team, or nil with no points
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,6 +19,8 @@ local SpawnService = {}
 
 local config = GameConfig.Match.TeamSpawn
 local rng = Random.new()
+local order: { BasePart } = {} -- the shuffled points of the current match
+local humanTeams = 0
 
 function SpawnService.assign(teams: { [number]: { Player } }): { [Player]: CFrame }
 	local points: { BasePart } = {}
@@ -26,6 +30,8 @@ function SpawnService.assign(teams: { [number]: { Player } }): { [Player]: CFram
 		end
 	end
 	local spots: { [Player]: CFrame } = {}
+	table.clear(order)
+	humanTeams = 0
 	if #points == 0 then
 		return spots
 	end
@@ -33,11 +39,13 @@ function SpawnService.assign(teams: { [number]: { Player } }): { [Player]: CFram
 		local j = rng:NextInteger(1, i)
 		points[i], points[j] = points[j], points[i]
 	end
+	order = points
 	local teamIds: { number } = {}
 	for teamId in teams do
 		table.insert(teamIds, teamId)
 	end
 	table.sort(teamIds)
+	humanTeams = #teamIds
 	for index, teamId in teamIds do
 		local point = points[(index - 1) % #points + 1]
 		local members = teams[teamId]
@@ -51,6 +59,19 @@ function SpawnService.assign(teams: { [number]: { Player } }): { [Player]: CFram
 		end
 	end
 	return spots
+end
+
+function SpawnService.botSpot(botTeamIndex: number, slot: number, size: number): Vector3?
+	if #order == 0 then
+		return nil
+	end
+	local point = order[(humanTeams + botTeamIndex - 1) % #order + 1]
+	local offset = Vector3.zero
+	if size > 1 then
+		local angle = (slot - 1) / size * 2 * math.pi
+		offset = Vector3.new(math.cos(angle), 0, math.sin(angle)) * config.RingStuds
+	end
+	return Vector3.new(point.Position.X, point.Position.Y - point.Size.Y / 2, point.Position.Z) + offset
 end
 
 function SpawnService.Init() end

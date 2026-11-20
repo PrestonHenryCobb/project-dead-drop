@@ -35,3 +35,7 @@ player in sight within seconds.
 - Placement (warp) onto vault daises, the Package room and extraction pads is a visible jump for anyone watching; rooms with no graph
   nodes would need proper routing.
 - Casual (default) and Competitive numbers are first guesses from short runs.
+
+## Bot spawns (2026-11-20)
+A bot team now starts at an Insertion Point of its own, like a human team (spec 11): `SpawnService.assign` hands the human teams the first points of a shuffled list and `SpawnService.botSpot(botTeamIndex, slot, size)` the next ones; `BotService.spawnBots`
+places each bot there with `NPCService.warpBot` (teammates on a 2.5-stud ring). Before, a bot started wherever its random crowd NPC stood. The first walk starts from the node nearest the point (`sendTo` already does this). Not run in Studio.
