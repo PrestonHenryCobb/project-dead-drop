@@ -10,7 +10,7 @@ design, not read this pass).
 | 2 | Package falls out of the map | OK | `PackageService` returns it when below `Package.MinY` or untouched for `ReturnSeconds` |
 | 3 | Two finish pickup together | OK | first completed hold wins, the second finds it taken (`PackageService`) |
 | 4 | Disconnect while downed | **FIXED** | `DownedService` PlayerRemoving already re-checked the team wipe; it now also fires `onLeftDowned` so `RescueService` drops the Agent Tag |
-| 5 | Rejoin mid-match | GAP (partial) | `MatchService.canQueue` is Lobby only, so a rejoiner cannot deploy; they sit in the menu with "A match is in progress". There is no spectate-only mode for them |
+| 5 | Rejoin mid-match | **FIXED** (server; client ticket open) | `MatchService` sends anyone who joins while `isInMatch()` to `SpectateService.watchMatch`: they spectate like an eliminated player (teammates first, then anyone, then the drone) and go back to the lobby at the end. They cannot deploy (`canQueue` is Lobby only). The client menu must step aside while spectating: ticket `menu-spectate-latejoin` |
 | 6, 7 | Disguised-as NPC dies, or dies before the swap | NOT RE-CHECKED | a scan copies the `OutfitDef`, not the NPC |
 | 8 | Lockdown while in a Tier 2 disguise | NOT RE-CHECKED | |
 | 9 | Downed agent in a hack zone | OK | `VaultService` skips `DownedService.isOut` |
@@ -43,4 +43,4 @@ Also added in the same pass: `RequestDropPackage` duplicate fix and finite-vecto
 ## What the owner should check in Studio
 - Cases 4, 13 and 23 once each (leave while downed with a teammate watching; press Q during the briefing; stand in a live beam and
   try to change disguise).
-- The two GAPs (5, 21) need a decision: spectate-only for a rejoiner, and whether the Riot Wall should push enemies.
+- Owner decision 2026-11-19: a rejoiner spectates (built). The Riot Wall question (case 21) is still open.

@@ -429,7 +429,13 @@ function MatchService.Start()
 			end
 		end)
 	end
-	Players.PlayerAdded:Connect(watch)
+	Players.PlayerAdded:Connect(function(player)
+		watch(player)
+		-- Spec 27 #5: joining or rejoining while a match runs is spectate only; the lobby opens again when it ends.
+		if MatchService.isInMatch() then
+			SpectateService.watchMatch(player)
+		end
+	end)
 	for _, player in Players:GetPlayers() do
 		watch(player)
 	end

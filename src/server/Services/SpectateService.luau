@@ -12,6 +12,7 @@
 --
 --   SpectateService.isSpectating(player) -> boolean
 --   SpectateService.stopAll()                   everyone goes back to the lobby (the match ended)
+--   SpectateService.watchMatch(player)          someone who joined while a match runs watches it (spec 27 #5)
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -292,6 +293,12 @@ function SpectateService.stopAll()
 	for player in spectators do
 		finish(player)
 	end
+end
+
+-- Spec 27 #5: a player who joins (or rejoins) while a match is running cannot take part in it. They spectate until it ends,
+-- exactly as an eliminated player does; stopAll sends them back to the lobby then.
+function SpectateService.watchMatch(player: Player)
+	begin(player)
 end
 
 function SpectateService.isSpectating(player: Player): boolean
