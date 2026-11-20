@@ -8,6 +8,7 @@
 -- be reached (Studio without API access) the profile lives for the session only.
 --
 --   MetaProgressionService.snapshot(player) -> Types.MetaSnapshot?
+--   MetaProgressionService.titleOf(player) -> string?, MetaProgressionService.equippedSpray(player) -> string?
 --   MetaProgressionService.getLoadout(player) -> Types.PlayerLoadout?
 --   MetaProgressionService.validateLoadout(player, request) -> (Types.PlayerLoadout?, reason?)
 --   MetaProgressionService.setLoadout(player, loadout)   equips a loadout validateLoadout returned, and tells the player
@@ -155,6 +156,10 @@ local function reconcile(saved: any): MetaProfile
 		local entry = CosmeticDefs.get(saved.EquippedCard)
 		profile.EquippedCard = if entry and entry.Kind == "Card" then saved.EquippedCard else nil
 	end
+	if type(saved.EquippedSpray) == "string" and profile.OwnedCosmetics[saved.EquippedSpray] then
+		local entry = CosmeticDefs.get(saved.EquippedSpray)
+		profile.EquippedSpray = if entry and entry.Kind == "Spray" then saved.EquippedSpray else nil
+	end
 	if type(saved.Dossiers) == "table" then
 		for dossierId, progress in saved.Dossiers do
 			if type(dossierId) == "string" and DossierDefs.get(dossierId) and type(progress) == "table" then
@@ -226,6 +231,19 @@ local function push(player: Player)
 	if snapshot then
 		RemoteService.fireClient("ProfileStateUpdated", player, snapshot)
 	end
+end
+
+-- The name of the Title the player equipped (ticket spray: shown on the results screen), or nil.
+function MetaProgressionService.titleOf(player: Player): string?
+	local profile = profiles[player]
+	local entry = if profile and profile.EquippedTitle then CosmeticDefs.get(profile.EquippedTitle) else nil
+	return if entry then entry.Name else nil
+end
+
+-- The Spray cosmetic id the player equipped, or nil.
+function MetaProgressionService.equippedSpray(player: Player): string?
+	local profile = profiles[player]
+	return if profile then profile.EquippedSpray else nil
 end
 
 function MetaProgressionService.getLoadout(player: Player): PlayerLoadout?

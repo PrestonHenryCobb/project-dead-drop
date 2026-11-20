@@ -138,10 +138,10 @@ local function onMint(player: Player, packageId: unknown): (boolean, string?)
 	end)
 end
 
--- Ticket equip-cosmetics: wear an owned Title or Calling card (kind "Title" or "Card"), or take it off with nil. Nothing else is equippable
+-- Ticket equip-cosmetics: wear an owned Title, Calling card or Spray (kind "Title", "Card" or "Spray"), or take it off with nil. Nothing else is equippable
 -- yet (no art). The choice is saved with the profile; showing it on the kill and results screens is the client's and a later server step.
 local function onEquip(player: Player, kind: unknown, cosmeticId: unknown): (boolean, string?)
-	if kind ~= "Title" and kind ~= "Card" then
+	if kind ~= "Title" and kind ~= "Card" and kind ~= "Spray" then
 		return false, "UnknownKind"
 	end
 	if cosmeticId ~= nil and type(cosmeticId) ~= "string" then
@@ -157,8 +157,10 @@ local function onEquip(player: Player, kind: unknown, cosmeticId: unknown): (boo
 		end
 		if kind == "Title" then
 			profile.EquippedTitle = cosmeticId :: string?
-		else
+		elseif kind == "Card" then
 			profile.EquippedCard = cosmeticId :: string?
+		else
+			profile.EquippedSpray = cosmeticId :: string?
 		end
 		return true, nil
 	end)

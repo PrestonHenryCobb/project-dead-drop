@@ -26,3 +26,12 @@ a claim button per reached tier, a "Premium (800 Stocks)" button, a switcher fro
 ## Equip (ticket equip-cosmetics, added later the same day)
 `RequestEquipCosmetic(kind, cosmeticId?) -> (ok, reason?)`: kind is "Title" or "Card"; the id must be an owned cosmetic of that kind (`UnknownKind`, `UnknownCosmetic`, `NotOwned`), nil takes it off.
 Saved as `Profile.EquippedTitle` and `EquippedCard`. Not built: showing them to other players (the kill feed and results rosters do not carry them) and spray placement.
+
+## Sprays and the Title on results (ticket spray)
+- `RequestEquipCosmetic("Spray", id?)` now works too (`Profile.EquippedSpray`). `RequestSpray(position, normal)` (rate limit 1/s): the server checks a match is running, the player is up and not in Insertion, owns an
+  equipped Spray, the 8 s cooldown, a point within 10 studs, and its own ray from their head meeting a wall within 0.6 studs of that point with nothing in the way. The spray is placed where the server's ray hit, with the
+  wall's own normal. `SprayPlaced` (`Types.SprayInfo { Id, SprayId, Position, Normal, ExpiresAt }`) goes to everyone and names no owner; `SprayCleared` (the id) when one ends early. At most 3 a player, 60 s each,
+  cleared at Lobby and Insertion. Placing one adds 25 percent to the suspicion meter, scaled by witnesses (`CoverService.noteOddAction`), the META_DRAFT rule that NPCs never spray.
+- `ResultsMember.Title`: the name of the Title a player equipped, in the Results rosters. (The kill feed remote is never fired, so no title shows there.)
+- **For Codex:** draw each `SprayPlaced` as a decal on the wall (until art exists, a small label of the spray's name from `CosmeticDefs`), remove it on `SprayCleared` or expiry and at Lobby and Insertion, bind a spray key
+  (`InputHints`) that aims at a wall and fires `RequestSpray(hit.Position, hit.Normal)`, and show `Title` beside the name on the results roster.

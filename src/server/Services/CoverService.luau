@@ -416,6 +416,21 @@ function CoverService.useDiscreetly(player: Player, reason: string)
 	end
 end
 
+-- Ticket spray: an action NPCs never do (placing a spray) adds `points` percent to the suspicion meter, scaled by the share of witnesses who
+-- can see the player, like any suspicious action. Nothing happens to an Exposed player or one nobody sees.
+function CoverService.noteOddAction(player: Player, points: number)
+	local state = states[player]
+	local _, root = aliveRoot(player)
+	if not state or not root or state.cover == "Exposed" then
+		return
+	end
+	local allShare = witnessShare(root.Position)
+	if allShare > 0 then
+		state.suspicion = math.min(state.suspicion + points * allShare, config.SuspicionMax)
+		state.lastSuspiciousAt = os.clock()
+	end
+end
+
 -- Ticket 16d: how suspicious the player is, 0 to Cover.SuspicionMax (Reticle's Tracer Glass shows anyone over half).
 function CoverService.suspicionOf(player: Player): number
 	local state = states[player]

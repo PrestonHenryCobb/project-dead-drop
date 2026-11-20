@@ -205,6 +205,7 @@ local function memberResults(member: Player): Types.ResultsMember
 		DisplayName = member.DisplayName,
 		AgentId = loadout and loadout.AgentId,
 		Out = out[member] == true,
+		Title = MetaProgressionService.titleOf(member), -- the Title they chose to wear (ticket spray)
 	}
 end
 

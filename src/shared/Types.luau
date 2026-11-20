@@ -475,6 +475,7 @@ export type MetaProfile = {
 	OwnedCosmetics: { [string]: boolean },
 	EquippedTitle: string?, -- a Title cosmetic id the player owns, shown on the kill and results screens (ticket equip-cosmetics)
 	EquippedCard: string?, -- a Card cosmetic id the player owns
+	EquippedSpray: string?, -- a Spray cosmetic id the player owns, the one RequestSpray places
 	ActiveDossierId: string?,
 	Dossiers: { [string]: DossierProgress },
 	Career: CareerStats,
@@ -508,6 +509,10 @@ export type MetaSnapshot = { Profile: MetaProfile, Loadout: PlayerLoadout?, Queu
 -- Ticket matchmaking: "MatchmakingState", to the owner only. Searching while queued, Found as the teleport starts, Failed with a reason
 -- (a teleport error or a queue error), Idle after a cancel.
 export type MatchmakingStateInfo = { State: string, Mode: string?, Reason: string? }
+
+-- Ticket spray: a spray on a wall, sent to every client (SprayPlaced). Position and Normal are where the server's own ray met the surface. A spray
+-- names no owner. It lasts until ExpiresAt, is replaced by its owner's fourth, and is cleared at Lobby and Insertion (SprayCleared sends its Id).
+export type SprayInfo = { Id: number, SprayId: string, Position: Vector3, Normal: Vector3, ExpiresAt: number }
 
 -- Ticket shop-skeleton: one Black Market item. Attire is made for one agent (META_DRAFT). Owning it only marks it in the profile
 -- until the art exists. Currency says what it costs; Tier picks the price in GameConfig.Shop.TierPrices.
@@ -601,7 +606,7 @@ export type MatchBrief = {
 	Players: number,
 }
 
-export type ResultsMember = { UserId: number, DisplayName: string, AgentId: AgentId?, Out: boolean }
+export type ResultsMember = { UserId: number, DisplayName: string, AgentId: AgentId?, Out: boolean, Title: string? } -- Title: the name of the Title they equipped, if any
 
 export type ResultsTeam = { TeamId: number, Won: boolean, Members: { ResultsMember } }
 

@@ -75,6 +75,8 @@ local Remotes = {
 		"SparrowState", -- to Lattice only: her drone took off or ended (Types.SparrowStateInfo)
 		-- Ticket menu-phase0
 		"PreDeployStateUpdated", -- to each member of a team only: agent select picks and the cutoff (Types.PreDeployState)
+		"SprayPlaced", -- to everyone: a spray on a wall (Types.SprayInfo; ticket spray)
+		"SprayCleared", -- to everyone: the id (a number) of a spray that ended early
 		"MatchmakingState", -- to the owner only: searching, match found, or failed (Types.MatchmakingStateInfo)
 		"ProfileStateUpdated", -- to the owner only: their profile and loadout changed (Types.MetaSnapshot)
 	},
@@ -93,6 +95,7 @@ local Remotes = {
 		"RequestGadget",
 		"RequestMelee",
 		"RequestPurchase",
+		"RequestSpray", -- (position, normal): place your equipped spray on the wall you aim at (ticket spray); the server checks everything
 		"RequestPing", -- ticket 19-pings: (kind, position, targetId?) a team-only marker; the server limits range, count and kind
 		"RequestPassPackage",
 		"RequestEmote",

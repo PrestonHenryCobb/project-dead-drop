@@ -1630,6 +1630,17 @@ local GameConfig = {
 	-- Guise (Two Faces): two disguise slots and a scan of 0.6 s instead of 1.2 s.
 	-- Ticket dossier (owner answers 2026-11-20, docs/DOSSIER_DRAFT.md): Dossiers never expire; all account XP of a match goes into the
 	-- active one; 30 tiers of 1,000 XP; the premium track costs Stocks and a part of them comes back as rewards. SPEC-QUESTION: guesses.
+	-- Ticket spray (META_DRAFT flag: placing a spray is something NPCs never do, so it raises suspicion): a player places their equipped Spray cosmetic
+	-- on a wall they can see within ReachStuds. SPEC-QUESTION: every number is a guess.
+	Spray = {
+		ReachStuds = 10,
+		SurfaceSlackStuds = 0.6, -- the aimed point must be this close to where the server's own ray meets the wall
+		CooldownSeconds = 8,
+		LifetimeSeconds = 60,
+		MaxPerPlayer = 3, -- a fourth replaces the oldest
+		SuspicionPercent = 25, -- added to the meter, scaled by how many witnesses see it
+	},
+
 	Dossier = {
 		Tiers = 30,
 		XPPerTier = 1000,
@@ -2286,6 +2297,7 @@ local GameConfig = {
 			RequestBuyAgent = { PerSecond = 1, Burst = 2 }, -- ticket shop-skeleton: a button
 			RequestBuyDossierPremium = { PerSecond = 1, Burst = 2 }, -- ticket dossier: a button
 			RequestEquipCosmetic = { PerSecond = 2, Burst = 4 }, -- ticket equip-cosmetics: a button
+			RequestSpray = { PerSecond = 1, Burst = 2 }, -- ticket spray: a key press
 			GetBlackMarketOffers = { PerSecond = 1, Burst = 3 },
 			RequestFindMatch = { PerSecond = 1, Burst = 2 }, -- ticket matchmaking: a button
 			RequestCancelFindMatch = { PerSecond = 1, Burst = 2 },
