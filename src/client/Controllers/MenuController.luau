@@ -18,6 +18,15 @@ local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local InputHints = require(Shared:WaitForChild("Util"):WaitForChild("InputHints"))
+
+-- The footer legend names the buttons of the device in use only (owner request 2026-11-20).
+local function menuLegend(): string
+	return InputHints.text(
+		"[ENTER] SELECT     [BACKSPACE] BACK     [Q / E] SECTION",
+		"[A] SELECT     [B] BACK     [LB / RB] SECTION"
+	)
+end
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local Types = require(Shared:WaitForChild("Types"))
 local RemoteController = require(script.Parent:WaitForChild("RemoteController"))
@@ -58,14 +67,42 @@ local stage: MenuStage.MenuStage? = nil
 local screen: Frame? = nil -- where the open view is mounted
 local header: Frame? = nil
 local footerLabel: TextLabel? = nil
+local footerHints: TextLabel? = nil
+local noticeToken = 0
 local stocksText: TextLabel? = nil
 local creditsText: TextLabel? = nil
 local current: { tab: string, view: MenuView }? = nil
 local history: { { tab: MenuTab, context: { [string]: any }? } } = {}
 local inPreDeploy = false
 local open = false
+local spectating = false
+local menuGeneration = 0
+local profileGeneration = 0
+local profileFetching = false
+local snapshotRevision = 0
+local profileRetry: MenuTheme.Button? = nil
+local fetchProfile: () -> ()
+local selectFirstButton: () -> ()
 
 local navigator: Types.MenuNavigator
+
+-- Gameplay HUDs are hidden behind the menu, so their Notification toast cannot explain a refused Deploy here.
+local function showNotice(text: string)
+	local hints = footerHints
+	if not open or not hints then
+		return
+	end
+	noticeToken += 1
+	local token = noticeToken
+	hints.Text = text
+	hints.TextColor3 = colors.BrassBright
+	task.delay(GameConfig.UI.ToastSeconds, function()
+		if token == noticeToken and footerHints == hints and hints.Parent then
+			hints.Text = menuLegend()
+			hints.TextColor3 = colors.TextDim
+		end
+	end)
+end
 
 -- Loads every screen module in a folder. A broken or unfinished screen is skipped with a warning, so one bad view
 -- never takes the whole menu down.
@@ -112,6 +149,17 @@ end
 
 local function setSnapshot(value: Types.MetaSnapshot)
 	snapshot = value
+	snapshotRevision += 1
+	if profileRetry then
+		local selected = GuiService.SelectedObject == profileRetry.Instance
+		profileRetry.Instance.Visible = false
+		if selected then
+			task.defer(selectFirstButton)
+		end
+	end
+	if footerLabel then
+		footerLabel.Visible = true
+	end
 	refreshBalances()
 	for _, listener in listeners do
 		task.spawn(listener, value)
@@ -130,7 +178,7 @@ end
 
 -- With a gamepad, start each screen with its first button selected so A works at once. Mouse and keyboard users
 -- keep whatever they had.
-local function selectFirstButton()
+function selectFirstButton()
 	local target = screen
 	if not target or not string.find(UserInputService:GetLastInputType().Name, "Gamepad") then
 		return
@@ -355,8 +403,9 @@ local function buildHeader(parent: Frame): Frame
 	local tabLayout = MenuTheme.stack(tabs, true)
 	tabLayout.Padding = UDim.new(0, config.TabGapPixels)
 	tabLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	local bumpers: { GuiObject } = {}
 	local function bumper(name: string, order: number, step: number)
-		MenuTheme.secondaryButton({
+		local item = MenuTheme.secondaryButton({
 			Name = name,
 			Text = name,
 			Parent = tabs,
@@ -365,8 +414,10 @@ local function buildHeader(parent: Frame): Frame
 			OnActivated = function()
 				cycleTab(step)
 			end,
-		}).Instance.Font =
-			config.Fonts.Mono
+		}).Instance
+		item.Font = config.Fonts.Mono
+		item.Visible = InputHints.isGamepad() -- the bumper buttons are for a gamepad; the keyboard uses Q and E
+		table.insert(bumpers, item)
 	end
 	bumper("LB", 0, -1)
 	for index, entry in MAIN_TABS do
@@ -386,6 +437,11 @@ local function buildHeader(parent: Frame): Frame
 		tabButtons[entry.Tab] = button
 	end
 	bumper("RB", #MAIN_TABS + 1, 1)
+	janitor:Add(InputHints.onChange(function(pad)
+		for _, item in bumpers do
+			item.Visible = pad
+		end
+	end))
 
 	-- Right: the two balances. Stocks opens the Mint once the Mint screen exists.
 	local purse = Instance.new("Frame")
@@ -428,7 +484,7 @@ local function buildFooter(parent: Frame)
 	bar.Parent = parent
 	local hints = MenuTheme.label({
 		Name = "Hints",
-		Text = "[A / ENTER] SELECT     [B / BACKSPACE] BACK     [LB / RB · Q / E] SECTION",
+		Text = menuLegend(),
 		Style = "Mono",
 		Color = colors.TextDim,
 		Parent = bar,
@@ -436,6 +492,14 @@ local function buildFooter(parent: Frame)
 		Size = UDim2.new(0.7, 0, 1, 0),
 	})
 	hints.TextSize = config.TextSizes.Small
+	hints.RichText = false
+	hints.TextWrapped = true
+	footerHints = hints
+	janitor:Add(InputHints.onChange(function()
+		if hints.Parent and hints.TextColor3 == colors.TextDim then
+			hints.Text = menuLegend() -- a notice in the footer keeps its own text
+		end
+	end))
 	footerLabel = MenuTheme.label({
 		Name = "Screen",
 		Text = "",
@@ -446,6 +510,20 @@ local function buildFooter(parent: Frame)
 		Size = UDim2.new(0.15, 0, 1, 0),
 		Alignment = Enum.TextXAlignment.Right,
 	})
+	local retry = MenuTheme.secondaryButton({
+		Name = "RetryProfile",
+		Text = "RETRY PROFILE",
+		Parent = bar,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -config.PaddingPixels * 2 - config.TabWidthPixels - config.GapPixels, 0.5, 0),
+		Size = UDim2.new(0.15, 0, 1, -config.GapPixels),
+		OnActivated = function()
+			task.spawn(fetchProfile)
+		end,
+	})
+	retry.Instance.TextSize = config.TextSizes.Small
+	retry.Instance.Visible = false
+	profileRetry = retry
 	MenuTheme.secondaryButton({
 		Name = "OpenSettings",
 		Text = "SETTINGS",
@@ -531,6 +609,13 @@ local function close()
 		return
 	end
 	open = false
+	menuGeneration += 1
+	profileGeneration += 1
+	profileFetching = false
+	inPreDeploy = false
+	table.clear(history)
+	noticeToken += 1
+	footerHints = nil
 	SettingsPanel.close()
 	unmountCurrent()
 	if stage then
@@ -539,24 +624,92 @@ local function close()
 	end
 	janitor:Cleanup()
 	screen, header, footerLabel, stocksText, creditsText = nil, nil, nil, nil, nil
+	profileRetry = nil
 	table.clear(tabButtons)
 	GuiService.SelectedObject = nil
 end
 
-local function fetchProfile()
+function fetchProfile()
+	if not open or spectating or profileFetching then
+		return
+	end
+	profileFetching = true
+	profileGeneration += 1
+	local generation = profileGeneration
+	local function active(): boolean
+		return open and not spectating and generation == profileGeneration
+	end
+	local function finish(success: boolean)
+		if not active() then
+			return
+		end
+		profileFetching = false
+		local retry = profileRetry
+		if retry then
+			retry.SetText("RETRY PROFILE")
+			retry.SetEnabled(true)
+			retry.Instance.Visible = not success
+			if
+				not success
+				and not GuiService.SelectedObject
+				and string.find(UserInputService:GetLastInputType().Name, "Gamepad")
+			then
+				GuiService.SelectedObject = retry.Instance
+			end
+		end
+		if footerLabel then
+			footerLabel.Visible = success
+		end
+	end
+	if profileRetry then
+		profileRetry.SetEnabled(false)
+		profileRetry.SetText("CONNECTING…")
+	end
+	local initialRevision = snapshotRevision
 	for _ = 1, config.ProfileAttempts do
+		if not active() then
+			return
+		end
+		if snapshotRevision ~= initialRevision then
+			finish(true)
+			return
+		end
+		local revision = snapshotRevision
 		local ok, result = pcall(RemoteController.invoke, "GetPlayerMetaProfile")
+		if not active() then
+			return
+		end
+		if snapshotRevision ~= revision then
+			finish(true) -- a fresh server push arrived while this older snapshot was in flight
+			return
+		end
 		if ok and type(result) == "table" then
 			setSnapshot(result :: Types.MetaSnapshot)
+			finish(true)
 			return
 		end
 		task.wait(config.ProfileRetrySeconds)
 	end
+	if not active() then
+		return
+	end
+	if snapshotRevision ~= initialRevision then
+		finish(true)
+		return
+	end
+	finish(false)
 	warn("[Menu] The server did not send a profile")
+	showNotice("Profile unavailable. Choose RETRY PROFILE to try again.")
 end
 
 local function openMenu()
+	if open or spectating then
+		return
+	end
+	SettingsPanel.close() -- release an in-match modal before the lobby hides its host GUI
 	open = true
+	menuGeneration += 1
+	local generation = menuGeneration
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "CoverStoryMenuGui"
 	gui.IgnoreGuiInset = true
@@ -580,6 +733,9 @@ local function openMenu()
 	area.Parent = root
 	screen = area
 	local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+	if not open or spectating or generation ~= menuGeneration then
+		return -- a spectate packet may have closed the menu while PlayerGui was arriving
+	end
 	gui.Parent = playerGui
 	hideOtherGuis(playerGui, gui)
 	bindScale(gui, root)
@@ -601,20 +757,76 @@ function MenuController.Start()
 	if not GameConfig.Debug.MenuOnJoin then
 		return
 	end
+	local player = Players.LocalPlayer
+	local phase: Types.Phase? = nil
+	local removing: Model? = nil
+	local ready = false
+	local returningFromSpectate = false
+	local function reopenLobby()
+		if not ready or spectating or open or (phase ~= "Lobby" and not returningFromSpectate) then
+			return
+		end
+		local character = player.Character
+		if character and character ~= removing then
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+			if not humanoid or humanoid.Health > 0 then
+				if humanoid and humanoid.Health > 0 then
+					returningFromSpectate = false
+				end
+				return
+			end
+		end
+		openMenu()
+		returningFromSpectate = false
+		task.spawn(fetchProfile)
+	end
+	player.CharacterAdded:Connect(function()
+		removing = nil
+		returningFromSpectate = false
+		close()
+	end)
+	player.CharacterRemoving:Connect(function(character)
+		removing = character
+		task.defer(reopenLobby)
+	end)
+	player:GetPropertyChangedSignal("Character"):Connect(reopenLobby)
+	-- Phase remotes and character destruction can replicate in either order. Neither order may strand the player.
+	RemoteController.connect("PhaseChanged", function(value: Types.Phase)
+		phase = value
+		if value == "Lobby" then
+			spectating = false
+		elseif value == "Insertion" then
+			spectating = false
+			returningFromSpectate = false
+		end
+		reopenLobby()
+	end)
+	-- Subscribe before loading views so a mid-match join cannot open a stage after its spectator state arrives.
+	RemoteController.connect("SpectateState", function(info: Types.SpectateStateInfo)
+		if info.Mode ~= "None" then
+			if phase == "Lobby" or phase == "Insertion" or phase == "Results" then
+				return -- these phases end spectating; do not let a delayed prior-round packet hide the lobby
+			end
+			spectating = true
+			returningFromSpectate = false
+			close() -- releases the stage, menu bindings and the saved HUD visibility (including SpectateHud)
+		elseif spectating then
+			spectating = false
+			returningFromSpectate = true
+			task.defer(reopenLobby) -- a rescued player's CharacterAdded can arrive in the same batch
+		end
+	end)
 	loadViews(Menu:FindFirstChild("LobbyViews"))
 	loadViews(Menu:FindFirstChild("Views"))
 	LobbyState.start()
 	RemoteController.connect("ProfileStateUpdated", setSnapshot)
-	local player = Players.LocalPlayer
-	player.CharacterAdded:Connect(close)
-	-- Ticket 10a: the match is over and the character is gone, so the lobby opens again.
-	RemoteController.connect("PhaseChanged", function(phase: Types.Phase)
-		if phase == "Lobby" and not open and not player.Character then
-			openMenu()
-			task.spawn(fetchProfile)
-		end
-	end)
-	if player.Character then
+	RemoteController.connect("Notification", showNotice)
+	ready = true
+	if spectating then
+		return
+	end
+	reopenLobby()
+	if open or player.Character then
 		return -- already in the match (the menu opens only before the first spawn)
 	end
 	openMenu()

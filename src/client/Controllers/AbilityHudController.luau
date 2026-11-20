@@ -4,12 +4,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared.GameConfig)
+local InputHints = require(Shared:WaitForChild("Util"):WaitForChild("InputHints"))
 local Types = require(Shared.Types)
 local HudKit = require(Shared.Util.HudKit)
 local HudTheme = require(Shared.Util.HudTheme)
 local Janitor = require(Shared.Util.Janitor)
 local AbilityController = require(script.Parent.AbilityController)
 local RemoteController = require(script.Parent.RemoteController)
+local TaserStatusController = require(script.Parent.TaserStatusController)
 local AbilityHudController = {}
 
 function AbilityHudController.Init() end
@@ -55,10 +57,20 @@ function AbilityHudController.Start()
 		if not root.Visible or not info then
 			return
 		end
-		name.Text = `[ {GameConfig.Controls.Ability.Name} ] {info.Name}`
+		name.Text = InputHints.bracket(GameConfig.Controls.Ability, GameConfig.Controls.AbilityPad, info.Name)
 		local remaining = math.max(0, info.ReadyAt - workspace:GetServerTimeNow())
-		status.Text = if remaining == 0 then "READY" else `{math.ceil(remaining)}s`
-		status.TextColor3 = if remaining == 0 then theme.AccentColor else theme.TextColor
+		local locked = TaserStatusController.remaining()
+		status.Text = if locked > 0
+			then `LOCKED {math.ceil(locked)}s`
+			elseif remaining == 0 then "READY"
+			else `{math.ceil(remaining)}s`
+		status.TextColor3 = if locked > 0
+			then GameConfig.UI.WarningColor
+			elseif remaining == 0 then theme.AccentColor
+			else theme.TextColor
+		if locked > 0 and TaserStatusController.slowed() then
+			name.Text = "TASED · MOVEMENT SLOWED"
+		end
 	end
 	janitor:Add(RemoteController.connect("PhaseChanged", function(nextPhase: Types.Phase)
 		phase = nextPhase

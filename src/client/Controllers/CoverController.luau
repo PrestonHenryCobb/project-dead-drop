@@ -11,6 +11,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local InputHints = require(Shared:WaitForChild("Util"):WaitForChild("InputHints"))
 local Types = require(Shared:WaitForChild("Types"))
 local HudKit = require(Shared:WaitForChild("Util"):WaitForChild("HudKit"))
 local HudTheme = require(Shared:WaitForChild("Util"):WaitForChild("HudTheme"))
@@ -279,7 +280,7 @@ local function refreshText(now: number)
 	local waitSeconds = math.max(lockout, exposedMinEndsAt - now)
 	hint.Visible = alive and coverState == "Exposed"
 	if canRecover then
-		hint.Text = `[ {GameConfig.Controls.Disguise.Name} ] COVER`
+		hint.Text = InputHints.bracket(GameConfig.Controls.Disguise, GameConfig.Controls.DisguisePad, "COVER")
 		hint.TextColor3 = graphics.TextColor
 	else
 		if blocker == "Zone" then

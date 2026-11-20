@@ -8,6 +8,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared.GameConfig)
+local InputHints = require(Shared:WaitForChild("Util"):WaitForChild("InputHints"))
 local Enums = require(Shared.Enums)
 local Types = require(Shared.Types)
 local Janitor = require(Shared.Util.Janitor)
@@ -101,7 +102,7 @@ function SecurityHudController.Start()
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	local nextPage = Instance.new("TextButton")
 	nextPage.Name = "NextCameras"
-	nextPage.Text = `{config.NextFeedKey.Name} / {config.NextFeedPad.Name} · NEXT CAMERAS`
+	nextPage.Text = InputHints.bracket(config.NextFeedKey, config.NextFeedPad, "NEXT CAMERAS")
 	nextPage.Font = theme.Font
 	nextPage.TextSize = theme.CaptionSize
 	nextPage.TextColor3 = theme.TextColor
@@ -110,6 +111,9 @@ function SecurityHudController.Start()
 	nextPage.Position = UDim2.new(0, theme.PaddingPixels, 1, -theme.CaptionSize - theme.PaddingPixels * 2)
 	nextPage.Selectable = true
 	nextPage.Parent = panel
+	janitor:Add(InputHints.onChange(function()
+		nextPage.Text = InputHints.bracket(config.NextFeedKey, config.NextFeedPad, "NEXT CAMERAS")
+	end))
 	janitor:Add(nextPage.Activated:Connect(function()
 		page += 1
 		cycleAt = os.clock()
@@ -232,7 +236,7 @@ function SecurityHudController.Start()
 		action.Text = if hold
 			then string.upper(hold.Kind)
 			else if label
-				then `[ {GameConfig.Controls.Interact.Name} / {GameConfig.Controls.InteractPad.Name} ] {label}`
+				then InputHints.bracket(GameConfig.Controls.Interact, GameConfig.Controls.InteractPad, label)
 				else ""
 		local progress = if hold
 			then math.clamp((os.clock() - heldAt) / math.max(hold.Seconds, config.RefreshSeconds), 0, 1)

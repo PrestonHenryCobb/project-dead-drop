@@ -8,6 +8,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared.GameConfig)
+local InputHints = require(Shared.Util.InputHints)
 local Types = require(Shared.Types)
 local Janitor = require(Shared.Util.Janitor)
 local HudKit = require(Shared.Util.HudKit)
@@ -106,7 +107,10 @@ function SupplyHudController.Start()
 	status.TextSize = theme.CaptionSize
 	local close = Instance.new("TextButton")
 	close.Name = "CloseSupplyShop"
-	close.Text = "CLOSE · ESC / B / BACKSPACE"
+	close.Text = InputHints.text("CLOSE · ESC", "CLOSE · B")
+	janitor:Add(InputHints.onChange(function()
+		close.Text = InputHints.text("CLOSE · ESC", "CLOSE · B")
+	end))
 	close.Font = theme.Font
 	close.TextSize = theme.CaptionSize
 	close.TextColor3 = theme.TextColor
@@ -133,7 +137,11 @@ function SupplyHudController.Start()
 			hide()
 		end
 	end
-	janitor:Add(close.Activated:Connect(requestClose))
+	janitor:Add(close.Activated:Connect(function()
+		if not HeldItemController.isInputBlocked(gui) then
+			requestClose()
+		end
+	end))
 	janitor:Add(UserInputService.InputBegan:Connect(function(input)
 		if input.KeyCode == Enum.KeyCode.Escape then
 			requestClose()
@@ -189,7 +197,7 @@ function SupplyHudController.Start()
 			button.Parent = rows
 			content:Add(button)
 			content:Add(button.Activated:Connect(function()
-				if current ~= info or requested or not button.Active then
+				if current ~= info or requested or not button.Active or HeldItemController.isInputBlocked(gui) then
 					return
 				end
 				requested = true
@@ -198,11 +206,14 @@ function SupplyHudController.Start()
 			if button.Selectable then
 				first = first or button
 			end
-			if button.Name == selectedId and button.Selectable then
+			if button.Name == selectedId and button.Selectable and not HeldItemController.isInputBlocked(gui) then
 				GuiService.SelectedObject = button
 			end
 		end
-		if not GuiService.SelectedObject or not GuiService.SelectedObject.Parent or not selectedId then
+		if
+			not HeldItemController.isInputBlocked(gui)
+			and (not GuiService.SelectedObject or not GuiService.SelectedObject.Parent or not selectedId)
+		then
 			GuiService.SelectedObject = first or close
 		end
 	end))
@@ -210,6 +221,20 @@ function SupplyHudController.Start()
 		local info = current
 		if not info or not overlay.Visible then
 			return
+		end
+		if
+			not HeldItemController.isInputBlocked(gui)
+			and not GuiService.SelectedObject
+			and string.find(UserInputService:GetLastInputType().Name, "Gamepad")
+		then
+			local first: GuiButton? = nil
+			for _, item in rows:GetChildren() do
+				if item:IsA("GuiButton") and item.Selectable and item.Visible then
+					first = item
+					break
+				end
+			end
+			GuiService.SelectedObject = first or close
 		end
 		local fill = if info.Buying and info.BuySeconds > 0
 			then math.clamp((os.clock() - buyingAt) / info.BuySeconds, 0, 1)

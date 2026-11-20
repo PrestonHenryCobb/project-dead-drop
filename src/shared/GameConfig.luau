@@ -200,6 +200,42 @@ local GameConfig = {
 		DangerTouchPosition = UDim2.fromScale(0.9, 0.45),
 	},
 
+	-- Ticket 19-session-settings: client preferences only. FOV limits stay in UI; saving preferences is a separate contract.
+	ClientSettings = {
+		Key = Enum.KeyCode.F10,
+		DefaultSensitivity = 1,
+		SensitivityMin = 0.25,
+		SensitivityMax = 2,
+		SensitivityStep = 0.25,
+		FovStep = 5,
+		PanelFraction = 0.85,
+	},
+
+	-- Ticket playable-flight-pad: client-only controls for existing flight. Server movement bounds stay unchanged.
+	ClientFlight = {
+		LookDegreesPerSecond = 150, -- SPEC-QUESTION: initial stick-look feel; tune with the owner in Studio.
+		DownPad = Enum.KeyCode.ButtonB,
+		BoostPad = Enum.KeyCode.ButtonL3,
+		NextPad = Enum.KeyCode.ButtonR1,
+		PreviousPad = Enum.KeyCode.ButtonL1,
+		DronePad = Enum.KeyCode.ButtonY,
+	},
+
+	-- Ticket 19-camera-comfort: optional local feedback, off by default; reduced motion always suppresses it.
+	CameraComfort = {
+		Seconds = 0.2,
+		DamageDegrees = 0.18,
+		TakedownDegrees = 0.12,
+		Oscillations = 2,
+		-- SPEC-QUESTION: initial cosmetic strength/duration, to tune in Studio without changing weapon recoil.
+	},
+
+	-- Ticket 19-combat-volume: session-only volume for the existing client combat sound pools.
+	ClientAudio = {
+		DefaultCombatVolume = 1,
+		CombatVolumeStep = 0.1,
+	},
+
 	-- Ticket 21-data (spec 20.4): the saved profile. One DataStore key per player, a session lock so two servers never
 	-- hold the same profile, and a save every AutosaveSeconds, on leave and when the server closes.
 	Data = {
@@ -1783,6 +1819,7 @@ local GameConfig = {
 		Reload = Enum.KeyCode.R,
 		ReloadPad = Enum.KeyCode.ButtonX,
 		DropPackage = Enum.KeyCode.X, -- spec 11: the carrier drops the Package
+		DropPackagePad = Enum.KeyCode.ButtonB, -- owner request 2026-11-20: the gamepad drops it too
 		Melee = Enum.KeyCode.V, -- tap to strike; from behind, hold to take down (spec 13.4)
 		MeleePad = Enum.KeyCode.ButtonR3,
 		-- Step 8B.5: walking is ours (MovementController), so its keys live here too. The gamepad uses the left stick.
@@ -1819,7 +1856,6 @@ local GameConfig = {
 			DegreesPerPixel = 0.25,
 			WallPadding = 0.5, -- studs kept between the camera and a wall it would otherwise sit in
 		},
-		DropPackagePad = Enum.KeyCode.ButtonB, -- owner request 2026-11-20: the gamepad drops it too
 		Keys = {
 			Next = Enum.UserInputType.MouseButton1,
 			Previous = Enum.UserInputType.MouseButton2,
@@ -1912,6 +1948,12 @@ local GameConfig = {
 		RefreshSeconds = 0.2,
 		WidthPixels = 304,
 		MapPixels = 272,
+		-- Owner request 2026-11-20: the map is a small corner minimap by default (M cycles it: small, full panel, off; the shape key
+		-- switches square and round). The minimap shows a window MiniPixels wide onto a plan drawn MiniZoomPixels wide, slid so the
+		-- player stays in the middle.
+		MiniPixels = 176,
+		MiniZoomPixels = 960,
+		ShapeKey = Enum.KeyCode.Comma,
 		TopPixels = 208,
 		LinePixels = 2,
 		SelectedLinePixels = 4,
@@ -1948,12 +1990,6 @@ local GameConfig = {
 		SeenStuds = 14,
 		SeenHz = 2,
 	},
-		-- Owner request 2026-11-20: the map is a small corner minimap by default (M cycles it: small, full panel, off; the shape key
-		-- switches square and round). The minimap shows a window MiniPixels wide onto a plan drawn MiniZoomPixels wide, slid so the
-		-- player stays in the middle.
-		MiniPixels = 176,
-		MiniZoomPixels = 960,
-		ShapeKey = Enum.KeyCode.Comma,
 
 	-- Ziplines, vents and the gondola (BUILD_ORDER Step 7B pass 2b). Using any of them breaks Cover (spec 7.2).
 	Traversal = {

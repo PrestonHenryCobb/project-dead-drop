@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local InputHints = require(Shared:WaitForChild("Util"):WaitForChild("InputHints"))
 local Types = require(Shared:WaitForChild("Types"))
 local HudKit = require(Shared:WaitForChild("Util"):WaitForChild("HudKit"))
 local HudTheme = require(Shared:WaitForChild("Util"):WaitForChild("HudTheme"))
@@ -128,7 +129,8 @@ function DownedHudController.Start()
 			local progress = if holdSeconds > 0 then math.clamp((os.clock() - started) / holdSeconds, 0, 1) else 0
 			holdFill.Size = UDim2.fromScale(progress, 1)
 		else
-			actionText.Text = `[ {GameConfig.Controls.Interact.Name} ] INTERACT`
+			actionText.Text =
+				InputHints.bracket(GameConfig.Controls.Interact, GameConfig.Controls.InteractPad, "INTERACT")
 			holdFill.Size = UDim2.fromScale(0, 1)
 		end
 	end))

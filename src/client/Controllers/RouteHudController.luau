@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared.GameConfig)
+local InputHints = require(Shared:WaitForChild("Util"):WaitForChild("InputHints"))
 local Enums = require(Shared.Enums)
 local Types = require(Shared.Types)
 local Janitor = require(Shared.Util.Janitor)
@@ -152,8 +153,17 @@ function RouteHudController.Start()
 	flags.TextXAlignment = Enum.TextXAlignment.Left
 	flags.Parent = steps
 	local footer = text("RouteHelp", summaryY + config.SummaryPixels + config.StepsPixels, rowHeight)
-	footer.Text =
-		`[ {config.MapKey.Name} / {config.MapPad.Name} ] Map size · [ {config.ShapeKey.Name} ] Round or square · [ {config.FloorUpKey.Name} / {config.FloorDownKey.Name} ] Floor`
+	local function footerText(): string
+		return InputHints.line({
+			{ Label = "Map size", Key = config.MapKey, Pad = config.MapPad },
+			{ Label = "Round or square", Key = config.ShapeKey },
+			{ Label = "Floor", Key = config.FloorUpKey, Second = config.FloorDownKey },
+		})
+	end
+	footer.Text = footerText()
+	janitor:Add(InputHints.onChange(function()
+		footer.Text = footerText()
+	end))
 	local detail: { GuiObject } = { title, target, choice, floorLabel, summary, steps, footer }
 	local fullMapPosition = map.Position
 	local backdropCorner = panel:FindFirstChildOfClass("UICorner")
@@ -407,12 +417,16 @@ function RouteHudController.Start()
 				end
 			end
 		end
-		target.Text = `[ {config.TargetKey.Name} / LB ] {selectedName}`
+		target.Text = InputHints.bracket(config.TargetKey, config.TargetPad, selectedName)
 		local drawnModeNow, route = Presentation.effective(result, mode)
 		local fallback = drawnModeNow ~= mode
-		choice.Text = `[ {config.ModeKey.Name} / RB ] {string.upper(drawnModeNow)}{if fallback
-			then ` · {string.upper(mode)} unavailable`
-			else " ROUTE · switch"}`
+		choice.Text = InputHints.bracket(
+			config.ModeKey,
+			config.ModePad,
+			`{string.upper(drawnModeNow)}{if fallback
+				then ` · {string.upper(mode)} unavailable`
+				else " ROUTE · switch"}`
+		)
 		choice.TextColor3 = if drawnModeNow == "Clean" then config.CleanColor else config.FastColor
 		floorLabel.Text = `FLOOR · {floor or "Unknown"}{if browsing then " · browsing" else " · current"}`
 		local displayStatus = if route

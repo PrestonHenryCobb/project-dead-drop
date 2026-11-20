@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local InputHints = require(Shared:WaitForChild("Util"):WaitForChild("InputHints"))
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local RemoteController = require(script.Parent.RemoteController)
 
@@ -139,14 +140,14 @@ function ElevatorController.Start()
 		item.Parent = rows
 		content:Add(item)
 		content:Add(item.Activated:Connect(function()
-			if item.Active then
+			if item.Active and HeldItemController.canAct(gui) then
 				callback()
 			end
 		end))
 		return item
 	end
 	local function open()
-		if not current or opened then
+		if not current or opened or not HeldItemController.canAct(gui) then
 			return
 		end
 		previous = GuiService.SelectedObject
@@ -164,7 +165,13 @@ function ElevatorController.Start()
 		local state = cab:GetAttribute("State")
 		local level = cab:GetAttribute("Level")
 		local stops = cab:GetAttribute("Stops")
-		local key = tostring(stops) .. "/" .. tostring(state) .. "/" .. tostring(level) .. tostring(opened)
+		local key = tostring(stops)
+			.. "/"
+			.. tostring(state)
+			.. "/"
+			.. tostring(level)
+			.. tostring(opened)
+			.. tostring(InputHints.isGamepad())
 		if key == signature then
 			return
 		end
@@ -176,9 +183,12 @@ function ElevatorController.Start()
 				) == "string"
 				then string.upper(state)
 				else ""}`
+		local selected = GuiService.SelectedObject
+		local selectedName = if selected and selected:IsDescendantOf(rows) then selected.Name else nil
 		content:Cleanup()
 		local count = 1
 		local first: TextButton? = nil
+		local preferred: TextButton? = nil
 		if opened then
 			for index, name in levelsOf(cab) do
 				local enabled = (state == "Idle" or state == "Open") and name ~= level
@@ -197,15 +207,18 @@ function ElevatorController.Start()
 				)
 				if enabled then
 					first = first or item
+					if name == selectedName then
+						preferred = item
+					end
 				end
 				count += 1
 			end
-			local back = button("CloseElevator", "CLOSE · ESC / B", count, true, close)
+			local back = button("CloseElevator", InputHints.text("CLOSE · ESC", "CLOSE · B"), count, true, close)
 			first = first or back
 		else
 			first = button(
 				"ChooseLevel",
-				`[ {controls.Interact.Name} / {controls.InteractPad.Name} ] SELECT LEVEL`,
+				InputHints.bracket(controls.Interact, controls.InteractPad, "SELECT LEVEL"),
 				1,
 				true,
 				open
@@ -215,12 +228,12 @@ function ElevatorController.Start()
 			theme.ActionWidthPixels,
 			theme.CaptionSize + theme.PaddingPixels * 3 + count * (theme.CaptionSize + theme.PaddingPixels * 3)
 		)
-		if opened then
-			GuiService.SelectedObject = first
+		if opened and not HeldItemController.isInputBlocked(gui) then
+			GuiService.SelectedObject = preferred or first
 		end
 	end
 	ContextActionService:BindActionAtPriority(ACTION, function(_, state)
-		if state ~= Enum.UserInputState.Begin or not current or UserInputService:GetFocusedTextBox() then
+		if state ~= Enum.UserInputState.Begin or not current or not HeldItemController.canAct(gui) then
 			return Enum.ContextActionResult.Pass
 		end
 		if opened then
@@ -230,7 +243,7 @@ function ElevatorController.Start()
 		end
 		refresh()
 		return Enum.ContextActionResult.Sink
-	end, false, Enum.ContextActionPriority.Medium.Value, controls.Interact, controls.InteractPad)
+	end, false, GameConfig.Combat.InputPriority + 1, controls.Interact, controls.InteractPad)
 	ContextActionService:BindActionAtPriority("CloseElevatorSelector", function(_, state)
 		if state == Enum.UserInputState.Begin and opened then
 			close()
@@ -296,6 +309,19 @@ function ElevatorController.Start()
 		end
 		current = cab
 		refresh()
+		if
+			opened
+			and not HeldItemController.isInputBlocked(gui)
+			and not GuiService.SelectedObject
+			and string.find(UserInputService:GetLastInputType().Name, "Gamepad")
+		then
+			for _, item in rows:GetChildren() do
+				if item:IsA("GuiButton") and item.Selectable and item.Visible then
+					GuiService.SelectedObject = item
+					break
+				end
+			end
+		end
 	end))
 	janitor:Add(function()
 		close()

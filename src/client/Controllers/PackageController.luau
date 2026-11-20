@@ -24,6 +24,7 @@ local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local RemoteController = require(script.Parent.RemoteController)
+local HeldItemController = require(script.Parent.HeldItemController)
 
 local PackageController = {}
 
@@ -33,6 +34,7 @@ local extractionConfig = GameConfig.Extraction
 local localPlayer = Players.LocalPlayer
 local INTERACT_ACTION = "CoverStoryInteractObjective"
 local DROP_ACTION = "CoverStoryDropPackage"
+local DROP_PAD_ACTION = "CoverStoryDropPackagePad"
 local CHECK_SECONDS = 0.1
 
 type Choice = { kind: string, target: string }
@@ -77,6 +79,7 @@ local function usable(): boolean
 		and not eliminated
 		and focused
 		and UserInputService:GetFocusedTextBox() == nil
+		and not HeldItemController.isInputBlocked()
 		and humanoid ~= nil
 		and humanoid.Health > 0
 		and not (extractionState ~= nil and extractionState.State == "Extracted")
@@ -165,7 +168,7 @@ local function bindInteract(want: boolean)
 			INTERACT_ACTION,
 			onInteract,
 			false,
-			Enum.ContextActionPriority.High.Value,
+			GameConfig.Combat.InputPriority + 1, -- a valid contextual hold takes precedence over gamepad reload
 			controls.Interact,
 			controls.InteractPad
 		)
@@ -185,9 +188,18 @@ local function bindDrop(want: boolean)
 			Enum.ContextActionPriority.High.Value,
 			controls.DropPackage
 		)
+		-- The pad button is B, which also closes the elevator, settings and shop screens: bound below them, so B closes one first.
+		ContextActionService:BindActionAtPriority(
+			DROP_PAD_ACTION,
+			onDrop,
+			false,
+			GameConfig.Combat.InputPriority,
+			controls.DropPackagePad
+		)
 	elseif not want and dropBound then
 		dropBound = false
 		ContextActionService:UnbindAction(DROP_ACTION)
+		ContextActionService:UnbindAction(DROP_PAD_ACTION)
 	end
 end
 

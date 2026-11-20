@@ -16,7 +16,7 @@ local UserInputService = game:GetService("UserInputService")
 local GameConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("GameConfig"))
 
 type Level = "Low" | "Medium" | "High"
-type Mode = "Auto" | Level
+export type Mode = "Auto" | Level
 type LevelConfig = {
 	WindowBands: { [string]: boolean },
 	RoofDetail: boolean,
@@ -160,6 +160,10 @@ local function refresh(announce: boolean)
 end
 
 -- Ticket gala-sculptures: shared entry point for the existing shortcut and settings UI.
+function GraphicsController.getMode(): Mode
+	return mode
+end
+
 function GraphicsController.setMode(nextMode: Mode)
 	assert(table.find(CYCLE, nextMode), `Unknown graphics mode {nextMode}`)
 	mode = nextMode

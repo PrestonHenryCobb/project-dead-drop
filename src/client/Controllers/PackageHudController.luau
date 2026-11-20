@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared.GameConfig)
+local InputHints = require(Shared:WaitForChild("Util"):WaitForChild("InputHints"))
 local Janitor = require(Shared.Util.Janitor)
 local HudKit = require(Shared.Util.HudKit)
 local HudTheme = require(Shared.Util.HudTheme)
@@ -163,7 +164,7 @@ function PackageHudController.Start()
 			elseif package and package.State == "Dropped" then "PACKAGE DROPPED"
 			else "PACKAGE AVAILABLE"
 		hint.Text = if package and package.YouCarry
-			then `[ {GameConfig.Controls.DropPackage.Name} ] DROP PACKAGE`
+			then InputHints.bracket(GameConfig.Controls.DropPackage, GameConfig.Controls.DropPackagePad, "DROP PACKAGE")
 			elseif package and package.ReturnsAt then `RETURNS IN {Clock.clock(package.ReturnsAt, now)}`
 			else "TAKE THE PACKAGE AND EXTRACT"
 		packageMarker.gui.Enabled = view.point ~= nil

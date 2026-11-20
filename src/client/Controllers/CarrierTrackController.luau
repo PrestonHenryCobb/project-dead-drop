@@ -9,6 +9,7 @@ local UserInputService = game:GetService("UserInputService")
 local ContentProvider = game:GetService("ContentProvider")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared.GameConfig)
+local InputHints = require(Shared:WaitForChild("Util"):WaitForChild("InputHints"))
 local Types = require(Shared.Types)
 local Janitor = require(Shared.Util.Janitor)
 local HudKit = require(Shared.Util.HudKit)
@@ -16,6 +17,7 @@ local HudTheme = require(Shared.Util.HudTheme)
 local Accessibility = require(Shared.Util.UiAccessibility)
 local Package = require(script.Parent.PackageController)
 local Remote = require(script.Parent.RemoteController)
+local HeldItemController = require(script.Parent.HeldItemController)
 local CarrierTrackController = {}
 local marks: { Vector3 } = {}
 local revision = 0
@@ -73,8 +75,13 @@ function CarrierTrackController.Start()
 	)
 	label.TextSize = theme.CaptionSize
 	label.TextWrapped = true
-	label.Text =
-		`[ {config.Key.Name} / L3 ] TRACK · tap / hold\n{GameConfig.CarrierTrack.TapCost} Intel / tap · {GameConfig.CarrierTrack.HoldCostPerSecond} Intel / sec`
+	local function controlsText(): string
+		return `{InputHints.bracket(config.Key, config.Pad, "TRACK · tap / hold")}\n{GameConfig.CarrierTrack.TapCost} Intel / tap · {GameConfig.CarrierTrack.HoldCostPerSecond} Intel / sec`
+	end
+	label.Text = controlsText()
+	janitor:Add(InputHints.onChange(function()
+		label.Text = controlsText()
+	end))
 	local vignette = HudKit.edgeGlow(gui, config.CueColor)
 	local whisper = Instance.new("Sound")
 	whisper.Name = "LocalTrackedWhisper"
@@ -139,7 +146,7 @@ function CarrierTrackController.Start()
 	end)
 	ContextActionService:BindActionAtPriority("CarrierTrack", function(_, inputState, input)
 		if inputState == Enum.UserInputState.Begin then
-			if not active() or not carrier or not focused or UserInputService:GetFocusedTextBox() then
+			if not active() or not carrier or not focused or HeldItemController.isInputBlocked() then
 				return Enum.ContextActionResult.Pass
 			end
 			local key = input.KeyCode
@@ -170,7 +177,7 @@ function CarrierTrackController.Start()
 	end)
 	janitor:Add(Remote.connect("PackageState", function(info: Types.PackageStateInfo)
 		carrier = info.YouCarry
-		if not carrier then
+		if not carrier or HeldItemController.isInputBlocked() then
 			release()
 			clearMarks()
 			hintRoot.Visible = false
