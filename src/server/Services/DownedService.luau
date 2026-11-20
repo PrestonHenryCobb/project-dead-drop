@@ -30,6 +30,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local Knockdown = require(Shared:WaitForChild("Util"):WaitForChild("Knockdown"))
+local Validate = require(Shared:WaitForChild("Util"):WaitForChild("Validate"))
 local Death = require(script.Parent.Parent.NPC.Death)
 local CombatService = require(script.Parent.CombatService)
 local CoverService = require(script.Parent.CoverService)
@@ -280,10 +281,11 @@ end
 
 local function onRequestCrawl(player: Player, direction: unknown)
 	local body = downed[player]
-	if not body or typeof(direction) ~= "Vector3" or direction ~= direction then
+	local wanted = Validate.vector3(direction)
+	if not body or not wanted then
 		return
 	end
-	local flat = Vector3.new(direction.X, 0, direction.Z)
+	local flat = Vector3.new(wanted.X, 0, wanted.Z)
 	body.crawl = if flat.Magnitude > 1 then flat.Unit else flat
 end
 

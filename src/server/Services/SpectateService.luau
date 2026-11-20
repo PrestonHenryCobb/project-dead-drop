@@ -23,6 +23,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
+local Validate = require(Shared:WaitForChild("Util"):WaitForChild("Validate"))
 local DownedService = require(script.Parent.DownedService)
 local RemoteService = require(script.Parent.RemoteService)
 local TeamService = require(script.Parent.TeamService)
@@ -243,29 +244,23 @@ local function onRequest(player: Player, action: unknown)
 	end
 end
 
-local function isFinite(position: Vector3): boolean
-	return position.X == position.X
-		and position.Y == position.Y
-		and position.Z == position.Z
-		and position.Magnitude < math.huge
-end
-
 local function onDronePosition(player: Player, wanted: unknown)
 	local state = spectators[player]
-	if not state or state.mode ~= "Drone" or typeof(wanted) ~= "Vector3" or not isFinite(wanted) then
+	local target = Validate.vector3(wanted)
+	if not state or state.mode ~= "Drone" or not target then
 		return
 	end
 	local now = os.clock()
 	local elapsed = math.clamp(now - state.droneAt, 0, 1)
 	state.droneAt = now
-	local offset = wanted - state.dronePos
+	local offset = target - state.dronePos
 	local maxStep = config.DroneSpeed * config.DroneBoost * config.DroneStepSlack * elapsed + 1
 	if offset.Magnitude > maxStep then
 		offset = offset.Unit * maxStep
 	end
 	local accepted = clampToVolumes(state.dronePos + offset)
 	state.dronePos = accepted
-	if (accepted - wanted).Magnitude > config.DroneSnapStuds then
+	if (accepted - target).Magnitude > config.DroneSnapStuds then
 		sendState(player, state, accepted) -- the client was too fast or went outside: put its camera back
 	end
 end

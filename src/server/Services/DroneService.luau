@@ -20,6 +20,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
+local Validate = require(Shared:WaitForChild("Util"):WaitForChild("Validate"))
 local History = require(script.Parent.Parent.Combat.History)
 local Shields = require(script.Parent.Parent.Combat.Shields)
 local CombatService = require(script.Parent.CombatService)
@@ -184,10 +185,11 @@ end
 
 local function onRequestMove(player: Player, direction: unknown)
 	local flight = flights[player]
-	if not flight or typeof(direction) ~= "Vector3" or direction ~= direction then
+	local wanted = Validate.vector3(direction)
+	if not flight or not wanted then
 		return
 	end
-	flight.direction = if direction.Magnitude > 1 then direction.Unit else direction
+	flight.direction = if wanted.Magnitude > 1 then wanted.Unit else wanted
 	flight.directionAt = os.clock()
 end
 
