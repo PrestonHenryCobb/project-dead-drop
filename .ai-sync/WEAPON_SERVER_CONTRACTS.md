@@ -133,6 +133,34 @@ Knives:
 - **Client work:** draw the knife in flight from `ProjectileLaunched`, replace the default `LandedKnife` part's look if
   wanted (keep its name and parent), and a "pick up" hint. Pickup works today through the prompt with no client code.
 
+## 8.5c Lattice burst rifle (`LatticeBurstRifle`) and taser (`LatticeTaser`) (2026-11-19, built, not run in Studio)
+
+Entries with the approved numbers are in `src/server/Tools/PendingWeaponDefs.luau`; Codex moves each into `WeaponDefs` when its
+model, handling and prediction are ready (the Hardware slots already exist in `AgentDefs`).
+
+Burst rifle:
+- 12 damage a round, `Burst { Count = 3, DelaySeconds = 0.35 }` (the client sends each round; the server follows `FireRate`), 24 loaded
+  and 48 spare, 2.2 s reload, falloff 60 to 140 studs down to 70 percent. SPEC-QUESTION: the rate inside a burst is not specified
+  (`RPM = 900`).
+- `Tracker { Seconds = 3 }`: when every round of one burst (`Burst.Count` consecutive hits, each within
+  `Combat.TrackerBurstGapFraction` of the burst pause of the last) lands on the same **agent**, the server sends `TargetGlow` to the
+  shooter alone (`TargetId` = the body's model name, `ExpiresAt` = now + 3 s). A miss, a different body or a pause starts over.
+  NPCs are never marked. SPEC-QUESTION: the mark reuses `TargetGlow`, so the client draws it with line of sight like the flare glow;
+  a through-walls marker would need a new event.
+
+Taser:
+- One dart, 30 damage, `MaxRange = 25` (a new optional `WeaponDef` field: the ray stops there), 1 loaded and 10 spare, 2 s reload.
+- A hit that leaves a **player** standing: `DisguiseService.applySlow(victim, 0.4, 1.5)` (60 percent slower for 1.5 s),
+  `Combat/Lockout` for 3 s (`AbilityService` and `GadgetService` refuse requests while it runs) and
+  `CombatStatus { Kind = "Taser", Seconds = 1.5, SlowMult = 0.4, From }` to the victim only. NPCs take the damage and nothing else.
+  A downed or eliminated target takes no status; teammates are not hit (the existing team rule).
+- SPEC-QUESTIONs: no head bonus (`HeadshotMult = 1`); the dart is as loud as a normal shot (`Quiet = false`).
+
+**For Codex:** register both when ready. Burst rifle: the client must send each round of a burst on the `FireRate` timing (it already
+does for bursts), and draw the `TargetGlow` it receives (shooter only). Taser: a single-round weapon with a 25-stud range; show a
+`CombatStatus` "Taser" to the victim (slowed, abilities locked for 3 s, the server does the slow and the lock; show the lock on the
+ability and gadget HUD from this event, which carries only the slow time).
+
 ## Studio test steps (server rules; after the client side lands, repeat with real input)
 
 All with one player, `Debug.TestMode` Duos or Solos, after a fresh Play. Equip with `testEquip` (above). Fire from the

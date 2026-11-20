@@ -40,6 +40,7 @@ local Death = require(script.Parent.Parent.NPC.Death)
 local NpcTypes = require(script.Parent.Parent.NPC.NpcTypes)
 local FireRate = require(script.Parent.Parent.Combat.FireRate)
 local History = require(script.Parent.Parent.Combat.History)
+local Lockout = require(script.Parent.Parent.Combat.Lockout)
 local Smoke = require(script.Parent.Parent.Combat.Smoke)
 local Shields = require(script.Parent.Parent.Combat.Shields)
 local CoverService = require(script.Parent.CoverService)
@@ -83,7 +84,10 @@ type State = {
 	dead: boolean,
 	violations: number,
 	target: Target?, -- this player in History; untracked while downed so shots pass through (as for a downed NPC)
+	trackerRun: TrackerRun?, -- the burst rifle's consecutive hits on one agent (ticket 8.5c-server)
 }
+
+type TrackerRun = { target: Target, hits: number, lastAt: number }
 
 -- How ProjectileService takes a throw (set once at Start). canLaunch is asked before any round is spent.
 export type ProjectileHooks = {
@@ -425,6 +429,37 @@ local function soundOriginOf(def: WeaponDef, origin: Vector3): Vector3
 	return origin + Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance)
 end
 
+-- Lattice's burst rifle (def.Tracker): every round of one burst landing on the same agent marks them for the shooter alone. Hits
+-- count as one burst while each comes within a fraction of the pause between bursts of the last (a pause or a miss starts over).
+-- The mark is a TargetGlow sent to the shooter only, naming the body by its model name (never History's player id).
+local function updateTracker(player: Player, state: State, def: WeaponDef, struck: Target?, now: number)
+	local tracker = def.Tracker
+	local burst = def.Burst
+	if not tracker or not burst then
+		return
+	end
+	if not struck then
+		state.trackerRun = nil
+		return
+	end
+	local run = state.trackerRun
+	if not run or run.target ~= struck or now - run.lastAt > burst.DelaySeconds * config.TrackerBurstGapFraction then
+		run = { target = struck, hits = 0, lastAt = now }
+		state.trackerRun = run
+	end
+	run.hits += 1
+	run.lastAt = now
+	if run.hits >= burst.Count then
+		state.trackerRun = nil
+		local model = struck.rootPart.Parent
+		local info: Types.TargetGlowInfo = {
+			TargetId = if model then model.Name else struck.id,
+			ExpiresAt = workspace:GetServerTimeNow() + tracker.Seconds,
+		}
+		RemoteService.fireClient("TargetGlow", player, info)
+	end
+end
+
 local function onFire(player: Player, origin: unknown, direction: unknown, timestamp: unknown, weaponId: unknown)
 	if
 		typeof(origin) ~= "Vector3"
@@ -546,8 +581,9 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 	local tallies: { [Target]: Tally } = {}
 	local tallyOrder: { Target } = {}
 	local smoke = def.Smoke
+	local struckAgent: Target? = nil -- the last agent a plain round hit (burst rifle tracker)
 	for _, ray in directions do
-		local hits, endPoint, hitWall, shield = Ballistics.trace(player, origin, ray, timestamp, maxHits)
+		local hits, endPoint, hitWall, shield = Ballistics.trace(player, origin, ray, timestamp, maxHits, def.MaxRange)
 		if hitWall and worldHitListener then
 			worldHitListener(endPoint, player)
 		end
@@ -577,7 +613,20 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 				tally.head = tally.head or head
 				tally.pellets += 1
 			else
-				applyDamage(player, target, amount, head, origin)
+				local result = applyDamage(player, target, amount, head, origin)
+				local victim = target.player
+				if result ~= nil and victim then
+					struckAgent = target
+					local taser = def.Taser
+					if taser and result == "Hit" then
+						-- Lattice's taser: slow, and no ability or gadgets for a moment (NPCs take the damage only).
+						DisguiseService.applySlow(victim, taser.SlowMult, taser.SlowSeconds)
+						Lockout.set(victim, taser.LockoutSeconds)
+						local status: Types.CombatStatusInfo =
+							{ Kind = "Taser", Seconds = taser.SlowSeconds, SlowMult = taser.SlowMult, From = origin }
+						RemoteService.fireClient("CombatStatus", victim, status)
+					end
+				end
 			end
 			struckAnyone = true
 		end
@@ -643,6 +692,9 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 			}
 			RemoteService.fireClient("CombatStatus", victim, status)
 		end
+	end
+	if def.Tracker then
+		updateTracker(player, state, def, struckAgent, now)
 	end
 	if struckAnyone then
 		CoverService.startLockout(player) -- dealing damage refreshes it (spec 7.6)

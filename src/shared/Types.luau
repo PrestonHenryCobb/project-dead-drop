@@ -190,6 +190,11 @@ export type WeaponDef = {
 	SurvivesFullHealth: boolean?, -- one pull cannot take an agent who started it at full health below 1 HP
 	Stagger: WeaponStagger?,
 	Smoke: WeaponSmoke?,
+	-- Ticket 8.5c-server (Lattice): see WeaponTracker and WeaponTaser. MaxRange stops the ray that far from the shooter (the taser's
+	-- 25 studs); nil uses Combat.MaxShotStuds.
+	MaxRange: number?,
+	Tracker: WeaponTracker?,
+	Taser: WeaponTaser?,
 }
 
 -- V while this weapon is held (garrote, breaching hammer). Fields left nil use GameConfig.Combat.Melee and .Takedown.
@@ -228,6 +233,14 @@ export type WeaponStagger = {
 
 -- The last Rounds rounds of a magazine leave a smoke cloud where they land (Feint's smoke SMG).
 export type WeaponSmoke = { Rounds: number, Radius: number, Seconds: number }
+
+-- Lattice's burst rifle: landing every round of one burst on the same agent marks them for the shooter alone for Seconds (shown
+-- through TargetGlow to the shooter only). NPCs are never marked.
+export type WeaponTracker = { Seconds: number }
+
+-- Lattice's taser: a hit on a player slows them (SlowMult is a speed multiplier) for SlowSeconds and stops their ability and gadgets for
+-- LockoutSeconds. NPCs take the damage and nothing else.
+export type WeaponTaser = { SlowMult: number, SlowSeconds: number, LockoutSeconds: number }
 
 export type WeaponBurst = { Count: number, DelaySeconds: number }
 export type WeaponSpinUp = { StartRPM: number, Seconds: number }
@@ -276,7 +289,7 @@ export type SmokeCloudInfo = { Position: Vector3, Radius: number, ExpiresAt: num
 -- until ExpiresAt. Drawn client-side with line of sight; it follows the character through disguise changes.
 export type TargetGlowInfo = { TargetId: string, ExpiresAt: number }
 
--- To the victim only. "Stagger": walk at SlowMult for Seconds (the server already applies the slow) and bump the aim
+-- To the victim only. "Taser": walk at SlowMult for Seconds (applied by the server); their ability and gadgets are also locked. "Stagger": walk at SlowMult for Seconds (the server already applies the slow) and bump the aim
 -- AimBumpDegrees, away from From. "Shove": move Studs along Direction over Seconds (the server cannot move a player's
 -- body; their client does it, and falls like any walk).
 export type CombatStatusInfo = {

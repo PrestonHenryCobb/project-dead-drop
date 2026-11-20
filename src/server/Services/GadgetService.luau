@@ -19,6 +19,7 @@ local GadgetDefs = require(Shared:WaitForChild("Defs"):WaitForChild("GadgetDefs"
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local Gadget = require(script.Parent.Parent.Gadgets.Gadget)
+local Lockout = require(script.Parent.Parent.Combat.Lockout)
 local AbilityService = require(script.Parent.AbilityService)
 local DownedService = require(script.Parent.DownedService)
 local MatchService = require(script.Parent.MatchService)
@@ -115,6 +116,7 @@ local function canAct(player: Player): boolean
 		and MatchService.isInMatch()
 		and MatchService.phase() ~= "Insertion"
 		and not DownedService.isOut(player)
+		and not Lockout.isLocked(player) -- the taser (ticket 8.5c-server)
 end
 
 local function onRequest(player: Player, action: unknown, slot: unknown, aimValue: unknown)

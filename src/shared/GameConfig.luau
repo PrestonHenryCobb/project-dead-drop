@@ -1046,6 +1046,7 @@ local GameConfig = {
 			FlareRange = 18,
 			GlowFillTransparency = 0.65,
 			GlowOutlineTransparency = 0.15,
+		TrackerBurstGapFraction = 0.5, -- hits count as one burst while each is within this fraction of the burst pause of the last (Lattice burst rifle)
 			ImpactSize = 0.18,
 			SmokeColor = Color3.fromRGB(90, 88, 84),
 			SmokeTransparency = 0.15,

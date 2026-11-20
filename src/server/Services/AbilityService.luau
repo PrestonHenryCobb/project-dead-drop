@@ -14,6 +14,7 @@ local AgentDefs = require(Shared:WaitForChild("Defs"):WaitForChild("AgentDefs"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local Ability = require(script.Parent.Parent.Abilities.Ability)
+local Lockout = require(script.Parent.Parent.Combat.Lockout)
 local AssetService = require(script.Parent.AssetService)
 local CombatService = require(script.Parent.CombatService)
 local CoverService = require(script.Parent.CoverService)
@@ -69,7 +70,12 @@ end
 
 local function onRequestAbility(player: Player)
 	-- Spec 27 #13: nothing is used during Insertion (everyone is frozen behind the briefing).
-	if not MatchService.isInMatch() or MatchService.phase() == "Insertion" or DownedService.isOut(player) then
+	if
+		not MatchService.isInMatch()
+		or MatchService.phase() == "Insertion"
+		or DownedService.isOut(player)
+		or Lockout.isLocked(player)
+	then
 		return
 	end
 	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
