@@ -12,6 +12,7 @@
 --   MetaProgressionService.validateLoadout(player, request) -> (Types.PlayerLoadout?, reason?)
 --   MetaProgressionService.setLoadout(player, loadout)   equips a loadout validateLoadout returned, and tells the player
 --   MetaProgressionService.ownedAgents(player) -> { AgentId } in menu order
+--   MetaProgressionService.recordMatch(player, won)   a finished match: mastery XP for the agent played, career counters
 --   MetaProgressionService.queueInfo() -> Types.QueueInfo     the modes this server can deploy into
 
 local Players = game:GetService("Players")
@@ -288,6 +289,34 @@ function MetaProgressionService.setLoadout(player: Player, loadout: PlayerLoadou
 		return
 	end
 	loadouts[player] = table.freeze(table.clone(loadout))
+	dirty[player] = true
+	push(player)
+end
+
+-- Ticket 21-mastery: a match the player finished (MatchService.finish). The agent they played gains mastery XP and levels,
+-- and the career counters move. The loadout is the one they deployed with; nothing happens without a profile or a loadout.
+function MetaProgressionService.recordMatch(player: Player, won: boolean)
+	local profile = profiles[player]
+	local loadout = loadouts[player]
+	if not profile or not loadout then
+		return
+	end
+	local masteryConfig = GameConfig.Mastery
+	local mastery = profile.Mastery[loadout.AgentId] or { Level = 1, XP = 0 }
+	local xp = mastery.XP + masteryConfig.MatchXP + (if won then masteryConfig.WinBonusXP else 0)
+	local level = mastery.Level
+	while level < masteryConfig.MaxLevel and xp >= masteryConfig.XPPerLevel do
+		xp -= masteryConfig.XPPerLevel
+		level += 1
+	end
+	if level >= masteryConfig.MaxLevel then
+		xp = 0
+	end
+	profile.Mastery[loadout.AgentId] = { Level = level, XP = xp }
+	profile.Career.Matches += 1
+	if won then
+		profile.Career.Extractions += 1
+	end
 	dirty[player] = true
 	push(player)
 end

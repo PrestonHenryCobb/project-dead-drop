@@ -29,6 +29,7 @@ local Ballistics = require(script.Parent.Parent.Combat.Ballistics)
 local History = require(script.Parent.Parent.Combat.History)
 local CombatService = require(script.Parent.CombatService)
 local CoverService = require(script.Parent.CoverService)
+local MatchService = require(script.Parent.MatchService)
 local RemoteService = require(script.Parent.RemoteService)
 local TeamService = require(script.Parent.TeamService)
 
@@ -290,7 +291,20 @@ function ProjectileService.Init()
 	folder.Parent = workspace
 end
 
+-- A new match starts clean: nothing in the air and no knife left on the floor from the last one.
+local function clear()
+	table.clear(flights)
+	table.clear(inFlight)
+	table.clear(landed)
+	folder:ClearAllChildren()
+end
+
 function ProjectileService.Start()
+	MatchService.onPhaseChanged(function(phase)
+		if phase == "Lobby" or phase == "Insertion" then
+			clear()
+		end
+	end)
 	CombatService.setProjectileHooks({
 		canLaunch = function(player)
 			return (inFlight[player] or 0) < config.MaxPerPlayer

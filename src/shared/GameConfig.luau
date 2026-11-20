@@ -163,6 +163,12 @@ local GameConfig = {
 		-- The mastery level that opens each Hardware slot, W1 to W3. IDEAS brief Q8: the second item after about two matches.
 		-- SPEC-QUESTION: W3 at level 6 is from the menu handoff; the decided pace only says "everything in about ten matches".
 		HardwareUnlockLevels = { 1, 3, 6 },
+		-- Ticket 21-mastery: what a finished match gives the agent the player used (SPEC_CHANGES 2026-10-25: about ten matches
+		-- to level 10, the second Hardware after about two, wins and objectives speed it up). One match is one level, so level 3
+		-- comes after two matches and level 10 after nine; a win adds half a level. SPEC-QUESTION: objectives add nothing yet.
+		XPPerLevel = 100,
+		MatchXP = 100,
+		WinBonusXP = 50,
 	},
 
 	-- Ticket menu-phase0: first launch (META_DRAFT, SPEC_CHANGES 15.9/20): one free agent from each class.

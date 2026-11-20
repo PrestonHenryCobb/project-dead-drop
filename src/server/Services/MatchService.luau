@@ -235,6 +235,13 @@ function MatchService.finish(winnerTeamId: number?)
 	end
 	mainEndsAt, forcedVaultAt = nil, nil
 	results = buildResults(winnerTeamId)
+	for teamId, members in matchTeams do
+		for _, member in members do
+			if member.Parent then
+				MetaProgressionService.recordMatch(member, teamId == winnerTeamId) -- ticket 21-mastery
+			end
+		end
+	end
 	if GameConfig.Debug.PrintEvents then
 		print("[Match] ended, winner team: " .. tostring(winnerTeamId))
 	end

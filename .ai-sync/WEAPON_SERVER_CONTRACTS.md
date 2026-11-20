@@ -157,7 +157,7 @@ Client command bar by firing the remote with a script, or wait for Codex's clien
   difference could be seen by an observer comparing a shoved player with an unshoved NPC. Needs the NPC movement owner
   (me) and a decision; not built.
 - **Smoke does not block sight on the server** (NPC sight, scans, Agent Sense, shots). It is a client-drawn cloud only.
-- Landed knives are never cleaned up (no round end exists yet). Step 10 should clear `workspace.LandedKnives`.
+- Landed knives and flights in the air are cleared when the match goes to Lobby or Insertion (ProjectileService, 2026-11-19).
 - SPEC-QUESTION: the hammer's "sideways in the direction of the swing" is implemented as the swinger's right.
 - SPEC-QUESTION: the ambush shot now needs Covered (the answers' wording); before it also worked while Suspicious.
 - SPEC-QUESTION: the knife prompt is visible to every agent near a landed knife, including ones who cannot use it.
