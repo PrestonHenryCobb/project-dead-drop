@@ -2,15 +2,19 @@
 -- Ticket 10b. Draws the server's phase, clocks, briefing and final roster; sends no gameplay requests.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local GuiService = game:GetService("GuiService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared.GameConfig)
 local Types = require(Shared.Types)
 local Janitor = require(Shared.Util.Janitor)
 local HudKit = require(Shared.Util.HudKit)
 local HudTheme = require(Shared.Util.HudTheme)
+local InputHints = require(Shared.Util.InputHints)
 local Accessibility = require(Shared.Util.UiAccessibility)
 local Presentation = require(script.Parent.Parent.Combat.MatchPresentation)
+local RewardsView = require(script.Parent.Parent.Combat.MatchRewardsView)
 local RemoteController = require(script.Parent.RemoteController)
+local HeldItemController = require(script.Parent.HeldItemController)
 local MatchController = {}
 local janitor = Janitor.new()
 local scores = Janitor.new()
@@ -124,11 +128,15 @@ function MatchController.Start()
 	board.Size = UDim2.new(1, -config.PaddingPixels * 2, 1, -boardTop - config.PaddingPixels * 2 - config.BodySize)
 	board.CanvasSize = UDim2.new()
 	board.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	board.Active = true
+	board.Selectable = true
 	board.ScrollBarThickness = theme.ReloadBarPixels
 	board.Parent = results
 	local layout = Instance.new("UIListLayout")
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = board
+	local rewards = RewardsView.new(board)
+	janitor:Add(rewards)
 	local banner = HudKit.text(
 		gui,
 		"PhaseBanner",
@@ -147,6 +155,12 @@ function MatchController.Start()
 		gui.Enabled = true -- Lobby wait and Insertion must remain visible above the open menu.
 		scores:Cleanup()
 		board.CanvasPosition = Vector2.zero
+		if phase ~= "Results" and GuiService.SelectedObject == board then
+			GuiService.SelectedObject = nil
+		end
+		if phase == "Insertion" or phase == "Lobby" then
+			rewards.clear()
+		end
 		if phase == "Insertion" and data.Brief then
 			local info = data.Brief
 			ownTeamId = info.TeamId
@@ -154,6 +168,10 @@ function MatchController.Start()
 			briefTitle.TextColor3 = if color then color.Color else theme.TextColor
 			briefInfo.Text = `{string.upper(info.Mode)} · {info.Teams} TEAMS · {info.Players} PLAYERS`
 		elseif phase == "Results" and data.Results then
+			resultsRoot.Visible = true
+			if InputHints.isGamepad() and not HeldItemController.isInputBlocked() then
+				GuiService.SelectedObject = board
+			end
 			local info = data.Results
 			resultTitle.Text = if info.WinnerTeamId and info.WinnerTeamId == ownTeamId
 				then "MISSION SUCCESS"
@@ -190,6 +208,8 @@ function MatchController.Start()
 		end
 	end
 	janitor:Add(RemoteController.connect("PhaseChanged", onPhase))
+	-- Reward settlement can precede Results on its own remote; keep it until the phase exposes the results panel.
+	janitor:Add(RemoteController.connect("MatchRewards", rewards.show))
 	janitor:Add(RunService.RenderStepped:Connect(function()
 		local view = state.view(workspace:GetServerTimeNow())
 		if not view then

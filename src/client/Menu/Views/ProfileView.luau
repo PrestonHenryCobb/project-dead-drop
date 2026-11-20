@@ -2,6 +2,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local Types = require(ReplicatedStorage.Shared.Types)
+local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local Agents = require(ReplicatedStorage.Shared.Defs.AgentDefs)
 local Janitor = require(ReplicatedStorage.Shared.Util.Janitor)
 local Kit = require(script.Parent.Parent.Components.ViewKit)
@@ -30,6 +31,21 @@ function view.Mount(stage, navigator)
 		content:Add(region)
 		Kit.text(root, Players.LocalPlayer.DisplayName, 0, 42, true)
 		Kit.text(root, `LEVEL {data.Profile.Level} · {data.Profile.Career.Matches} COMPLETED MATCHES`, 48, 30)
+		local rewards = GameConfig.Rewards
+		local headerExtra = 0
+		if rewards and type(data.Profile.XP) == "number" then
+			local required = math.min(rewards.LevelBase + rewards.LevelStep * data.Profile.Level, rewards.LevelCap)
+			Kit.text(root, `ACCOUNT XP · {data.Profile.XP} / {required} TO NEXT LEVEL`, 78, 18)
+			local height = GameConfig.UI.GraphicHud.ReloadBarPixels
+			headerExtra = height + GameConfig.Menu.GapPixels
+			local back = Kit.frame(root, "AccountXp", UDim2.fromOffset(0, 96), UDim2.new(1, 0, 0, height))
+			back.BackgroundColor3 = Kit.Theme.Colors.Surface
+			back.BackgroundTransparency = 0
+			local fraction = if required > 0 then math.clamp(data.Profile.XP / required, 0, 1) else 0
+			local fill = Kit.frame(back, "Progress", UDim2.new(), UDim2.fromScale(fraction, 1))
+			fill.BackgroundColor3 = Kit.Theme.Colors.BrassBright
+			fill.BackgroundTransparency = 0
+		end
 		local stats = data.Profile.Career
 		local values = {
 			{ "PACKAGE EXTRACTIONS", tostring(stats.Extractions) },
@@ -41,20 +57,20 @@ function view.Mount(stage, navigator)
 			local card = Kit.panel(
 				root,
 				"Telemetry" .. index,
-				UDim2.new((index - 1) * 0.25, 0, 0, 96),
+				UDim2.new((index - 1) * 0.25, 0, 0, 96 + headerExtra),
 				UDim2.new(0.25, -12, 0, 120)
 			)
 			Kit.text(card, value[1], 0, 42)
 			Kit.text(card, value[2], 48, 50, true)
 		end
-		Kit.text(root, `SILENT TAKEDOWNS / {stats.Takedowns}`, 236, 36)
-		Kit.text(root, "OPERATIVE MASTERY / SCROLL TO BROWSE", 290, 42, true)
+		Kit.text(root, `SILENT TAKEDOWNS / {stats.Takedowns}`, 236 + headerExtra, 36)
+		Kit.text(root, "OPERATIVE MASTERY / SCROLL TO BROWSE", 290 + headerExtra, 42, true)
 		for index, id in Agents.order do
 			local mastery = data.Profile.Mastery[id]
 			local panel = Kit.panel(
 				root,
 				"Mastery" .. id,
-				UDim2.new(((index - 1) % 3) / 3, 0, 0, 346 + math.floor((index - 1) / 3) * 216),
+				UDim2.new(((index - 1) % 3) / 3, 0, 0, 346 + headerExtra + math.floor((index - 1) / 3) * 216),
 				UDim2.new(1 / 3, -12, 0, 200)
 			)
 			Kit.text(panel, string.upper(id) .. (if mastery then ` · LVL {mastery.Level}` else " · LOCKED"), 0, 36)
@@ -67,7 +83,7 @@ function view.Mount(stage, navigator)
 		Kit.text(
 			root,
 			"Match history and calling cards have not been published. No sample operations are presented as your career.",
-			800,
+			800 + headerExtra,
 			80
 		)
 	end)

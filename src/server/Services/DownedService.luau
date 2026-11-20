@@ -342,13 +342,13 @@ local function beginBody(player: Player, targetName: string): InteractService.In
 			label = "Revive"
 			complete = function()
 				revive(victim)
-				RewardService.award(player, "TeammateRevived")
+				RewardService.awardFor(player, "TeammateRevived", victim)
 			end
 		else
 			label = "Execute"
 			complete = function()
 				eliminate(victim)
-				RewardService.award(player, "EnemyEliminated")
+				RewardService.awardFor(player, "EnemyEliminated", victim)
 			end
 		end
 	else

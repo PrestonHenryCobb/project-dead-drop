@@ -48,6 +48,20 @@ No new gameplay mechanics or SPEC-QUESTIONs; stick/camera handling retains the e
 
 The source now contains the complete client vertical slice described above; native gameplay is still unverified.
 Two-player combat/identity permissions, full-round completion and gamepad feel need native acceptance when the
-owner resumes testing. Broader unfinished systems remain server/art scope: living team-chat filtering, the public
-visible-loadout contract for third-person weapons, authored audio, tutorial references, account rewards/catalogues
+owner resumes testing. Broader unfinished systems remain server/art scope: the public
+visible-loadout contract for third-person weapons, authored audio, tutorial references, purchase catalogues
 and matchmaking. These are not represented as finished by the client. No push is requested.
+
+## Account reward presentation — 21-rewards-client
+
+Read REWARDS_CONTRACT.md and the now-committed server settlement path. MatchRewardsView shows the player's
+actual XP lines in earned order, total XP, confirmed level/progress, level-up notice and separate level/win/daily
+Credit awards above the final roster. It retains a packet arriving before Results, displays one arriving afterward,
+and clears at Lobby/Insertion. No profile mutation, client award requests or estimated payouts. Results scrolling
+is selectable on gamepad, and selection releases on the next phase. Profile's header now shows account XP and a
+progress bar from the confirmed Level/XP and the server's configured threshold; later content shifts to make room.
+
+Source review and StyLua only. Native checks remain: results/reward arrival in either order, repeat XP events in
+order, level-up versus no level-up, first-win Credits, long scoreboards on gamepad, Profile updates and a second
+round with no stale reward details. No new SPEC-QUESTION. The rewards service and team-chat filtering are now
+server implementations supplied by Claude, superseding the earlier server follow-up list in the older report.

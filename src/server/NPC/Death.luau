@@ -85,6 +85,7 @@ function Death.down(crowd: Crowd, npc: Npc, awayFrom: Vector3?, now: number)
 	npc.path = crawlPath(crowd, npc, awayFrom)
 	npc.pathIndex = 1
 	npc.speed = config.Death.CrawlSpeed
+	npc.slowUntil = nil -- a pump or taser slow does not carry into the crawl
 	npc.moveSpeed = 0
 	AnimationSync.set(npc, Knockdown.animation("Knockdown", npc.fall, npc.posture))
 	table.insert(Death.bodies, {

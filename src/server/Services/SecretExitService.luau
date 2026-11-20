@@ -103,7 +103,9 @@ local function mayPull(exit: Exit, root: BasePart): boolean
 			return false
 		end
 	end
-	return workspace:Raycast(root.Position, toLever, sight) == nil
+	-- The ray ends at the lever's centre, so it meets the lever's own surface first: that is not something in the way.
+	local hit = workspace:Raycast(root.Position, toLever, sight)
+	return hit == nil or hit.Instance == exit.lever
 end
 
 local function begin(player: Player, targetName: string): InteractService.Interaction?
@@ -138,35 +140,54 @@ end
 
 function SecretExitService.Init() end
 
+-- Joins a panel and a lever that share an ExitId into one exit. Called for every tagged part, at Start and whenever one arrives later (the
+-- map can be built after the services start), so it works in whichever order they appear.
+local panels: { [string]: BasePart } = {}
+local levers: { [string]: BasePart } = {}
+
+local function tryRegister(id: string)
+	local panel, lever = panels[id], levers[id]
+	if exits[id] or not (panel and lever) then
+		return
+	end
+	-- The wall panel is thin on one axis: that axis runs across the wall.
+	local size = panel.Size
+	local across = if size.X <= size.Y and size.X <= size.Z
+		then panel.CFrame.RightVector
+		elseif size.Z <= size.Y then panel.CFrame.LookVector
+		else panel.CFrame.UpVector
+	local sign = if (lever.Position - panel.Position):Dot(across) >= 0 then 1 else -1
+	exits[id] = {
+		id = id,
+		panel = panel,
+		lever = lever,
+		inside = across * sign,
+		openUntil = 0,
+		token = 0,
+	}
+end
+
+local function addTagged(instance: Instance, into: { [string]: BasePart })
+	local id = instance:GetAttribute("ExitId")
+	if instance:IsA("BasePart") and type(id) == "string" then
+		into[id] = instance
+		tryRegister(id)
+	end
+end
+
 function SecretExitService.Start()
-	local levers: { [string]: BasePart } = {}
 	for _, instance in CollectionService:GetTagged(Enums.Tag.SecretExitTrigger) do
-		local id = instance:GetAttribute("ExitId")
-		if instance:IsA("BasePart") and type(id) == "string" then
-			levers[id] = instance
-		end
+		addTagged(instance, levers)
 	end
 	for _, instance in CollectionService:GetTagged(Enums.Tag.SecretExit) do
-		local id = instance:GetAttribute("ExitId")
-		local lever = if type(id) == "string" then levers[id] else nil
-		if instance:IsA("BasePart") and type(id) == "string" and lever then
-			-- The wall panel is thin on one axis: that axis runs across the wall.
-			local size = instance.Size
-			local across = if size.X <= size.Y and size.X <= size.Z
-				then instance.CFrame.RightVector
-				elseif size.Z <= size.Y then instance.CFrame.LookVector
-				else instance.CFrame.UpVector
-			local sign = if (lever.Position - instance.Position):Dot(across) >= 0 then 1 else -1
-			exits[id] = {
-				id = id,
-				panel = instance,
-				lever = lever,
-				inside = across * sign,
-				openUntil = 0,
-				token = 0,
-			}
-		end
+		addTagged(instance, panels)
 	end
+	CollectionService:GetInstanceAddedSignal(Enums.Tag.SecretExitTrigger):Connect(function(instance)
+		addTagged(instance, levers)
+	end)
+	CollectionService:GetInstanceAddedSignal(Enums.Tag.SecretExit):Connect(function(instance)
+		addTagged(instance, panels)
+	end)
 	InteractService.register("SecretExit", begin)
 	MatchService.onPhaseChanged(function(phase)
 		if phase == "Lobby" or phase == "Insertion" then

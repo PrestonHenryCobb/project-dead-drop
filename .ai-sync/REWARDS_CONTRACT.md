@@ -37,6 +37,8 @@ arrive before or after the results phase message, so keep the last one until the
 ## Gaps and SPEC-QUESTIONs
 - Intel XP counts for the player who completes a hold (a team can take each station once). Package pickup and vault participation XP are paid
   once a match to stop farming. A Solos elimination is paid as EnemyEliminated only (there is no downed step).
+- EnemyDowned, EnemyEliminated and TeammateRevived are paid **once per other player a match** (`RewardService.awardFor`), so two teams cannot
+  farm each other by downing and reviving in a loop (found by review, 2026-11-20).
 - The +XP boost game pass (spec 18, META_DRAFT) is not built. Daily and weekly contracts (brief Q9) have no design.
 - NPC kills pay nothing. Bots have no profile, so they earn nothing and are never paid.
 - Credits are earned but there is nothing to spend them on yet (locked agents, Black Market and Dossiers have no catalogue).

@@ -5,7 +5,8 @@
 -- bonus. The player is then sent their own breakdown (MatchRewards), and nobody else sees it.
 --
 --   RewardService.award(player, event)            an XP event from GameConfig.Rewards.Xp, every time
---   RewardService.awardOnce(player, event)        the same, but only the first time this match
+--   RewardService.awardOnce(player, key, event?)  the same, but only the first time this match for that key
+--   RewardService.awardFor(player, event, other)  once per other player a match (a down, an execution, a revive)
 --   RewardService.carrying(player)                called each check while they hold the Package; pays PackageCarried every tick
 --   RewardService.vaultPresence(players, dt)      players on a terminal's dais for dt seconds; pays VaultParticipation once a match
 --   RewardService.finishMatch(entries)            the match is over: settle everyone
@@ -54,12 +55,19 @@ function RewardService.award(player: Player, event: string)
 	end
 end
 
-function RewardService.awardOnce(player: Player, event: string)
+-- key says what counts as the same event (the event name by default); the XP is the event's.
+function RewardService.awardOnce(player: Player, key: string, event: string?)
 	local tally = tallyOf(player)
-	if not tally.once[event] then
-		tally.once[event] = true
-		RewardService.award(player, event)
+	if not tally.once[key] then
+		tally.once[key] = true
+		RewardService.award(player, event or key)
 	end
+end
+
+-- An XP event about one other player (a down, an execution, a revive): paid once per victim a match, so two teams cannot farm each
+-- other by downing and reviving in a loop.
+function RewardService.awardFor(player: Player, event: string, other: Player)
+	RewardService.awardOnce(player, `{event}{other.UserId}`, event)
 end
 
 function RewardService.carrying(player: Player)

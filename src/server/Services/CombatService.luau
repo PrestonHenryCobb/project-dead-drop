@@ -305,9 +305,9 @@ local function applyDamage(
 			result = "Eliminated"
 		end
 		if result == "Downed" then
-			RewardService.award(shooter, "EnemyDowned")
+			RewardService.awardFor(shooter, "EnemyDowned", victim)
 		elseif result == "Eliminated" then
-			RewardService.award(shooter, "EnemyEliminated")
+			RewardService.awardFor(shooter, "EnemyEliminated", victim)
 		end
 		confirm = { Kind = "Agent", Head = head }
 	end
