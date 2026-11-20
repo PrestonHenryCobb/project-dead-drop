@@ -516,3 +516,11 @@ Codex review 2026-11-20 — input-hints and minimap-size: reviewed all mixed hin
 | 7B-secret-exits-client | SecretExit lever targeting uses streamed panel pairing, inside-side/reach/facing/body and camera sight checks, closed-state check and body-only use. Existing outline/InputHints prompt and confirmed hold progress; Interact revalidates immediately and changing targets cancels the old hold. No new remotes/server logic. Source review/StyLua only; native acceptance pending. Report: docs/CLIENT_FINISH_PASS_2026-11-20.md. | CODEX | READY_FOR_REVIEW |
 
 | security-feed-modal-input | Camera-feed button and keyboard/gamepad paging respect the remote-aware foreground input guard: Settings, native menus, focus loss and newer dialogs block manual paging; authorized Sparrow use stays available. Source review/StyLua only; no tests or desktop control. Code commit 0a752be; report docs/CLIENT_FINISH_PASS_2026-11-20.md. | CODEX | READY_FOR_REVIEW |
+
+### Shop, matchmaking and kits client handoff — 2026-11-20
+
+| Id | Work | Owner | Status |
+|---|---|---|---|
+| shop-client | Daily Black Market and featured bundle from actual offers, server-clock reset countdowns/refresh, profile-owned/price/balance/agent gates, confirmed purchases and no-art notice; configured Mint packages with Coming soon on NotAvailable; locked-agent Credit Buy and UseFreePick feedback. Source review/StyLua only; no tests. Report: docs/SHOP_QUEUE_KITS_CLIENT_2026-11-20.md. | CODEX | READY_FOR_REVIEW |
+| matchmaking-client | Lobby-role Find Match with configured mode choices, persistent server-driven Searching/Found/Failed/Idle, fixed-area Cancel, navigation-safe pending/failed feedback. Complete draft saved before queueing for teleport persistence; direct Deploy elsewhere. Source review/StyLua only; no tests or published teleport checks. | CODEX | READY_FOR_REVIEW |
+| kits-24-client | Mastery-gated Talent/Instinct pickers in PreDeploy and Agents; ids submitted with loadouts, same-agent kit preserved in Hardware inspector, gadget/Asset fields retained. Optional effect timer omitted without a server active-effect deadline. Source review/StyLua only; no tests. | CODEX | READY_FOR_REVIEW |
