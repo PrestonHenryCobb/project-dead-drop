@@ -1819,6 +1819,7 @@ local GameConfig = {
 			DegreesPerPixel = 0.25,
 			WallPadding = 0.5, -- studs kept between the camera and a wall it would otherwise sit in
 		},
+		DropPackagePad = Enum.KeyCode.ButtonB, -- owner request 2026-11-20: the gamepad drops it too
 		Keys = {
 			Next = Enum.UserInputType.MouseButton1,
 			Previous = Enum.UserInputType.MouseButton2,
