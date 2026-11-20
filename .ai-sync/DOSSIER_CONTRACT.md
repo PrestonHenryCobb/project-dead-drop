@@ -22,3 +22,7 @@ a claim button per reached tier, a "Premium (800 Stocks)" button, a switcher fro
 ## Not built / SPEC-QUESTIONs
 - Equipping a title or calling card, and placing a spray (which must count as a suspicious action, META_DRAFT), have no request yet: owning is all there is. Finishes, takedown and extraction animations have no art.
 - XP only comes from finished matches (not the lobby). The 30-tier rewards, names and prices are guesses. Night Shift and Black Ledger are not defined.
+
+## Equip (ticket equip-cosmetics, added later the same day)
+`RequestEquipCosmetic(kind, cosmeticId?) -> (ok, reason?)`: kind is "Title" or "Card"; the id must be an owned cosmetic of that kind (`UnknownKind`, `UnknownCosmetic`, `NotOwned`), nil takes it off.
+Saved as `Profile.EquippedTitle` and `EquippedCard`. Not built: showing them to other players (the kill feed and results rosters do not carry them) and spray placement.

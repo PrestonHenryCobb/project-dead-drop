@@ -473,6 +473,8 @@ export type MetaProfile = {
 	StarterPicksLeft: { [string]: boolean }, -- keyed by AgentClass: classes whose free first-launch pick is still open
 	Mastery: { [string]: AgentMastery }, -- keyed by AgentId
 	OwnedCosmetics: { [string]: boolean },
+	EquippedTitle: string?, -- a Title cosmetic id the player owns, shown on the kill and results screens (ticket equip-cosmetics)
+	EquippedCard: string?, -- a Card cosmetic id the player owns
 	ActiveDossierId: string?,
 	Dossiers: { [string]: DossierProgress },
 	Career: CareerStats,

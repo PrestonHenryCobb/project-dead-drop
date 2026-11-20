@@ -15,6 +15,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local CosmeticDefs = require(Shared:WaitForChild("Defs"):WaitForChild("CosmeticDefs"))
 local ShopDefs = require(Shared:WaitForChild("Defs"):WaitForChild("ShopDefs"))
 local Types = require(Shared:WaitForChild("Types"))
 local MetaProgressionService = require(script.Parent.MetaProgressionService)
@@ -137,6 +138,32 @@ local function onMint(player: Player, packageId: unknown): (boolean, string?)
 	end)
 end
 
+-- Ticket equip-cosmetics: wear an owned Title or Calling card (kind "Title" or "Card"), or take it off with nil. Nothing else is equippable
+-- yet (no art). The choice is saved with the profile; showing it on the kill and results screens is the client's and a later server step.
+local function onEquip(player: Player, kind: unknown, cosmeticId: unknown): (boolean, string?)
+	if kind ~= "Title" and kind ~= "Card" then
+		return false, "UnknownKind"
+	end
+	if cosmeticId ~= nil and type(cosmeticId) ~= "string" then
+		return false, "UnknownCosmetic"
+	end
+	local entry = if type(cosmeticId) == "string" then CosmeticDefs.get(cosmeticId) else nil
+	if cosmeticId ~= nil and (not entry or entry.Kind ~= kind) then
+		return false, "UnknownCosmetic"
+	end
+	return MetaProgressionService.transact(player, function(profile)
+		if cosmeticId ~= nil and not profile.OwnedCosmetics[cosmeticId :: string] then
+			return false, "NotOwned"
+		end
+		if kind == "Title" then
+			profile.EquippedTitle = cosmeticId :: string?
+		else
+			profile.EquippedCard = cosmeticId :: string?
+		end
+		return true, nil
+	end)
+end
+
 function StorefrontService.Init() end
 
 function StorefrontService.Start()
@@ -145,6 +172,7 @@ function StorefrontService.Start()
 	end)
 	RemoteService.onInvoke("RequestBlackMarketPurchase", onPurchase)
 	RemoteService.onInvoke("RequestMintStrikeStocks", onMint)
+	RemoteService.onInvoke("RequestEquipCosmetic", onEquip)
 end
 
 return StorefrontService

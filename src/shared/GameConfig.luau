@@ -2285,6 +2285,7 @@ local GameConfig = {
 			RequestMintStrikeStocks = { PerSecond = 1, Burst = 2 },
 			RequestBuyAgent = { PerSecond = 1, Burst = 2 }, -- ticket shop-skeleton: a button
 			RequestBuyDossierPremium = { PerSecond = 1, Burst = 2 }, -- ticket dossier: a button
+			RequestEquipCosmetic = { PerSecond = 2, Burst = 4 }, -- ticket equip-cosmetics: a button
 			GetBlackMarketOffers = { PerSecond = 1, Burst = 3 },
 			RequestFindMatch = { PerSecond = 1, Burst = 2 }, -- ticket matchmaking: a button
 			RequestCancelFindMatch = { PerSecond = 1, Burst = 2 },

@@ -147,6 +147,14 @@ local function reconcile(saved: any): MetaProfile
 			end
 		end
 	end
+	if type(saved.EquippedTitle) == "string" and profile.OwnedCosmetics[saved.EquippedTitle] then
+		local entry = CosmeticDefs.get(saved.EquippedTitle)
+		profile.EquippedTitle = if entry and entry.Kind == "Title" then saved.EquippedTitle else nil
+	end
+	if type(saved.EquippedCard) == "string" and profile.OwnedCosmetics[saved.EquippedCard] then
+		local entry = CosmeticDefs.get(saved.EquippedCard)
+		profile.EquippedCard = if entry and entry.Kind == "Card" then saved.EquippedCard else nil
+	end
 	if type(saved.Dossiers) == "table" then
 		for dossierId, progress in saved.Dossiers do
 			if type(dossierId) == "string" and DossierDefs.get(dossierId) and type(progress) == "table" then
