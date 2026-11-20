@@ -25,6 +25,7 @@ local Types = require(Shared:WaitForChild("Types"))
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local MovementController = require(script.Parent.MovementController)
 local RemoteController = require(script.Parent.RemoteController)
+local HeldItemController = require(script.Parent.HeldItemController)
 
 local DownedController = {}
 
@@ -160,6 +161,7 @@ local function usable(): boolean
 		and not extractionFrozen
 		and focused
 		and UserInputService:GetFocusedTextBox() == nil
+		and not HeldItemController.isInputBlocked()
 		and humanoid ~= nil
 		and humanoid.Health > 0
 		and root ~= nil
@@ -260,7 +262,7 @@ local function stepTargeting()
 			INTERACT_ACTION,
 			onInteract,
 			false,
-			Enum.ContextActionPriority.High.Value,
+			GameConfig.Combat.InputPriority + 1, -- a valid contextual hold takes precedence over gamepad reload
 			controls.Interact,
 			controls.InteractPad
 		)

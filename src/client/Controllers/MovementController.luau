@@ -19,6 +19,7 @@ local UserInputService = game:GetService("UserInputService")
 local GameConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("GameConfig"))
 local Types = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Types"))
 local RemoteController = require(script.Parent.RemoteController)
+local HeldItemController = require(script.Parent.HeldItemController)
 
 local MovementController = {}
 
@@ -44,7 +45,7 @@ end
 
 -- Where the player is asking to go: x right, y forward, length up to 1.
 local function wanted(): Vector2
-	if UserInputService:GetFocusedTextBox() then
+	if HeldItemController.isInputBlocked() then
 		return Vector2.zero
 	end
 	local x = (if anyDown(controls.MoveRight) then 1 else 0) - (if anyDown(controls.MoveLeft) then 1 else 0)
@@ -80,6 +81,9 @@ local function step(dt: number)
 	local body = humanoid
 	if not (body and body.Health > 0) or frozen then
 		moving = Vector3.zero
+		if body then
+			body:Move(Vector3.zero, false)
+		end
 		return
 	end
 	local target = MovementController.wantedDirection()
@@ -106,7 +110,13 @@ end
 
 local function onJump(_: string, state: Enum.UserInputState): Enum.ContextActionResult
 	local body = humanoid
-	if state == Enum.UserInputState.Begin and body and not frozen and not UserInputService:GetFocusedTextBox() then
+	if
+		state == Enum.UserInputState.Begin
+		and body
+		and body.Health > 0
+		and not frozen
+		and not HeldItemController.isInputBlocked()
+	then
 		body.Jump = true
 	end
 	return Enum.ContextActionResult.Pass
@@ -126,7 +136,7 @@ function MovementController.Start()
 	end
 	RemoteController.connect("CombatStatus", onStatus)
 	RemoteController.connect("PhaseChanged", function(phase: Types.Phase)
-		frozen = phase == "Insertion"
+		frozen = phase == "Lobby" or phase == "Insertion" or phase == "Results"
 	end)
 	ContextActionService:BindAction("CoverStoryJump", onJump, false, controls.Jump, controls.JumpPad)
 	RunService:BindToRenderStep(BIND_NAME, Enum.RenderPriority.Input.Value, step)

@@ -21,6 +21,9 @@ local Menu = script.Parent.Parent
 local LobbyState = require(Menu:WaitForChild("LobbyState"))
 local MenuTheme = require(Menu:WaitForChild("MenuTheme"))
 local AssetDraft = require(Menu.AssetDraft)
+local AssetDefs = require(Shared.Defs.AssetDefs)
+local AssetStyle = require(Menu.Parent.Combat.AssetStyle)
+local Kit = require(Menu.Components.ViewKit)
 local RemoteController = require(Menu.Parent:WaitForChild("Controllers"):WaitForChild("RemoteController"))
 
 local config = GameConfig.Menu
@@ -34,6 +37,8 @@ local content = Janitor.new() -- rebuilt whenever the state or the draft changes
 local stageFrame: Frame? = nil
 local nav: Types.MenuNavigator? = nil
 local timerText: TextLabel? = nil
+local lockInButton: MenuTheme.Button? = nil
+local selectionClosed = false
 -- The player's draft: what they are looking at, which becomes their pick when they lock in.
 local draftAgent: string? = nil
 local draftHardware: string? = nil
@@ -91,7 +96,7 @@ local function formatTime(seconds: number): string
 	return string.format("%02d:%02d", whole // 60, whole % 60)
 end
 
-local function buildLeft(rail: ScrollingFrame, state: Types.PreDeployState)
+local function buildLeft(rail: ScrollingFrame, state: Types.PreDeployState, redraw: () -> ())
 	local banner = Instance.new("Frame")
 	banner.Name = "Countdown"
 	banner.BackgroundColor3 = colors.Burgundy
@@ -175,6 +180,39 @@ local function buildLeft(rail: ScrollingFrame, state: Types.PreDeployState)
 		Parent = objective,
 		LayoutOrder = 3,
 	})
+
+	local assets = panel(rail, "Assets", 4, "Brass")
+	MenuTheme.label({ Name = "Kicker", Text = "ASSET DRAFT", Style = "Kicker", Parent = assets, LayoutOrder = 1 })
+	MenuTheme.label({
+		Name = "AssetInstructions",
+		Text = "Select a rarity slot to cycle its Asset. Already assigned Assets swap slots. Lock in to submit the draft.",
+		Style = "Small",
+		Parent = assets,
+		LayoutOrder = 2,
+	})
+	local picks = AssetDraft.get()
+	for index, rarity in AssetDefs.rarities do
+		local id = picks[index]
+		local def = AssetDefs.get(id)
+		local button = MenuTheme.secondaryButton({
+			Name = `PreDeployAsset{index}`,
+			Text = `{AssetStyle.name(rarity)} · {if def then def.Name else "EMPTY"}\n{if def
+				then AssetStyle.value(id, rarity)
+				else "Select to assign"}`,
+			Parent = assets,
+			LayoutOrder = index + 2,
+			Size = UDim2.new(1, 0, 0, config.SecondaryHeightPixels + config.TextSizes.Small),
+			OnActivated = function()
+				local current = AssetDraft.get()
+				local at = table.find(AssetDefs.order, current[index]) or 0
+				if AssetDraft.choose(index, AssetDefs.order[at % #AssetDefs.order + 1]) then
+					redraw()
+				end
+			end,
+		})
+		button.Instance.TextSize = config.TextSizes.Small
+		button.Instance.TextColor3 = AssetStyle.color(rarity) or colors.Text
+	end
 end
 
 -- The six agents along the bottom of the stage: owned and free ones can be chosen; others say why not.
@@ -214,6 +252,7 @@ end
 
 local function buildRight(
 	rail: ScrollingFrame,
+	actions: Frame,
 	state: Types.PreDeployState,
 	snapshot: Types.MetaSnapshot?,
 	redraw: () -> ()
@@ -337,18 +376,40 @@ local function buildRight(
 
 	local mine = me(state)
 	local matchesPick = mine ~= nil and mine.LockedIn and mine.AgentId == agentId and mine.HardwareId == draftHardware
-	MenuTheme.primaryButton({
+	local assets = AssetDraft.selection(snapshot and snapshot.Loadout and snapshot.Loadout.AssetIds)
+	if not assets then
+		MenuTheme.label({
+			Name = "IncompleteAssets",
+			Text = "Loadout incomplete: fill all four Asset slots on the left before locking in.",
+			Style = "Small",
+			Parent = actions,
+			LayoutOrder = 1,
+		})
+	end
+	lockInButton = MenuTheme.primaryButton({
 		Name = "LockIn",
 		Text = if matchesPick then "UPDATE LOADOUT" else "LOCK IN LOADOUT",
-		Parent = rail,
-		LayoutOrder = 4,
-		Enabled = draftHardware ~= nil and state.Active and workspace:GetServerTimeNow() < state.EndsAt,
+		Parent = actions,
+		LayoutOrder = 2,
+		Enabled = assets ~= nil
+			and draftHardware ~= nil
+			and state.Active
+			and workspace:GetServerTimeNow() < state.EndsAt,
 		OnActivated = function()
+			local selection = AssetDraft.selection()
+			if
+				not selection
+				or not draftHardware
+				or not state.Active
+				or workspace:GetServerTimeNow() >= state.EndsAt
+			then
+				return
+			end
 			local request: Types.LoadoutRequest = {
 				AgentId = agentId,
 				HardwareId = draftHardware :: string,
 				GadgetIds = table.clone(draftGadgets or {}),
-				AssetIds = AssetDraft.get(snapshot and snapshot.Loadout and snapshot.Loadout.AssetIds),
+				AssetIds = selection,
 			}
 			RemoteController.fire("RequestLockInPreDeploy", request)
 		end,
@@ -363,9 +424,20 @@ function render()
 	if not frame or not navigator or not state or not state.Active then
 		return
 	end
+	local restoreFocus = Kit.rememberFocus(frame)
+	local previousLeft, previousRight = frame:FindFirstChild("Left"), frame:FindFirstChild("Right")
+	local leftScroll = if previousLeft and previousLeft:IsA("ScrollingFrame")
+		then previousLeft.CanvasPosition
+		else Vector2.zero
+	local rightScroll = if previousRight and previousRight:IsA("ScrollingFrame")
+		then previousRight.CanvasPosition
+		else Vector2.zero
 	content:Cleanup()
 	timerText = nil
+	lockInButton = nil
+	selectionClosed = false
 	local snapshot = navigator.snapshot()
+	AssetDraft.get(snapshot and snapshot.Loadout and snapshot.Loadout.AssetIds)
 	if not draftGadgets then
 		local loadout = snapshot and snapshot.Loadout
 		local initial = if loadout and loadout.GadgetIds then loadout.GadgetIds else GameConfig.Gadgets.DefaultPicks
@@ -401,9 +473,22 @@ function render()
 
 	local left = content:Add(MenuTheme.rail(frame, "Left", "Left", config.LeftRailPixels)) :: ScrollingFrame
 	local right = content:Add(MenuTheme.rail(frame, "Right", "Right", config.RightRailPixels)) :: ScrollingFrame
-	buildLeft(left, state)
+	local actionHeight = config.PrimaryHeightPixels
+		+ (if AssetDraft.selection() then 0 else config.TextSizes.Small * 3 + config.GapPixels * 2)
+	right.Size = UDim2.new(0, config.RightRailPixels, 1, -config.GapPixels * 5 - actionHeight)
+	local actions = content:Add(Instance.new("Frame"))
+	actions.Name = "LoadoutActions"
+	actions.BackgroundTransparency = 1
+	actions.AnchorPoint = Vector2.new(1, 1)
+	actions.Position = UDim2.new(1, -config.GapPixels * 2, 1, -config.GapPixels * 2)
+	actions.Size = UDim2.fromOffset(config.RightRailPixels, actionHeight)
+	actions.Parent = frame
+	MenuTheme.stack(actions).VerticalAlignment = Enum.VerticalAlignment.Bottom
+	buildLeft(left, state, render)
 	content:Add(buildRoster(frame, state, snapshot, render))
-	buildRight(right, state, snapshot, render)
+	buildRight(right, actions, state, snapshot, render)
+	left.CanvasPosition, right.CanvasPosition = leftScroll, rightScroll
+	restoreFocus(frame)
 end
 
 function PreDeployView.Mount(stage: Frame, navigator: Types.MenuNavigator, _context: { [string]: any }?)
@@ -422,6 +507,16 @@ function PreDeployView.Mount(stage: Frame, navigator: Types.MenuNavigator, _cont
 				timerText.Text = text
 			end
 		end
+		if
+			lockInButton
+			and not selectionClosed
+			and state
+			and (not state.Active or workspace:GetServerTimeNow() >= state.EndsAt)
+		then
+			selectionClosed = true
+			lockInButton.SetEnabled(false)
+			lockInButton.SetText("SELECTION CLOSED")
+		end
 	end))
 	render()
 end
@@ -430,6 +525,7 @@ function PreDeployView.Unmount()
 	content:Cleanup()
 	janitor:Cleanup()
 	stageFrame, nav, timerText = nil, nil, nil
+	lockInButton = nil
 	draftAgent, draftHardware = nil, nil
 	draftGadgets = nil
 end

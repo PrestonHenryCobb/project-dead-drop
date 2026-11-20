@@ -21,7 +21,33 @@ behind walls, and return to Lobby with effects active. Existing SPEC-QUESTIONs: 
 multiplier 1 and initial client handling/model proportions. Third-person weapon selection still needs a public
 visible-loadout contract; the client must not infer it from hidden identity data.
 
-## Continuing client integration
+## Gameplay and menu integration
 
-The next commit covers existing Asset draft/deploy UI, pings, gamepad flight and gameplay input guards, plus the
-device-hint/cutoff issues found in this pass. These are source implementations, not a claim of runtime acceptance.
+Finished the existing client pass: swapping/clearing Asset rarity slots with dense empty drafts, complete-selection
+gates before Deploy/Lock In, fixed action regions outside scrolling rails, inline Asset repair during selection,
+profile-safe focus/scroll retention, readable request failures and guarded free-agent claims. The selection window
+remains editable until the server cutoff; the Lock In button now disables and says SELECTION CLOSED when it expires.
+
+Integrated team pings, gamepad Sparrow/spectator flight and body-action/UI gates. Remote views suppress body
+movement/weapons; Sparrow Intel/security interactions still use the remote origin. Contextual actions outrank
+gamepad reload. Knife/takedown prompts respect gameplay availability; HUD hit feedback resets for a new life.
+Disguise scans, crouch/sprint and the blend wheel cancel on focus/life/UI changes with camera restoration guards.
+
+Migrated remaining control hints in gadget slots, stored disguises, takedowns, flight, spectator controls/chat and
+pings to InputHints. Stored disguises refresh when the device changes; gadget cards show D-pad cycling on gamepad.
+Spectator chat now passes Enter through foreground dialogs and checks again before its deferred focus capture,
+so opening settings cannot have its selection/focus stolen by the spectator chat shortcut.
+
+Native acceptance remains: swap/clear/fill Assets and try Deploy, revise a locked selection before/after cutoff,
+claim a free agent through a delayed request, switch devices while hints are visible, fly Sparrow/spectator with
+analog controls, ping Intel/people/surfaces and confirm teammate-only delivery, open/close settings over each view,
+and perform objective interactions with X without reloading. No tests or runtime/desktop operations were performed.
+No new gameplay mechanics or SPEC-QUESTIONs; stick/camera handling retains the earlier initial-tuning caveat.
+
+## Remaining work that needs owner/server acceptance
+
+The source now contains the complete client vertical slice described above; native gameplay is still unverified.
+Two-player combat/identity permissions, full-round completion and gamepad feel need native acceptance when the
+owner resumes testing. Broader unfinished systems remain server/art scope: living team-chat filtering, the public
+visible-loadout contract for third-person weapons, authored audio, tutorial references, account rewards/catalogues
+and matchmaking. These are not represented as finished by the client. No push is requested.

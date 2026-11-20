@@ -9,6 +9,7 @@ local Theme = require(script.Parent.Parent.MenuTheme)
 local config = require(Shared.GameConfig).Menu
 local Art = require(script.Parent.DecoArt)
 local Remote = require(script.Parent.Parent.Parent.Controllers.RemoteController)
+local RequestFeedback = require(script.Parent.Parent.RequestFeedback)
 local Kit = {}
 Kit.Theme = Theme
 Kit.Remote = Remote
@@ -209,10 +210,8 @@ function Kit.session(stage: Frame, title: string, navigator: Types.MenuNavigator
 			busy = false
 			session.status(
 				if success and ok
-					then "Confirmed by server."
-					else tostring(
-						if success then reason or "Request declined." else "Connection unavailable. Try again."
-					)
+					then "Confirmed."
+					else if success then RequestFeedback.declined(reason) else "Connection unavailable. Try again."
 			)
 			if success and ok and completed then
 				completed()

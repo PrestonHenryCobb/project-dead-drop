@@ -74,6 +74,7 @@ local function eligibleRoot(): BasePart?
 		or not focused
 		or extractionFrozen
 		or UserInputService:GetFocusedTextBox() ~= nil
+		or DroneController.inputBlocked()
 	then
 		return nil
 	end
@@ -137,7 +138,7 @@ local function bindFor(want: boolean)
 			INTERACT_ACTION,
 			onInteract,
 			false,
-			Enum.ContextActionPriority.High.Value,
+			GameConfig.Combat.InputPriority + 1, -- a valid contextual hold takes precedence over gamepad reload
 			controls.Interact,
 			controls.InteractPad
 		)

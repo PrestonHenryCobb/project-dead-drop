@@ -19,6 +19,7 @@ local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local SoundPlayer = require(script.Parent.Parent:WaitForChild("Combat"):WaitForChild("SoundPlayer"))
 local RemoteController = require(script.Parent.RemoteController)
 local WeaponController = require(script.Parent.WeaponController)
+local HeldItemController = require(script.Parent.HeldItemController)
 
 type Marker = { label: TextLabel, position: Vector3, expires: number }
 
@@ -227,14 +228,15 @@ end
 
 local function updateCrosshair(viewportHeight: number)
 	local status = WeaponController.getStatus()
+	local inputAvailable = not HeldItemController.isInputBlocked()
 	if obstruction then
-		obstruction.Visible = status.attackBlocked
+		obstruction.Visible = inputAvailable and status.attackBlocked
 	end
 	local reach = degreesToPixels(status.spreadDegrees, status.viewportFov, viewportHeight)
 		+ feedback.CrosshairGapPixels
 	local length = feedback.CrosshairLengthPixels
 	for side, line in crosshair do
-		line.Visible = status.hasAmmo and status.weaponUp and not status.attackBlocked
+		line.Visible = inputAvailable and status.hasAmmo and status.weaponUp and not status.attackBlocked
 		local horizontal = side == "Left" or side == "Right"
 		local direction = if side == "Left" or side == "Up" then -1 else 1
 		line.Size = if horizontal
@@ -244,7 +246,10 @@ local function updateCrosshair(viewportHeight: number)
 		line.Position = if horizontal then UDim2.new(0.5, along, 0.5, 0) else UDim2.new(0.5, 0, 0.5, along)
 	end
 	if ammunitionPanel then
-		ammunitionPanel.Visible = status.hasAmmo
+		ammunitionPanel.Visible = status.active and status.hasAmmo
+	end
+	if vitalsPanel then
+		(vitalsPanel.Parent :: Frame).Visible = status.active
 	end
 	if ammoText then
 		ammoText.Text = `{status.mag} / {status.reserve}`
@@ -401,6 +406,11 @@ function CombatHudController.Start()
 		shownHP, shownArmor = hp / combat.MaxHP, armor
 		damageAt = -math.huge
 		takedownStartedAt = nil
+		hitAt = -math.huge
+		for _, marker in markers do
+			marker.label:Destroy()
+		end
+		table.clear(markers)
 	end))
 	janitor:Add(RunService.RenderStepped:Connect(update))
 	janitor:Add(script.Destroying:Connect(function()

@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local InputHints = require(Shared.Util.InputHints)
 local HudKit = require(Shared:WaitForChild("Util"):WaitForChild("HudKit"))
 local HudTheme = require(Shared:WaitForChild("Util"):WaitForChild("HudTheme"))
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
@@ -13,6 +14,7 @@ local MeleeRules = require(Shared:WaitForChild("Util"):WaitForChild("MeleeRules"
 local Types = require(Shared:WaitForChild("Types"))
 local RemoteController = require(script.Parent.RemoteController)
 local WeaponController = require(script.Parent.WeaponController)
+local HeldItemController = require(script.Parent.HeldItemController)
 local TakedownHintController = {}
 local config = GameConfig.Combat
 local graphics = HudTheme.get()
@@ -31,6 +33,9 @@ local function add(instance: Instance)
 end
 
 local function available(): boolean
+	if not HeldItemController.canAct() or not HeldItemController.isWeaponHeld() then
+		return false
+	end
 	local character = Players.LocalPlayer.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -106,7 +111,6 @@ function TakedownHintController.Start()
 		Vector2.zero,
 		UDim2.new(1, -graphics.PaddingPixels * 2, 0, graphics.IconPixels)
 	)
-	local input = game:GetService("UserInputService")
 	janitor:Add(RemoteController.connect("TeamRoster", function(info: Types.TeamRosterInfo)
 		teammates = info.Members
 	end))
@@ -144,9 +148,7 @@ function TakedownHintController.Start()
 		if elapsed >= config.Takedown.CheckSeconds then
 			elapsed = 0
 			root.Visible = available()
-			local usingPad = string.find(input:GetLastInputType().Name, "Gamepad", 1, true) ~= nil
-			local key = if usingPad then GameConfig.Controls.MeleePad else GameConfig.Controls.Melee
-			label.Text = `[ {string.gsub(key.Name, "^Button", "")} ] TAKEDOWN`
+			label.Text = InputHints.bracket(GameConfig.Controls.Melee, GameConfig.Controls.MeleePad, "TAKEDOWN")
 		end
 	end))
 	janitor:Add(script.Destroying:Connect(function()

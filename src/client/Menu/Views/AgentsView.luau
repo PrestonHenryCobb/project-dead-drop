@@ -133,7 +133,7 @@ function view.Mount(stage, navigator, context)
 			true
 		)
 		local y = 510
-		Kit.text(side, "DESIGNED KIT / ABILITIES IN DEVELOPMENT", y, 44)
+		Kit.text(side, "TALENTS + INSTINCTS", y, 44)
 		for _, talent in agent.Talents do
 			Kit.text(side, talent.Name .. ` · {talent.CooldownSeconds or 0}s\n` .. talent.Description, y + 48, 130)
 			y += 140

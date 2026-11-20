@@ -5,6 +5,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared.GameConfig)
 local AssetDefs = require(Shared.Defs.AssetDefs)
 local AssetDraft = {}
+-- Empty strings keep rarity positions dense: clearing slot two must never move slot three or truncate a clone.
 local picks: { string }? = nil
 local dirty = false
 
@@ -38,12 +39,37 @@ function AssetDraft.choose(slot: number, id: string): boolean
 	end
 	local used = table.find(current, id)
 	if used and used ~= slot then
-		return false
+		current[used] = current[slot]
 	end
 	current[slot] = id
 	picks = current
 	dirty = true
 	return true
+end
+
+function AssetDraft.clear(slot: number): boolean
+	if slot % 1 ~= 0 or slot < 1 or slot > #AssetDefs.rarities then
+		return false
+	end
+	local current = AssetDraft.get()
+	current[slot] = ""
+	picks = current
+	dirty = true
+	return true
+end
+
+-- Only a complete selection can cross the wire. Never submit the local empty-slot sentinel.
+function AssetDraft.selection(initial: { string }?): { string }?
+	local current = AssetDraft.get(initial)
+	local seen: { [string]: boolean } = {}
+	for index = 1, #AssetDefs.rarities do
+		local id = current[index]
+		if not id or not AssetDefs.get(id) or seen[id] then
+			return nil
+		end
+		seen[id] = true
+	end
+	return current
 end
 
 return AssetDraft

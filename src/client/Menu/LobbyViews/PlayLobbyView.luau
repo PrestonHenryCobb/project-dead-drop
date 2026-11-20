@@ -16,6 +16,9 @@ local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"
 local Menu = script.Parent.Parent
 local LobbyState = require(Menu:WaitForChild("LobbyState"))
 local MenuTheme = require(Menu:WaitForChild("MenuTheme"))
+local AssetDraft = require(Menu.AssetDraft)
+local Kit = require(Menu.Components.ViewKit)
+local RequestFeedback = require(Menu.RequestFeedback)
 local Art = require(Menu.Components.DecoArt)
 local RemoteController = require(Menu.Parent:WaitForChild("Controllers"):WaitForChild("RemoteController"))
 
@@ -32,6 +35,10 @@ local content = Janitor.new() -- the rails' contents, rebuilt whenever the data 
 local stageFrame: Frame? = nil
 local nav: Types.MenuNavigator? = nil
 local deploying = false
+local retryThread: thread? = nil
+local claiming: string? = nil
+local claimNotice: string? = nil
+local claimGeneration = 0
 
 local function hardwareName(agentId: string, hardwareId: string): (string, number)
 	for _, item in WeaponDefs.getForAgent(agentId) do
@@ -48,17 +55,35 @@ local function panel(parent: Instance, name: string, order: number, accent: Menu
 	return frame
 end
 
-local function claim(agentId: string)
-	task.spawn(function()
-		local ok, reason = RemoteController.invoke("RequestClaimStarterAgent", agentId)
-		if not ok then
-			warn(`[Menu] Free pick refused: {reason}`)
+local function claim(agentId: string, redraw: () -> ())
+	if claiming then
+		return
+	end
+	claiming, claimNotice = agentId, nil
+	local generation = claimGeneration
+	redraw()
+	local request = task.spawn(function()
+		local connected, accepted, reason = pcall(RemoteController.invoke, "RequestClaimStarterAgent", agentId)
+		if generation ~= claimGeneration or not stageFrame then
+			return
+		end
+		claiming = nil
+		claimNotice = if connected and accepted
+			then "Agent added to your roster."
+			elseif connected then RequestFeedback.declined(reason)
+			else "Connection unavailable. Try again."
+		redraw()
+	end)
+	janitor:Add(function()
+		if coroutine.status(request) ~= "dead" and request ~= coroutine.running() then
+			task.cancel(request)
 		end
 	end)
 end
 
 local function buildLeft(
 	rail: ScrollingFrame,
+	actions: Frame,
 	snapshot: Types.MetaSnapshot?,
 	navigator: Types.MenuNavigator,
 	onRetry: () -> ()
@@ -130,6 +155,15 @@ local function buildLeft(
 			Parent = picks,
 			LayoutOrder = 3,
 		})
+		if claiming or claimNotice then
+			MenuTheme.label({
+				Name = "ClaimStatus",
+				Text = if claiming then "Confirming your free agent…" else claimNotice :: string,
+				Style = "Small",
+				Parent = picks,
+				LayoutOrder = 4,
+			})
+		end
 		for index, class in openClasses do
 			MenuTheme.label({
 				Name = `{class}Kicker`,
@@ -154,8 +188,9 @@ local function buildLeft(
 						Parent = row,
 						Size = UDim2.new(0.5, -config.GapPixels / 4, 1, 0),
 						LayoutOrder = order,
+						Enabled = claiming == nil,
 						OnActivated = function()
-							claim(agentId)
+							claim(agentId, onRetry)
 						end,
 					}).Instance.TextSize =
 						config.TextSizes.Small
@@ -194,7 +229,7 @@ local function buildLeft(
 	if anyUnavailable then
 		MenuTheme.label({
 			Name = "Note",
-			Text = "This server plays one mode. Choosing between them arrives with matchmaking.",
+			Text = `This session plays {snapshot.Queue.Mode}. Other modes are currently unavailable.`,
 			Style = "Small",
 			Parent = queue,
 			LayoutOrder = 3,
@@ -237,20 +272,44 @@ local function buildLeft(
 		})
 	end
 
+	local assets = AssetDraft.selection(loadout and loadout.AssetIds)
+	if not assets then
+		MenuTheme.label({
+			Name = "IncompleteAssets",
+			Text = "Loadout incomplete: fill all four rarity slots in Assets before deploying.",
+			Style = "Small",
+			Parent = actions,
+			LayoutOrder = 1,
+		})
+		MenuTheme.secondaryButton({
+			Name = "ChooseAssets",
+			Text = "CHOOSE ASSETS",
+			Parent = actions,
+			LayoutOrder = 2,
+			Enabled = navigator.canOpen("Assets"),
+			OnActivated = function()
+				navigator.navigateTo("Assets")
+			end,
+		})
+	end
 	local deploy: MenuTheme.Button
 	deploy = MenuTheme.primaryButton({
 		Name = "Deploy",
 		Text = if deploying then "DEPLOYING…" else `DEPLOY · {string.upper(snapshot.Queue.Mode)}`,
-		Parent = rail,
-		LayoutOrder = 5,
-		Enabled = loadout ~= nil and not deploying,
+		Parent = actions,
+		LayoutOrder = 3,
+		Enabled = assets ~= nil and loadout ~= nil and not deploying,
 		OnActivated = function()
+			if deploying or not AssetDraft.selection() or not loadout then
+				return
+			end
 			deploying = true
 			deploy.SetEnabled(false)
 			deploy.SetText("DEPLOYING…")
 			RemoteController.fire("RequestStartPreDeploy")
 			-- Agent select replaces this screen when it starts; if the server refused, offer Deploy again.
-			task.delay(config.DeployRetrySeconds, function()
+			retryThread = task.delay(config.DeployRetrySeconds, function()
+				retryThread = nil
 				deploying = false
 				onRetry()
 			end)
@@ -299,11 +358,34 @@ function render()
 	if not frame or not navigator then
 		return
 	end
+	local restoreFocus = Kit.rememberFocus(frame)
+	local previousLeft, previousRight = frame:FindFirstChild("Left"), frame:FindFirstChild("Right")
+	local leftScroll = if previousLeft and previousLeft:IsA("ScrollingFrame")
+		then previousLeft.CanvasPosition
+		else Vector2.zero
+	local rightScroll = if previousRight and previousRight:IsA("ScrollingFrame")
+		then previousRight.CanvasPosition
+		else Vector2.zero
 	content:Cleanup()
 	local snapshot = navigator.snapshot()
 	local left = content:Add(MenuTheme.rail(frame, "Left", "Left", config.LeftRailPixels)) :: ScrollingFrame
 	local right = content:Add(MenuTheme.rail(frame, "Right", "Right", config.RightRailPixels)) :: ScrollingFrame
-	buildLeft(left, snapshot, navigator, render)
+	local actionHeight = config.PrimaryHeightPixels
+		+ (
+			if AssetDraft.selection(snapshot and snapshot.Loadout and snapshot.Loadout.AssetIds)
+				then 0
+				else config.SecondaryHeightPixels + config.TextSizes.Small * 3 + config.GapPixels * 3
+		)
+	left.Size = UDim2.new(0, config.LeftRailPixels, 1, -config.GapPixels * 5 - actionHeight)
+	local actions = content:Add(Instance.new("Frame"))
+	actions.Name = "DeployActions"
+	actions.BackgroundTransparency = 1
+	actions.AnchorPoint = Vector2.new(0, 1)
+	actions.Position = UDim2.new(0, config.GapPixels * 2, 1, -config.GapPixels * 2)
+	actions.Size = UDim2.fromOffset(config.LeftRailPixels, actionHeight)
+	actions.Parent = frame
+	MenuTheme.stack(actions).VerticalAlignment = Enum.VerticalAlignment.Bottom
+	buildLeft(left, actions, snapshot, navigator, render)
 	buildRight(right)
 
 	local loadout = snapshot and snapshot.Loadout
@@ -328,9 +410,13 @@ function render()
 		plate.BackgroundTransparency = 0.35
 		content:Add(plate)
 	end
+	left.CanvasPosition, right.CanvasPosition = leftScroll, rightScroll
+	restoreFocus(frame)
 end
 
 function PlayLobbyView.Mount(stage: Frame, navigator: Types.MenuNavigator, _context: { [string]: any }?)
+	claimGeneration += 1
+	claiming, claimNotice = nil, nil
 	stageFrame = stage
 	nav = navigator
 	janitor:Add(navigator.onSnapshot(render))
@@ -339,6 +425,13 @@ function PlayLobbyView.Mount(stage: Frame, navigator: Types.MenuNavigator, _cont
 end
 
 function PlayLobbyView.Unmount()
+	claimGeneration += 1
+	claiming, claimNotice = nil, nil
+	local retry = retryThread
+	retryThread = nil
+	if retry and coroutine.status(retry) ~= "dead" then
+		task.cancel(retry)
+	end
 	content:Cleanup()
 	janitor:Cleanup()
 	stageFrame, nav = nil, nil

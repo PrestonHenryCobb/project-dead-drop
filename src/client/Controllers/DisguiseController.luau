@@ -13,9 +13,12 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local GuiService = game:GetService("GuiService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local InputHints = require(Shared.Util.InputHints)
 local OutfitDefs = require(Shared:WaitForChild("Defs"):WaitForChild("OutfitDefs"))
 local Types = require(Shared:WaitForChild("Types"))
 local Aim = require(Shared:WaitForChild("Util"):WaitForChild("Aim"))
@@ -25,6 +28,7 @@ local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local PoseAnimation = require(Shared:WaitForChild("Util"):WaitForChild("PoseAnimation"))
 local RemoteController = require(script.Parent.RemoteController)
 local WeaponController = require(script.Parent.WeaponController)
+local HeldItemController = require(script.Parent.HeldItemController)
 local HudLayout = require(script.Parent.Parent.Combat.HudLayout)
 local HudScale = require(Shared.Util.HudScale)
 
@@ -51,6 +55,9 @@ local tierPips: { Frame } = {}
 local toast: TextLabel? = nil
 local toastToken = 0
 local crouchTrack: AnimationTrack? = nil
+local sprintHeld = false
+local crouchHeld = false
+local latestDisguise: Types.DisguiseUpdate? = nil
 
 local function buildHud()
 	local gui = HudKit.screen("DisguiseHud")
@@ -160,6 +167,7 @@ local function roleOf(outfitId: string): string
 end
 
 local function showDisguise(update: Types.DisguiseUpdate)
+	latestDisguise = update
 	local text = badge
 	if not text then
 		return
@@ -202,7 +210,8 @@ local function showDisguise(update: Types.DisguiseUpdate)
 			end
 			local stored = update.Slots[index]
 			local storedLine = if type(stored) == "string" then roleOf(stored) else "EMPTY"
-			storedText.Text = `{controls.Disguise.Name} / {index} · {storedLine}`
+			storedText.Text =
+				InputHints.bracket(controls.Disguise, controls.DisguisePad, `SLOT {index} · {storedLine}`)
 		end
 	end
 end
@@ -216,38 +225,57 @@ local function setRing(progress: number?)
 	end
 end
 
+local function cancelScan()
+	scanHeld = false
+	scanStartedAt = nil
+	setRing(nil)
+	if scanSentTarget then
+		scanSentTarget = nil
+		RemoteController.fire("RequestScan", nil)
+	end
+end
+
 local function onScan(_: string, state: Enum.UserInputState)
 	if state == Enum.UserInputState.Begin then
-		scanHeld = true
+		scanHeld = HeldItemController.canAct()
 	elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
-		scanHeld = false
-		if scanSentTarget then
-			scanSentTarget = nil
-			RemoteController.fire("RequestScan", nil)
-		end
+		cancelScan()
 	end
 	return Enum.ContextActionResult.Pass
 end
 
 local function onDisguise(_: string, state: Enum.UserInputState)
-	if state == Enum.UserInputState.Begin then
+	if state == Enum.UserInputState.Begin and HeldItemController.canAct() then
 		RemoteController.fire("RequestDisguise")
 	end
 	return Enum.ContextActionResult.Pass
 end
 
 local function onSprint(_: string, state: Enum.UserInputState)
-	if state == Enum.UserInputState.Begin then
+	if state == Enum.UserInputState.Begin and HeldItemController.canAct() and not sprintHeld then
+		sprintHeld = true
 		RemoteController.fire("RequestSprint", true)
 	elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
-		RemoteController.fire("RequestSprint", false)
+		if sprintHeld then
+			sprintHeld = false
+			RemoteController.fire("RequestSprint", false)
+		end
 	end
 	return Enum.ContextActionResult.Pass
 end
 
 -- The crouch pose goes on our own character, so it replicates to everyone like any animation we play.
 local function setCrouch(on: boolean)
+	if crouchHeld == on then
+		return
+	end
+	crouchHeld = on
 	RemoteController.fire("RequestCrouch", on)
+	if not on and crouchTrack then
+		crouchTrack:Stop(GameConfig.NPC.AnimationFadeSeconds)
+		crouchTrack:Destroy()
+		crouchTrack = nil
+	end
 	local character = localPlayer.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if not humanoid then
@@ -261,19 +289,25 @@ local function setCrouch(on: boolean)
 			crouchTrack = animator:LoadAnimation(animation)
 			crouchTrack:Play(GameConfig.NPC.AnimationFadeSeconds)
 		end
-	elseif crouchTrack then
-		crouchTrack:Stop(GameConfig.NPC.AnimationFadeSeconds)
-		crouchTrack = nil
 	end
 end
 
 local function onCrouch(_: string, state: Enum.UserInputState)
-	if state == Enum.UserInputState.Begin then
+	if state == Enum.UserInputState.Begin and HeldItemController.canAct() then
 		setCrouch(true)
 	elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
 		setCrouch(false)
 	end
 	return Enum.ContextActionResult.Pass
+end
+
+local function cancelMovementInputs()
+	cancelScan()
+	if sprintHeld then
+		sprintHeld = false
+		RemoteController.fire("RequestSprint", false)
+	end
+	setCrouch(false)
 end
 
 function DisguiseController.Init() end
@@ -286,28 +320,44 @@ function DisguiseController.Start()
 	ContextActionService:BindAction("Sprint", onSprint, false, controls.Sprint)
 	ContextActionService:BindAction("Crouch", onCrouch, false, controls.Crouch)
 	janitor:Add(function()
+		cancelMovementInputs()
 		for _, action in { "Scan", "Disguise", "Sprint", "Crouch" } do
 			ContextActionService:UnbindAction(action)
 		end
 		if crouchTrack then
 			crouchTrack:Stop()
+			crouchTrack:Destroy()
+			crouchTrack = nil
 		end
 		toastToken += 1
 	end)
 
 	-- A new body starts standing.
 	janitor:Add(localPlayer.CharacterAdded:Connect(function()
+		cancelMovementInputs()
+		if crouchTrack then
+			crouchTrack:Destroy()
+		end
 		crouchTrack = nil
 	end))
+	janitor:Add(localPlayer.CharacterRemoving:Connect(cancelMovementInputs))
+	janitor:Add(UserInputService.WindowFocusReleased:Connect(cancelMovementInputs))
+	janitor:Add(UserInputService.TextBoxFocused:Connect(cancelMovementInputs))
+	janitor:Add(GuiService.MenuOpened:Connect(cancelMovementInputs))
 
 	janitor:Add(RemoteController.connect("DisguiseUpdate", function(update: Types.DisguiseUpdate)
 		showDisguise(update)
+	end))
+	janitor:Add(InputHints.onChange(function()
+		if latestDisguise then
+			showDisguise(latestDisguise)
+		end
 	end))
 	janitor:Add(RemoteController.connect("Notification", function(text: string)
 		showToast(text)
 	end))
 	janitor:Add(RemoteController.connect("ScanState", function(info: { State: string, Seconds: number? })
-		if info.State == "Started" then
+		if info.State == "Started" and scanHeld and HeldItemController.canAct() then
 			scanStartedAt = os.clock()
 			scanSeconds = info.Seconds or GameConfig.Cover.ScanSeconds
 		else
@@ -321,9 +371,13 @@ function DisguiseController.Start()
 	end))
 
 	janitor:Add(RunService.RenderStepped:Connect(function()
+		local canAct = HeldItemController.canAct()
+		if not canAct and (scanHeld or sprintHeld or crouchHeld or scanStartedAt ~= nil) then
+			cancelMovementInputs()
+		end
 		if centerDot then
 			local status = WeaponController.getStatus()
-			centerDot.Visible = status.active and not status.attackBlocked
+			centerDot.Visible = canAct and status.active and not status.attackBlocked
 		end
 		if scanHeld then
 			-- Tell the server what we are aiming at whenever it changes; it does the rest.

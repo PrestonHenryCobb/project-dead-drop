@@ -17,6 +17,10 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local PoseAnimation = require(Shared:WaitForChild("Util"):WaitForChild("PoseAnimation"))
+local Janitor = require(Shared.Util.Janitor)
+local HeldItemController = require(script.Parent.HeldItemController)
+local DroneController = require(script.Parent.DroneController)
+local CameraGuard = require(script.Parent.Parent.Combat.CameraGuard)
 
 local BlendWheelController = {}
 
@@ -32,6 +36,10 @@ local playing: AnimationTrack? = nil
 local open = false
 local selected: number? = nil
 local stick = Vector2.zero
+local janitor = Janitor.new()
+local wheelCamera: Camera? = nil
+local savedCameraType = Enum.CameraType.Custom
+local savedMouse = Enum.MouseBehavior.Default
 
 local function humanoidOf(): Humanoid?
 	local character = localPlayer.Character
@@ -55,6 +63,7 @@ end
 local function stopEmote()
 	if playing then
 		playing:Stop(GameConfig.NPC.AnimationFadeSeconds)
+		playing:Destroy()
 		playing = nil
 	end
 end
@@ -102,6 +111,7 @@ local function buildGui()
 	end
 	wheel.Parent = localPlayer:WaitForChild("PlayerGui")
 	gui = wheel
+	janitor:Add(wheel)
 end
 
 -- The slice the pointer is on, or nil if it is still near the centre.
@@ -132,17 +142,21 @@ local function refresh()
 end
 
 local function openWheel()
-	if open or not gui then
+	if open or not gui or not HeldItemController.canAct() or DroneController.part() then
 		return
 	end
 	open = true
 	selected = nil
 	local camera = workspace.CurrentCamera
+	wheelCamera = camera
+	savedMouse = UserInputService.MouseBehavior
 	if camera then
+		savedCameraType = camera.CameraType
 		camera.CameraType = Enum.CameraType.Scriptable -- hold the view still while choosing
 	end
 	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 	gui.Enabled = true
+	HeldItemController.setInterfaceBlocked(gui, true)
 	refresh()
 end
 
@@ -152,11 +166,21 @@ local function closeWheel(commit: boolean)
 	end
 	open = false
 	gui.Enabled = false
+	HeldItemController.setInterfaceBlocked(gui, false)
 	local camera = workspace.CurrentCamera
-	if camera then
-		camera.CameraType = Enum.CameraType.Custom
+	-- Do not override a respawn/spectator/drone camera that took over while the wheel was open.
+	if
+		camera
+		and camera == wheelCamera
+		and camera.CameraType == Enum.CameraType.Scriptable
+		and not DroneController.part()
+		and not CameraGuard.remoteViewing()
+	then
+		camera.CameraType = savedCameraType
 	end
-	if commit and selected and enabled(emotes[selected]) then
+	wheelCamera = nil
+	UserInputService.MouseBehavior = savedMouse
+	if commit and HeldItemController.canAct() and selected and enabled(emotes[selected]) then
 		playEmote(emotes[selected])
 	end
 end
@@ -178,23 +202,47 @@ function BlendWheelController.Start()
 	animations = PoseAnimation.registerAll()
 	buildGui()
 	ContextActionService:BindAction("Blend", onBlend, false, GameConfig.Controls.Blend, GameConfig.Controls.BlendPad)
+	janitor:Add(function()
+		closeWheel(false)
+		stopEmote()
+		ContextActionService:UnbindAction("Blend")
+	end)
+	janitor:Add(UserInputService.WindowFocusReleased:Connect(function()
+		closeWheel(false)
+	end))
+	janitor:Add(UserInputService.TextBoxFocused:Connect(function()
+		closeWheel(false)
+	end))
+	janitor:Add(localPlayer.CharacterRemoving:Connect(function()
+		closeWheel(false)
+		stopEmote()
+	end))
 
-	UserInputService.InputChanged:Connect(function(input)
+	janitor:Add(UserInputService.InputChanged:Connect(function(input)
 		if input.KeyCode == Enum.KeyCode.Thumbstick1 then
 			stick = Vector2.new(input.Position.X, -input.Position.Y)
 		end
-	end)
+	end))
 
-	RunService.Heartbeat:Connect(function()
+	janitor:Add(RunService.Heartbeat:Connect(function()
+		local usable = HeldItemController.canAct(gui)
+		if open and (not usable or DroneController.part() or workspace.CurrentCamera ~= wheelCamera) then
+			closeWheel(false)
+		end
 		if open then
 			refresh()
 		end
 		-- Moving ends an emote (spec 6.7).
 		local humanoid = humanoidOf()
-		if playing and humanoid and humanoid.MoveDirection.Magnitude > 0.1 then
+		if
+			playing and (not usable or not humanoid or humanoid.Health <= 0 or humanoid.MoveDirection.Magnitude > 0.1)
+		then
 			stopEmote()
 		end
-	end)
+	end))
+	janitor:Add(script.Destroying:Connect(function()
+		janitor:Destroy()
+	end))
 end
 
 return BlendWheelController

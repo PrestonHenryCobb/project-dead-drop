@@ -7,6 +7,7 @@ local Janitor = require(Shared.Util.Janitor)
 local WeaponDefs = require(Shared.Defs.WeaponDefs)
 local Hints = require(script.Parent.Parent.Combat.KnifePickupHints)
 local WeaponController = require(script.Parent.WeaponController)
+local HeldItemController = require(script.Parent.HeldItemController)
 local KnifePickupController = {}
 local janitor = Janitor.new()
 local folderJanitor = Janitor.new()
@@ -23,6 +24,7 @@ function KnifePickupController.Start()
 		local def = WeaponDefs.get(status.weaponId)
 		hints.setAvailable(
 			status.active
+				and HeldItemController.canAct()
 				and def ~= nil
 				and def.Projectile ~= nil
 				and def.Projectile.Kind == "Knife"

@@ -12,11 +12,15 @@ local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local InputHints = require(Shared.Util.InputHints)
 local Types = require(Shared:WaitForChild("Types"))
 local HudKit = require(Shared:WaitForChild("Util"):WaitForChild("HudKit"))
 local HudTheme = require(Shared:WaitForChild("Util"):WaitForChild("HudTheme"))
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local RemoteController = require(script.Parent.RemoteController)
+local HeldItemController = require(script.Parent.HeldItemController)
+local CameraGuard = require(script.Parent.Parent.Combat.CameraGuard)
+local FlightInput = require(script.Parent.Parent.Combat.FlightInput)
 
 local SpectateController = {}
 
@@ -31,6 +35,7 @@ local CHAT_WIDTH_PIXELS = 360
 local janitor = Janitor.new()
 local sessionJanitor = Janitor.new()
 local active = false
+local phase: Types.Phase? = nil
 local mode = "None"
 local targetUserId: number? = nil
 local canDrone = false
@@ -61,9 +66,25 @@ local function targetRoot(): BasePart?
 end
 
 local function describe(): string
-	local hints = `[ LMB / RMB ] switch    [ {keys.Drone.Name} ] {if mode == "Drone" then "follow" else "drone"}`
+	local hints = InputHints.line({
+		{
+			Label = "switch",
+			Key = keys.Previous,
+			Second = keys.Next,
+			Pad = GameConfig.ClientFlight.PreviousPad,
+			PadSecond = GameConfig.ClientFlight.NextPad,
+		},
+		{
+			Label = if mode == "Drone" then "follow" else "drone",
+			Key = keys.Drone,
+			Pad = GameConfig.ClientFlight.DronePad,
+		},
+	})
 	if mode == "Drone" then
-		return `SPECTATING: DRONE    {hints}`
+		return `SPECTATING: DRONE    {hints}{InputHints.text(
+			"\nWASD FLY · MOUSE LOOK · SPACE/CTRL HEIGHT · SHIFT BOOST",
+			"\nLEFT STICK FLY · RIGHT STICK LOOK · A/B HEIGHT · L3 BOOST"
+		)}`
 	elseif mode == "None" then
 		return "SPECTATING: NOBODY LEFT TO WATCH"
 	end
@@ -107,18 +128,21 @@ local function axis(positive: { Enum.KeyCode }, negative: { Enum.KeyCode }): num
 	return value
 end
 
-local function droneCamera(camera: Camera, dt: number)
+local function droneCamera(camera: Camera, dt: number, padMove: Vector2, padUp: number, padBoost: boolean)
 	local controls = GameConfig.Controls
 	local look = CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0)
-	if not (chatBox and chatBox:IsFocused()) then
+	if not HeldItemController.isInputBlocked() then
 		local forward = axis(controls.MoveForward, controls.MoveBack)
 		local side = axis(controls.MoveRight, controls.MoveLeft)
 		local rise = (if UserInputService:IsKeyDown(keys.Up) then 1 else 0)
 			- (if UserInputService:IsKeyDown(keys.Down) then 1 else 0)
-		local wish = look.LookVector * forward + look.RightVector * side + Vector3.new(0, rise, 0)
+		local wish = look.LookVector * (forward + padMove.Y)
+			+ look.RightVector * (side + padMove.X)
+			+ Vector3.new(0, rise + padUp, 0)
 		if wish.Magnitude > 0 then
-			local speed = config.DroneSpeed * (if UserInputService:IsKeyDown(keys.Boost) then config.DroneBoost else 1)
-			dronePosition += wish.Unit * speed * dt
+			local speed = config.DroneSpeed
+				* (if UserInputService:IsKeyDown(keys.Boost) or padBoost then config.DroneBoost else 1)
+			dronePosition += (if wish.Magnitude > 1 then wish.Unit else wish) * speed * dt
 		end
 	end
 	camera.CFrame = CFrame.new(dronePosition) * look
@@ -131,21 +155,27 @@ local function droneCamera(camera: Camera, dt: number)
 end
 
 local function step(dt: number)
+	if CameraGuard.menuOpen() then
+		return
+	end
 	local camera = workspace.CurrentCamera
 	if not camera then
 		return
 	end
 	camera.CameraType = Enum.CameraType.Scriptable
-	UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-	if not (chatBox and chatBox:IsFocused()) then
+	local blocked = HeldItemController.isInputBlocked()
+	local padMove, padLook, padUp, padBoost = FlightInput.read()
+	UserInputService.MouseBehavior = if blocked then Enum.MouseBehavior.Default else Enum.MouseBehavior.LockCenter
+	if not blocked then
 		local delta = UserInputService:GetMouseDelta()
 		local radians = math.rad(config.Camera.DegreesPerPixel)
 		local limit = math.rad(config.Camera.PitchLimitDegrees)
-		yaw -= delta.X * radians
-		pitch = math.clamp(pitch - delta.Y * radians, -limit, limit)
+		local stickRadians = math.rad(GameConfig.ClientFlight.LookDegreesPerSecond) * dt
+		yaw -= delta.X * radians + padLook.X * stickRadians
+		pitch = math.clamp(pitch - delta.Y * radians + padLook.Y * stickRadians, -limit, limit)
 	end
 	if mode == "Drone" then
-		droneCamera(camera, dt)
+		droneCamera(camera, dt, padMove, padUp, padBoost)
 	elseif mode == "Teammate" or mode == "Player" then
 		orbitCamera(camera)
 	end
@@ -179,9 +209,12 @@ local function addChatLine(info: Types.SpectatorChatInfo)
 end
 
 local function openChat(_: string, state: Enum.UserInputState): Enum.ContextActionResult
+	if not active or HeldItemController.isInputBlocked() then
+		return Enum.ContextActionResult.Pass
+	end
 	if state == Enum.UserInputState.Begin and chatBox and not chatBox:IsFocused() then
 		task.defer(function()
-			if chatBox then
+			if active and chatBox and not HeldItemController.isInputBlocked() then
 				chatBox:CaptureFocus()
 			end
 		end)
@@ -191,19 +224,23 @@ end
 
 local function startSession()
 	active = true
+	CameraGuard.setRemoteView(script, true)
 	RunService:BindToRenderStep(STEP_NAME, Enum.RenderPriority.Camera.Value + 2, step) -- after DisguiseFacing
 	sessionJanitor:Add(function()
 		RunService:UnbindFromRenderStep(STEP_NAME)
 	end)
 	sessionJanitor:Add(UserInputService.InputBegan:Connect(function(input, processed)
-		if processed then
+		if processed or HeldItemController.isInputBlocked() then
 			return
 		end
-		if matches(input, keys.Next) then
+		if matches(input, keys.Next) or matches(input, GameConfig.ClientFlight.NextPad) then
 			RemoteController.fire("RequestSpectate", "Next")
-		elseif matches(input, keys.Previous) then
+		elseif matches(input, keys.Previous) or matches(input, GameConfig.ClientFlight.PreviousPad) then
 			RemoteController.fire("RequestSpectate", "Previous")
-		elseif matches(input, keys.Drone) and (canDrone or mode == "Drone") then
+		elseif
+			(matches(input, keys.Drone) or matches(input, GameConfig.ClientFlight.DronePad))
+			and (canDrone or mode == "Drone")
+		then
 			RemoteController.fire("RequestSpectate", "Drone")
 		end
 	end))
@@ -228,12 +265,10 @@ end
 
 local function stopSession()
 	active = false
+	CameraGuard.setRemoteView(script, false)
 	sessionJanitor:Cleanup()
 	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-	local camera = workspace.CurrentCamera
-	if camera then
-		camera.CameraType = Enum.CameraType.Custom
-	end
+	CameraGuard.restoreGameplay()
 	if statusRoot then
 		statusRoot.Visible = false
 	end
@@ -243,6 +278,12 @@ local function stopSession()
 end
 
 local function onState(info: Types.SpectateStateInfo)
+	if phase == "Lobby" or phase == "Insertion" or phase == "Results" then
+		if active then
+			stopSession()
+		end
+		return
+	end
 	mode, targetUserId, canDrone = info.Mode, info.TargetUserId, info.CanDrone
 	if info.DronePosition then
 		dronePosition = info.DronePosition
@@ -283,6 +324,8 @@ function SpectateController.Start()
 		Vector2.zero,
 		UDim2.new(1, -graphics.PaddingPixels * 2, 1, -graphics.PaddingPixels * 2)
 	)
+	statusText.TextWrapped = true
+	statusText.TextSize = graphics.CaptionSize
 	local chat = Instance.new("Frame")
 	chat.Name = "Chat"
 	chat.BackgroundTransparency = 1
@@ -308,7 +351,11 @@ function SpectateController.Start()
 	box.TextSize = GameConfig.UI.TextSize
 	box.TextColor3 = GameConfig.UI.TextColor
 	box.TextXAlignment = Enum.TextXAlignment.Left
-	box.PlaceholderText = `[ {keys.Chat.Name} ] spectator chat`
+	local function chatHint()
+		box.PlaceholderText = InputHints.bracket(keys.Chat, nil, "spectator chat")
+	end
+	chatHint()
+	janitor:Add(InputHints.onChange(chatHint))
 	box.Text = ""
 	box.Parent = chat
 	chatBox = box
@@ -320,6 +367,17 @@ function SpectateController.Start()
 		end
 	end))
 	janitor:Add(RemoteController.connect("SpectateState", onState))
+	janitor:Add(RemoteController.connect("PhaseChanged", function(value: Types.Phase)
+		phase = value
+		if (value == "Lobby" or value == "Insertion" or value == "Results") and active then
+			stopSession()
+		end
+	end))
+	janitor:Add(Players.LocalPlayer.CharacterAdded:Connect(function()
+		if active then
+			stopSession()
+		end
+	end))
 	janitor:Add(RemoteController.connect("SpectatorChat", addChatLine))
 	janitor:Add(function()
 		stopSession()
