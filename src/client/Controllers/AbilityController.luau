@@ -4,13 +4,14 @@
 
 local ContextActionService = game:GetService("ContextActionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local Types = require(Shared:WaitForChild("Types"))
 local RemoteController = require(script.Parent.RemoteController)
+local HeldItemController = require(script.Parent.HeldItemController)
+local TaserStatusController = require(script.Parent.TaserStatusController)
 
 local AbilityController = {}
 
@@ -25,7 +26,11 @@ function AbilityController.cooldown(): Types.AbilityCooldownInfo?
 end
 
 local function onAbility(_: string, state: Enum.UserInputState): Enum.ContextActionResult
-	if state == Enum.UserInputState.Begin and UserInputService:GetFocusedTextBox() == nil then
+	if
+		state == Enum.UserInputState.Begin
+		and HeldItemController.canAct()
+		and TaserStatusController.remaining() == 0
+	then
 		RemoteController.fire("RequestAbility")
 	end
 	return Enum.ContextActionResult.Pass
@@ -42,6 +47,11 @@ function AbilityController.Start()
 	end)
 	janitor:Add(RemoteController.connect("CooldownUpdate", function(info: Types.AbilityCooldownInfo)
 		current = info
+	end))
+	janitor:Add(RemoteController.connect("PhaseChanged", function(phase: Types.Phase)
+		if phase == "Lobby" then
+			current = nil
+		end
 	end))
 	janitor:Add(script.Destroying:Connect(function()
 		janitor:Destroy()

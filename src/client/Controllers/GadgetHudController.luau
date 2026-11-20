@@ -2,9 +2,9 @@
 -- Ticket 17-hud: confirmed owner-only slots, charges and held selection. No requests or equip prediction.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared.GameConfig)
+local InputHints = require(Shared.Util.InputHints)
 local GadgetDefs = require(Shared.Defs.GadgetDefs)
 local Types = require(Shared.Types)
 local HudKit = require(Shared.Util.HudKit)
@@ -14,6 +14,7 @@ local Janitor = require(Shared.Util.Janitor)
 local GadgetCard = require(script.Parent.Parent.Combat.GadgetCard)
 local GadgetController = require(script.Parent.GadgetController)
 local RemoteController = require(script.Parent.RemoteController)
+local TaserStatusController = require(script.Parent.TaserStatusController)
 local GadgetHudController = {}
 
 function GadgetHudController.Init() end
@@ -102,11 +103,15 @@ function GadgetHudController.Start()
 				card.category = def.Category
 			end
 			local key = if index == 1 then GameConfig.Controls.Gadget1 else GameConfig.Controls.Gadget2
-			local keyText = UserInputService:GetStringForKeyCode(key)
-			card.name.Text = `[ {if keyText ~= "" then keyText else key.Name} ] {def.Name}`
+			card.name.Text = InputHints.bracket(key, GameConfig.Controls.GadgetNextPad, def.Name)
 			local held = info ~= nil and info.Held == index
 			card.status.Text =
 				`{slot.Charges} {if slot.Charges == 1 then "CHARGE" else "CHARGES"}{if held then " · HELD" else ""}`
+			local locked = TaserStatusController.remaining()
+			if locked > 0 then
+				card.status.Text = `LOCKED {math.ceil(locked)}s · {slot.Charges} LEFT`
+			end
+			card.status.TextColor3 = if locked > 0 then GameConfig.UI.WarningColor else theme.TextColor
 			card.border.Color = if held then GameConfig.GadgetHud.Categories[def.Category].Color else theme.BorderColor
 			card.border.Thickness = if held then theme.StrokePixels * 2 else theme.StrokePixels
 		end

@@ -82,8 +82,9 @@ local mapParams = RaycastParams.new()
 mapParams.CollisionGroup = GameConfig.Rig.CollisionGroup
 mapParams.RespectCanCollide = true
 
-function ShotFx.mapHit(origin: Vector3, direction: Vector3): (Vector3?, Vector3?)
-	local result = workspace:Raycast(origin, direction * GameConfig.Combat.MaxShotStuds, mapParams)
+function ShotFx.mapHit(origin: Vector3, direction: Vector3, maxRange: number?): (Vector3?, Vector3?)
+	local range = math.min(maxRange or GameConfig.Combat.MaxShotStuds, GameConfig.Combat.MaxShotStuds)
+	local result = workspace:Raycast(origin, direction * range, mapParams)
 	if result then
 		return result.Position, result.Normal
 	end

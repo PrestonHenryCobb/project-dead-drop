@@ -416,6 +416,59 @@ local function buildCompactPdw(model: Model): (CFrame, CFrame)
 	return CFrame.new(0.01, -0.34, 0.02), CFrame.new(-0.03, -0.18, -0.58)
 end
 
+-- Ticket 8.5c: original three-round rifle with an open bridge sight and vented fore-end.
+local function buildBurstRifle(model: Model): (CFrame, CFrame)
+	local right, left = buildFoldingCarbine(model)
+	local body, accent = config.GunColor, config.AccentColor
+	for _, side in { -1, 1 } do
+		addPart(model, "BridgePost" .. side, Vector3.new(0.06, 0.26, 0.24), CFrame.new(side * 0.18, 0.43, -0.08), body)
+	end
+	addPart(model, "BridgeTop", Vector3.new(0.42, 0.06, 0.24), CFrame.new(0, 0.58, -0.08), body)
+	for index = 1, 3 do
+		addPart(
+			model,
+			"ForeEndVent" .. index,
+			Vector3.new(0.3, 0.045, 0.08),
+			CFrame.new(0, 0.18, -0.65 - index * 0.2),
+			accent
+		)
+	end
+	addPart(model, "Selector", Vector3.new(0.05, 0.13, 0.18), CFrame.new(0.17, -0.06, 0.22), accent)
+	addPart(model, "StockBrace", Vector3.new(0.2, 0.08, 0.62), CFrame.new(0, -0.21, 1.13), body)
+	return right, left
+end
+
+local function buildTaser(model: Model): (CFrame, CFrame)
+	local body, accent = config.GunColor, config.AccentColor
+	addPart(model, "Receiver", Vector3.new(0.35, 0.27, 0.8), CFrame.identity, body)
+	addPart(model, "Cartridge", Vector3.new(0.38, 0.32, 0.34), CFrame.new(0, 0.02, -0.49), accent)
+	addPart(
+		model,
+		"Grip",
+		Vector3.new(0.28, 0.62, 0.32),
+		CFrame.new(0, -0.37, 0.22) * CFrame.Angles(math.rad(-12), 0, 0),
+		body
+	)
+	addPart(model, "BatteryBase", Vector3.new(0.31, 0.12, 0.36), CFrame.new(0, -0.68, 0.28), accent)
+	addPart(model, "TriggerGuard", Vector3.new(0.2, 0.08, 0.3), CFrame.new(0, -0.25, -0.09), body)
+	addPart(model, "FrontSight", Vector3.new(0.06, 0.07, 0.07), CFrame.new(0, 0.22, -0.55), body)
+	addPart(model, "RearSight", Vector3.new(0.18, 0.07, 0.08), CFrame.new(0, 0.2, 0.29), body)
+	for _, side in { -1, 1 } do
+		addPart(
+			model,
+			"Contact" .. side,
+			Vector3.new(0.07, 0.09, 0.15),
+			CFrame.new(side * 0.11, 0.03, -0.72),
+			body,
+			Enum.Material.Metal
+		)
+	end
+	local muzzle = Instance.new("Attachment")
+	muzzle.Name, muzzle.Position = "Muzzle", Vector3.new(0, 0.02, -0.81)
+	muzzle.Parent = model:FindFirstChild("Receiver")
+	return CFrame.new(0.01, -0.35, 0.23), CFrame.new(-0.16, -0.3, 0.15)
+end
+
 local function buildGarrote(model: Model): (CFrame, CFrame)
 	local body, accent = config.GunColor, config.AccentColor
 	addPart(model, "Receiver", Vector3.new(0.15, 0.16, 0.65), CFrame.new(0.42, 0, 0), body)
@@ -504,6 +557,8 @@ local function buildKnives(model: Model): (CFrame, CFrame)
 end
 
 local builders: { [string]: (Model) -> (CFrame, CFrame) } = {
+	LatticeBurstRifle = buildBurstRifle,
+	LatticeTaser = buildTaser,
 	FeintKnives = buildKnives,
 	FeintSmokeSMG = buildSmokeSmg,
 	SutureFlare = buildFlare,

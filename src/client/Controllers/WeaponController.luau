@@ -33,6 +33,7 @@ local WeaponPlacement = require(Combat:WaitForChild("WeaponPlacement"))
 local WeaponAim = require(Combat:WaitForChild("WeaponAim"))
 local RemoteController = require(script.Parent.RemoteController)
 local HeldItemController = require(script.Parent.HeldItemController)
+local CameraGuard = require(Combat.CameraGuard)
 
 export type Status = {
 	hasAmmo: boolean,
@@ -116,11 +117,11 @@ local function isReloading(now: number): boolean
 	return reloadEndsAt > now
 end
 
-local function attackBlocked(camera: Camera?): boolean
+local function attackBlocked(camera: Camera?, currentWallOnly: boolean?): boolean
 	if not (held and combatEnabled and camera) then
 		return false
 	end
-	if viewModel then
+	if viewModel and not currentWallOnly then
 		return viewModel:isFireBlocked(camera)
 	end
 	-- Input may arrive before the first render creates the model; collision must still block that first attack.
@@ -225,6 +226,7 @@ local function fireOnce(camera: Camera, root: BasePart, now: number)
 		shellInterruptPending = true
 	end
 	if mag <= 0 then
+		burstRemaining = 0 -- an empty final magazine must not keep a released burst clicking forever
 		if def.HearStuds ~= 0 and now - lastEmptyAt >= EMPTY_CLICK_GAP then
 			lastEmptyAt = now
 			SoundPlayer.play(def.Sounds.Empty, combat.Feedback.ShotVolume)
@@ -273,13 +275,14 @@ local function fireOnce(camera: Camera, root: BasePart, now: number)
 		viewModel:kick()
 	end
 	if not def.Projectile then
+		local range = math.min(def.MaxRange or combat.MaxShotStuds, combat.MaxShotStuds)
 		for index, direction in shotDirections do
-			local point, normal = ShotFx.mapHit(camera.CFrame.Position, direction)
+			local point, normal = ShotFx.mapHit(camera.CFrame.Position, direction, range)
 			if viewModel then
 				ShotVisuals.fire(
 					def,
 					viewModel:getMuzzlePosition(def.AimedRPM ~= nil and not aiming and mag % 2 == 0),
-					point or (camera.CFrame.Position + direction * combat.MaxShotStuds),
+					point or (camera.CFrame.Position + direction * range),
 					index == 1
 				)
 			end
@@ -289,6 +292,7 @@ local function fireOnce(camera: Camera, root: BasePart, now: number)
 		end
 	end
 	if mag <= 0 then
+		burstRemaining = 0
 		startReload(now)
 	end
 end
@@ -312,10 +316,20 @@ local function step(dt: number)
 		if viewModel then
 			viewModel:setVisible(false)
 		end
-		camera.FieldOfView = baseFov
+		if not CameraGuard.menuOpen() then
+			camera.FieldOfView = baseFov
+		end
 		appliedFov = baseFov
 		aimBlend = 0
 		return
+	end
+	if not HeldItemController.canAct() then
+		firing, burstRemaining = false, 0
+		cancelLocalMelee()
+		if aiming then
+			aiming = false
+			RemoteController.fire("RequestDraw", false)
+		end
 	end
 	if attackBlocked(camera) then
 		-- Never queue a burst/held shot through an obstruction. Require fresh input after the tuck clears.
@@ -325,7 +339,10 @@ local function step(dt: number)
 			aiming = false
 			RemoteController.fire("RequestDraw", false)
 		end
-		cancelLocalMelee()
+		-- An accepted takedown checks current walls, not a lingering cosmetic tuck in otherwise clear space.
+		if not takedownActive or attackBlocked(camera, true) then
+			cancelLocalMelee()
+		end
 	end
 
 	local visual = WeaponDefs.Visuals[def.Id]
@@ -344,8 +361,12 @@ local function step(dt: number)
 	spreadExtra = math.max(0, spreadExtra - def.Spread.RecoverPerSecond * dt)
 	-- The default camera builds each frame on the CFrame it finds, so only the change in recoil is added here: the view
 	-- climbs as the kick grows and comes back down as it settles, and never piles up.
-	camera.CFrame *= CFrame.Angles(math.rad(recoilPitch - appliedPitch), math.rad(recoilYaw - appliedYaw), 0)
-	appliedPitch, appliedYaw = recoilPitch, recoilYaw
+	if CameraGuard.remoteViewing() then
+		recoilPitch, recoilYaw, appliedPitch, appliedYaw = 0, 0, 0, 0
+	else
+		camera.CFrame *= CFrame.Angles(math.rad(recoilPitch - appliedPitch), math.rad(recoilYaw - appliedYaw), 0)
+		appliedPitch, appliedYaw = recoilPitch, recoilYaw
+	end
 
 	if (firing and def.Automatic) or burstRemaining > 0 then
 		local shots = 0
@@ -365,7 +386,7 @@ local function step(dt: number)
 	local aimedFov = WeaponAim.fov(baseFov, def.AimZoom, if visual then visual.Magnification else nil)
 	appliedFov = baseFov + (aimedFov - baseFov) * aimBlend
 	camera.FieldOfView = appliedFov
-	if not held then
+	if not held or CameraGuard.remoteViewing() then
 		if viewModel then
 			viewModel:setVisible(false)
 		end
@@ -398,7 +419,7 @@ local function step(dt: number)
 end
 
 function WeaponController.getHandTargets(): (CFrame?, CFrame?, number)
-	if combatEnabled and held and viewModel then
+	if combatEnabled and held and viewModel and not CameraGuard.remoteViewing() then
 		local right, left = viewModel:getHandTargets()
 		return right, left, viewModel.drawScale
 	end
@@ -410,7 +431,7 @@ function WeaponController.getStatus(): Status
 	local _, _, root = character()
 	local camera = workspace.CurrentCamera
 	return {
-		hasAmmo = def.Melee == nil,
+		hasAmmo = def.Melee == nil and not CameraGuard.remoteViewing(),
 		active = root ~= nil,
 		weaponId = def.Id,
 		name = def.Name,
@@ -421,7 +442,7 @@ function WeaponController.getStatus(): Status
 			then math.clamp((now - reloadStartedAt) / def.ReloadSeconds, 0, 1)
 			else nil,
 		spreadDegrees = currentSpread(root),
-		weaponUp = root ~= nil and held and weaponUp(now),
+		weaponUp = root ~= nil and held and not CameraGuard.remoteViewing() and weaponUp(now),
 		aiming = aiming,
 		viewportFov = if camera then camera.FieldOfView else baseFov,
 		attackBlocked = root ~= nil and attackBlocked(camera),
@@ -468,6 +489,9 @@ local function onAim(_: string, state: Enum.UserInputState): Enum.ContextActionR
 end
 
 local function onReload(_: string, state: Enum.UserInputState): Enum.ContextActionResult
+	if not HeldItemController.canAct() then
+		return Enum.ContextActionResult.Pass
+	end
 	if held and state == Enum.UserInputState.Begin and character() then
 		cancelLocalMelee()
 		startReload(os.clock())
@@ -476,6 +500,10 @@ local function onReload(_: string, state: Enum.UserInputState): Enum.ContextActi
 end
 
 local function onMelee(_: string, state: Enum.UserInputState): Enum.ContextActionResult
+	if not HeldItemController.canAct() then
+		cancelLocalMelee()
+		return Enum.ContextActionResult.Pass
+	end
 	local camera = workspace.CurrentCamera
 	if held and state == Enum.UserInputState.Begin and camera then
 		if UserInputService:GetFocusedTextBox() or attackBlocked(camera) then
@@ -503,7 +531,13 @@ local function onMelee(_: string, state: Enum.UserInputState): Enum.ContextActio
 	elseif state == Enum.UserInputState.Cancel then
 		cancelLocalMelee()
 	elseif state == Enum.UserInputState.End and meleePending then
-		if camera and character() and held and not attackBlocked(camera) then
+		if
+			camera
+			and character()
+			and held
+			and HeldItemController.canAct()
+			and not attackBlocked(camera, takedownActive)
+		then
 			RemoteController.fire("RequestMelee", "Release", camera.CFrame.LookVector)
 		else
 			cancelLocalMelee()
@@ -598,7 +632,7 @@ local function freezePrediction()
 end
 
 local function onPhase(phase: Types.Phase)
-	phaseFrozen = phase == "Insertion"
+	phaseFrozen = phase == "Lobby" or phase == "Insertion" or phase == "Results"
 	if phase == "Lobby" or phase == "Insertion" or phase == "Results" then
 		extractionFrozen = false
 	end

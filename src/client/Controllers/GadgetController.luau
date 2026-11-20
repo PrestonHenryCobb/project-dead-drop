@@ -15,6 +15,7 @@ local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local Types = require(Shared:WaitForChild("Types"))
 local HeldItemController = require(script.Parent.HeldItemController)
 local RemoteController = require(script.Parent.RemoteController)
+local TaserStatusController = require(script.Parent.TaserStatusController)
 
 local GadgetController = {}
 
@@ -30,13 +31,21 @@ end
 -- What the fire and aim buttons do while a gadget is held.
 local item: HeldItemController.Item = {
 	fire = function(state: Enum.UserInputState)
-		if state == Enum.UserInputState.Begin then
+		if
+			state == Enum.UserInputState.Begin
+			and HeldItemController.canAct()
+			and TaserStatusController.remaining() == 0
+		then
 			local camera = workspace.CurrentCamera
 			RemoteController.fire("RequestGadget", "Deploy", nil, if camera then camera.CFrame.LookVector else nil)
 		end
 	end,
 	aim = function(state: Enum.UserInputState)
-		if state == Enum.UserInputState.Begin then
+		if
+			state == Enum.UserInputState.Begin
+			and HeldItemController.canAct()
+			and TaserStatusController.remaining() == 0
+		then
 			RemoteController.fire("RequestGadget", "Alternate")
 		end
 	end,
@@ -44,10 +53,17 @@ local item: HeldItemController.Item = {
 }
 
 local function onKey(_: string, state: Enum.UserInputState, input: InputObject): Enum.ContextActionResult
-	if state ~= Enum.UserInputState.Begin then
+	if
+		state ~= Enum.UserInputState.Begin
+		or not HeldItemController.canAct()
+		or TaserStatusController.remaining() > 0
+	then
 		return Enum.ContextActionResult.Pass
 	end
 	local info = current
+	if not info then
+		return Enum.ContextActionResult.Pass
+	end
 	local slot: number
 	if input.KeyCode == controls.Weapon then
 		slot = 0
@@ -55,9 +71,10 @@ local function onKey(_: string, state: Enum.UserInputState, input: InputObject):
 		slot = 1
 	elseif input.KeyCode == controls.Gadget2 then
 		slot = 2
-	elseif info then
-		slot = (info.Held + 1) % (#info.Slots + 1) -- the pad cycles weapon, gadget 1, gadget 2
 	else
+		slot = (info.Held + 1) % (#info.Slots + 1) -- the pad cycles weapon, gadget 1, gadget 2
+	end
+	if slot > #info.Slots or slot == info.Held then
 		return Enum.ContextActionResult.Pass
 	end
 	RemoteController.fire("RequestGadget", "Equip", slot)
@@ -87,6 +104,12 @@ function GadgetController.Start()
 		if info.Held ~= 0 then
 			HeldItemController.equip(item)
 		else
+			HeldItemController.equipWeapon()
+		end
+	end))
+	janitor:Add(RemoteController.connect("PhaseChanged", function(phase: Types.Phase)
+		if phase == "Lobby" or phase == "Results" then
+			current = nil
 			HeldItemController.equipWeapon()
 		end
 	end))

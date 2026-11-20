@@ -405,6 +405,53 @@ addFirearm({
 	Projectile = { Kind = "Knife", Speed = 120, Gravity = 25, MaxSeconds = 3, PickupStuds = 4 },
 })
 
+-- Ticket 8.5c-client: server-owned tracker/lockout rules; initial handling needs native feel tuning.
+table.insert(defs, {
+	Id = "LatticeBurstRifle",
+	Name = "Burst Rifle",
+	Agent = "Lattice",
+	Automatic = false,
+	Damage = 12,
+	HeadshotMult = GameConfig.Combat.HeadshotMult,
+	RPM = 900, -- SPEC-QUESTION: inside-burst rate follows the server contract's initial tune.
+	MagSize = 24,
+	ReserveAmmo = 48,
+	ReloadSeconds = 2.2,
+	Falloff = { StartStuds = 60, EndStuds = 140, MinMult = 0.7 },
+	Quiet = false,
+	PostMeleeFireDelay = 0.3,
+	Spread = { Hip = 2.8, Aim = 0.35, PerShot = 0.18, MaxExtra = 1.8, RecoverPerSecond = 7, MoveMult = 1.4 },
+	Recoil = { PitchPerShot = 0.45, YawPerShot = 0.1, RecoverRate = 3.8, ViewKick = 0.045 },
+	AimZoom = 0.85,
+	Sounds = librarySounds,
+	Burst = { Count = 3, DelaySeconds = 0.35 },
+	Tracker = { Seconds = 3 },
+})
+table.insert(defs, {
+	Id = "LatticeTaser",
+	Name = "Taser",
+	Agent = "Lattice",
+	Automatic = false,
+	Damage = 30,
+	HeadshotMult = 1, -- SPEC-QUESTION: no head bonus, following the server contract.
+	RPM = 60,
+	MagSize = 1,
+	ReserveAmmo = 10,
+	ReloadSeconds = 2,
+	MaxRange = 25,
+	Quiet = true, -- owner answer 2026-11-19: the taser dart is quiet (heard only QuietHearStuds away, no flash or tracer)
+	PostMeleeFireDelay = 0.25,
+	Spread = { Hip = 1.6, Aim = 0.15, PerShot = 0.2, MaxExtra = 0.6, RecoverPerSecond = 5, MoveMult = 1.2 },
+	Recoil = { PitchPerShot = 0.3, YawPerShot = 0.05, RecoverRate = 5, ViewKick = 0.035 },
+	AimZoom = 0.95,
+	Sounds = librarySounds,
+	Taser = { SlowMult = 0.4, SlowSeconds = 1.5, LockoutSeconds = 3 },
+	TracerColor = Color3.fromRGB(130, 218, 255),
+	TracerLength = 2,
+	FlashColor = Color3.fromRGB(175, 230, 255),
+	FlashSize = Vector3.new(0.12, 0.12, 0.2),
+})
+
 local byId: { [string]: WeaponDef } = {}
 for _, def in defs do
 	assert(not byId[def.Id], `Duplicate weapon {def.Id}`)
@@ -448,6 +495,8 @@ type WeaponVisual = {
 	Poses: { [string]: { Position: Vector3, Rotation: Vector3 } }?,
 }
 local visuals: { [string]: WeaponVisual } = {
+	LatticeBurstRifle = { AimBlendRate = 17, PoseSpeed = 17 },
+	LatticeTaser = { AimBlendRate = 22, PoseSpeed = 22 },
 	FeintKnives = { AimBlendRate = 22, PoseSpeed = 22 },
 	FeintSmokeSMG = { AimBlendRate = 17, PoseSpeed = 17 },
 	SutureFlare = { AimBlendRate = 15, PoseSpeed = 15 },

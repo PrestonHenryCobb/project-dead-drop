@@ -23,7 +23,7 @@ type Flight = {
 	stopped: boolean,
 }
 type Timed = { part: BasePart, expires: number }
-type Glow = { id: string, expires: number, highlight: Highlight }
+type Glow = { id: string, expires: number, throughWalls: boolean, highlight: Highlight }
 local WeaponEffects = {}
 local folder: Folder? = nil
 local smokeVeil: Frame? = nil
@@ -189,8 +189,10 @@ local function resolve(id: string): Model?
 end
 
 function WeaponEffects.glow(info: Types.TargetGlowInfo)
+	local throughWalls = info.ThroughWalls == true
 	for _, entry in glows do
-		if entry.id == info.TargetId then
+		-- Keep permissions and expiry separate when a flare and tracker mark the same body.
+		if entry.id == info.TargetId and entry.throughWalls == throughWalls then
 			entry.expires = math.max(entry.expires, info.ExpiresAt)
 			return
 		end
@@ -200,13 +202,16 @@ function WeaponEffects.glow(info: Types.TargetGlowInfo)
 		table.remove(glows, 1)
 	end
 	local highlight = Instance.new("Highlight")
-	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
+	highlight.DepthMode = if throughWalls then Enum.HighlightDepthMode.AlwaysOnTop else Enum.HighlightDepthMode.Occluded
 	highlight.FillColor, highlight.OutlineColor = config.FlareColor, config.FlareColor
 	highlight.FillTransparency, highlight.OutlineTransparency =
 		config.GlowFillTransparency, config.GlowOutlineTransparency
 	highlight.Enabled = false
 	highlight.Parent = folder
-	table.insert(glows, { id = info.TargetId, expires = info.ExpiresAt, highlight = highlight })
+	table.insert(
+		glows,
+		{ id = info.TargetId, expires = info.ExpiresAt, throughWalls = throughWalls, highlight = highlight }
+	)
 end
 
 function WeaponEffects.step()
@@ -273,10 +278,37 @@ function WeaponEffects.step()
 			entry.highlight.Adornee = target
 			entry.highlight.Enabled = false
 			if camera and root and root:IsA("BasePart") then
-				local hit = workspace:Raycast(camera.CFrame.Position, root.Position - camera.CFrame.Position, params)
-				entry.highlight.Enabled = hit == nil or (target ~= nil and hit.Instance:IsDescendantOf(target))
+				if entry.throughWalls then
+					entry.highlight.Enabled = true
+				else
+					local hit =
+						workspace:Raycast(camera.CFrame.Position, root.Position - camera.CFrame.Position, params)
+					entry.highlight.Enabled = hit == nil or (target ~= nil and hit.Instance:IsDescendantOf(target))
+				end
 			end
 		end
+	end
+end
+
+function WeaponEffects.clear()
+	for _, flight in flights do
+		flight.part:Destroy()
+	end
+	for _, light in lights do
+		light.part:Destroy()
+	end
+	for _, cloud in clouds do
+		cloud.part:Destroy()
+	end
+	for _, glow in glows do
+		glow.highlight:Destroy()
+	end
+	table.clear(flights)
+	table.clear(lights)
+	table.clear(clouds)
+	table.clear(glows)
+	if smokeVeil then
+		smokeVeil.Visible = false
 	end
 end
 
@@ -306,10 +338,7 @@ function WeaponEffects.start(janitor: Janitor.Janitor)
 	smokeVeil = veil
 	janitor:Add(gui)
 	janitor:Add(function()
-		table.clear(flights)
-		table.clear(clouds)
-		table.clear(lights)
-		table.clear(glows)
+		WeaponEffects.clear()
 		folder = nil
 		smokeVeil = nil
 	end)
