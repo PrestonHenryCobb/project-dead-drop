@@ -27,6 +27,7 @@ type Track = {
 	position: Vector3,
 	at: number,
 	graceUntil: number,
+	lastSpeed: number, -- the WalkSpeed at the previous sample: slowing down mid-sample must not look like speeding
 	bad: number, -- bad samples in the current window
 	lastBadAt: number,
 	flagged: number,
@@ -45,6 +46,7 @@ local function track(player: Player): Track
 		position = Vector3.zero,
 		at = 0,
 		graceUntil = os.clock() + config.GraceSeconds,
+		lastSpeed = 0,
 		bad = 0,
 		lastBadAt = -math.huge,
 		flagged = 0,
@@ -94,6 +96,8 @@ local function sample(player: Player, now: number)
 	local previousAt = entry.at
 	local previous = entry.position
 	entry.position, entry.at = position, now
+	local previousSpeed = entry.lastSpeed
+	entry.lastSpeed = humanoid.WalkSpeed
 	if previousAt == 0 or now < entry.graceUntil then
 		return
 	end
@@ -104,7 +108,8 @@ local function sample(player: Player, now: number)
 	local moved = Vector3.new(position.X - previous.X, 0, position.Z - previous.Z).Magnitude
 	-- A step can arrive late, so allow for the real time between samples, never less than one sample.
 	local window = math.max(dt, config.SampleSeconds)
-	local allowed = humanoid.WalkSpeed * (1 + config.Tolerance) * window + config.SlackStuds
+	local speed = math.max(humanoid.WalkSpeed, previousSpeed)
+	local allowed = speed * (1 + config.Tolerance) * window + config.SlackStuds
 	if moved <= allowed then
 		if now - entry.lastBadAt >= config.ResetSeconds then
 			entry.bad = 0

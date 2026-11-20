@@ -272,7 +272,7 @@ export type ProjectileImpactInfo = {
 -- A smoke cloud (a radius around Position) until ExpiresAt on the server clock. Sent to everyone.
 export type SmokeCloudInfo = { Position: Vector3, Radius: number, ExpiresAt: number }
 
--- To Suture's team only: the character TargetId (an NPC's model name, or "P" and a UserId, as History uses) glows
+-- To Suture's team only: the character TargetId (the body's model name, the same for an NPC and a player) glows
 -- until ExpiresAt. Drawn client-side with line of sight; it follows the character through disguise changes.
 export type TargetGlowInfo = { TargetId: string, ExpiresAt: number }
 

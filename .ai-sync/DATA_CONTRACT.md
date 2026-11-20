@@ -19,13 +19,17 @@ Dossiers, ActiveDossierId, Career). Nothing else is saved yet: settings, XP and 
 - Saves: every `AutosaveSeconds` (120) for profiles marked dirty (equip, claiming a starter agent), on leave (with release)
   and in `BindToClose`.
 - Studio without API access, or an unpublished place: the first call fails with a known error, the store switches itself off and
-  the profile lives for the session only (a warning says so once).
+  the profile lives for the session only (a warning says so once). In Studio a profile that is Locked (a force-stopped test left its
+  lock) or Unavailable also plays unsaved instead of being kicked. Outside Studio a Locked or transiently Unavailable profile kicks
+  with a retry message, so a player never plays on a blank profile that would look like a wipe.
+- Every autosave writes every profile (not just changed ones) because the write also renews the lock; `LockStaleSeconds` is 360.
+  A quick rejoin on the same server waits for the leaving player's release save (`releasing[userId]`) before it loads.
 
 ## Mastery XP and career (ticket 21-mastery)
 `MatchService.finish` calls `MetaProgressionService.recordMatch(player, won)` for every human who was in the match. The agent they
 deployed with gains `Mastery.MatchXP` (100) plus `WinBonusXP` (50) on a win, and levels up every `XPPerLevel` (100) to `MaxLevel` 10:
 one match is one level, so Hardware slot 2 (level 3) opens after two matches, slot 3 (level 6) after five, level 10 after nine
-(SPEC_CHANGES: about ten matches, the second item after about two). `Career.Matches` always rises, `Career.Extractions` on a win.
+(SPEC_CHANGES: about ten matches, the second item after about two). `Career.Matches` always rises, `Career.Extractions` only for a winning-team member who was still in at the end.
 SPEC-QUESTIONs: objectives (intel, vault, Package) add nothing yet; account Level, Credits and the spec 20.1 XP table are not
 awarded (the owner replaced account XP with mastery); a player who left early still counts if they were on the roster.
 

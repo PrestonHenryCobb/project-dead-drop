@@ -190,9 +190,9 @@ local GameConfig = {
 		StoreName = "CoverStoryProfiles",
 		Version = 1, -- bump when the saved shape changes; ProfileStore.reconcile must then migrate older ones
 		AutosaveSeconds = 120,
-		-- A lock older than this is a crashed server's and may be taken. Autosave refreshes it, so it must be well above
-		-- AutosaveSeconds.
-		LockStaleSeconds = 600,
+		-- A lock older than this is a crashed server's and may be taken. Autosave refreshes every player's lock, so it must be
+		-- well above AutosaveSeconds (three saves).
+		LockStaleSeconds = 360,
 		LockWaitSeconds = 25, -- how long a join waits for another server to let go before taking the lock or giving up
 		LockRetrySeconds = 2,
 		Retries = 5, -- DataStore calls that fail are tried this many times with the backoff below

@@ -175,8 +175,11 @@ local function glow(flight: Flight, target: Target)
 	end
 	local teamId = TeamService.teamOf(flight.shooter)
 	local recipients = if teamId then TeamService.members(teamId) else { flight.shooter }
+	-- The model name every client sees, never History's "P" and a UserId, which would say the body is a player.
+	local model = target.rootPart.Parent
+	local modelName = if model then model.Name else target.id
 	local info: Types.TargetGlowInfo =
-		{ TargetId = target.id, ExpiresAt = workspace:GetServerTimeNow() + proj.GlowSeconds }
+		{ TargetId = modelName, ExpiresAt = workspace:GetServerTimeNow() + proj.GlowSeconds }
 	RemoteService.fireClients("TargetGlow", recipients, info)
 end
 

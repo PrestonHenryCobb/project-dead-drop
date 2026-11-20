@@ -97,6 +97,12 @@ local function heldByOther(record: Record?): boolean
 	return lock ~= nil and lock.JobId ~= sessionId and os.time() - lock.At < config.LockStaleSeconds
 end
 
+-- True when the DataStore cannot be used here at all (Studio without API access, an unpublished place): nothing will ever save.
+function ProfileStore.isOff(): boolean
+	getStore()
+	return unavailable
+end
+
 function ProfileStore.load(userId: number): (string, any?)
 	local deadline = os.clock() + config.LockWaitSeconds
 	while true do

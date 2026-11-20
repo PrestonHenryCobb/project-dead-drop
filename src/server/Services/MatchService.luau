@@ -238,7 +238,11 @@ function MatchService.finish(winnerTeamId: number?)
 	for teamId, members in matchTeams do
 		for _, member in members do
 			if member.Parent then
-				MetaProgressionService.recordMatch(member, teamId == winnerTeamId) -- ticket 21-mastery
+				MetaProgressionService.recordMatch(
+					member,
+					teamId == winnerTeamId,
+					teamId == winnerTeamId and not out[member]
+				) -- ticket 21-mastery
 			end
 		end
 	end

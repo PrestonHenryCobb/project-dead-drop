@@ -103,7 +103,7 @@ Hammer:
   `Own = true`, then adopt the server's `Id`.
 - Direct hit: 55 damage, no extra splash. Then every other target within 6 studs with a clear line to the landing point
   takes 15 (teammates and the shooter are spared). The struck character glows for Suture's team 4 s (`TargetGlow`,
-  `TargetId` = an NPC's model name or `"P" .. UserId`; **the glow follows the character, so a disguise change never ends
+  `TargetId` = the body's model name (an NPC and a player alike; History's `"P" .. UserId` is never sent); **the glow follows the character, so a disguise change never ends
   it**; the client draws it with line of sight, and must never mark the rig with an attribute).
 - Landing: `ProjectileImpact` with `LightUntil = now + 5`. Clients light the area until then, no damage. A flare that
   hits a person lights at that person; a flare that times out lights where it is. Cleanup belongs to the client Janitor

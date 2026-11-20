@@ -12,7 +12,8 @@
 --   MetaProgressionService.validateLoadout(player, request) -> (Types.PlayerLoadout?, reason?)
 --   MetaProgressionService.setLoadout(player, loadout)   equips a loadout validateLoadout returned, and tells the player
 --   MetaProgressionService.ownedAgents(player) -> { AgentId } in menu order
---   MetaProgressionService.recordMatch(player, won)   a finished match: mastery XP for the agent played, career counters
+--   MetaProgressionService.recordMatch(player, won, extracted)   a finished match: mastery XP for the agent played (a team win adds
+--     the bonus), career counters (Extractions only if this player was still in at the end)
 --   MetaProgressionService.queueInfo() -> Types.QueueInfo     the modes this server can deploy into
 
 local Players = game:GetService("Players")
@@ -40,6 +41,7 @@ local loadouts: { [Player]: PlayerLoadout } = {}
 local persistent: { [Player]: boolean } = {} -- this server holds the player's lock and saves their profile
 local dirty: { [Player]: boolean } = {}
 local saving: { [Player]: boolean } = {}
+local releasing: { [number]: boolean } = {} -- a UserId whose release save is still running: a quick rejoin waits for it
 
 local function startingMastery(): number
 	return if RunService:IsStudio() then GameConfig.Debug.StudioMasteryLevel else 1
@@ -295,7 +297,7 @@ end
 
 -- Ticket 21-mastery: a match the player finished (MatchService.finish). The agent they played gains mastery XP and levels,
 -- and the career counters move. The loadout is the one they deployed with; nothing happens without a profile or a loadout.
-function MetaProgressionService.recordMatch(player: Player, won: boolean)
+function MetaProgressionService.recordMatch(player: Player, won: boolean, extracted: boolean)
 	local profile = profiles[player]
 	local loadout = loadouts[player]
 	if not profile or not loadout then
@@ -314,7 +316,7 @@ function MetaProgressionService.recordMatch(player: Player, won: boolean)
 	end
 	profile.Mastery[loadout.AgentId] = { Level = level, XP = xp }
 	profile.Career.Matches += 1
-	if won then
+	if extracted then
 		profile.Career.Extractions += 1
 	end
 	dirty[player] = true
@@ -391,11 +393,16 @@ local function saveProfile(player: Player, release: boolean): boolean
 	saving[player] = nil
 	if not ok then
 		dirty[player] = true -- try again at the next autosave
+	elseif release then
+		persistent[player] = nil -- the lock is gone; nothing may save this profile again (a second release would race a new server)
 	end
 	return ok
 end
 
 local function loadProfile(player: Player)
+	while releasing[player.UserId] do
+		task.wait(0.2) -- they just left this server and the save that lets go of the lock is still running
+	end
 	local status, saved = ProfileStore.load(player.UserId)
 	if not player.Parent then
 		if status == "Loaded" then
@@ -403,9 +410,19 @@ local function loadProfile(player: Player)
 		end
 		return
 	end
-	if status == "Locked" then
-		player:Kick("Your profile is open on another server. Please try again in a moment.")
-		return
+	if status == "Locked" or (status == "Unavailable" and not ProfileStore.isOff()) then
+		if RunService:IsStudio() then
+			-- A force-stopped test leaves its lock behind; a Studio session just plays unsaved rather than being kicked.
+			warn(`[MetaProgression] {player.Name}: profile {status}; this Studio session will not save`)
+			status, saved = "Unavailable", nil
+		else
+			player:Kick(
+				if status == "Locked"
+					then "Your profile is open on another server. Please try again in a moment."
+					else "Your profile could not be loaded. Please rejoin in a moment."
+			)
+			return
+		end
 	end
 	local profile = reconcile(if saved then saved.Profile else nil)
 	profiles[player] = profile
@@ -421,8 +438,9 @@ local function loadProfile(player: Player)
 end
 
 local function autosave()
+	-- Every profile, dirty or not: the save also renews the session lock, which would otherwise go stale on an idle player.
 	for player in persistent do
-		if dirty[player] and not saving[player] then
+		if not saving[player] then
 			task.spawn(saveProfile, player, false)
 		end
 	end
@@ -450,7 +468,9 @@ function MetaProgressionService.Start()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		if persistent[player] then
+			releasing[player.UserId] = true
 			saveProfile(player, true)
+			releasing[player.UserId] = nil
 		end
 		persistent[player] = nil
 		dirty[player] = nil
