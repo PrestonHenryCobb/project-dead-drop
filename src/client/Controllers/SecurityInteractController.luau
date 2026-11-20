@@ -33,12 +33,68 @@ local controls = GameConfig.Controls
 local localPlayer = Players.LocalPlayer
 local INTERACT_ACTION = "CoverStoryInteractSecurity"
 local CHECK_SECONDS = 0.1
+local secretPanels: { [BasePart]: boolean } = {}
+local secretSight = RaycastParams.new()
+secretSight.CollisionGroup = GameConfig.Rig.CollisionGroup
+secretSight.RespectCanCollide = true
+
+local function secretExitUsable(lever: BasePart, from: Vector3): boolean
+	-- The physical lever needs the agent's body; Sparrow hacking permissions do not extend to this action.
+	if DroneController.part() or (lever.Position - from).Magnitude > GameConfig.SecretExit.InteractStuds then
+		return false
+	end
+	local id = lever:GetAttribute("ExitId")
+	if type(id) ~= "string" then
+		return false
+	end
+	local panel: BasePart? = nil
+	for candidate in secretPanels do
+		if candidate.Parent and candidate:GetAttribute("ExitId") == id then
+			panel = candidate
+			break
+		end
+	end
+	if not panel or not panel.CanCollide then
+		return false -- already open, or its paired panel has not streamed in
+	end
+	local size = panel.Size
+	local across = if size.X <= size.Y and size.X <= size.Z
+		then panel.CFrame.RightVector
+		elseif size.Z <= size.Y then panel.CFrame.LookVector
+		else panel.CFrame.UpVector
+	local sign = if (lever.Position - panel.Position):Dot(across) >= 0 then 1 else -1
+	if (from - panel.Position):Dot(across * sign) <= 0 then
+		return false
+	end
+	local root = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") then
+		return false
+	end
+	local offset = lever.Position - from
+	local flat, look =
+		Vector3.new(offset.X, 0, offset.Z), Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
+	if
+		flat.Magnitude > 0
+		and look.Magnitude > 0
+		and flat.Unit:Dot(look.Unit) < math.cos(math.rad(GameConfig.SecretExit.FacingDegrees))
+	then
+		return false
+	end
+	local hit = workspace:Raycast(from, offset, secretSight)
+	return hit == nil or hit.Instance == lever
+end
 
 local function flatDistance(a: Vector3, b: Vector3): number
 	return Vector3.new(a.X - b.X, 0, a.Z - b.Z).Magnitude
 end
 
 local KINDS: { Kind } = {
+	{
+		tag = Enums.Tag.SecretExitTrigger,
+		kind = "SecretExit",
+		idAttribute = "ExitId",
+		usable = secretExitUsable,
+	},
 	{
 		tag = Enums.Tag.SecurityCamera,
 		kind = "Camera",
@@ -230,7 +286,17 @@ local function onInteract(_: string, state: Enum.UserInputState): Enum.ContextAc
 	if state == Enum.UserInputState.Begin then
 		local part, kind = target, targetKind
 		local id = part and kind and part:GetAttribute(kind.idAttribute or "SecurityId")
-		if part and kind and type(id) == "string" then
+		local root, camera = eligibleRoot(), workspace.CurrentCamera
+		if
+			part
+			and part.Parent
+			and kind
+			and type(id) == "string"
+			and root
+			and camera
+			and kind.usable(part, root.Position)
+			and visible(camera.CFrame.Position, part)
+		then
 			holding = true
 			RemoteController.fire("RequestInteract", kind.kind, id)
 			return Enum.ContextActionResult.Sink
@@ -281,7 +347,7 @@ local function refresh()
 			end
 		end
 	end
-	if not best then
+	if not best or (holding and best ~= target) then
 		cancelHold()
 	end
 	target, targetKind = best, bestKind
@@ -311,6 +377,20 @@ function SecurityInteractController.Start()
 	highlight.Parent = workspace
 	outline = highlight
 	janitor:Add(highlight)
+	local function addPanel(instance: Instance)
+		if instance:IsA("BasePart") then
+			secretPanels[instance] = true
+		end
+	end
+	janitor:Add(CollectionService:GetInstanceAddedSignal(Enums.Tag.SecretExit):Connect(addPanel))
+	janitor:Add(CollectionService:GetInstanceRemovedSignal(Enums.Tag.SecretExit):Connect(function(instance)
+		if instance:IsA("BasePart") then
+			secretPanels[instance] = nil
+		end
+	end))
+	for _, instance in CollectionService:GetTagged(Enums.Tag.SecretExit) do
+		addPanel(instance)
+	end
 
 	for _, kind in KINDS do
 		local function add(instance: Instance)
@@ -361,6 +441,7 @@ function SecurityInteractController.Start()
 		bindFor(false)
 		target, targetKind, outline = nil, nil, nil
 		table.clear(objects)
+		table.clear(secretPanels)
 	end)
 	janitor:Add(script.Destroying:Connect(function()
 		janitor:Destroy()

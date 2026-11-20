@@ -65,3 +65,19 @@ Source review and StyLua only. Native checks remain: results/reward arrival in e
 order, level-up versus no level-up, first-win Credits, long scoreboards on gamepad, Profile updates and a second
 round with no stale reward details. No new SPEC-QUESTION. The rewards service and team-chat filtering are now
 server implementations supplied by Claude, superseding the earlier server follow-up list in the older report.
+
+## Secret-exit client — 7B-secret-exits-client
+
+Read SECRET_EXIT_CONTRACT.md and the server's lever-side geometry/hold rules. SecurityInteract now discovers
+SecretExitTrigger levers and tracks their streamed panel partners. The existing client-only outline and InputHints
+prompt offer Pull the lever only near a shut paired panel, on the lever's inside side, facing it, with a clear body
+and camera line of sight. Sparrow does not offer a physical lever action. The existing RequestInteract path sends
+SecretExit and ExitId; SecurityHud recognizes both the kind and the server's Pull the lever progress label.
+Panel tags can arrive in either order or stream out/in. No character metadata, extra remote or optimistic door
+opening. Looking at a different target cancels the old hold; pressing Interact rechecks eligibility immediately,
+including a modal that opened since the last targeting refresh. The server still owns timing and panel behavior.
+
+Source review and StyLua only. Native checks remain: inside near/facing versus outside/obstructed/out-of-range,
+keyboard E and gamepad X hints/hold, look-away cancellation, streamed panel/lever arrival, already-open doorway,
+and settings/Sparrow suppression. Server tuning questions remain the contract's 1.5 s hold, 12 s open and 4-stud/
+50-degree reach/facing. NPC/GPS routing and door audio/animation remain outside this client ticket.

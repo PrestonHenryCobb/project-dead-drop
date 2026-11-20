@@ -23,6 +23,7 @@ local theme = HudTheme.get()
 local config = GameConfig.SecurityHud
 local player = Players.LocalPlayer
 local labels = {
+	SecretExit = "Pull the lever",
 	Camera = "Hack camera",
 	FuseBox = "Cut power",
 	CameraTerminal = "Camera Room",
@@ -44,6 +45,7 @@ for _, label in labels do
 end
 validLabels["Supply Cache"] = true -- the authoritative hold label differs from the contextual prompt
 validLabels["Use keycard"] = true -- Supply Cache keycards change the acknowledged door hold
+validLabels["SecretExit"] = true -- accept the action kind as well as the server's human-readable hold label
 
 function SecurityHudController.Init() end
 
