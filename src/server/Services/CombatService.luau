@@ -846,11 +846,11 @@ end
 
 -- The hammer's charged hit moves its target sideways, along the swinger's right (a flat horizontal swing). Walls stop
 -- the push; an open edge does not, so a target near one falls. A player's body belongs to their own client, so they are
--- told and move themselves (CombatStatus "Shove"). SPEC-QUESTION: NPCs are not shoved yet (their position is driven by
--- the crowd's route); only damage reaches them.
+-- told and move themselves (CombatStatus "Shove"); an NPC is moved by NPCService.shove (floor and walls permitting).
 local function shove(target: Target, look: Vector3, studs: number)
 	local victim = target.player
-	if not victim then
+	local npc = target.npc
+	if not victim and not npc then
 		return
 	end
 	local direction = Vector3.new(-look.Z, 0, look.X)
@@ -861,9 +861,13 @@ local function shove(target: Target, look: Vector3, studs: number)
 	if allowed <= 0 then
 		return
 	end
+	if npc then
+		NPCService.shove(npc, direction, allowed)
+		return
+	end
 	local status: Types.CombatStatusInfo =
 		{ Kind = "Shove", Seconds = shoveConfig.Seconds, Direction = direction, Studs = allowed }
-	RemoteService.fireClient("CombatStatus", victim, status)
+	RemoteService.fireClient("CombatStatus", victim :: Player, status)
 end
 
 local function onMelee(player: Player, kind: unknown, lookArg: unknown)

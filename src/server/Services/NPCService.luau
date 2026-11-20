@@ -765,6 +765,23 @@ function NPCService.getNpcs(): { Npc }
 	return npcs
 end
 
+-- The hammer's charged shove for an NPC (ticket 8.5b): sideways along direction, up to studs, by the longest of
+-- GameConfig.Combat.Shove.NpcFractions that keeps it on floor and clear of walls. An NPC never goes over an edge (a player may), and
+-- one riding a cab or already down is left alone. The walk then carries on from where it landed.
+function NPCService.shove(npc: Npc, direction: Vector3, studs: number)
+	local graph = currentGraph
+	if not graph or Death.isDown(npc) or npc.riding then
+		return
+	end
+	for _, fraction in GameConfig.Combat.Shove.NpcFractions do
+		local landed = NavGraph.standable(graph, npc.ground, npc.ground + direction * studs * fraction, npc.maxTier)
+		if landed then
+			npc.ground = landed
+			return
+		end
+	end
+end
+
 -- A stagger or taser hit slows an NPC's walk like a player's (ticket 8.5c-server); it does nothing to one that is standing still or down.
 function NPCService.slow(npc: Npc, mult: number, seconds: number)
 	if not Death.isDown(npc) then

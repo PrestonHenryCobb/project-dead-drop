@@ -185,9 +185,10 @@ Client command bar by firing the remote with a script, or wait for Codex's clien
 ## Gaps and SPEC-QUESTIONs
 
 - Run in Studio against NPCs on 2026-11-03 (see the results table above); player-victim effects still untested.
-- NPCs are now **slowed** by the pump stagger and the taser (`Movement.slow`: the same multiplier and seconds as a player), but
-  still **not shoved** by the hammer (their position comes from the crowd's route). An observer comparing a shoved player with an
-  unshoved NPC could still see the difference; a shove for NPCs is not built.
+- NPCs are **slowed** by the pump stagger and the taser (`Movement.slow`: the same multiplier and seconds as a player) and
+  **shoved** by the hammer's charged hit (`NPCService.shove`, 2026-11-19): up to 3 studs sideways, by the longest of
+  `Combat.Shove.NpcFractions` (1, 0.66, 0.33) that keeps it on floor and clear of walls. Unlike a player it never goes over an
+  edge, and one riding a cab or already down is not moved. The move is instant (a player's takes 0.25 s).
 - Smoke blocks sight checks on the server (see the smoke SMG section) but not shots, sound, Bug Cams or the Long Lens.
 - Landed knives and flights in the air are cleared when the match goes to Lobby or Insertion (ProjectileService, 2026-11-19).
 - SPEC-QUESTION: the hammer's "sideways in the direction of the swing" is implemented as the swinger's right.

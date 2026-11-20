@@ -1090,7 +1090,8 @@ local GameConfig = {
 			SmokeDisplayOrder = 1,
 		},
 		-- The hammer's shove: how long the victim's client takes to travel the distance, and the free run it needs.
-		Shove = { Seconds = 0.25, ProbeUpStuds = 1.5, WallClearanceStuds = 1 },
+		-- NpcFractions: an NPC is moved the whole distance if its floor and walls allow, else the next shorter fraction (it never falls).
+		Shove = { Seconds = 0.25, ProbeUpStuds = 1.5, WallClearanceStuds = 1, NpcFractions = { 1, 0.66, 0.33 } },
 		MovingSpeedStuds = 2, -- a body faster than this counts as moving for spread
 		-- Hit boxes the server tests rewound shots against: a vertical cylinder from the feet to the head, and the head.
 		-- Step 8B.7: the body radius narrows with the slimmer bodies (from 1.25), still slightly generous.
