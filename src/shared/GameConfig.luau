@@ -1628,6 +1628,16 @@ local GameConfig = {
 
 	-- Spec 15, ticket 16: what an agent changes about the common rules. The ability's name and cooldown are in AgentDefs.
 	-- Guise (Two Faces): two disguise slots and a scan of 0.6 s instead of 1.2 s.
+	-- Ticket dossier (owner answers 2026-11-20, docs/DOSSIER_DRAFT.md): Dossiers never expire; all account XP of a match goes into the
+	-- active one; 30 tiers of 1,000 XP; the premium track costs Stocks and a part of them comes back as rewards. SPEC-QUESTION: guesses.
+	Dossier = {
+		Tiers = 30,
+		XPPerTier = 1000,
+		PremiumStocks = 800, -- a permanent unlock of one Dossier's premium track
+		DuplicateCredits = 100, -- a reward the player already owns pays this many Credits instead
+		PremiumClaimOffset = 100, -- DossierProgress.Claimed holds a tier for the free track and tier plus this for the premium track
+	},
+
 	-- Ticket kits-24 (owner answer 2026-11-20: Claude designs the 24 new items): the numbers of every Instinct (a passive), by Instinct id. The
 	-- selected Instinct's table is what AbilityService.rulesOf hands to the systems that read an agent's rules. Every key is read in one place:
 	-- DisguiseSlots, ScanSeconds, DisguiseSeconds, StatusMult (DisguiseService); ExtraStartPlates, FallDamageMult, DamageTakenMult,
@@ -2274,6 +2284,7 @@ local GameConfig = {
 			RequestBlackMarketPurchase = { PerSecond = 1, Burst = 2 },
 			RequestMintStrikeStocks = { PerSecond = 1, Burst = 2 },
 			RequestBuyAgent = { PerSecond = 1, Burst = 2 }, -- ticket shop-skeleton: a button
+			RequestBuyDossierPremium = { PerSecond = 1, Burst = 2 }, -- ticket dossier: a button
 			GetBlackMarketOffers = { PerSecond = 1, Burst = 3 },
 			RequestFindMatch = { PerSecond = 1, Burst = 2 }, -- ticket matchmaking: a button
 			RequestCancelFindMatch = { PerSecond = 1, Burst = 2 },

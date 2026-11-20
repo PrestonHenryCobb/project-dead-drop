@@ -438,10 +438,18 @@ export type PlayerLoadout = {
 
 export type AgentMastery = { Level: number, XP: number }
 
+-- Ticket dossier (docs/DOSSIER_DRAFT.md): one reward on a Dossier tier. Kind is "Credits" or "Stocks" (Amount) or "Cosmetic" (CosmeticId, an id
+-- from CosmeticDefs). A tier has a Free list and a Premium list; both are claimed by the player.
+export type DossierReward = { Kind: string, Amount: number?, CosmeticId: string? }
+export type DossierTier = { Free: { DossierReward }, Premium: { DossierReward } }
+export type DossierDef = { Id: string, Name: string, Tiers: { DossierTier } }
+-- Any owned cosmetic: Attire from the Black Market and the Dossier-only kinds. Kind is "Attire", "Title", "Card", "Spray", "Finish", "Takedown" or "Extraction".
+export type CosmeticEntry = { Id: string, Name: string, Kind: string, AgentId: string? }
+
 export type DossierProgress = {
 	XP: number,
 	Premium: boolean,
-	Claimed: { number }, -- tier indices already claimed (a list, so it survives the trip over a remote)
+	Claimed: { number }, -- tiers already claimed: n for the free track, n plus GameConfig.Dossier.PremiumClaimOffset for the premium track (a list, so it survives a remote)
 }
 
 -- Career numbers the Profile shows; all come from finished matches.
@@ -483,6 +491,8 @@ export type MatchRewardsInfo = {
 	LevelCredits: number, -- 250 for each level gained
 	WinCredits: number, -- the win bonus, 0 on a loss
 	DailyCredits: number, -- the first win of the day, 0 otherwise
+	DossierId: string?, -- the active Dossier the match XP went into (ticket dossier), nil if none
+	DossierXp: number?, -- that Dossier's XP after the match
 }
 
 -- The modes a player can queue for on this server. Until matchmaking (Step 22) a server plays one mode, so Available

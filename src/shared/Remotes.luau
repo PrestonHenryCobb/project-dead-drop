@@ -135,6 +135,7 @@ local Remotes = {
 		"GetBlackMarketOffers", -- returns Types.BlackMarketState (ticket shop-skeleton)
 		"RequestFindMatch", -- (mode): queue for a match on the lobby place (ticket matchmaking); returns (ok, reason?)
 		"RequestCancelFindMatch", -- leave the queue; returns (ok, reason?)
+		"RequestBuyDossierPremium", -- (dossierId): unlock a Dossier's premium track with Stocks (ticket dossier); returns (ok, reason?)
 		"RequestBuyAgent", -- (agentId): buy a locked agent with Credits (ticket shop-skeleton)
 		-- (packageId) Studio-only mock grant for testing the Mint; real Stocks come from Robux purchases (Step 21).
 		"RequestMintStrikeStocks",

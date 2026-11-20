@@ -26,7 +26,8 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local AgentDefs = require(Shared:WaitForChild("Defs"):WaitForChild("AgentDefs"))
 local AssetDefs = require(Shared:WaitForChild("Defs"):WaitForChild("AssetDefs"))
 local GadgetDefs = require(Shared:WaitForChild("Defs"):WaitForChild("GadgetDefs"))
-local ShopDefs = require(Shared:WaitForChild("Defs"):WaitForChild("ShopDefs"))
+local CosmeticDefs = require(Shared:WaitForChild("Defs"):WaitForChild("CosmeticDefs"))
+local DossierDefs = require(Shared:WaitForChild("Defs"):WaitForChild("DossierDefs"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"))
@@ -65,7 +66,7 @@ local function newProfile(): MetaProfile
 		StarterPicksLeft = picks,
 		Mastery = {},
 		OwnedCosmetics = {},
-		ActiveDossierId = nil,
+		ActiveDossierId = DossierDefs.order[1], -- the first Dossier is active from the start, so match XP is never lost
 		Dossiers = {},
 		Career = {
 			Matches = 0,
@@ -141,18 +142,19 @@ local function reconcile(saved: any): MetaProfile
 	end
 	if type(saved.OwnedCosmetics) == "table" then
 		for cosmeticId, owned in saved.OwnedCosmetics do
-			if owned == true and type(cosmeticId) == "string" and ShopDefs.byId[cosmeticId] then
+			if owned == true and type(cosmeticId) == "string" and CosmeticDefs.byId[cosmeticId] then
 				profile.OwnedCosmetics[cosmeticId] = true
 			end
 		end
 	end
 	if type(saved.Dossiers) == "table" then
 		for dossierId, progress in saved.Dossiers do
-			if type(dossierId) == "string" and type(progress) == "table" then
+			if type(dossierId) == "string" and DossierDefs.get(dossierId) and type(progress) == "table" then
 				local claimed: { number } = {}
 				if type(progress.Claimed) == "table" then
+					local top = GameConfig.Dossier.PremiumClaimOffset + GameConfig.Dossier.Tiers
 					for _, tier in progress.Claimed do
-						if type(tier) == "number" and tier == tier and tier >= 1 then
+						if type(tier) == "number" and tier == tier and tier >= 1 and tier <= top then
 							table.insert(claimed, math.floor(tier))
 						end
 					end
@@ -165,7 +167,7 @@ local function reconcile(saved: any): MetaProfile
 			end
 		end
 	end
-	if type(saved.ActiveDossierId) == "string" and profile.Dossiers[saved.ActiveDossierId] then
+	if type(saved.ActiveDossierId) == "string" and DossierDefs.get(saved.ActiveDossierId) then
 		profile.ActiveDossierId = saved.ActiveDossierId
 	end
 	if type(saved.Career) == "table" then
@@ -397,6 +399,18 @@ function MetaProgressionService.settleAccount(player: Player, xp: number, won: b
 		end
 	end
 	profile.Credits = math.min(profile.Credits + levelCredits + winCredits + dailyCredits, dataConfig.MaxCredits)
+	-- Ticket dossier: all the match's account XP also goes into the active Dossier (owner answer 2026-11-20).
+	local dossierId = profile.ActiveDossierId
+	local dossierXp: number? = nil
+	if dossierId and DossierDefs.get(dossierId) then
+		local progress = profile.Dossiers[dossierId]
+		if not progress then
+			progress = { XP = 0, Premium = false, Claimed = {} }
+			profile.Dossiers[dossierId] = progress
+		end
+		progress.XP = math.min(progress.XP + xp, dataConfig.MaxStat)
+		dossierXp = progress.XP
+	end
 	dirty[player] = true
 	push(player)
 	return {
@@ -409,6 +423,8 @@ function MetaProgressionService.settleAccount(player: Player, xp: number, won: b
 		LevelCredits = levelCredits,
 		WinCredits = winCredits,
 		DailyCredits = dailyCredits,
+		DossierId = if dossierXp then dossierId else nil,
+		DossierXp = dossierXp,
 	}
 end
 
@@ -496,13 +512,6 @@ function MetaProgressionService.transact(
 	return ok, reason
 end
 
--- SPEC-QUESTION: Dossiers have no designed content yet (names, tiers, rewards), so these requests are refused rather than
--- answered from invented data. (The Black Market and the Mint are StorefrontService.)
-local NO_CATALOGUE = {
-	"RequestClaimDossierTier",
-	"RequestSelectActiveDossier",
-}
-
 -- Persistence (ticket 21-data) -------------------------------------------------------------------------------------
 
 local function savedShape(player: Player): { [string]: any }
@@ -588,11 +597,6 @@ function MetaProgressionService.Start()
 	RemoteService.onInvoke("RequestEquipLoadout", onEquip)
 	RemoteService.onInvoke("RequestClaimStarterAgent", onClaimStarter)
 	RemoteService.onInvoke("RequestBuyAgent", onBuyAgent)
-	for _, name in NO_CATALOGUE do
-		RemoteService.onInvoke(name, function()
-			return false, "NoCatalogue"
-		end)
-	end
 
 	Players.PlayerAdded:Connect(function(player)
 		task.spawn(loadProfile, player)
