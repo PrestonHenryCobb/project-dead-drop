@@ -10,7 +10,7 @@
 -- Keys: DamageDealt and DamageTaken (CombatService, multipliers), SuspicionGain (CoverService, a multiplier), ScanTime and ScanRange
 -- (DisguiseService, multipliers), HackTime (AbilityService's hold-time multiplier).
 
-type Entry = { value: number, untilAt: number }
+type Entry = { value: number, untilAt: number, character: Model? } -- the body it was set on: a new life starts clean
 
 local Effects = {}
 
@@ -19,13 +19,13 @@ local active: { [Player]: { [string]: Entry } } = {}
 function Effects.set(player: Player, key: string, value: number, seconds: number)
 	local entries: { [string]: Entry } = active[player] or {}
 	active[player] = entries
-	entries[key] = { value = value, untilAt = os.clock() + seconds }
+	entries[key] = { value = value, untilAt = os.clock() + seconds, character = player.Character }
 end
 
 function Effects.get(player: Player, key: string, default: number): number
 	local entries = active[player]
 	local entry = if entries then entries[key] else nil
-	if entry and os.clock() < entry.untilAt then
+	if entry and os.clock() < entry.untilAt and entry.character == player.Character then
 		return entry.value
 	end
 	return default

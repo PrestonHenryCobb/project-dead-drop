@@ -96,6 +96,9 @@ local function onPurchase(player: Player, offerId: unknown): (boolean, string?)
 	return MetaProgressionService.transact(player, function(profile)
 		local missing = 0
 		for _, item in bundle.Items do
+			if not profile.OwnedAgents[item.AgentId] then
+				return false, "AgentNotOwned" -- the same rule as a single item: Attire is only sold to the agent's owner
+			end
 			if not profile.OwnedCosmetics[item.Id] then
 				missing += 1
 			end

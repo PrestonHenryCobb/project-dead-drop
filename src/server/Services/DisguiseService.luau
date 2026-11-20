@@ -132,7 +132,7 @@ end
 
 -- The selected Instinct's disguise numbers (GameConfig.Instincts), or the usual ones.
 local function agentRules(player: Player): { DisguiseSlots: number?, ScanSeconds: number?, DisguiseSeconds: number? }
-	return KitRules.of(player)
+	return KitRules.of(player) :: any
 end
 
 local function slotLimit(player: Player): number
