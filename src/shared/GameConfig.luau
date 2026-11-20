@@ -170,6 +170,24 @@ local GameConfig = {
 		StarterAgentsPerClass = 1,
 	},
 
+	-- Ticket 21-data (spec 20.4): the saved profile. One DataStore key per player, a session lock so two servers never
+	-- hold the same profile, and a save every AutosaveSeconds, on leave and when the server closes.
+	Data = {
+		StoreName = "CoverStoryProfiles",
+		Version = 1, -- bump when the saved shape changes; ProfileStore.reconcile must then migrate older ones
+		AutosaveSeconds = 120,
+		-- A lock older than this is a crashed server's and may be taken. Autosave refreshes it, so it must be well above
+		-- AutosaveSeconds.
+		LockStaleSeconds = 600,
+		LockWaitSeconds = 25, -- how long a join waits for another server to let go before taking the lock or giving up
+		LockRetrySeconds = 2,
+		Retries = 5, -- DataStore calls that fail are tried this many times with the backoff below
+		RetryBaseSeconds = 1,
+		RetryMaxSeconds = 8,
+		MaxCredits = 1000000000, -- sanity bounds applied to a loaded profile
+		MaxStat = 1000000000,
+	},
+
 	-- Ticket menu-phase0: the menu's look (client/Menu/MenuTheme.luau builds every shared component from these).
 	-- Dark charcoal surfaces, ivory text, emerald for the main action, brass trim, burgundy for locked/danger and a cyan
 	-- controller focus ring. Sizes are pixels at the 1280 x 720 reference (GameConfig.UI.PanelScale).

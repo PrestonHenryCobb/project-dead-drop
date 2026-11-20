@@ -2,8 +2,10 @@
 -- Ticket menu-services: each player's meta profile (agents owned, mastery, currencies, career) and equipped loadout,
 -- and the menu requests that change them. The client asks; every request is checked here.
 --
--- Profiles live in memory for the session. Saving them (session-locked DataStore) is Step 21; until then every join
--- starts from a fresh profile: no agents owned and one free pick open per class (SPEC_CHANGES 15.9/20).
+-- A profile is loaded from the session-locked DataStore when a player joins (Data/ProfileStore, ticket 21-data), kept in
+-- memory while they play, and saved every GameConfig.Data.AutosaveSeconds, on leave and when the server closes. A new
+-- player starts fresh: no agents owned and one free pick open per class (SPEC_CHANGES 15.9/20). Where the DataStore cannot
+-- be reached (Studio without API access) the profile lives for the session only.
 --
 --   MetaProgressionService.snapshot(player) -> Types.MetaSnapshot?
 --   MetaProgressionService.getLoadout(player) -> Types.PlayerLoadout?
@@ -23,6 +25,7 @@ local GadgetDefs = require(Shared:WaitForChild("Defs"):WaitForChild("GadgetDefs"
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"))
+local ProfileStore = require(script.Parent.Parent.Data.ProfileStore)
 local RemoteService = require(script.Parent.RemoteService)
 local TeamService = require(script.Parent.TeamService)
 
@@ -33,6 +36,9 @@ local MetaProgressionService = {}
 
 local profiles: { [Player]: MetaProfile } = {}
 local loadouts: { [Player]: PlayerLoadout } = {}
+local persistent: { [Player]: boolean } = {} -- this server holds the player's lock and saves their profile
+local dirty: { [Player]: boolean } = {}
+local saving: { [Player]: boolean } = {}
 
 local function startingMastery(): number
 	return if RunService:IsStudio() then GameConfig.Debug.StudioMasteryLevel else 1
@@ -62,6 +68,103 @@ local function newProfile(): MetaProfile
 			MatchesUncompromised = 0,
 		},
 	}
+end
+
+local dataConfig = GameConfig.Data
+
+local function bounded(value: any, default: number, max: number): number
+	if type(value) ~= "number" or value ~= value then
+		return default
+	end
+	return math.floor(math.clamp(value, 0, max))
+end
+
+local function knownClasses(): { [string]: boolean }
+	local classes: { [string]: boolean } = {}
+	for _, agent in AgentDefs.byId do
+		classes[agent.Class] = true
+	end
+	return classes
+end
+
+-- Turns whatever was saved into a valid profile: unknown agents, classes and malformed entries are dropped, numbers are
+-- bounded, and anything missing takes its starting value. The saved table is never returned or mutated.
+local function reconcile(saved: any): MetaProfile
+	local profile = newProfile()
+	if type(saved) ~= "table" then
+		return profile
+	end
+	profile.Level = math.max(1, bounded(saved.Level, 1, dataConfig.MaxStat))
+	profile.Credits = bounded(saved.Credits, 0, dataConfig.MaxCredits)
+	profile.Stocks = bounded(saved.Stocks, 0, dataConfig.MaxCredits)
+	if type(saved.OwnedAgents) == "table" then
+		for agentId, owned in saved.OwnedAgents do
+			if owned == true and type(agentId) == "string" and AgentDefs.get(agentId) then
+				profile.OwnedAgents[agentId] = true
+			end
+		end
+	end
+	if type(saved.StarterPicksLeft) == "table" then
+		local classes = knownClasses()
+		local picks: { [string]: boolean } = {}
+		for class, left in saved.StarterPicksLeft do
+			if left == true and type(class) == "string" and classes[class] then
+				picks[class] = true
+			end
+		end
+		profile.StarterPicksLeft = picks
+	end
+	if type(saved.Mastery) == "table" then
+		for agentId, mastery in saved.Mastery do
+			if type(agentId) == "string" and AgentDefs.get(agentId) and type(mastery) == "table" then
+				profile.Mastery[agentId] = {
+					Level = bounded(mastery.Level, 0, GameConfig.Mastery.MaxLevel),
+					XP = bounded(mastery.XP, 0, dataConfig.MaxStat),
+				}
+			end
+		end
+	end
+	for agentId in profile.OwnedAgents do
+		if not profile.Mastery[agentId] then
+			profile.Mastery[agentId] = { Level = startingMastery(), XP = 0 }
+		end
+	end
+	if type(saved.OwnedCosmetics) == "table" then
+		for cosmeticId, owned in saved.OwnedCosmetics do
+			if owned == true and type(cosmeticId) == "string" then
+				profile.OwnedCosmetics[cosmeticId] = true
+			end
+		end
+	end
+	if type(saved.Dossiers) == "table" then
+		for dossierId, progress in saved.Dossiers do
+			if type(dossierId) == "string" and type(progress) == "table" then
+				local claimed: { number } = {}
+				if type(progress.Claimed) == "table" then
+					for _, tier in progress.Claimed do
+						if type(tier) == "number" and tier == tier and tier >= 1 then
+							table.insert(claimed, math.floor(tier))
+						end
+					end
+				end
+				profile.Dossiers[dossierId] = {
+					XP = bounded(progress.XP, 0, dataConfig.MaxStat),
+					Premium = progress.Premium == true,
+					Claimed = claimed,
+				}
+			end
+		end
+	end
+	if type(saved.ActiveDossierId) == "string" and profile.Dossiers[saved.ActiveDossierId] then
+		profile.ActiveDossierId = saved.ActiveDossierId
+	end
+	if type(saved.Career) == "table" then
+		local career: { [string]: number } = profile.Career :: any
+		for stat in career do
+			career[stat] = bounded(saved.Career[stat], 0, dataConfig.MaxStat)
+		end
+	end
+	return profile
 end
 
 local function masteryLevel(profile: MetaProfile, agentId: string): number
@@ -185,6 +288,7 @@ function MetaProgressionService.setLoadout(player: Player, loadout: PlayerLoadou
 		return
 	end
 	loadouts[player] = table.freeze(table.clone(loadout))
+	dirty[player] = true
 	push(player)
 end
 
@@ -220,6 +324,7 @@ local function onClaimStarter(player: Player, agentId: unknown): (boolean, strin
 		local first = WeaponDefs.getForAgent(agent.Id)[1]
 		loadouts[player] = table.freeze({ AgentId = agent.Id, HardwareId = first.Id })
 	end
+	dirty[player] = true
 	push(player)
 	return true, nil
 end
@@ -233,6 +338,66 @@ local NO_CATALOGUE = {
 	"RequestBlackMarketPurchase",
 	"RequestMintStrikeStocks",
 }
+
+-- Persistence (ticket 21-data) -------------------------------------------------------------------------------------
+
+local function savedShape(player: Player): { [string]: any }
+	return { Profile = profiles[player], Loadout = loadouts[player] }
+end
+
+-- Writes the profile (and, with release, lets go of the lock). One save per player at a time.
+local function saveProfile(player: Player, release: boolean): boolean
+	if not persistent[player] then
+		return false
+	end
+	while saving[player] do
+		task.wait(0.1)
+	end
+	if not persistent[player] then
+		return false
+	end
+	saving[player] = true
+	dirty[player] = false
+	local ok = ProfileStore.save(player.UserId, savedShape(player), release)
+	saving[player] = nil
+	if not ok then
+		dirty[player] = true -- try again at the next autosave
+	end
+	return ok
+end
+
+local function loadProfile(player: Player)
+	local status, saved = ProfileStore.load(player.UserId)
+	if not player.Parent then
+		if status == "Loaded" then
+			ProfileStore.save(player.UserId, saved, true) -- they left while it loaded: hand the lock back, data untouched
+		end
+		return
+	end
+	if status == "Locked" then
+		player:Kick("Your profile is open on another server. Please try again in a moment.")
+		return
+	end
+	local profile = reconcile(if saved then saved.Profile else nil)
+	profiles[player] = profile
+	if saved then
+		local loadout = MetaProgressionService.validateLoadout(player, saved.Loadout)
+		if loadout then
+			loadouts[player] = table.freeze(table.clone(loadout))
+		end
+	end
+	persistent[player] = status == "Loaded"
+	dirty[player] = false
+	push(player)
+end
+
+local function autosave()
+	for player in persistent do
+		if dirty[player] and not saving[player] then
+			task.spawn(saveProfile, player, false)
+		end
+	end
+end
 
 function MetaProgressionService.Init() end
 
@@ -248,16 +413,40 @@ function MetaProgressionService.Start()
 		end)
 	end
 
-	local function add(player: Player)
-		profiles[player] = newProfile()
-	end
-	Players.PlayerAdded:Connect(add)
+	Players.PlayerAdded:Connect(function(player)
+		task.spawn(loadProfile, player)
+	end)
 	for _, player in Players:GetPlayers() do
-		add(player)
+		task.spawn(loadProfile, player)
 	end
 	Players.PlayerRemoving:Connect(function(player)
+		if persistent[player] then
+			saveProfile(player, true)
+		end
+		persistent[player] = nil
+		dirty[player] = nil
 		profiles[player] = nil
 		loadouts[player] = nil
+	end)
+	task.spawn(function()
+		while true do
+			task.wait(dataConfig.AutosaveSeconds)
+			autosave()
+		end
+	end)
+	-- The server closing: every player still here is saved and released before it goes (it waits for the saves).
+	game:BindToClose(function()
+		local pending = 0
+		for player in persistent do
+			pending += 1
+			task.spawn(function()
+				saveProfile(player, true)
+				pending -= 1
+			end)
+		end
+		while pending > 0 do
+			task.wait(0.1)
+		end
 	end)
 end
 

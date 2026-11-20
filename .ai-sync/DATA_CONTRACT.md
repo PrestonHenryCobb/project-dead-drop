@@ -1,0 +1,34 @@
+# Saved data (ticket 21-data; Claude Code, 2026-11-19)
+
+**Built, not run in Studio** (owner asked for no tests in this run). Lint clean.
+
+## What is saved
+One DataStore key per player (`P<UserId>` in `GameConfig.Data.StoreName`), value
+`{ Version, Data = { Profile = MetaProfile, Loadout = PlayerLoadout? }, Lock = { JobId, At }?, SavedAt }`.
+`Profile` is the whole `Types.MetaProfile` (Level, Credits, Stocks, OwnedAgents, StarterPicksLeft, Mastery, OwnedCosmetics,
+Dossiers, ActiveDossierId, Career). Nothing else is saved yet: settings, XP and match results have no code that produces them.
+
+## How
+- `Data/ProfileStore.load(userId)` and `.save(userId, data, release)`: `UpdateAsync` with a session lock inside the value. A join
+  waits `LockWaitSeconds` (25 s) for another live server to let go, then is kicked with a message ("Locked"). A lock older than
+  `LockStaleSeconds` (600 s) is a crashed server's and is taken. A save from a server that lost the lock is refused.
+  Every call retries `Retries` times with a doubling backoff.
+- `MetaProgressionService.loadProfile` runs on join; the client already retries `GetPlayerMetaProfile` and listens for
+  `ProfileStateUpdated`, so the menu fills in when the load finishes. `reconcile` drops unknown agents, classes and
+  malformed entries and bounds every number; the saved table is never used as is.
+- Saves: every `AutosaveSeconds` (120) for profiles marked dirty (equip, claiming a starter agent), on leave (with release)
+  and in `BindToClose`.
+- Studio without API access, or an unpublished place: the first call fails with a known error, the store switches itself off and
+  the profile lives for the session only (a warning says so once).
+
+## Not built
+- Nothing writes Level, XP, Credits, Mastery XP or Career yet (no match-end hook awards them). Spec 20.1 XP table and the
+  Mastery 1 to 10 pace (SPEC_CHANGES) need an owner decision on how they combine: SPEC-QUESTION.
+- Dossiers, Black Market, Mint and Stocks have no catalogue, so there is nothing to save for them.
+- Saved settings (graphics quality, auto re-cover): Codex's client keeps them locally; no remote carries them.
+- A kicked "Locked" join has no retry screen.
+
+## To test (owner)
+1. Publish the place with API access on. Play, claim a starter agent, equip a loadout, leave. Rejoin: the agent and loadout are back.
+2. Two servers (or a Studio test plus a live server) with the same account: the second waits about 25 s and is kicked.
+3. Close the server with a player in it: `BindToClose` saves and releases (no "held by another server" warning on the next join).
