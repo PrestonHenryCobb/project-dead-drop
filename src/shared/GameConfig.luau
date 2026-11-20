@@ -184,6 +184,17 @@ local GameConfig = {
 		RangeStuds = 400, -- how far from the player a marker may be placed
 	},
 
+	-- Ticket 19-pings-client: contextual ping input and presentation. Chords preserve the existing gadget/GPS pad buttons.
+	PingHud = {
+		Key = Enum.UserInputType.MouseButton3,
+		DangerModifier = Enum.KeyCode.LeftAlt,
+		Pad = Enum.KeyCode.DPadRight,
+		DangerPad = Enum.KeyCode.ButtonR1,
+		ModifierPad = Enum.KeyCode.ButtonL2,
+		TouchPosition = UDim2.fromScale(0.8, 0.45),
+		DangerTouchPosition = UDim2.fromScale(0.9, 0.45),
+	},
+
 	-- Ticket 21-data (spec 20.4): the saved profile. One DataStore key per player, a session lock so two servers never
 	-- hold the same profile, and a save every AutosaveSeconds, on leave and when the server closes.
 	Data = {
@@ -993,6 +1004,7 @@ local GameConfig = {
 		-- Weapons (STEP8_QUESTIONS). The weapon every player carries until agent select exists (Step 10).
 		DefaultWeapon = "GuiseSMG",
 		MaxShotStuds = 400, -- the longest ray the server casts for a shot
+		SmokeMaxClouds = 40, -- how many smoke clouds the server tracks for sight checks (Combat/Smoke); the oldest goes first
 		FireDirectionTolerance = 0.02, -- a FireRequest direction must be a unit vector within this
 		PlayerRenderDelay = 0.1, -- how far behind the server a client sees other players; the rewind adds it (NPCs: NPC.InterpolationDelay)
 		GunfireReactSeconds = 0.5, -- NPCs react to a shooter's gunfire at most this often

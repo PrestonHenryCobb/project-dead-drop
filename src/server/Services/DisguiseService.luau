@@ -30,6 +30,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local Smoke = require(script.Parent.Parent.Combat.Smoke)
 local OutfitDefs = require(Shared:WaitForChild("Defs"):WaitForChild("OutfitDefs"))
 local Types = require(Shared:WaitForChild("Types"))
 local OutfitApplier = require(Shared:WaitForChild("Util"):WaitForChild("OutfitApplier"))
@@ -284,7 +285,7 @@ local function canScan(scanner: Player, target: NpcInfo): boolean
 	local lift = Vector3.new(0, config.ScanSightHeight, 0)
 	local from = root.Position + lift
 	local to = target.position + lift
-	return workspace:Raycast(from, to - from, sightParams) == nil
+	return workspace:Raycast(from, to - from, sightParams) == nil and not Smoke.blocks(from, to)
 end
 
 local function cancelScan(player: Player, state: State)

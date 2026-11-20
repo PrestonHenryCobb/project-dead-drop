@@ -25,6 +25,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local Smoke = require(script.Parent.Parent.Combat.Smoke)
 local Death = require(script.Parent.Parent.NPC.Death)
 local NpcTypes = require(script.Parent.Parent.NPC.NpcTypes)
 local AlarmService = require(script.Parent.AlarmService)
@@ -81,7 +82,7 @@ local function isFree(npc: Npc): boolean
 end
 
 local function lineClear(eye: Vector3, position: Vector3): boolean
-	return workspace:Raycast(eye, position - eye, sight) == nil
+	return workspace:Raycast(eye, position - eye, sight) == nil and not Smoke.blocks(eye, position)
 end
 
 -- Is the point within the guard's field of view (the same one witnesses use)?

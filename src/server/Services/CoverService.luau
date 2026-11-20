@@ -34,6 +34,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local Smoke = require(script.Parent.Parent.Combat.Smoke)
 local Types = require(Shared:WaitForChild("Types"))
 local AlarmService = require(script.Parent.AlarmService)
 local DisguiseService = require(script.Parent.DisguiseService)
@@ -359,6 +360,7 @@ local function sees(witness: Witness, target: Vector3): boolean
 		end
 	end
 	return workspace:Raycast(witness.position, offset, sightParams) == nil
+		and not Smoke.blocks(witness.position, witness.position + offset)
 end
 
 -- Spec 7.3: what the witnesses are worth, summed and capped: `all` counts everyone (for what civilians notice too),

@@ -25,6 +25,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local Smoke = require(script.Parent.Parent.Combat.Smoke)
 local Placement = require(script.Parent.Parent.Security.Placement)
 local AlarmService = require(script.Parent.AlarmService)
 local CombatService = require(script.Parent.CombatService)
@@ -130,6 +131,7 @@ local function inCone(camera: Camera, look: Vector3, point: Vector3): boolean
 		return false
 	end
 	return workspace:Raycast(camera.part.Position, offset, sightParams) == nil
+		and not Smoke.blocks(camera.part.Position, point)
 end
 
 -- A camera locks on to an Exposed agent in Tier 1 or higher, or to anyone in a zone above their clearance.

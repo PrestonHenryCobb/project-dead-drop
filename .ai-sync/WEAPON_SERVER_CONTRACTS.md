@@ -116,8 +116,9 @@ Smoke SMG:
 - An ordinary automatic firearm. The server's own magazine count decides: a round fired with 5 or fewer in the magazine
   (before it leaves) that hits a person or a wall sends `SmokeCloud {Position (the impact), Radius 2, ExpiresAt}` to
   everyone. The cloud does no damage.
-- **Smoke only exists on the client for now.** The server does not yet treat it as blocking line of sight for NPC
-  sight, scans or Agent Sense. See gaps.
+- Each cloud is also recorded on the server (`Combat/Smoke`, 2026-11-19) and blocks line of sight for Agent Sense, scans,
+  witnesses (Cover: NPCs, guards and cameras seeing an act), guards and camera cones. A viewer inside a cloud is blocked too. It
+  does not stop shots or sound, and NPC panic and hearing are unchanged.
 
 Knives:
 - `FireRequest` with one direction, 100 RPM (0.6 s), `MagSize` 6, no reserve, no reload. The throw is silent: no
@@ -156,7 +157,7 @@ Client command bar by firing the remote with a script, or wait for Codex's clien
 - NPCs take hammer and pump damage but are **not shoved or slowed** (their position comes from the crowd's route). The
   difference could be seen by an observer comparing a shoved player with an unshoved NPC. Needs the NPC movement owner
   (me) and a decision; not built.
-- **Smoke does not block sight on the server** (NPC sight, scans, Agent Sense, shots). It is a client-drawn cloud only.
+- Smoke blocks sight checks on the server (see the smoke SMG section) but not shots, sound, Bug Cams or the Long Lens.
 - Landed knives and flights in the air are cleared when the match goes to Lobby or Insertion (ProjectileService, 2026-11-19).
 - SPEC-QUESTION: the hammer's "sideways in the direction of the swing" is implemented as the swinger's right.
 - SPEC-QUESTION: the ambush shot now needs Covered (the answers' wording); before it also worked while Suspicious.

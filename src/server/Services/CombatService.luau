@@ -40,6 +40,7 @@ local Death = require(script.Parent.Parent.NPC.Death)
 local NpcTypes = require(script.Parent.Parent.NPC.NpcTypes)
 local FireRate = require(script.Parent.Parent.Combat.FireRate)
 local History = require(script.Parent.Parent.Combat.History)
+local Smoke = require(script.Parent.Parent.Combat.Smoke)
 local Shields = require(script.Parent.Parent.Combat.Shields)
 local CoverService = require(script.Parent.CoverService)
 local DisguiseService = require(script.Parent.DisguiseService)
@@ -586,6 +587,7 @@ local function onFire(player: Player, origin: unknown, direction: unknown, times
 				Radius = smoke.Radius,
 				ExpiresAt = workspace:GetServerTimeNow() + smoke.Seconds,
 			}
+			Smoke.add(cloud.Position, cloud.Radius, cloud.ExpiresAt)
 			RemoteService.fireAllClients("SmokeCloud", cloud)
 		end
 		if GameConfig.Debug.PrintShots then

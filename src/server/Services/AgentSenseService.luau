@@ -16,6 +16,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local Smoke = require(script.Parent.Parent.Combat.Smoke)
 local DisguiseService = require(script.Parent.DisguiseService)
 local RemoteService = require(script.Parent.RemoteService)
 
@@ -63,7 +64,10 @@ local function playerInSight(viewer: Player, targetId: string): Player?
 			local otherRoot = aliveRoot(other)
 			if otherRoot and (otherRoot.Position - viewerRoot.Position).Magnitude <= config.AgentSenseRange then
 				local offset = otherRoot.Position - viewerRoot.Position
-				if workspace:Raycast(viewerRoot.Position, offset, sightParams) == nil then
+				if
+					workspace:Raycast(viewerRoot.Position, offset, sightParams) == nil
+					and not Smoke.blocks(viewerRoot.Position, otherRoot.Position)
+				then
 					return other
 				end
 			end
@@ -86,6 +90,7 @@ local function inSenseRange(viewer: Player, targetId: string): boolean
 	local offset = root.Position - viewerRoot.Position
 	return offset.Magnitude <= config.AgentSenseRange
 		and workspace:Raycast(viewerRoot.Position, offset, sightParams) == nil
+		and not Smoke.blocks(viewerRoot.Position, root.Position)
 end
 
 local function onRequestSense(player: Player, targetId: unknown)
