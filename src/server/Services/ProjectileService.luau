@@ -30,6 +30,7 @@ local History = require(script.Parent.Parent.Combat.History)
 local CombatService = require(script.Parent.CombatService)
 local CoverService = require(script.Parent.CoverService)
 local MatchService = require(script.Parent.MatchService)
+local Smoke = require(script.Parent.Parent.Combat.Smoke)
 local RemoteService = require(script.Parent.RemoteService)
 local TeamService = require(script.Parent.TeamService)
 
@@ -300,6 +301,7 @@ local function clear()
 	table.clear(inFlight)
 	table.clear(landed)
 	folder:ClearAllChildren()
+	Smoke.clear()
 end
 
 function ProjectileService.Start()

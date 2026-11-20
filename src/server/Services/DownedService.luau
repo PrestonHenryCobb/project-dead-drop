@@ -375,9 +375,20 @@ function DownedService.Start()
 	RemoteService.onRequest("RequestCrawl", onRequestCrawl)
 
 	local function track(player: Player)
-		player.CharacterAdded:Connect(function()
+		player.CharacterAdded:Connect(function(character)
 			downed[player] = nil
 			eliminated[player] = nil
+			-- A death that did not come through combat damage (falling out of the world, anything that sets Health to 0) is an
+			-- elimination too; without this the player would never be marked out, spectate, or let the match end. eliminate()
+			-- ignores a player it already eliminated, so a death it caused itself passes straight through.
+			local humanoid = character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid", 5)
+			if humanoid and humanoid:IsA("Humanoid") then
+				humanoid.Died:Once(function()
+					if player.Character == character then
+						eliminate(player, nil)
+					end
+				end)
+			end
 		end)
 	end
 	Players.PlayerAdded:Connect(track)

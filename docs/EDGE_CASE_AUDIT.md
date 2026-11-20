@@ -36,6 +36,8 @@ design, not read this pass).
 ending the match when everyone was out, so elimination, spectating (case 15, 16) and Mission Failed could not happen in a real match.
 It is now `false`. In Studio a player who dies is now eliminated, spectates, and the match ends and returns to the lobby as designed.
 
+**Found by the reviewer afterwards:** nothing watched `Humanoid.Died` on the server, so a death that did not come through combat damage (falling out of the world) never marked the player out. `DownedService` now eliminates on any death of the current character (a death it caused itself is ignored the second time). Smoke clouds are also cleared at Lobby and Insertion.
+
 Also added in the same pass: `RequestDropPackage` duplicate fix and finite-vector validation (docs/ANTI_EXPLOIT_AUDIT.md).
 
 ## What the owner should check in Studio

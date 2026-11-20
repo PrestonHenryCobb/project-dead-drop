@@ -4,6 +4,7 @@
 -- cameras) ask whether a line passes through one.
 --
 --   Smoke.add(position, radius, expiresAt)   expiresAt is on the server clock (workspace:GetServerTimeNow())
+--   Smoke.clear()                            forget every cloud (a new match)
 --   Smoke.blocks(from, to) -> boolean        the straight line from one point to the other touches a live cloud
 --                                            (a viewer standing inside a cloud is blocked too)
 
@@ -31,6 +32,11 @@ function Smoke.add(position: Vector3, radius: number, expiresAt: number)
 		table.remove(clouds, 1)
 	end
 	table.insert(clouds, { position = position, radius = radius, expiresAt = expiresAt })
+end
+
+-- A new match starts with clear air.
+function Smoke.clear()
+	table.clear(clouds)
 end
 
 function Smoke.blocks(from: Vector3, to: Vector3): boolean
