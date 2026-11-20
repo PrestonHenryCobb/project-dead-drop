@@ -1,4 +1,4 @@
-# Project status (updated 2026-10-24)
+# Project status (updated 2026-11-19)
 
 **Start here if you are a new session or a new tool.** This is the one page that says where the project stands, what to read,
 how to resume, and how the owner likes to work. It mirrors the assistant's private memory notes so nothing important lives
@@ -27,6 +27,7 @@ changes); build plan in `docs/BUILD_ORDER.md`.
 | `.claude/skills/build-map/SKILL.md` | How to build and review a map with the generator. |
 
 ## Where the project stands
+- **2026-11-19 (read this first, the bullets below are older):** Steps 1 to 18 are built; Step 19 client screens are mostly Codex's and in review. The match loop (Steps 10 to 13), bots (13B), security, guards, six agents, 12 gadgets, the intel economy, Assets, GPS and the Package/extraction flow all exist, and the six server-contract weapons plus the Package front door and Tier 4 elevator stop were run solo in Studio. Added in the 2026-11-19 autonomous run (all lint clean, **none run in Studio**): saved profiles (`.ai-sync/DATA_CONTRACT.md`), mastery XP at match end, team pings (`PING_CONTRACT.md`), a movement guard that only logs, smoke that blocks sight, and two audits (`docs/ANTI_EXPLOIT_AUDIT.md`, `docs/EDGE_CASE_AUDIT.md`). `Debug.AutoRespawn` is now false so elimination and match end work. The two-player checklist is `docs/TWO_PLAYER_TEST.md`; nothing has been tested with a second human yet. Not built: account Level/Credits awards, matchmaking (Step 22), audio (Step 20), the tutorial (13C, waits for reference videos), Dossiers/Black Market/Mint catalogues.
 - **Done:** Steps 1 to 7B. Two towers (the Gala and a hotel/casino wing) on skyscrapers over a generated night city,
   200 crowd NPCs, disguise and scanning, cover and suspicion, tier doors, vaults, ziplines, vents, a gondola, signs, and
   the map re-plan (stages 1 to 4 and every review fix). Self-check passes with 0 problems.
