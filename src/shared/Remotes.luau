@@ -88,7 +88,6 @@ local Remotes = {
 		"RequestMelee",
 		"RequestPurchase",
 		"RequestPing",
-		"RequestDropPackage",
 		"RequestPassPackage",
 		"RequestEmote",
 		"RequestSprint", -- sprint on or off (spec 6.8)
@@ -135,18 +134,24 @@ local Remotes = {
 }
 
 -- Lookup sets, so code can check direction without scanning the lists.
+-- A name listed twice would make two instances with one name: the client would wait on the first, the server would hook the last.
 local serverToClient: { [string]: true } = {}
 for _, name in Remotes.ServerToClient do
+	assert(not serverToClient[name], `Remote {name} is listed twice`)
 	serverToClient[name] = true
 end
 local clientToServer: { [string]: true } = {}
 for _, name in Remotes.ClientToServer do
 	assert(not serverToClient[name], `Remote {name} is listed in both directions`)
+	assert(not clientToServer[name], `Remote {name} is listed twice`)
 	clientToServer[name] = true
 end
 local clientFunctions: { [string]: true } = {}
 for _, name in Remotes.ClientToServerFunctions do
-	assert(not serverToClient[name] and not clientToServer[name], `Remote {name} is listed twice`)
+	assert(
+		not serverToClient[name] and not clientToServer[name] and not clientFunctions[name],
+		`Remote {name} is listed twice`
+	)
 	clientFunctions[name] = true
 end
 
