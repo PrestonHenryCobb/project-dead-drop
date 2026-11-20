@@ -38,6 +38,7 @@ local MetaProgressionService = require(script.Parent.MetaProgressionService)
 local RemoteService = require(script.Parent.RemoteService)
 local RewardService = require(script.Parent.RewardService)
 local RigService = require(script.Parent.RigService)
+local SpawnService = require(script.Parent.SpawnService)
 local SpectateService = require(script.Parent.SpectateService)
 local TeamService = require(script.Parent.TeamService)
 
@@ -190,10 +191,11 @@ local function startInsertion()
 		spawner(teamCount(matchTeams)) -- before the briefing, so it counts the bot teams
 	end
 	setPhase("Insertion", config.InsertionSeconds)
+	local spots = SpawnService.assign(matchTeams) -- one Insertion Point per team (spec 11)
 	for _, member in playersIn(matchTeams) do
 		task.spawn(function()
 			freeze(member, true) -- before the character exists, so there is no moment of walking
-			RigService.spawn(member)
+			RigService.spawn(member, spots[member])
 		end)
 	end
 end

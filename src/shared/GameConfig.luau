@@ -110,6 +110,8 @@ local GameConfig = {
 		MinTeamsToStart = 2,
 		MaxPlayers = 12,
 		BannerSeconds = 3, -- spec 2: phase banners
+		-- Spec 11 (map table): a team spawns at one InsertionPoint, its players close together (within 8 studs of each other).
+		TeamSpawn = { RingStuds = 2.5, LiftStuds = 4 }, -- teammates stand on a ring this wide, dropped from this high
 		TickSeconds = 0.25, -- ticket 10a: MatchService checks its timers this often
 	},
 
