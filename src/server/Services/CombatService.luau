@@ -455,6 +455,7 @@ local function updateTracker(player: Player, state: State, def: WeaponDef, struc
 		local info: Types.TargetGlowInfo = {
 			TargetId = if model then model.Name else struck.id,
 			ExpiresAt = workspace:GetServerTimeNow() + tracker.Seconds,
+			ThroughWalls = true, -- owner answer 2026-11-19: the tracker mark shows through walls
 		}
 		RemoteService.fireClient("TargetGlow", player, info)
 	end

@@ -145,8 +145,9 @@ Burst rifle:
 - `Tracker { Seconds = 3 }`: when every round of one burst (`Burst.Count` consecutive hits, each within
   `Combat.TrackerBurstGapFraction` of the burst pause of the last) lands on the same **agent**, the server sends `TargetGlow` to the
   shooter alone (`TargetId` = the body's model name, `ExpiresAt` = now + 3 s). A miss, a different body or a pause starts over.
-  NPCs are never marked. SPEC-QUESTION: the mark reuses `TargetGlow`, so the client draws it with line of sight like the flare glow;
-  a through-walls marker would need a new event.
+  NPCs are never marked. **Owner answer 2026-11-19: the mark shows through walls.** The event is `TargetGlow` with the new field
+  `ThroughWalls = true` (Types.TargetGlowInfo): the client draws that glow even when the body is behind a wall (the flare glow, which
+  has no flag, still needs line of sight).
 
 Taser:
 - One dart, 30 damage, `MaxRange = 25` (a new optional `WeaponDef` field: the ray stops there), 1 loaded and 10 spare, 2 s reload.
@@ -154,7 +155,8 @@ Taser:
   `Combat/Lockout` for 3 s (`AbilityService` and `GadgetService` refuse requests while it runs) and
   `CombatStatus { Kind = "Taser", Seconds = 1.5, SlowMult = 0.4, From }` to the victim only. NPCs take the damage and nothing else.
   A downed or eliminated target takes no status; teammates are not hit (the existing team rule).
-- SPEC-QUESTIONs: no head bonus (`HeadshotMult = 1`); the dart is as loud as a normal shot (`Quiet = false`).
+- Owner answer 2026-11-19: the dart is **quiet** (`Quiet = true` in WeaponDefs: heard only `Combat.QuietHearStuds` away, no
+  muzzle flash or tracer). SPEC-QUESTION still open: no head bonus (`HeadshotMult = 1`).
 
 **For Codex:** register both when ready. Burst rifle: the client must send each round of a burst on the `FireRate` timing (it already
 does for bursts), and draw the `TargetGlow` it receives (shooter only). Taser: a single-round weapon with a 25-stud range; show a

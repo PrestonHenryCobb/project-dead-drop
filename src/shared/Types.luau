@@ -286,8 +286,9 @@ export type ProjectileImpactInfo = {
 export type SmokeCloudInfo = { Position: Vector3, Radius: number, ExpiresAt: number }
 
 -- To Suture's team only: the character TargetId (the body's model name, the same for an NPC and a player) glows
--- until ExpiresAt. Drawn client-side with line of sight; it follows the character through disguise changes.
-export type TargetGlowInfo = { TargetId: string, ExpiresAt: number }
+-- until ExpiresAt. Drawn client-side with line of sight; it follows the character through disguise changes. ThroughWalls (the
+-- Lattice burst rifle's tracker mark, sent to the shooter alone) is drawn even when the body is behind a wall.
+export type TargetGlowInfo = { TargetId: string, ExpiresAt: number, ThroughWalls: boolean? }
 
 -- To the victim only. "Taser": walk at SlowMult for Seconds (applied by the server); their ability and gadgets are also locked. "Stagger": walk at SlowMult for Seconds (the server already applies the slow) and bump the aim
 -- AimBumpDegrees, away from From. "Shove": move Studs along Direction over Seconds (the server cannot move a player's

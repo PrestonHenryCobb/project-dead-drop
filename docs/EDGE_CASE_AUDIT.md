@@ -24,7 +24,7 @@ design, not read this pass).
 | 18 | Zone boundary | OK | `ZoneService.tierAt` takes the highest tier among overlapping volumes |
 | 19 | Feint's decoy | NOT RE-CHECKED | `GuardService` ignores decoys; cameras and the alarm were not read |
 | 20 | Drone owner's body attacked | OK | `DroneService` ends the flight on damage to her body |
-| 21 | Riot Wall and teammates | GAP | the wall part has `CanCollide = false`; shots and projectiles stop at it (raycast, `Shields`), but no body is physically blocked, enemies included. The spec wants collision with enemies only |
+| 21 | Riot Wall and teammates | **ACCEPTED** (owner, 2026-11-19: keep as is) | the wall part has `CanCollide = false`; shots and projectiles stop at it (raycast, `Shields`), but no body is physically blocked, enemies included. The spec wants collision with enemies only |
 | 22 | Reload during a swap | OK | ticket 8.2 |
 | 23 | Disguise inside a laser grid | **FIXED** | `LaserService.inBeam` feeds `DisguiseService.setSwapBlocker`; the request, Disguise Kit, Quick Change and auto re-cover all refuse inside a live beam. Scanning, sprint and crouch are unaffected |
 | 24 | Timer expires during the extraction channel | OK | Overtime covers it (PACKAGE_CONTRACT) |
@@ -43,4 +43,5 @@ Also added in the same pass: `RequestDropPackage` duplicate fix and finite-vecto
 ## What the owner should check in Studio
 - Cases 4, 13 and 23 once each (leave while downed with a teammate watching; press Q during the briefing; stand in a live beam and
   try to change disguise).
-- Owner decision 2026-11-19: a rejoiner spectates (built). The Riot Wall question (case 21) is still open.
+- Owner decisions 2026-11-19: a rejoiner spectates (built); the Riot Wall keeps stopping shots and projectiles only, bodies walk
+  through it (case 21 accepted, a change from spec 27 #21).

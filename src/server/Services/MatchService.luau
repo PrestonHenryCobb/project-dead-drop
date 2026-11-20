@@ -414,6 +414,7 @@ function MatchService.Start()
 	if not GameConfig.Debug.MenuOnJoin then
 		return -- no lobby: players spawn straight in and there is no match to run
 	end
+	DownedService.setMatchCheck(MatchService.isInMatch)
 	DownedService.onEliminated(function(player)
 		if MatchService.isInMatch() and not out[player] then
 			out[player] = true

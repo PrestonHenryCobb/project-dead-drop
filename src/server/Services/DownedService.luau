@@ -71,6 +71,7 @@ local downed: { [Player]: Downed } = {}
 local eliminated: { [Player]: boolean } = {} -- for this life; cleared when a new character spawns
 local eliminatedListeners: { (Player) -> () } = {}
 local leftDownedListeners: { (Player) -> () } = {}
+local inMatchCheck: (() -> boolean)? = nil -- set by MatchService; a death outside a match is not an elimination
 
 -- Rays in the character group skip characters and meet only the map.
 local mapParams = RaycastParams.new()
@@ -96,6 +97,12 @@ end
 
 -- Spec 27 #4: leaving while downed counts as eliminated. This fires before the body is removed, for what the body leaves
 -- behind (RescueService drops the Agent Tag).
+-- MatchService tells this service how to ask whether a match is running, so a death in the lobby (or during Results) does not
+-- eliminate, spectate or drop a tag. Not set when there is no match flow (Debug.MenuOnJoin off): every death eliminates then.
+function DownedService.setMatchCheck(check: () -> boolean)
+	inMatchCheck = check
+end
+
 function DownedService.onLeftDowned(listener: (Player) -> ())
 	table.insert(leftDownedListeners, listener)
 end
@@ -384,7 +391,8 @@ function DownedService.Start()
 			local humanoid = character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid", 5)
 			if humanoid and humanoid:IsA("Humanoid") then
 				humanoid.Died:Once(function()
-					if player.Character == character then
+					local check = inMatchCheck
+					if player.Character == character and (check == nil or check()) then
 						eliminate(player, nil)
 					end
 				end)
