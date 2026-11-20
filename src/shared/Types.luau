@@ -490,6 +490,10 @@ export type QueueInfo = { Mode: QueueMode, Available: { QueueMode } }
 -- (first launch: the free picks come first).
 export type MetaSnapshot = { Profile: MetaProfile, Loadout: PlayerLoadout?, Queue: QueueInfo }
 
+-- Ticket matchmaking: "MatchmakingState", to the owner only. Searching while queued, Found as the teleport starts, Failed with a reason
+-- (a teleport error or a queue error), Idle after a cancel.
+export type MatchmakingStateInfo = { State: string, Mode: string?, Reason: string? }
+
 -- Ticket shop-skeleton: one Black Market item. Attire is made for one agent (META_DRAFT). Owning it only marks it in the profile
 -- until the art exists. Currency says what it costs; Tier picks the price in GameConfig.Shop.TierPrices.
 export type CosmeticOffer = {

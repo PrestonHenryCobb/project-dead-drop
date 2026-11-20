@@ -75,6 +75,7 @@ local Remotes = {
 		"SparrowState", -- to Lattice only: her drone took off or ended (Types.SparrowStateInfo)
 		-- Ticket menu-phase0
 		"PreDeployStateUpdated", -- to each member of a team only: agent select picks and the cutoff (Types.PreDeployState)
+		"MatchmakingState", -- to the owner only: searching, match found, or failed (Types.MatchmakingStateInfo)
 		"ProfileStateUpdated", -- to the owner only: their profile and loadout changed (Types.MetaSnapshot)
 	},
 
@@ -132,6 +133,8 @@ local Remotes = {
 		"RequestSelectActiveDossier", -- (dossierId)
 		"RequestBlackMarketPurchase", -- (offerId): a daily offer id, or the featured bundle id; returns (ok, reason?)
 		"GetBlackMarketOffers", -- returns Types.BlackMarketState (ticket shop-skeleton)
+		"RequestFindMatch", -- (mode): queue for a match on the lobby place (ticket matchmaking); returns (ok, reason?)
+		"RequestCancelFindMatch", -- leave the queue; returns (ok, reason?)
 		"RequestBuyAgent", -- (agentId): buy a locked agent with Credits (ticket shop-skeleton)
 		-- (packageId) Studio-only mock grant for testing the Mint; real Stocks come from Robux purchases (Step 21).
 		"RequestMintStrikeStocks",

@@ -142,6 +142,22 @@ local GameConfig = {
 		Solos = { TeamSize = 1, MaxTeams = 8, MinPlayers = 3, MaxPlayers = 8 },
 	},
 
+	-- Ticket matchmaking (Step 22, spec 25.7): a lobby place queues players and teleports them to a reserved match server. Off until the
+	-- owner publishes both places and sets their ids (0 = not set). Off, one server is lobby and match as before.
+	Matchmaking = {
+		Enabled = false,
+		LobbyPlaceId = 0,
+		MatchPlaceId = 0,
+		QueuePrefix = "CoverStoryQueue_", -- one MemoryStore queue per mode: prefix plus the mode name
+		QueueExpirySeconds = 180, -- a queued player who is not matched in this time drops out of the queue
+		ReadInvisibilitySeconds = 30, -- entries a server has read but not yet removed come back after this long
+		TickSeconds = 3, -- each lobby server tries to form a match this often
+		MatchTopic = "CoverStoryMatchReady", -- MessagingService topic: a formed match, for every lobby server
+		Modes = { "Solos", "Duos" }, -- the modes that can be queued for (Squads has no team-select support yet)
+		JoinLoadWaitSeconds = 30, -- a teleported player's agent select waits this long for their profile to load
+		JoinLoadPollSeconds = 0.5,
+	},
+
 	-- Spec 3.2 / 3.3: agent select and team colors (in the order teams are assigned).
 	Lobby = {
 		AgentSelectSeconds = 30,
@@ -2216,6 +2232,8 @@ local GameConfig = {
 			RequestMintStrikeStocks = { PerSecond = 1, Burst = 2 },
 			RequestBuyAgent = { PerSecond = 1, Burst = 2 }, -- ticket shop-skeleton: a button
 			GetBlackMarketOffers = { PerSecond = 1, Burst = 3 },
+			RequestFindMatch = { PerSecond = 1, Burst = 2 }, -- ticket matchmaking: a button
+			RequestCancelFindMatch = { PerSecond = 1, Burst = 2 },
 			RequestQueueMode = { PerSecond = 2, Burst = 4 },
 			RequestStartPreDeploy = { PerSecond = 1, Burst = 2 },
 			RequestLockInPreDeploy = { PerSecond = 3, Burst = 6 },

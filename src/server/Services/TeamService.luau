@@ -18,6 +18,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
+local PlaceRole = require(Shared:WaitForChild("Util"):WaitForChild("PlaceRole"))
 local RemoteService = require(script.Parent.RemoteService)
 
 local TeamService = {}
@@ -63,7 +64,21 @@ local function sendRoster(teamId: number)
 	end
 end
 
+-- A match server (ticket matchmaking) plays the mode its first player queued for, from the teleport data the lobby attached. Only the
+-- first player counts: the lobby groups one mode per match, and a later arrival cannot change it once teams exist.
+local function adoptMode(player: Player)
+	if PlaceRole.get() ~= "Match" or next(teamOf) ~= nil then
+		return
+	end
+	local data = player:GetJoinData().TeleportData
+	if type(data) == "table" and type(data.Mode) == "string" and GameConfig.Modes[data.Mode] then
+		modeName = data.Mode
+		mode = GameConfig.Modes[data.Mode]
+	end
+end
+
 local function join(player: Player)
+	adoptMode(player)
 	local chosen: number? = nil
 	for teamId = 1, math.huge do
 		local members = teams[teamId]

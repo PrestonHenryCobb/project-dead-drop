@@ -21,6 +21,7 @@ local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"
 local CombatService = require(script.Parent.CombatService)
 local MatchService = require(script.Parent.MatchService)
 local MetaProgressionService = require(script.Parent.MetaProgressionService)
+local PlaceRole = require(Shared:WaitForChild("Util"):WaitForChild("PlaceRole"))
 local RemoteService = require(script.Parent.RemoteService)
 local TeamService = require(script.Parent.TeamService)
 
@@ -151,6 +152,10 @@ local function inMenu(player: Player): boolean
 end
 
 local function onStart(player: Player)
+	if PlaceRole.get() == "Lobby" then
+		RemoteService.fireClient("Notification", player, "Use Find Match to queue.") -- the lobby place only queues; the match runs elsewhere
+		return
+	end
 	if not inMenu(player) or not MetaProgressionService.getLoadout(player) then
 		return -- already queued or in the match, or owns no agent yet (the free picks come first)
 	end
@@ -183,6 +188,11 @@ local function onStart(player: Player)
 		end
 	end
 	broadcast(active, true)
+end
+
+-- Starts agent select for a player a lobby just teleported in (MatchmakingService); the same as pressing Play.
+function LobbyService.begin(player: Player)
+	onStart(player)
 end
 
 local function onLockIn(player: Player, request: unknown)
