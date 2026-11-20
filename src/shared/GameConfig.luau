@@ -176,6 +176,14 @@ local GameConfig = {
 		StarterAgentsPerClass = 1,
 	},
 
+	-- Ticket 19-pings (spec 21.3): team pings. How many a player may have up (UI.MaxPingsPerPlayer) and how long a Suspect ping
+	-- lasts (UI.SuspectPingSeconds) are in UI. SPEC-QUESTION: the other kinds last Seconds, which the spec does not give.
+	Ping = {
+		Kinds = { Look = true, Suspect = true, Intel = true, Danger = true }, -- spec 21.3
+		Seconds = 8,
+		RangeStuds = 400, -- how far from the player a marker may be placed
+	},
+
 	-- Ticket 21-data (spec 20.4): the saved profile. One DataStore key per player, a session lock so two servers never
 	-- hold the same profile, and a save every AutosaveSeconds, on leave and when the server closes.
 	Data = {
@@ -2036,6 +2044,7 @@ local GameConfig = {
 			RequestCrawl = { PerSecond = 15, Burst = 15 }, -- sent at Downed.CrawlRequestHz
 			-- Ticket 9c: switching view is a key press; the drone sends at Spectate.DroneSendHz; chat is slow on purpose.
 			RequestDropPackage = { PerSecond = 1, Burst = 2 }, -- ticket 13a
+			RequestPing = { PerSecond = 3, Burst = 5 }, -- ticket 19-pings: a button press
 			RequestAbility = { PerSecond = 2, Burst = 3 }, -- ticket 16: a key press; the server holds the cooldown
 			RequestSparrowMove = { PerSecond = 30, Burst = 30 }, -- ticket 16c: sent at Lattice.SparrowDrone.MoveHz
 			RequestAutoRecover = { PerSecond = 2, Burst = 3 }, -- a key press

@@ -57,6 +57,9 @@ local Remotes = {
 		"TrackedCue", -- to a tracked rival only, no payload: they were seen (a vignette and a whisper)
 		-- Ticket 18e
 		"AssetState", -- to the owner only: their four Asset slots and which are found (Types.AssetStateInfo)
+		-- Ticket 19-pings
+		"PingPlaced", -- to the pinger and their team only: a marker to draw (Types.PingInfo)
+		"PingCleared", -- the id (a number) of a marker that ended early
 		-- Ticket 18c
 		"ShopState", -- to the shopper only: the Supply Cache shop they have open (Types.ShopStateInfo)
 		-- Ticket 17d
@@ -87,7 +90,7 @@ local Remotes = {
 		"RequestGadget",
 		"RequestMelee",
 		"RequestPurchase",
-		"RequestPing",
+		"RequestPing", -- ticket 19-pings: (kind, position, targetId?) a team-only marker; the server limits range, count and kind
 		"RequestPassPackage",
 		"RequestEmote",
 		"RequestSprint", -- sprint on or off (spec 6.8)

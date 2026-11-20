@@ -296,6 +296,10 @@ export type SpectateStateInfo = { Mode: string, TargetUserId: number?, CanDrone:
 -- Ticket 9c: one spectator chat line, already filtered for its reader.
 export type SpectatorChatInfo = { Sender: string, Text: string }
 
+-- Ticket 19-pings: a team ping to draw. Kind is one of GameConfig.Ping.Kinds. TargetId (Suspect only) is a model name the client
+-- already sees; the marker rides above that body and says nothing about what it is. From is the pinger's display name.
+export type PingInfo = { Id: number, Kind: string, Position: Vector3, TargetId: string?, ExpiresAt: number, From: string }
+
 -- Step 9: a team's roster, sent only to its own members (CLAUDE.md rule 3).
 export type TeamRosterInfo = { TeamId: number, Members: { Player } }
 
