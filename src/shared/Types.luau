@@ -446,7 +446,7 @@ export type AgentMastery = { Level: number, XP: number }
 export type DossierReward = { Kind: string, Amount: number?, CosmeticId: string? }
 export type DossierTier = { Free: { DossierReward }, Premium: { DossierReward } }
 export type DossierDef = { Id: string, Name: string, Tiers: { DossierTier } }
--- Any owned cosmetic: Attire from the Black Market and the Dossier-only kinds. Kind is "Attire", "Title", "Card", "Spray", "Finish", "Takedown" or "Extraction".
+-- Any owned cosmetic: Attire from the Black Market and the Dossier-only kinds. Kind is "Attire", "Title", "Card", "Spray", "Watch", "Finish", "Takedown" or "Extraction".
 export type CosmeticEntry = { Id: string, Name: string, Kind: string, AgentId: string? }
 
 export type DossierProgress = {
@@ -479,6 +479,7 @@ export type MetaProfile = {
 	EquippedTitle: string?, -- a Title cosmetic id the player owns, shown on the kill and results screens (ticket equip-cosmetics)
 	EquippedCard: string?, -- a Card cosmetic id the player owns
 	EquippedSpray: string?, -- a Spray cosmetic id the player owns, the one RequestSpray places
+	EquippedWatch: string?, -- a Watch cosmetic id the player owns: the colours of the wrist watch other players see on them while Exposed
 	ActiveDossierId: string?,
 	Dossiers: { [string]: DossierProgress },
 	Career: CareerStats,

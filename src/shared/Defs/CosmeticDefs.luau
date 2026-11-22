@@ -9,6 +9,7 @@ local Shared = script.Parent.Parent
 local Types = require(Shared.Types)
 local DossierDefs = require(script.Parent.DossierDefs)
 local ShopDefs = require(script.Parent.ShopDefs)
+local WatchDefs = require(script.Parent.WatchDefs)
 
 local byId: { [string]: Types.CosmeticEntry } = {}
 for _, offer in ShopDefs.pool do
@@ -17,6 +18,9 @@ end
 for _, entry in DossierDefs.cosmetics do
 	assert(not byId[entry.Id], `Cosmetic id {entry.Id} is used twice`)
 	byId[entry.Id] = entry
+	if entry.Kind == "Watch" then
+		assert(WatchDefs.has(entry.Id), `Watch cosmetic {entry.Id} has no look in WatchDefs`)
+	end
 end
 
 -- Every cosmetic a Dossier hands out must exist.

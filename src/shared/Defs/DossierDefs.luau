@@ -40,6 +40,9 @@ local cosmetics: { CosmeticEntry } = {
 	{ Id = "TakedownWaltzDip", Name = "Waltz Dip", Kind = "Takedown" },
 	{ Id = "TakedownCoatCheck", Name = "Coat Check", Kind = "Takedown" },
 	{ Id = "ExtractionChauffeur", Name = "Chauffeur", Kind = "Extraction" },
+	{ Id = "WatchBrass", Name = "Brass Wristwatch", Kind = "Watch" },
+	{ Id = "WatchBlackout", Name = "Blackout Watch", Kind = "Watch" },
+	{ Id = "WatchCrimson", Name = "Crimson Watch", Kind = "Watch" },
 }
 
 local function credits(amount: number): DossierReward
@@ -61,6 +64,7 @@ local galaFree: { [number]: { DossierReward } } = {
 	[4] = { item("SprayFlute") },
 	[5] = { credits(150) },
 	[6] = { item("TitleGalaRegular") },
+	[8] = { item("WatchBrass") },
 	[9] = { item("CardBrass") },
 	[10] = { credits(150) },
 	[12] = { item("ParapetJanitorElite") },
@@ -75,6 +79,7 @@ local galaFree: { [number]: { DossierReward } } = {
 }
 local galaPremium: { [number]: { DossierReward } } = {
 	[2] = { item("TitleHeadTable") },
+	[3] = { item("WatchBlackout") },
 	[4] = { item("FinishBrassInlay") },
 	[6] = { item("SprayWine") },
 	[8] = { item("GuiseGalaTuxedo") },
@@ -88,6 +93,7 @@ local galaPremium: { [number]: { DossierReward } } = {
 	[22] = { item("GuiseMonochromeNoir") },
 	[24] = { item("SprayCufflinks") },
 	[25] = { item("ExtractionChauffeur") },
+	[26] = { item("WatchCrimson") },
 	[27] = { item("FinishVelvetWrap") },
 	[28] = { item("TitleBlackTie") },
 	[30] = { stocks(200), item("GuiseGoldenAsset") },

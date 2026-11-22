@@ -1441,7 +1441,9 @@ local GameConfig = {
 			["Cut power"] = true,
 			["Print keycard"] = true,
 		},
-		LingerSeconds = 0.3, -- the watch stays up this long after a hold ends
+		LingerSeconds = 0.3, -- the face stays lit this long after the action ends
+		DimFaceColor = Color3.fromRGB(40, 55, 62), -- the face of the worn watch when nothing is being hacked
+		CheckHz = 4, -- how often the worn watches are brought in step with who is Exposed
 		BandColor = Color3.fromRGB(28, 28, 32),
 		FaceColor = Color3.fromRGB(90, 220, 255),
 		BandSize = Vector3.new(0.2, 1.05, 1.05), -- a ring round the wrist (a cylinder: X is its length)

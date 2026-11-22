@@ -1,31 +1,39 @@
 --!strict
--- Wrist watch (owner test 2026-11-21): while a player hacks (any InteractService hold named in GameConfig.WristWatch.HackLabels) and,
--- briefly, while they re-cover, a small watch sits on their left wrist. It is a real part welded to the character, so every client sees
--- it, and it is removed as soon as the action ends (plus LingerSeconds), so nobody carries one the rest of the time. Hacking is already
--- something NPCs never do. The wrist watch is built only while the agent is Exposed (a covered agent shows none, so it never marks a disguised
--- player), on any look. The owner always gets WristWatchState to draw their own raised first-person watch.
+-- Wrist watch (owner answers 2026-11-21 and 2026-11-22). An Exposed agent (out of cover) wears a watch on the left wrist, on whatever look
+-- they have, for as long as they are Exposed; a covered agent shows none, so a watch never marks a disguised player. The watch is a real part
+-- welded to the hand, so every client sees it. Its face is dim, and glows (no progress, just lit) while the agent hacks (an InteractService
+-- hold named in GameConfig.WristWatch.HackLabels) and while they re-cover. Its colours are the equipped Watch cosmetic (Defs/WatchDefs).
+-- The owner also gets WristWatchState for every hack or re-cover, covered or not, to draw their own raised first-person watch; there is no
+-- raise pose on the character (first person only). A drone's hack is not seen on her body, so it neither glows the watch nor shows one.
 --
 -- The model is named "Watch" and carries no player, team or agent information. A character that is destroyed takes its watch with it.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
+local WatchDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WatchDefs"))
 local CoverService = require(script.Parent.CoverService)
 local DisguiseService = require(script.Parent.DisguiseService)
+local DownedService = require(script.Parent.DownedService)
 local DroneService = require(script.Parent.DroneService)
 local InteractService = require(script.Parent.InteractService)
+local MetaProgressionService = require(script.Parent.MetaProgressionService)
 local RemoteService = require(script.Parent.RemoteService)
 
 local WristWatchService = {}
 
 local config = GameConfig.WristWatch
 
-type Shown = { watch: Model?, holdUntil: number, kind: string }
+type Action = { kind: string, endsAt: number } -- endsAt: os.clock() when the glow ends; math.huge while a hold runs
+type Worn = { model: Model, face: Part, look: WatchDefs.WatchLook }
 
-local shown: { [Player]: Shown } = {}
+local worn: { [Player]: Worn } = {}
+local actions: { [Player]: Action } = {}
+local sinceCheck = 0
 
 local function weld(parent: Instance, part0: BasePart, part1: BasePart, offset: CFrame)
 	part1.CFrame = part0.CFrame * offset
@@ -40,38 +48,66 @@ local function plain(part: Part)
 	part.Massless = true
 end
 
-local function build(hand: BasePart): Model
-	local watch = Instance.new("Model")
-	watch.Name = "Watch"
+local function build(hand: BasePart, look: WatchDefs.WatchLook): Worn
+	local model = Instance.new("Model")
+	model.Name = "Watch"
 	local band = Instance.new("Part")
 	band.Name = "Band"
 	band.Shape = Enum.PartType.Cylinder
 	band.Size = config.BandSize
-	band.Color = config.BandColor
+	band.Color = look.BandColor
 	band.Material = Enum.Material.SmoothPlastic
 	plain(band)
-	band.Parent = watch
+	band.Parent = model
 	local face = Instance.new("Part")
 	face.Name = "Face"
 	face.Size = config.FaceSize
-	face.Color = config.FaceColor
-	face.Material = Enum.Material.Neon
+	face.Color = config.DimFaceColor
+	face.Material = Enum.Material.SmoothPlastic
 	plain(face)
-	face.Parent = watch
+	face.Parent = model
 	-- A cylinder's axis is its X; turn the ring so its axis runs along the forearm (the hand's Y).
-	weld(watch, hand, band, config.BandOffset * CFrame.Angles(0, 0, math.pi / 2))
-	weld(watch, hand, face, config.FaceOffset)
-	watch.PrimaryPart = band
-	return watch
+	weld(model, hand, band, config.BandOffset * CFrame.Angles(0, 0, math.pi / 2))
+	weld(model, hand, face, config.FaceOffset)
+	model.PrimaryPart = band
+	return { model = model, face = face, look = look }
 end
 
-local function remove(player: Player)
-	local entry = shown[player]
+local function setLit(entry: Worn, lit: boolean)
+	entry.face.Material = if lit then Enum.Material.Neon else Enum.Material.SmoothPlastic
+	entry.face.Color = if lit then entry.look.FaceColor else config.DimFaceColor
+end
+
+local function takeOff(player: Player)
+	local entry = worn[player]
 	if entry then
-		shown[player] = nil
-		if entry.watch then
-			entry.watch:Destroy()
-		end
+		worn[player] = nil
+		entry.model:Destroy()
+	end
+end
+
+-- Brings this player's worn watch in step: on while Exposed and alive, off otherwise; the face glows while an action runs.
+local function sync(player: Player)
+	local character = player.Character
+	local hand = character and character:FindFirstChild("LeftHand")
+	local wants = character ~= nil
+		and hand ~= nil
+		and hand:IsA("BasePart")
+		and CoverService.isExposed(player)
+		and not DownedService.isOut(player)
+	local entry = worn[player]
+	if entry and (not wants or entry.model.Parent ~= character) then
+		takeOff(player)
+		entry = nil
+	end
+	if wants and not entry and character and hand and hand:IsA("BasePart") then
+		entry = build(hand, WatchDefs.look(MetaProgressionService.equippedWatch(player)))
+		entry.model.Parent = character
+		worn[player] = entry
+	end
+	if entry then
+		local action = actions[player]
+		setLit(entry, action ~= nil and action.endsAt > os.clock())
 	end
 end
 
@@ -80,56 +116,34 @@ local function tellOwner(player: Player, kind: string, seconds: number, active: 
 	RemoteService.fireClient("WristWatchState", player, info)
 end
 
--- The watch goes up for `seconds` (and an action that ends sooner lowers it sooner, see lower). The owner always gets their own raised
--- watch. The one on the wrist that everyone sees goes on only while the agent is Exposed (out of cover), on whatever look they wear:
--- a covered agent's wrist shows nothing, so a watch never marks a disguised player.
+-- The glow (and the owner's raised watch) starts for `seconds`.
 local function raise(player: Player, kind: string, seconds: number)
-	local character = player.Character
-	local hand = character and character:FindFirstChild("LeftHand")
-	if not (character and hand and hand:IsA("BasePart")) then
-		return
-	end
-	local entry = shown[player]
-	if entry and entry.watch and entry.watch.Parent ~= character then
-		remove(player)
-		entry = nil
-	end
-	if not entry then
-		entry = { watch = nil, holdUntil = 0, kind = kind }
-		shown[player] = entry
-	end
-	local mine = entry :: Shown
-	if not mine.watch and CoverService.isExposed(player) then
-		local created = build(hand)
-		created.Parent = character
-		mine.watch = created
-	end
-	mine.kind = kind
-	mine.holdUntil = os.clock() + seconds + config.LingerSeconds
+	local action: Action = { kind = kind, endsAt = os.clock() + seconds + config.LingerSeconds }
+	actions[player] = action
 	tellOwner(player, kind, seconds, true)
-	local stamp = mine.holdUntil
+	sync(player)
 	task.delay(seconds + config.LingerSeconds, function()
-		local now = shown[player]
-		if now == mine and now.holdUntil == stamp then
-			remove(player)
-			tellOwner(player, mine.kind, 0, false)
+		if actions[player] == action then
+			actions[player] = nil
+			tellOwner(player, kind, 0, false)
+			sync(player)
 		end
 	end)
 end
 
--- Lowers the watch when the action of this kind ends (a hack ending does not take down a re-cover's watch, nor the reverse).
+-- The action of this kind ended (a hack ending does not end a re-cover's glow, nor the reverse).
 local function lower(player: Player, kind: string)
-	local entry = shown[player]
-	if not entry or entry.kind ~= kind then
+	local action = actions[player]
+	if not action or action.kind ~= kind then
 		return
 	end
-	local stamp = os.clock() + config.LingerSeconds
-	entry.holdUntil = stamp
+	local ending: Action = { kind = kind, endsAt = os.clock() + config.LingerSeconds }
+	actions[player] = ending
 	tellOwner(player, kind, 0, false)
 	task.delay(config.LingerSeconds, function()
-		local now = shown[player]
-		if now == entry and now.holdUntil == stamp then
-			remove(player)
+		if actions[player] == ending then
+			actions[player] = nil
+			sync(player)
 		end
 	end)
 end
@@ -142,12 +156,15 @@ function WristWatchService.Start()
 			return
 		end
 		if active then
-			-- A drone's hack is not seen on her body (IntelService), so her wrist shows nothing either.
+			-- A drone's hack is not seen on her body (IntelService), so the owner sees their watch but nobody else sees a glow.
 			if DroneService.position(player) == nil then
 				raise(player, "Hack", math.max(seconds, 0))
+			else
+				tellOwner(player, "Hack", seconds, true)
 			end
 		else
 			lower(player, "Hack")
+			tellOwner(player, "Hack", 0, false)
 		end
 	end)
 	DisguiseService.onRecoverBegan(function(player, seconds)
@@ -157,7 +174,17 @@ function WristWatchService.Start()
 		lower(player, "Recover")
 	end)
 	Players.PlayerRemoving:Connect(function(player)
-		remove(player)
+		takeOff(player)
+		actions[player] = nil
+	end)
+	RunService.Heartbeat:Connect(function(dt)
+		sinceCheck += dt
+		if sinceCheck >= 1 / config.CheckHz then
+			sinceCheck = 0
+			for _, player in Players:GetPlayers() do
+				sync(player)
+			end
+		end
 	end)
 end
 

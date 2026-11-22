@@ -141,7 +141,7 @@ end
 -- Ticket equip-cosmetics: wear an owned Title, Calling card or Spray (kind "Title", "Card" or "Spray"), or take it off with nil. Nothing else is equippable
 -- yet (no art). The choice is saved with the profile; showing it on the kill and results screens is the client's and a later server step.
 local function onEquip(player: Player, kind: unknown, cosmeticId: unknown): (boolean, string?)
-	if kind ~= "Title" and kind ~= "Card" and kind ~= "Spray" then
+	if kind ~= "Title" and kind ~= "Card" and kind ~= "Spray" and kind ~= "Watch" then
 		return false, "UnknownKind"
 	end
 	if cosmeticId ~= nil and type(cosmeticId) ~= "string" then
@@ -159,6 +159,8 @@ local function onEquip(player: Player, kind: unknown, cosmeticId: unknown): (boo
 			profile.EquippedTitle = cosmeticId :: string?
 		elseif kind == "Card" then
 			profile.EquippedCard = cosmeticId :: string?
+		elseif kind == "Watch" then
+			profile.EquippedWatch = cosmeticId :: string?
 		else
 			profile.EquippedSpray = cosmeticId :: string?
 		end

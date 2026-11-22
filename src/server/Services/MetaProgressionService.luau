@@ -160,6 +160,10 @@ local function reconcile(saved: any): MetaProfile
 		local entry = CosmeticDefs.get(saved.EquippedSpray)
 		profile.EquippedSpray = if entry and entry.Kind == "Spray" then saved.EquippedSpray else nil
 	end
+	if type(saved.EquippedWatch) == "string" and profile.OwnedCosmetics[saved.EquippedWatch] then
+		local entry = CosmeticDefs.get(saved.EquippedWatch)
+		profile.EquippedWatch = if entry and entry.Kind == "Watch" then saved.EquippedWatch else nil
+	end
 	if type(saved.Dossiers) == "table" then
 		for dossierId, progress in saved.Dossiers do
 			if type(dossierId) == "string" and DossierDefs.get(dossierId) and type(progress) == "table" then
@@ -238,6 +242,12 @@ function MetaProgressionService.titleOf(player: Player): string?
 	local profile = profiles[player]
 	local entry = if profile and profile.EquippedTitle then CosmeticDefs.get(profile.EquippedTitle) else nil
 	return if entry then entry.Name else nil
+end
+
+-- The Watch cosmetic id the player equipped, or nil (the default watch).
+function MetaProgressionService.equippedWatch(player: Player): string?
+	local profile = profiles[player]
+	return if profile then profile.EquippedWatch else nil
 end
 
 -- The Spray cosmetic id the player equipped, or nil.
