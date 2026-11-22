@@ -259,6 +259,20 @@ local function padChord(): boolean
 end
 
 local function input(action: string, state: Enum.UserInputState, object: InputObject): Enum.ContextActionResult
+	-- A release or cancel always ends the press, even if the chord was let go first (LT before the D-pad) or the player can no longer act;
+	-- otherwise the wheel would stay open with the mouse-look sink still bound.
+	if state ~= Enum.UserInputState.Begin and pressed and action ~= DANGER_ACTION then
+		pressed = false
+		holdToken += 1
+		if state == Enum.UserInputState.End and wheelOpen then
+			closeWheel(true)
+		elseif state == Enum.UserInputState.End then
+			request(false)
+		else
+			closeWheel(false)
+		end
+		return Enum.ContextActionResult.Sink
+	end
 	local pad = object.KeyCode == config.Pad or object.KeyCode == config.DangerPad
 	if pad and not padChord() then
 		return Enum.ContextActionResult.Pass
@@ -287,18 +301,6 @@ local function input(action: string, state: Enum.UserInputState, object: InputOb
 				end
 			end)
 		end
-	elseif state == Enum.UserInputState.End and pressed then
-		pressed = false
-		holdToken += 1
-		if wheelOpen then
-			closeWheel(true)
-		else
-			request(false)
-		end
-	elseif state == Enum.UserInputState.Cancel then
-		pressed = false
-		holdToken += 1
-		closeWheel(false)
 	end
 	return Enum.ContextActionResult.Sink
 end

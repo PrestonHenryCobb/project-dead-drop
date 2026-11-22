@@ -13,6 +13,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local DisguiseService = require(script.Parent.DisguiseService)
+local DroneService = require(script.Parent.DroneService)
 local InteractService = require(script.Parent.InteractService)
 local RemoteService = require(script.Parent.RemoteService)
 
@@ -106,14 +107,14 @@ local function raise(player: Player, kind: string, seconds: number)
 	end)
 end
 
-local function lower(player: Player)
+-- Lowers the watch when the action of this kind ends (a hack ending does not take down a re-cover's watch, nor the reverse).
+local function lower(player: Player, kind: string)
 	local entry = shown[player]
-	if not entry then
+	if not entry or entry.kind ~= kind then
 		return
 	end
 	local stamp = os.clock() + config.LingerSeconds
 	entry.holdUntil = stamp
-	local kind = entry.kind
 	tellOwner(player, kind, 0, false)
 	task.delay(config.LingerSeconds, function()
 		local now = shown[player]
@@ -131,13 +132,19 @@ function WristWatchService.Start()
 			return
 		end
 		if active then
-			raise(player, "Hack", math.max(seconds, 0))
+			-- A drone's hack is not seen on her body (IntelService), so her wrist shows nothing either.
+			if DroneService.position(player) == nil then
+				raise(player, "Hack", math.max(seconds, 0))
+			end
 		else
-			lower(player)
+			lower(player, "Hack")
 		end
 	end)
 	DisguiseService.onRecoverBegan(function(player, seconds)
 		raise(player, "Recover", seconds)
+	end)
+	DisguiseService.onRecoverEnded(function(player)
+		lower(player, "Recover")
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		remove(player)

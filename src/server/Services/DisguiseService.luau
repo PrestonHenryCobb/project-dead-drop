@@ -95,6 +95,13 @@ local npcLookup: ((string) -> NpcInfo?)? = nil
 local coverHooks: CoverHooks? = nil
 local swapListeners: { (Player) -> () } = {}
 local recoverListeners: { (Player, number) -> () } = {}
+local recoverEndedListeners: { (Player) -> () } = {}
+
+local function endRecover(player: Player)
+	for _, listener in recoverEndedListeners do
+		task.spawn(listener, player)
+	end
+end
 local actionBlocker: ((Player) -> boolean)? = nil
 local swapBlocker: ((Player) -> boolean)? = nil
 local autoRecover: { [Player]: boolean } = {} -- ticket auto-recover: the option where the player has changed it
@@ -122,6 +129,11 @@ end
 -- Called when an Exposed player starts putting a disguise back on, with how long it takes (WristWatchService shows a watch for it).
 function DisguiseService.onRecoverBegan(listener: (Player, number) -> ())
 	table.insert(recoverListeners, listener)
+end
+
+-- Called when that re-cover is over, however it ended (done, refused at the last moment, or the auto ring was cancelled).
+function DisguiseService.onRecoverEnded(listener: (Player) -> ())
+	table.insert(recoverEndedListeners, listener)
 end
 
 -- Something that stops all disguise actions for a player (DownedService: a downed agent cannot scan, change or
@@ -478,12 +490,15 @@ local function onRequestDisguise(player: Player)
 		-- The player may have walked somewhere the disguise is not allowed since they pressed the key.
 		if ZoneService.tierAt(stillRoot.Position) > target.Tier then
 			notify(player, "You can't change into that here")
+			endRecover(player)
 			return
 		end
 		if state.exposed and not (coverHooks and coverHooks.canRecover(player)) then
+			endRecover(player)
 			return
 		end
 		commit(player, state, target, stillHumanoid, stillRoot)
+		endRecover(player)
 	end)
 end
 
@@ -590,6 +605,7 @@ local function checkAuto()
 		elseif not ready and state.autoSince then
 			state.autoSince = nil
 			sendAuto(player, false)
+			endRecover(player) -- the ring was cancelled
 		end
 	end
 end
@@ -603,6 +619,7 @@ local function onRequestAutoRecover(player: Player, on: unknown)
 	local state = states[player]
 	if state and not on and state.autoSince then
 		state.autoSince = nil
+		endRecover(player)
 	end
 	sendAuto(player, state ~= nil and state.autoSince ~= nil)
 end
