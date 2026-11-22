@@ -542,3 +542,9 @@ Codex review 2026-11-20 — input-hints and minimap-size: reviewed all mixed hin
 | Id | Ticket | Owner | Needs | Status |
 |---|---|---|---|---|
 | menu-cinematic-gala | Owner choices: center-stage agent on open night gala balcony, floating top navigation, essentials left, squad upper-right and Play bottom-right. Shared ivory/brass controls and dark engraved plates; free picks/details expand on demand. Source inspection/formatting only, no tests or desktop control. See docs/MENU_CINEMATIC_GALA_2026-11-21.md. | CODEX | Owner visual acceptance | READY_FOR_REVIEW |
+
+## Main-menu agent visibility
+
+| Id | Ticket | Owner | Needs | Status |
+|---|---|---|---|---|
+| menu-agent-visibility | Always show an equipped/owned/first-roster preview even before a saved loadout; retained display intent, complete-template readiness and bounded asynchronous local R15 fallback, classic joints and visibility cleanup. No ownership/deploy changes. Source inspection/formatting only. See docs/MENU_AGENT_VISIBILITY_2026-11-21.md. | CODEX | Owner main-menu visual acceptance | READY_FOR_REVIEW |

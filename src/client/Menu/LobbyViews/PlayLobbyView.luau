@@ -469,12 +469,23 @@ function render()
 	buildRight(right)
 
 	local loadout = snapshot and snapshot.Loadout
-	if loadout then
-		navigator.focusAgent(loadout.AgentId, loadout.HardwareId)
-		local agent = AgentDefs.byId[loadout.AgentId]
+	-- A first-launch/loading profile has no loadout. Preview an agent without claiming or equipping it.
+	local previewId = AgentDefs.order[1]
+	if snapshot then
+		for _, id in AgentDefs.order do
+			if snapshot.Profile.OwnedAgents[id] then
+				previewId = id
+				break
+			end
+		end
+	end
+	local agent = AgentDefs.byId[if loadout then loadout.AgentId else previewId]
+	local hardwareId = if loadout then loadout.HardwareId else WeaponDefs.getForAgent(agent.Id)[1].Id
+	navigator.focusAgent(agent.Id, hardwareId)
+	do
 		local plate = MenuTheme.label({
 			Name = "Nameplate",
-			Text = string.upper(agent.DisplayName),
+			Text = string.upper(agent.DisplayName) .. (if loadout then "" else " / PREVIEW"),
 			Style = "Title",
 			Parent = frame,
 			AnchorPoint = Vector2.new(0.5, 1),

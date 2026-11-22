@@ -465,6 +465,8 @@ local GameConfig = {
 		-- The 3D stage behind the menu: a small walnut-and-brass mezzanine built on the client only, far from the map.
 		Stage = {
 			Origin = Vector3.new(0, 1600, 2600),
+			RigAttempts = 3, -- local blank-R15 preview if the server's StarterCharacter template is unavailable
+			RigRetrySeconds = 1,
 			-- Ticket menu-art-pass: original Gala set dressing, no additional lights or shadows.
 			Art = {
 				Glass = Color3.fromHex("8EAFA9"),
