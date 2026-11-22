@@ -90,12 +90,21 @@ end
 local function lamp(parent: Instance, position: Vector3, color: Color3, brightness: number, range: number)
 	local holder =
 		part(parent, "Lamp", Vector3.new(0.6, 1.2, 0.3), CFrame.new(position), config.Brass, Enum.Material.Metal)
+	-- Lighting helpers are not set dressing and must never become foreground boxes during a camera move.
+	holder.Transparency = 1
+	holder.CastShadow = false
 	local light = Instance.new("PointLight")
 	light.Color = color
 	light.Brightness = brightness
 	light.Range = range
 	light.Shadows = config.LampShadows
 	light.Parent = holder
+end
+
+local function shotFrame(framing: Framing): CFrame
+	local shot = config.Cameras[framing]
+	local origin = CFrame.new(config.Origin)
+	return CFrame.lookAt((origin * CFrame.new(shot.Eye)).Position, (origin * CFrame.new(shot.Focus)).Position)
 end
 
 -- The balcony floor and a small fixed non-shadowed light budget. Set dressing is built by GalaSet.
@@ -231,7 +240,9 @@ function MenuStage.new(): MenuStage
 	end))
 	local camera = workspace.CurrentCamera
 	camera.CameraType = Enum.CameraType.Scriptable
-	camera.FieldOfView = config.FieldOfView
+	-- Enter at a valid balcony shot. Tweening from the gameplay camera flies through the intervening world/floor.
+	camera.CFrame = shotFrame("Play")
+	camera.FieldOfView = config.Cameras.Play.FieldOfView
 	return self
 end
 
@@ -438,6 +449,8 @@ function MenuStage.show(self: MenuStage, agentId: string, hardwareId: string?)
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
 	humanoid.AutoRotate = false
+	root.Transparency = 1 -- never include the internal rig pivot in the visible/fading actor
+	root.CastShadow = false
 	for _, item in rig:GetDescendants() do
 		if item:IsA("BasePart") then
 			item.LocalTransparencyModifier = 0
@@ -473,8 +486,7 @@ function MenuStage.frame(self: MenuStage, framing: Framing)
 	self.framing = framing
 	transitionPose(self)
 	local shot = config.Cameras[framing]
-	local origin = CFrame.new(config.Origin)
-	local goal = CFrame.lookAt((origin * CFrame.new(shot.Eye)).Position, (origin * CFrame.new(shot.Focus)).Position)
+	local goal = shotFrame(framing)
 	local camera = workspace.CurrentCamera
 	camera.CameraType = Enum.CameraType.Scriptable
 	if self.cameraTween then

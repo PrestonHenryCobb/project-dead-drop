@@ -566,3 +566,9 @@ Codex review 2026-11-20 — input-hints and minimap-size: reviewed all mixed hin
 | Id | Ticket | Owner | Needs | Status |
 |---|---|---|---|---|
 | asset-picker-clarity | Guided select-slot/choose-Asset flow, fixed four-slot summary, rarity-specific plain-language effects, selected/swap/move previews, 4/4 readiness and Continue to Play. Pre-deploy opens explicit candidate lists instead of blind cycling. Existing local draft and server validation unchanged. Source inspection/formatting only. See docs/ASSET_PICKER_CLARITY_2026-11-22.md. | CODEX | Owner visual acceptance | READY_FOR_REVIEW |
+
+## Lobby camera helper visibility (2026-11-22)
+
+| Id | Ticket | Owner | Needs | Status |
+|---|---|---|---|---|
+| menu-camera-helpers | Hide solid light-holder boxes and the display rig pivot; enter the lobby at a valid balcony camera shot rather than tweening through the map/world. Preserve smooth in-menu camera/pose transitions. Source inspection/formatting only; exact reported obstruction not visually confirmed. See docs/MENU_CAMERA_HELPERS_2026-11-22.md. | CODEX | Owner visual acceptance | READY_FOR_REVIEW |
