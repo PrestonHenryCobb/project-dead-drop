@@ -99,11 +99,20 @@ local function spreadAround(graph: NavGraph.Graph, node: number, maxTier: number
 	return point
 end
 
--- How much a role likes a node, by the node's tier (GameConfig.NPC.RoleTierWeights); a crowd cluster is liked more.
-local function tierWeight(role: string, graph: NavGraph.Graph): (number) -> number
+-- How much a role likes a node, by the node's tier (GameConfig.NPC.RoleTierWeights); a crowd cluster is liked more. With a home
+-- (where the NPC spawned), nodes far from it are liked less (GameConfig.NPC.Home), so each NPC keeps to its own part of the map
+-- and the crowd stays spread out instead of drifting into the same few clusters as the round goes on.
+local function tierWeight(role: string, graph: NavGraph.Graph, home: Vector3?): (number) -> number
 	local weights = (config.RoleTierWeights :: { [string]: { [number]: number } })[role]
+	local homeConfig = config.Home
 	return function(node: number): number
-		return (weights[graph.tiers[node]] or 0) * (if graph.clusters[node] then config.Crowd.ClusterWeight else 1)
+		local weight = (weights[graph.tiers[node]] or 0)
+			* (if graph.clusters[node] then config.Crowd.ClusterWeight else 1)
+		if home then
+			local away = (graph.feet[node] - home).Magnitude / homeConfig.RadiusStuds
+			weight *= homeConfig.Floor + (1 - homeConfig.Floor) / (1 + away * away)
+		end
+		return weight
 	end
 end
 
@@ -162,7 +171,7 @@ local function startTrip(npc: Npc, now: number, graph: NavGraph.Graph)
 		config.MinTripStuds,
 		isFree(graph),
 		rng,
-		if npc.limits then nil else tierWeight(npc.role, graph),
+		if npc.limits then nil else tierWeight(npc.role, graph, graph.feet[npc.home]),
 		npc.limits
 	)
 	if not destination or not legs or not chain then
@@ -395,6 +404,7 @@ local function createNpc(
 		rootHeight = rootHeight,
 		node = node,
 		post = node,
+		home = node,
 		ground = ground,
 		yaw = yaw,
 		path = nil,

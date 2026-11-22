@@ -151,14 +151,21 @@ local function thinkIntel(bot: BotRegistry.Bot, now: number, goal: number)
 	local here = bot.npc.ground
 	if not bot.stationId then
 		local claimed: { [string]: boolean } = {}
+		local crowding: { [string]: number } = {} -- bots of other teams already heading for each station
 		for _, other in BotRegistry.list() do
-			if other.teamId == bot.teamId and other.stationId then
-				claimed[other.stationId] = true -- a teammate is already on it
+			if other.stationId then
+				if other.teamId == bot.teamId then
+					claimed[other.stationId] = true -- a teammate is already on it
+				else
+					crowding[other.stationId] = (crowding[other.stationId] or 0) + 1
+				end
 			end
 		end
+		-- The nearest station, but each rival already going there makes it SpreadPenaltyStuds farther, so the teams fan out over the map.
 		local best, bestDistance = nil, math.huge
 		for _, station in IntelService.untaken(bot.teamId) do
 			local distance = (station.position - here).Magnitude
+				+ (crowding[station.id] or 0) * config.SpreadPenaltyStuds
 			if not claimed[station.id] and distance < bestDistance then
 				best, bestDistance = station, distance
 			end
@@ -188,7 +195,14 @@ local function thinkVault(bot: BotRegistry.Bot, now: number)
 	local here = bot.npc.ground
 	local best, bestDistance = nil, math.huge
 	for _, position in VaultService.openTerminals() do
-		local distance = (position - here).Magnitude
+		-- Nearest terminal, but each other bot already sent to it makes it SpreadPenaltyStuds farther, so they do not all stack on one.
+		local crowded = 0
+		for _, other in BotRegistry.list() do
+			if other ~= bot and other.destination == position then
+				crowded += 1
+			end
+		end
+		local distance = (position - here).Magnitude + crowded * config.SpreadPenaltyStuds
 		if distance < bestDistance then
 			best, bestDistance = position, distance
 		end

@@ -11,7 +11,8 @@
 --   Entries are individual (no party grouping yet) and a cancelled player is simply not teleported when their entry comes up.
 -- Match servers:
 --   A player who arrives from a lobby starts agent select at once, as if they had pressed Play (TeamService has already taken the
---   mode from the teleport data). Empty slots are filled by the bots (BotService).
+--   mode from the teleport data). Empty slots are filled by the bots (BotService). When the results screen ends, everyone is
+--   teleported back to the lobby place (the menu); if that fails, the match server opens its own lobby as before.
 --
 --   MatchmakingService.role() -> "Single" | "Lobby" | "Match"
 
@@ -26,6 +27,7 @@ local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local PlaceRole = require(Shared:WaitForChild("Util"):WaitForChild("PlaceRole"))
 local Types = require(Shared:WaitForChild("Types"))
 local LobbyService = require(script.Parent.LobbyService)
+local MatchService = require(script.Parent.MatchService)
 local MetaProgressionService = require(script.Parent.MetaProgressionService)
 local RemoteService = require(script.Parent.RemoteService)
 
@@ -180,6 +182,20 @@ local function teleportMatch(message: any)
 	end
 end
 
+-- The results screen is over: send everyone back to the lobby place, the menu. A failed teleport leaves them in this server's lobby.
+local function returnToLobby()
+	local group = Players:GetPlayers()
+	if #group == 0 then
+		return
+	end
+	local ok = pcall(function()
+		TeleportService:TeleportAsync(config.LobbyPlaceId, group)
+	end)
+	if not ok then
+		warn("[Matchmaking] could not return the players to the lobby place")
+	end
+end
+
 local function greetArrival(player: Player)
 	local data = player:GetJoinData().TeleportData
 	if type(data) ~= "table" or data.Matched ~= true then
@@ -209,6 +225,14 @@ function MatchmakingService.Start()
 		for _, player in Players:GetPlayers() do
 			task.spawn(greetArrival, player)
 		end
+		local sawResults = false
+		MatchService.onPhaseChanged(function(phase)
+			if phase == "Results" then
+				sawResults = true
+			elseif phase == "Lobby" and sawResults then
+				returnToLobby() -- the results screen has ended (not the server's first Lobby at boot)
+			end
+		end)
 		return
 	end
 	RemoteService.onInvoke("RequestFindMatch", onFind)

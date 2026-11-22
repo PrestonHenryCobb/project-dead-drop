@@ -11,6 +11,7 @@
 --   InteractService.setSecondsMult(fn)     fn(player, kind, label) -> how much of the hold's time that player needs
 --   InteractService.cancel(player)          ends any hold the player has going (going down, for example)
 --   InteractService.isBusy(player) -> boolean
+--   InteractService.onHold(listener)       listener(player, label, active, seconds) when a hold begins or ends (WristWatchService)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -36,6 +37,11 @@ local config = GameConfig.Interact
 local handlers: { [string]: (Player, string) -> Interaction? } = {}
 local holds: { [Player]: Hold } = {}
 local secondsMult: ((Player, string, string) -> number)? = nil
+local holdListeners: { (Player, string, boolean, number) -> () } = {}
+
+function InteractService.onHold(listener: (Player, string, boolean, number) -> ())
+	table.insert(holdListeners, listener)
+end
 
 function InteractService.register(kind: string, begin: (Player, string) -> Interaction?)
 	assert(not handlers[kind], `Interaction kind {kind} is registered twice`)
@@ -54,6 +60,9 @@ end
 local function tell(player: Player, interaction: Interaction, active: boolean)
 	local info: Types.InteractStateInfo = { Kind = interaction.label, Seconds = interaction.seconds, Active = active }
 	RemoteService.fireClient("InteractState", player, info)
+	for _, listener in holdListeners do
+		task.spawn(listener, player, interaction.label, active, interaction.seconds)
+	end
 end
 
 function InteractService.cancel(player: Player)

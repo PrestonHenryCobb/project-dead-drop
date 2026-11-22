@@ -741,6 +741,9 @@ local GameConfig = {
 		},
 		MinTripStuds = 30, -- an NPC's next destination is at least this far away
 		TripPreferStuds = 120, -- destinations this far (walking) are half as likely as near ones; keeps long trips rare
+		-- Ticket crowd-spread (owner test 2026-11-21: bots and NPCs bunched up late in the round): each NPC favours destinations near where it
+		-- spawned. A node RadiusStuds away is half as likely as one beside home; Floor keeps a far trip possible (never zero). SPEC-QUESTION: guesses.
+		Home = { RadiusStuds = 70, Floor = 0.03 },
 		ArrivalSpread = 3, -- NPCs stand within this many studs of a node, so they don't stack on one point
 		ArrivalSpreadTries = 4, -- R2-tiers: random spots tried (on floor, in tier, wall-free) before using the node itself
 		NodeCapacity = 2, -- NPCs that may stand at or head to one node at once (a pair chatting at a spot)
@@ -921,6 +924,7 @@ local GameConfig = {
 		ThinkHz = 2,
 		WarpStuds = 60, -- a bot that walked this near a terminal (a vault core has no nodes) is placed on its dais
 		ArriveStuds = 3, -- close enough to a station or terminal to work it
+		SpreadPenaltyStuds = 50, -- ticket crowd-spread: each other bot already heading for a station or terminal makes it this much farther, so bots fan out. SPEC-QUESTION: a guess
 		ResendSeconds = 3, -- a bot that stopped short of its goal (a reaction, a busy door) is sent again after this
 		Profiles = {
 			-- IntelGoal: stations each bot takes before it heads for a terminal. HackMult: times the station's hack time.
@@ -1275,6 +1279,37 @@ local GameConfig = {
 	},
 
 	-- Spec 24: Interact is held. InteractService times every hold on the server and re-checks it this often.
+	-- Wrist watch (owner test 2026-11-21): an agent glances at a watch on the left wrist while hacking, and briefly while re-covering. The watch
+	-- exists only for those moments, so it never marks anyone as a player the rest of the time (hacking is already something NPCs never do).
+	-- SPEC-QUESTION: sizes and offsets are guesses to tune in Studio.
+	WristWatch = {
+		HackLabels = { -- Interaction labels (InteractService) that count as hacking
+			["Hack"] = true,
+			["Hack camera"] = true,
+			["Hack door"] = true,
+			["Pick lock"] = true,
+			["Cut power"] = true,
+			["Print keycard"] = true,
+		},
+		LingerSeconds = 0.3, -- the watch stays up this long after a hold ends
+		BandColor = Color3.fromRGB(28, 28, 32),
+		FaceColor = Color3.fromRGB(90, 220, 255),
+		BandSize = Vector3.new(0.2, 1.05, 1.05), -- a ring round the wrist (a cylinder: X is its length)
+		BandOffset = CFrame.new(0, 0.2, 0), -- from the LeftHand
+		FaceSize = Vector3.new(0.07, 0.55, 0.55),
+		FaceOffset = CFrame.new(-0.55, 0.2, 0), -- the outer side of the left wrist
+		FirstPerson = { -- your own view: a watch raised at the lower left of the screen
+			Offset = CFrame.new(-0.95, -0.75, -1.7) * CFrame.Angles(math.rad(25), math.rad(30), math.rad(-15)),
+			DownOffset = CFrame.new(0, -0.9, 0.2),
+			Size = Vector3.new(0.9, 0.12, 0.9),
+			RaiseSeconds = 0.18,
+			BarColor = Color3.fromRGB(90, 220, 255),
+			TextColor = Color3.fromRGB(220, 250, 255),
+			ScreenColor = Color3.fromRGB(8, 18, 24),
+			Labels = { Hack = "HACK", Recover = "RE-COVER" },
+		},
+	},
+
 	Interact = {
 		CheckHz = 10,
 		MaxTargetLength = 64, -- longest target name a RequestInteract may carry

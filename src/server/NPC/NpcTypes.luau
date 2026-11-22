@@ -43,6 +43,7 @@ export type Npc = {
 	rootHeight: number,
 	node: number, -- the node the NPC is at, or the one it is walking to
 	post: number, -- the node a guard goes back to after investigating
+	home: number, -- the node it spawned at: ordinary trips favour nodes near it (GameConfig.NPC.Home); never changes
 	ground: Vector3, -- where its feet are
 	yaw: number,
 	path: { Vector3 }?,

@@ -94,6 +94,7 @@ local noSprint: { [Player]: boolean } = {} -- ticket 17e: holding the Briefcase 
 local npcLookup: ((string) -> NpcInfo?)? = nil
 local coverHooks: CoverHooks? = nil
 local swapListeners: { (Player) -> () } = {}
+local recoverListeners: { (Player, number) -> () } = {}
 local actionBlocker: ((Player) -> boolean)? = nil
 local swapBlocker: ((Player) -> boolean)? = nil
 local autoRecover: { [Player]: boolean } = {} -- ticket auto-recover: the option where the player has changed it
@@ -116,6 +117,11 @@ end
 -- Called when a player starts changing disguise (spec 27 #22: Combat cancels a reload).
 function DisguiseService.onSwapStarted(listener: (Player) -> ())
 	table.insert(swapListeners, listener)
+end
+
+-- Called when an Exposed player starts putting a disguise back on, with how long it takes (WristWatchService shows a watch for it).
+function DisguiseService.onRecoverBegan(listener: (Player, number) -> ())
+	table.insert(recoverListeners, listener)
 end
 
 -- Something that stops all disguise actions for a player (DownedService: a downed agent cannot scan, change or
@@ -455,6 +461,11 @@ local function onRequestDisguise(player: Player)
 	local applyId = state.applyId
 	local seconds = agentRules(player).DisguiseSeconds or config.DisguiseSeconds -- Feint's Smoke and Mirrors: 0.3 s
 	state.swapEndsAt = os.clock() + seconds
+	if state.exposed then
+		for _, listener in recoverListeners do
+			task.spawn(listener, player, seconds)
+		end
+	end
 	for _, listener in swapListeners do
 		listener(player)
 	end
@@ -569,6 +580,9 @@ local function checkAuto()
 		if ready and not state.autoSince then
 			state.autoSince = now
 			sendAuto(player, true)
+			for _, listener in recoverListeners do
+				task.spawn(listener, player, config.AutoRecoverSeconds)
+			end
 		elseif ready and state.autoSince and now - state.autoSince >= config.AutoRecoverSeconds then
 			state.autoSince = nil
 			sendAuto(player, false)

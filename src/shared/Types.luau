@@ -252,6 +252,9 @@ export type ScopeGlintInfo = { Position: Vector3, Seconds: number }
 -- Combat messages. All are sent only to the player they concern, except ShotInfo (to players within earshot).
 export type HitConfirm = { Kind: "Npc" | "Agent", Head: boolean } -- the shooter's hitmarker (spec 8.4)
 -- Step 9: a hold-interaction began (Active) or ended. Kind is what it does, for the HUD ("Revive", "Execute").
+-- Wrist watch (owner test 2026-11-21): shown while hacking and, briefer, while re-covering. Kind is "Hack" or "Recover".
+export type WristWatchInfo = { Kind: string, Seconds: number, Active: boolean }
+
 export type InteractStateInfo = { Kind: string, Seconds: number, Active: boolean }
 -- Step 9: sent to a player who goes down; BleedOutAt is on the server clock.
 -- R4-body-animation: Fall and Posture name the poses the client plays (Util/Knockdown), the same set NPCs use.
