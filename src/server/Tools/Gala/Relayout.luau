@@ -51,7 +51,7 @@ room(
 	{ props = { "winerack", "barrels", "sconces", "crates" } }
 )
 room("b_gate", "B", "Security checkpoint (basement)", 2, IN, { -14, -156, 14, -80 }, { props = { "sconces" } })
-room("b_camera", "B", "Camera room", 2, IN, { -70, -156, -14, -80 }, { props = { "filing", "sconces", "desks" } })
+room("b_camera", "B", "Camera room", 2, IN, { -70, -156, -14, -80 }, { props = { "filing", "sconces", "deskPods" } })
 room(
 	"b_barracks",
 	"B",
@@ -91,7 +91,7 @@ room(
 	2,
 	IN,
 	{ 160, -85, 280, -55 },
-	{ props = { "filing", "lockers", "desks" } }
+	{ props = { "filing", "lockers", "deskPods" } }
 )
 room("wb_linen", "B", "Linen store", 1, IN, { 160, -55, 215, 5 }, { props = { "shelving", "crates" } })
 room("wb_laundry", "B", "Hotel laundry", 1, IN, { 160, 5, 215, 55 }, { props = { "laundry", "crates" } })
@@ -131,7 +131,7 @@ room(
 	{ -140, -84, -74, 10 },
 	{
 		density = 1.4,
-		props = { "paintings", "banners", "rugs", "sofas", "sconces", "partitions" },
+		props = { "paintings", "banners", "rugs", "sofas", "sconces", "partitions", "displays" },
 		glass = true,
 		hub = "gallery",
 	}
@@ -143,9 +143,9 @@ room(
 	0,
 	IN,
 	{ -140, 10, -74, 40 },
-	{ props = { "paintings", "plants", "filing", "sconces", "rugs", "desks" }, glass = true }
+	{ props = { "paintings", "plants", "filing", "sconces", "rugs", "deskPods" }, glass = true }
 )
-room("g_coat", "G", "Cloakroom", 1, IN, { -140, 40, -74, 74 }, { props = { "lockers", "sconces", "desks" } })
+room("g_coat", "G", "Cloakroom", 1, IN, { -140, 40, -74, 74 }, { props = { "lockers", "sconces" } })
 room(
 	"g_ballroom",
 	"G",
@@ -155,7 +155,17 @@ room(
 	{ 74, -84, 140, 20 },
 	{
 		density = 2,
-		props = { "rugs", "chandeliers", "paintings", "sconces", "banners", "plants", "piano", "pillars", "tables" },
+		props = {
+			"rugs",
+			"chandeliers",
+			"paintings",
+			"sconces",
+			"banners",
+			"plants",
+			"piano",
+			"pillars",
+			"cocktailSets",
+		},
 		glass = true,
 		hub = "ballroom",
 	}
@@ -169,7 +179,7 @@ room(
 	{ 74, 20, 140, 74 },
 	{
 		density = 1.6,
-		props = { "chandeliers", "sconces", "paintings", "plants", "sofas", "bar", "tables" },
+		props = { "chandeliers", "sconces", "paintings", "plants", "sofas", "bar", "barStools", "cocktailSets" },
 		glass = true,
 		hub = "bar",
 	}
@@ -183,12 +193,20 @@ room(
 	{ -140, -170, -60, -84 },
 	{
 		density = 1.3,
-		props = { "rugs", "chandeliers", "paintings", "sconces", "plants", "tables" },
+		props = { "rugs", "chandeliers", "paintings", "sconces", "plants", "diningSets" },
 		glass = true,
 		hub = "dining",
 	}
 )
-room("g_kitchen", "G", "Kitchen", 1, IN, { -60, -170, 20, -100 }, { props = { "counters", "shelving", "islands" } })
+room(
+	"g_kitchen",
+	"G",
+	"Kitchen",
+	1,
+	IN,
+	{ -60, -170, 20, -100 },
+	{ props = { "counters", "shelving", "islands", "stations" } }
+)
 room(
 	"g_pantry",
 	"G",
@@ -196,7 +214,7 @@ room(
 	1,
 	IN,
 	{ 20, -170, 80, -100 },
-	{ props = { "shelving", "counters", "islands" } }
+	{ props = { "shelving", "counters", "islands", "stations" } }
 )
 room("g_service_n", "G", "Service passage", 1, IN, { -60, -100, 140, -84 }, { props = { "sconces" } })
 room(
@@ -217,7 +235,7 @@ room(
 	IN,
 	{ -140, 74, -60, 150 },
 	{
-		props = { "bookshelves", "rugs", "sofas", "paintings", "chandeliers", "plants", "sconces", "tables" },
+		props = { "bookshelves", "rugs", "sofas", "paintings", "chandeliers", "plants", "sconces", "loungeSets" },
 		glass = true,
 	}
 )
@@ -230,7 +248,18 @@ room(
 	{ -60, 74, 60, 150 },
 	{
 		density = 1.5,
-		props = { "rugs", "chandeliers", "paintings", "plants", "sofas", "sconces", "banners", "reception", "pillars" },
+		props = {
+			"rugs",
+			"chandeliers",
+			"paintings",
+			"plants",
+			"sofas",
+			"sconces",
+			"banners",
+			"reception",
+			"pillars",
+			"loungeSets",
+		},
 		glass = true,
 		hub = "lobby",
 	}
@@ -243,7 +272,18 @@ room(
 	IN,
 	{ 60, 74, 140, 150 },
 	{
-		props = { "rugs", "sofas", "bookshelves", "paintings", "sconces", "plants", "piano", "chandeliers", "tables" },
+		props = {
+			"rugs",
+			"sofas",
+			"bookshelves",
+			"paintings",
+			"sconces",
+			"plants",
+			"piano",
+			"chandeliers",
+			"loungeSets",
+			"cocktailSets",
+		},
 		glass = true,
 	}
 )
@@ -256,7 +296,7 @@ room(
 	{ 160, -5, 280, 95 },
 	{
 		density = 2,
-		props = { "slots", "chandeliers", "rugs", "sconces", "plants", "pillars", "tables" },
+		props = { "slots", "chandeliers", "rugs", "sconces", "plants", "pillars", "casinoTables" },
 		glass = true,
 		hub = "casino",
 	}
@@ -268,9 +308,9 @@ room(
 	0,
 	IN,
 	{ 160, 95, 280, 125 },
-	{ props = { "plants", "paintings", "sconces", "chandeliers", "sofas", "reception" }, glass = true }
+	{ props = { "plants", "paintings", "sconces", "chandeliers", "sofas", "reception", "loungeSets" }, glass = true }
 )
-room("wg_cage", "G", "Cashier's cage", 1, IN, { 160, -85, 215, -5 }, { props = { "filing", "sconces", "desks" } })
+room("wg_cage", "G", "Cashier's cage", 1, IN, { 160, -85, 215, -5 }, { props = { "filing", "sconces", "deskPods" } })
 room(
 	"wg_highroller",
 	"G",
@@ -278,7 +318,19 @@ room(
 	3,
 	IN,
 	{ 215, -85, 280, -5 },
-	{ props = { "rugs", "sofas", "chandeliers", "paintings", "plants", "sconces", "bookshelves", "tables" } }
+	{
+		props = {
+			"rugs",
+			"sofas",
+			"chandeliers",
+			"paintings",
+			"plants",
+			"sconces",
+			"bookshelves",
+			"loungeSets",
+			"cocktailSets",
+		},
+	}
 )
 room("g_restroom", "G", "Lobby restrooms", 0, IN, { 36, 130, 60, 150 }, { parent = "g_lobby", glass = true })
 room("g_staffwc", "G", "Staff washroom", 1, IN, { 20, -170, 40, -152 }, { parent = "g_pantry" })
@@ -290,7 +342,7 @@ room(
 	0,
 	IN,
 	{ -140, -170, -112, -140 },
-	{ parent = "g_dining", density = 0.6, props = { "tables" }, glass = true }
+	{ parent = "g_dining", density = 0.6, props = { "diningSets" }, glass = true }
 )
 room("g_stockroom", "G", "Bar stockroom", 1, IN, { 118, 52, 140, 74 }, { parent = "g_bar" })
 room("g_humidor", "G", "Humidor", 1, IN, { 112, 114, 140, 150 }, { parent = "g_lounge" })
@@ -358,7 +410,7 @@ room(
 	0,
 	IN,
 	{ -125, -84, -74, 74 },
-	{ density = 1.2, props = { "paintings", "banners", "sofas", "sconces", "partitions" }, glass = true }
+	{ density = 1.2, props = { "paintings", "banners", "sofas", "sconces", "partitions", "displays" }, glass = true }
 )
 room(
 	"m_ball_gal",
@@ -367,7 +419,7 @@ room(
 	0,
 	IN,
 	{ 74, -84, 125, -20 },
-	{ density = 1.2, props = { "paintings", "sofas", "sconces", "plants", "tables" }, glass = true }
+	{ density = 1.2, props = { "paintings", "sofas", "sconces", "plants", "cocktailSets" }, glass = true }
 )
 room(
 	"m_bridge_hall",
@@ -385,7 +437,7 @@ room(
 	0,
 	IN,
 	{ 74, 40, 125, 74 },
-	{ props = { "sofas", "sconces", "paintings", "tables" }, glass = true }
+	{ props = { "sofas", "sconces", "paintings", "cocktailSets" }, glass = true }
 )
 room(
 	"m_offices",
@@ -394,9 +446,9 @@ room(
 	1,
 	IN,
 	{ -125, -155, -40, -84 },
-	{ props = { "filing", "bookshelves", "plants", "sconces", "desks" } }
+	{ props = { "filing", "bookshelves", "plants", "sconces", "deskPods" } }
 )
-room("m_hub", "M", "Security hub", 2, IN, { -40, -155, 40, -84 }, { props = { "filing", "sconces", "desks" } })
+room("m_hub", "M", "Security hub", 2, IN, { -40, -155, 40, -84 }, { props = { "filing", "sconces", "deskPods" } })
 room("m_records", "M", "Executive records", 3, IN, { 10, -155, 40, -120 }, { parent = "m_hub", props = { "rugs" } })
 room(
 	"m_catering",
@@ -405,7 +457,7 @@ room(
 	1,
 	IN,
 	{ 40, -155, 125, -84 },
-	{ props = { "filing", "counters", "plants", "desks" } }
+	{ props = { "filing", "counters", "plants", "deskPods", "stations" } }
 )
 room(
 	"m_wine",
@@ -414,7 +466,7 @@ room(
 	0,
 	IN,
 	{ -125, 74, -45, 135 },
-	{ props = { "winerack", "sofas", "rugs", "sconces", "paintings", "tables" }, glass = true }
+	{ props = { "winerack", "sofas", "rugs", "sconces", "paintings", "cocktailSets" }, glass = true }
 )
 room(
 	"m_stairhall",
@@ -432,7 +484,7 @@ room(
 	0,
 	IN,
 	{ 45, 74, 125, 135 },
-	{ props = { "sofas", "rugs", "bookshelves", "paintings", "sconces", "plants", "tables" }, glass = true }
+	{ props = { "sofas", "rugs", "bookshelves", "paintings", "sconces", "plants", "loungeSets" }, glass = true }
 )
 room("m_ter_n", "M", "Terrace north", 0, OUT, { -140, -170, 140, -155 }, { props = { "shrubs" } })
 room("m_ter_s", "M", "Terrace south", 0, OUT, { -140, 135, 140, 150 }, { props = { "shrubs" } })
@@ -456,7 +508,7 @@ room(
 	{ 160, -15, 280, 60 },
 	{
 		density = 1.4,
-		props = { "rugs", "chandeliers", "plants", "paintings", "sofas", "sconces", "reception" },
+		props = { "rugs", "chandeliers", "plants", "paintings", "sofas", "sconces", "reception", "loungeSets" },
 		glass = true,
 		hub = "hotel",
 	}
@@ -470,7 +522,7 @@ room(
 	{ 160, 60, 280, 125 },
 	{
 		density = 1.4,
-		props = { "sofas", "chandeliers", "sconces", "plants", "paintings", "bar", "tables" },
+		props = { "sofas", "chandeliers", "sconces", "plants", "paintings", "bar", "barStools", "cocktailSets" },
 		glass = true,
 		hub = "skybar",
 	}
@@ -549,7 +601,7 @@ room(
 	0,
 	OUT,
 	{ -125, -120, -90, 100 },
-	{ props = { "shrubs", "planters", "tables", "trees" } }
+	{ props = { "shrubs", "planters", "cocktailSets", "trees" } }
 )
 room(
 	"t_ter_e",
@@ -558,7 +610,7 @@ room(
 	0,
 	OUT,
 	{ 90, -120, 125, 100 },
-	{ props = { "shrubs", "planters", "tables", "trees" } }
+	{ props = { "shrubs", "planters", "cocktailSets", "trees" } }
 )
 room("t_west", "T", "West guard hall", 2, IN, { -90, -120, -60, 100 }, { props = { "sconces", "pillars" } })
 room("t_east", "T", "East guard hall", 2, IN, { 60, -120, 90, 100 }, { props = { "sconces", "pillars" } })
@@ -591,7 +643,18 @@ room(
 	{ -60, -60, 60, 70 },
 	{
 		density = 1,
-		props = { "rugs", "chandeliers", "sofas", "paintings", "bookshelves", "plants", "sconces", "banners" },
+		props = {
+			"rugs",
+			"chandeliers",
+			"sofas",
+			"paintings",
+			"bookshelves",
+			"plants",
+			"sconces",
+			"banners",
+			"loungeSets",
+			"displays",
+		},
 	}
 )
 room(
@@ -601,7 +664,7 @@ room(
 	3,
 	IN,
 	{ -60, 70, 60, 100 },
-	{ props = { "paintings", "sofas", "sconces", "rugs", "vitrines" } }
+	{ props = { "paintings", "sofas", "sconces", "rugs", "vitrines", "displays" } }
 )
 room("t_panic", "T", "Panic room", 3, IN, { -90, 38, -70, 62 }, { parent = "t_west", props = { "sconces" } })
 room("t_office", "T", "Executive office", 3, IN, { 70, 38, 90, 62 }, { parent = "t_east", props = { "rugs" } })
@@ -612,7 +675,7 @@ room(
 	0,
 	OUT,
 	{ 160, -85, 205, 125 },
-	{ density = 1, props = { "shrubs", "trees", "planters", "tables" } }
+	{ density = 1, props = { "shrubs", "trees", "planters", "cocktailSets" } }
 )
 room(
 	"wt_arcade",
@@ -630,7 +693,7 @@ room(
 	0,
 	IN,
 	{ 205, -85, 221, -15 },
-	{ props = { "beds", "rugs", "sofas", "bookshelves", "paintings", "sconces", "plants", "tables" }, glass = true }
+	{ props = { "beds", "rugs", "sofas", "bookshelves", "paintings", "sconces", "plants", "loungeSets" }, glass = true }
 )
 room(
 	"wt_suite2",
@@ -639,7 +702,7 @@ room(
 	0,
 	IN,
 	{ 205, -15, 221, 55 },
-	{ props = { "beds", "rugs", "sofas", "bookshelves", "paintings", "sconces", "plants", "tables" }, glass = true }
+	{ props = { "beds", "rugs", "sofas", "bookshelves", "paintings", "sconces", "plants", "loungeSets" }, glass = true }
 )
 room(
 	"wt_suite3",
@@ -648,7 +711,7 @@ room(
 	0,
 	IN,
 	{ 205, 55, 221, 125 },
-	{ props = { "beds", "rugs", "sofas", "bookshelves", "paintings", "sconces", "plants", "tables" }, glass = true }
+	{ props = { "beds", "rugs", "sofas", "bookshelves", "paintings", "sconces", "plants", "loungeSets" }, glass = true }
 )
 room("wt_exec", "T", "Executive suite", 3, IN, { 264, -85, 280, -15 }, { props = { "rugs" } })
 room(
@@ -658,7 +721,7 @@ room(
 	0,
 	IN,
 	{ 264, -15, 280, 55 },
-	{ props = { "beds", "rugs", "sofas", "bookshelves", "paintings", "sconces", "plants", "tables" }, glass = true }
+	{ props = { "beds", "rugs", "sofas", "bookshelves", "paintings", "sconces", "plants", "loungeSets" }, glass = true }
 )
 room(
 	"wt_suite4",
@@ -667,7 +730,7 @@ room(
 	0,
 	IN,
 	{ 264, 55, 280, 125 },
-	{ props = { "beds", "rugs", "sofas", "bookshelves", "paintings", "sconces", "plants", "tables" }, glass = true }
+	{ props = { "beds", "rugs", "sofas", "bookshelves", "paintings", "sconces", "plants", "loungeSets" }, glass = true }
 )
 room("t_washroom", "T", "Guard washroom", 2, IN, { 70, 78, 90, 100 }, { parent = "t_east" })
 room(
@@ -727,7 +790,7 @@ room(
 	{
 		holes = { { -38, -40, 38, 52 }, { -45, -115, 45, -50 }, { 50, 50, 90, 100 }, { 55, -115, 90, -85 } },
 		density = 2,
-		props = { "shrubs", "tables", "planters", "bar" },
+		props = { "shrubs", "cocktailSets", "planters", "bar", "barStools" },
 		hub = "rooftop",
 	}
 )
@@ -738,7 +801,7 @@ room(
 	3,
 	IN,
 	{ -45, -115, 45, -50 },
-	{ props = { "rugs", "chandeliers", "paintings", "sconces", "plants", "banners" } }
+	{ props = { "rugs", "chandeliers", "paintings", "sconces", "plants", "banners", "loungeSets" } }
 )
 room("r_vaulte_ante", "R", "Vault E observatory hall", 2, IN, { 50, 50, 90, 75 }, { vault = "E" })
 room(
@@ -767,7 +830,11 @@ room(
 	0,
 	OUT,
 	{ 205, -85, 280, 125 },
-	{ holes = { { 205, -85, 231, -15 } }, density = 1.5, props = { "shrubs", "trees", "planters", "bar" } }
+	{
+		holes = { { 205, -85, 231, -15 } },
+		density = 1.5,
+		props = { "shrubs", "trees", "planters", "bar", "barStools", "cocktailSets" },
+	}
 )
 room("wr_plant", "R", "Wing plant room", 1, IN, { 205, -85, 231, -15 }, { props = { "shelving" } })
 room(
@@ -807,7 +874,7 @@ room(
 	IN,
 	{ -35, -115, 35, -70 },
 	{
-		props = { "rugs", "chandeliers", "paintings", "sconces", "sofas", "bookshelves" },
+		props = { "rugs", "chandeliers", "paintings", "sconces", "sofas", "bookshelves", "loungeSets" },
 		noNodes = true,
 		style = "crown",
 		vault = "S",

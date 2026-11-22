@@ -146,6 +146,20 @@ const DRESS = {
 	wt_terrace: ["shrubs"], r_deck: ["shrubs"], wr_garden: ["shrubs"], r_deck_w: ["shrubs"], wd_skydeck: ["shrubs"],
 };
 for (const id of Object.keys(DRESS)) if (!rooms.some((r) => r.id === id)) bad(`dressing room ${id} does not exist`);
+// Furniture groups replace the lone tables and desks (owner 2026-11-22): every room is furnished with sets that belong together.
+Object.assign(PROPS, {
+	b_camera: ["deskPods"], wb_security: ["deskPods"], g_concierge: ["deskPods"], g_coat: [], wg_cage: ["deskPods"],
+	g_ballroom: ["pillars", "cocktailSets"], g_bar: ["bar", "barStools", "cocktailSets"], g_dining: ["diningSets"], g_privdining: ["diningSets"],
+	g_kitchen: ["islands", "stations"], g_pantry: ["islands", "stations"], g_library: ["loungeSets"], g_lobby: ["reception", "pillars", "loungeSets"],
+	g_lounge: ["loungeSets", "cocktailSets"], wg_casino: ["pillars", "casinoTables"], wg_entry: ["reception", "loungeSets"],
+	wg_highroller: ["loungeSets", "cocktailSets"], g_gallery: ["partitions", "displays"], m_gallery: ["partitions", "displays"],
+	m_ball_gal: ["cocktailSets"], m_bar_loft: ["cocktailSets"], m_offices: ["deskPods"], m_hub: ["deskPods"], m_catering: ["deskPods", "stations"],
+	m_wine: ["cocktailSets"], m_cigar: ["loungeSets"], wm_lobby: ["reception", "loungeSets"], wm_bar: ["bar", "barStools", "cocktailSets"],
+	t_ter_w: ["planters", "cocktailSets", "trees"], t_ter_e: ["planters", "cocktailSets", "trees"], wt_terrace: ["trees", "planters", "cocktailSets"],
+	r_deck: ["cocktailSets", "planters", "bar", "barStools"], wr_garden: ["trees", "planters", "bar", "barStools", "cocktailSets"],
+	t_gallery: ["vitrines", "displays"], t_great: ["loungeSets", "displays"], r_summit: ["loungeSets"], s_sanctum: ["loungeSets"],
+	wt_suite1: ["loungeSets"], wt_suite2: ["loungeSets"], wt_suite3: ["loungeSets"], wt_suite4: ["loungeSets"], wt_suite5: ["loungeSets"],
+});
 const DENSITY = {
 	g_atrium: 2, g_ballroom: 2, g_bar: 1.6, g_dining: 1.3, g_gallery: 1.4, g_lobby: 1.5, m_balcony: 1.2, wg_casino: 2, wm_lobby: 1.4, wm_bar: 1.4, r_deck: 2,
 	wr_garden: 1.5, b_muster: 1, t_great: 1, wt_terrace: 1, m_ball_gal: 1.2, m_gallery: 1.2, m_stairhall: 1.2, g_privdining: 0.6, wg_cardroom: 1.2,

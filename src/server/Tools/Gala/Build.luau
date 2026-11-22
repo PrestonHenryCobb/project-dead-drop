@@ -256,6 +256,13 @@ local DRESS = {
 	CountersPerRoom = 4,
 	SlotsPerRoom = 12,
 	LaundryPerRoom = 6,
+	DiningSetsPerRoom = 10, -- furniture groups (Dress.group) per room
+	CocktailSetsPerRoom = 10,
+	LoungeSetsPerRoom = 8,
+	DeskPodsPerRoom = 5,
+	CasinoTablesPerRoom = 9,
+	DisplaysPerRoom = 7,
+	StationsPerRoom = 2,
 }
 local PLACE_SPREAD = 60 -- placed objects in one room are spread up to this far apart
 local NODE_PROP_CLEAR = 3 -- studs a node keeps from a prop
@@ -3996,6 +4003,104 @@ function Build.run(options: {
 	Dress.STEEL = Color3.fromRGB(175, 180, 188)
 	Dress.SLOT_SCREENS = { Color3.fromRGB(90, 220, 255), Color3.fromRGB(255, 90, 200), Color3.fromRGB(255, 200, 70) }
 
+	-- Furniture groups (owner 2026-11-22: rooms felt empty or held items that did not go together). A group is a small set that belongs
+	-- together (a table with its chairs, a sofa with armchairs and a coffee table on a rug, two desks facing with chairs and screens), placed
+	-- as one on open floor, so a room reads as what it is. Everything is a placeholder block for the art pass.
+	function Dress.piece(
+		frame: CFrame,
+		name: string,
+		size: Vector3,
+		x: number,
+		y: number,
+		z: number,
+		color: Color3,
+		material: Enum.Material?,
+		solid: boolean?
+	): Part
+		local p = part(propsFolder, name, size, frame * CFrame.new(x, y, z), color)
+		if material then
+			p.Material = material
+		end
+		if solid == false then
+			p.CanCollide = false
+		end
+		return p
+	end
+
+	-- An upright cylinder (a stool, a round tabletop, a barrel) standing at local x, z of the frame, resting on the floor plus lift.
+	function Dress.round(
+		frame: CFrame,
+		name: string,
+		x: number,
+		z: number,
+		lift: number,
+		height: number,
+		diameter: number,
+		color: Color3,
+		material: Enum.Material?
+	): Part
+		local p = part(
+			propsFolder,
+			name,
+			Vector3.new(height, diameter, diameter),
+			frame * CFrame.new(x, lift + height / 2, z) * CFrame.Angles(0, 0, math.rad(90)),
+			color
+		)
+		p.Shape = Enum.PartType.Cylinder
+		if material then
+			p.Material = material
+		end
+		return p
+	end
+
+	-- A chair at local x, z whose front looks along the local direction (fx, fz): its back is on the far side.
+	function Dress.chair(frame: CFrame, x: number, z: number, fx: number, fz: number, color: Color3)
+		local at = frame * CFrame.new(x, 0, z) * CFrame.Angles(0, math.atan2(-fx, -fz), 0)
+		Dress.piece(at, "ChairSeat", Vector3.new(2, 1.9, 2), 0, 0.95, 0, color, Enum.Material.Fabric)
+		Dress.piece(at, "ChairBack", Vector3.new(2, 2.3, 0.4), 0, 3, 0.8, color, Enum.Material.Fabric)
+	end
+
+	-- A task stop outside a group's footprint, facing its middle. offset is in the group's own frame.
+	function Dress.stopAround(room: Room, frame: CFrame, x: number, z: number, activity: string)
+		local at = frame:PointToWorldSpace(Vector3.new(x, 0, z))
+		local middle = frame.Position
+		Dress.addStop(room, at.X, at.Z, activity, middle.X, middle.Z)
+	end
+
+	-- Places up to \`limit\` groups of footprint w by d (either way round) on open floor of the room, trying a jittered grid.
+	-- build gets the group's frame (floor level, centred) and the room's floor height; it returns nothing.
+	function Dress.group(room: Room, w: number, d: number, limit: number, spacing: number, build: (CFrame) -> ())
+		local count = 0
+		for _, piece in piecesOfRoom[room.id] do
+			local p = piece.rect
+			local nx = math.max(1, math.floor((p.x2 - p.x1) / spacing))
+			local nz = math.max(1, math.floor((p.z2 - p.z1) / spacing))
+			for i = 0, nx - 1 do
+				for j = 0, nz - 1 do
+					if count >= limit then
+						return
+					end
+					local cx = p.x1 + (i + 0.5) * (p.x2 - p.x1) / nx + rng:NextNumber(-1.5, 1.5)
+					local cz = p.z1 + (j + 0.5) * (p.z2 - p.z1) / nz + rng:NextNumber(-1.5, 1.5)
+					for _, turn in { 0, math.pi / 2 } do
+						local hw, hd = if turn == 0 then w / 2 else d / 2, if turn == 0 then d / 2 else w / 2
+						local rect: Rect = { x1 = cx - hw, z1 = cz - hd, x2 = cx + hw, z2 = cz + hd }
+						if freeFor(room, rect) then
+							table.insert(propRects[room.level], rect)
+							build(CFrame.new(cx, levels[room.level], cz) * CFrame.Angles(0, turn, 0))
+							count += 1
+							break
+						end
+					end
+				end
+			end
+		end
+	end
+
+	Dress.GREEN_FELT = Color3.fromRGB(28, 90, 62)
+	Dress.CLOTH = Color3.fromRGB(235, 230, 220)
+	Dress.METAL_DARK = Color3.fromRGB(60, 62, 68)
+
 	local propBuilders: { [string]: (Room) -> () } = {
 		pillars = function(room)
 			local b = bounds(room)
@@ -4757,6 +4862,237 @@ function Build.run(options: {
 			if addProp(room, "Piano", x, z, 8, 3.4, 6, Color3.fromRGB(20, 20, 24), true) then
 				addProp(room, "PianoBench", x, z + 5, 4, 1.6, 1.6, Dress.DARK_WOOD, true)
 				Dress.addStop(room, x, z + 8.5, "Idle", x, z)
+			end
+		end,
+		-- Furniture groups (see Dress.group): each is one thing a room is for.
+		diningSets = function(room)
+			Dress.group(room, 14, 11, DRESS.DiningSetsPerRoom, 18, function(frame)
+				Dress.piece(frame, "DiningTable", Vector3.new(9, 0.4, 4), 0, 3.4, 0, WOOD, Enum.Material.Wood)
+				Dress.piece(
+					frame,
+					"TableBase",
+					Vector3.new(6, 3.2, 1.6),
+					0,
+					1.6,
+					0,
+					Dress.DARK_WOOD,
+					Enum.Material.Wood
+				)
+				Dress.piece(
+					frame,
+					"Cloth",
+					Vector3.new(9.4, 0.15, 2),
+					0,
+					3.65,
+					0,
+					Dress.CLOTH,
+					Enum.Material.Fabric,
+					false
+				)
+				Dress.piece(
+					frame,
+					"Centerpiece",
+					Vector3.new(0.9, 1.4, 0.9),
+					0,
+					4.4,
+					0,
+					Dress.BRASS,
+					Enum.Material.Metal,
+					false
+				)
+				local fabric = Dress.FABRICS[rng:NextInteger(1, #Dress.FABRICS)]
+				for _, x in { -2.4, 2.4 } do
+					Dress.chair(frame, x, -3.6, 0, 1, fabric) -- on the near side, facing the table
+					Dress.chair(frame, x, 3.6, 0, -1, fabric)
+				end
+				Dress.chair(frame, -6, 0, 1, 0, fabric)
+				Dress.chair(frame, 6, 0, -1, 0, fabric)
+				Dress.stopAround(room, frame, 0, 8.8, "Talk")
+			end)
+		end,
+		cocktailSets = function(room)
+			Dress.group(room, 10, 10, DRESS.CocktailSetsPerRoom, 16, function(frame)
+				Dress.round(frame, "CocktailTable", 0, 0, 0, 3.6, 3.4, WOOD, Enum.Material.Wood)
+				Dress.round(frame, "TableTop", 0, 0, 3.6, 0.3, 4, Dress.DARK_WOOD, Enum.Material.Wood)
+				for step = 0, 2 do
+					local angle = step * 2 * math.pi / 3 + math.pi / 6
+					Dress.round(
+						frame,
+						"Stool",
+						math.sin(angle) * 3.6,
+						math.cos(angle) * 3.6,
+						0,
+						2.6,
+						1.8,
+						Dress.FABRICS[rng:NextInteger(1, #Dress.FABRICS)],
+						Enum.Material.Fabric
+					)
+				end
+				Dress.stopAround(room, frame, 0, 8.4, "Talk")
+			end)
+		end,
+		loungeSets = function(room)
+			Dress.group(room, 15, 11, DRESS.LoungeSetsPerRoom, 20, function(frame)
+				local fabric = Dress.FABRICS[rng:NextInteger(1, #Dress.FABRICS)]
+				local rugColor = Dress.RUGS[rng:NextInteger(1, #Dress.RUGS)]
+				Dress.piece(frame, "Rug", Vector3.new(13, 0.14, 9), 0, 0.07, 0, rugColor, Enum.Material.Fabric, false).CanQuery =
+					false
+				-- A sofa along the back, two armchairs facing in from the sides, a coffee table between, a lamp in the corner.
+				Dress.piece(frame, "SofaSeat", Vector3.new(7, 2.2, 3.2), 0, 1.1, 3.4, fabric, Enum.Material.Fabric)
+				Dress.piece(frame, "SofaBack", Vector3.new(7, 3.2, 1), 0, 3.8, 4.7, fabric, Enum.Material.Fabric)
+				for _, x in { -3.2, 3.2 } do
+					Dress.piece(frame, "SofaArm", Vector3.new(0.8, 3.2, 3.2), x, 1.6, 3.4, fabric, Enum.Material.Fabric)
+				end
+				for _, side in { -1, 1 } do
+					Dress.chair(frame, side * 5.2, -0.6, -side, 0, fabric)
+				end
+				Dress.piece(frame, "CoffeeTable", Vector3.new(4, 1.5, 2.4), 0, 0.75, -0.2, WOOD, Enum.Material.Wood)
+				Dress.round(frame, "LampPost", 6.2, 4.2, 0, 5.5, 0.3, Dress.BRASS, Enum.Material.Metal)
+				local shade = Dress.piece(
+					frame,
+					"LampShade",
+					Vector3.new(1.6, 1.4, 1.6),
+					6.2,
+					6,
+					4.2,
+					Dress.WARM,
+					Enum.Material.Neon,
+					false
+				)
+				shade.Shape = Enum.PartType.Ball
+				Dress.stopAround(room, frame, 0, -8.8, "Talk")
+			end)
+		end,
+		deskPods = function(room)
+			Dress.group(room, 11, 10, DRESS.DeskPodsPerRoom, 14, function(frame)
+				for _, side in { -1, 1 } do
+					Dress.piece(frame, "Desk", Vector3.new(7, 3, 3), 0, 1.5, side * 2, WOOD, Enum.Material.Wood)
+					Dress.piece(
+						frame,
+						"Monitor",
+						Vector3.new(2.4, 1.6, 0.2),
+						0,
+						4.2,
+						side * 2.8,
+						Color3.fromRGB(90, 220, 255),
+						Enum.Material.Neon,
+						false
+					)
+					Dress.chair(frame, 0, side * 4.6, 0, -side, Color3.fromRGB(60, 62, 70))
+				end
+				Dress.stopAround(room, frame, 0, 8.4, "Work")
+			end)
+		end,
+		casinoTables = function(room)
+			Dress.group(room, 16, 14, DRESS.CasinoTablesPerRoom, 22, function(frame)
+				Dress.round(frame, "TableBase", 0, 0, 0, 3, 4, Dress.DARK_WOOD, Enum.Material.Wood)
+				Dress.round(frame, "Felt", 0, 0, 3, 0.4, 9, Dress.GREEN_FELT, Enum.Material.Fabric)
+				for step = 0, 4 do
+					local angle = (step - 2) * 0.55
+					Dress.round(
+						frame,
+						"Stool",
+						math.sin(angle) * 6.3,
+						-math.cos(angle) * 6.3,
+						0,
+						2.6,
+						1.8,
+						Color3.fromRGB(95, 25, 35),
+						Enum.Material.Fabric
+					)
+				end
+				Dress.round(frame, "DealerStool", 0, 5.8, 0, 3.2, 1.8, Color3.fromRGB(20, 20, 24), Enum.Material.Fabric)
+				Dress.stopAround(room, frame, 0, -10.6, "Talk")
+			end)
+		end,
+		displays = function(room)
+			Dress.group(room, 9, 9, DRESS.DisplaysPerRoom, 20, function(frame)
+				Dress.piece(frame, "Plinth", Vector3.new(3.2, 3.2, 3.2), 0, 1.6, 0, Dress.CLOTH, Enum.Material.Marble)
+				local case = Dress.piece(
+					frame,
+					"Case",
+					Vector3.new(2.8, 2.8, 2.8),
+					0,
+					4.6,
+					0,
+					Color3.fromRGB(190, 220, 240),
+					Enum.Material.Glass,
+					false
+				)
+				case.Transparency = 0.5
+				Dress.piece(
+					frame,
+					"Exhibit",
+					Vector3.new(1.2, 1.6, 1.2),
+					0,
+					4.2,
+					0,
+					Dress.BRASS,
+					Enum.Material.Metal,
+					false
+				)
+				for _, x in { -3.6, 3.6 } do
+					for _, z in { -3.6, 3.6 } do
+						Dress.round(frame, "Stanchion", x, z, 0, 3, 0.4, Dress.BRASS, Enum.Material.Metal)
+					end
+				end
+				for _, z in { -3.6, 3.6 } do
+					Dress.piece(
+						frame,
+						"Rope",
+						Vector3.new(7.2, 0.2, 0.2),
+						0,
+						2.8,
+						z,
+						Dress.BANNERS[1],
+						Enum.Material.Fabric,
+						false
+					)
+				end
+				Dress.stopAround(room, frame, 0, 7.9, "Art")
+			end)
+		end,
+		stations = function(room)
+			Dress.group(room, 11, 7, DRESS.StationsPerRoom, 18, function(frame)
+				Dress.piece(frame, "PrepTable", Vector3.new(9, 3.4, 4), 0, 1.7, 0, Dress.STEEL, Enum.Material.Metal)
+				Dress.piece(
+					frame,
+					"CuttingBoard",
+					Vector3.new(3, 0.2, 2),
+					-2.4,
+					3.5,
+					0,
+					WOOD,
+					Enum.Material.Wood,
+					false
+				)
+				Dress.round(frame, "Pot", 2.2, 0.4, 3.4, 1.4, 1.8, Dress.METAL_DARK, Enum.Material.Metal)
+				Dress.round(frame, "Pot", 3.6, -0.6, 3.4, 1, 1.4, Dress.METAL_DARK, Enum.Material.Metal)
+				Dress.stopAround(room, frame, 0, 6.9, "Lean")
+			end)
+		end,
+		barStools = function(room)
+			-- Stools along the front of the Bar builder's counter (run after it); they join the counter's reserved strip.
+			local b = bounds(room)
+			local mid = (b.x1 + b.x2) / 2
+			local frame = CFrame.new(mid, levels[room.level], b.z1 + 12 + 5.4)
+			local rect: Rect = { x1 = mid - 17, z1 = b.z1 + 12 + 3.5, x2 = mid + 17, z2 = b.z1 + 12 + 7.5 }
+			if not freeFor(room, rect) then
+				return
+			end
+			table.insert(propRects[room.level], rect)
+			for step = -3, 3 do
+				Dress.round(
+					frame,
+					"BarStool",
+					step * 4.6,
+					0,
+					0,
+					3,
+					1.8,
+					Color3.fromRGB(95, 25, 35),
+					Enum.Material.Fabric
+				)
 			end
 		end,
 	}
