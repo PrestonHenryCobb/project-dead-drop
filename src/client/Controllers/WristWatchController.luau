@@ -79,7 +79,22 @@ local function build(): Part
 	return part
 end
 
+-- The watch the server welds to your own wrist (everyone else sees it) would hang in front of your camera: hide it from you. The first-person
+-- watch below stands in for it.
+local function hideOwnWorn()
+	local character = Players.LocalPlayer.Character
+	local worn = character and character:FindFirstChild("Watch")
+	if worn then
+		for _, item in worn:GetDescendants() do
+			if item:IsA("BasePart") then
+				item.LocalTransparencyModifier = 1
+			end
+		end
+	end
+end
+
 local function render()
+	hideOwnWorn()
 	local part, camera = watch, workspace.CurrentCamera
 	if not (part and camera) then
 		return
