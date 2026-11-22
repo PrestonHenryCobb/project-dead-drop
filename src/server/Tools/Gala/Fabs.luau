@@ -279,7 +279,6 @@ defs.loungeSet = {
 		{ "armchair", -5.4, 0.6, math.rad(90) },
 		{ "armchair", 5.4, 0.6, math.rad(-90) },
 		{ "coffeeTable", 0, 0.6 },
-		{ "floorLamp", 6.6, -4.4 },
 	},
 }
 defs.diningSet = {
@@ -1172,12 +1171,11 @@ local recipes: { [string]: Recipe } = {
 			F("bigPlant", 10, 1.2),
 			W("bench", 4),
 			W("bigPlant", 6),
-			W("floorLamp", 6),
 		},
 	},
 	colonnade = {
 		style = "deco",
-		steps = { W("consoleTable", 4, 10), W("bench", 3, 14), W("bigPlant", 4, 12), W("floorLamp", 4, 14) },
+		steps = { W("consoleTable", 4, 10), W("bench", 3, 14), W("bigPlant", 4, 12) },
 	},
 	gallery = {
 		style = "deco",
@@ -1187,7 +1185,6 @@ local recipes: { [string]: Recipe } = {
 			F("bench", 4, 3),
 			W("consoleTable", 3, 14),
 			W("bigPlant", 4),
-			W("floorLamp", 4),
 		},
 	},
 	concierge = {
@@ -1198,7 +1195,6 @@ local recipes: { [string]: Recipe } = {
 			W("consoleTable", 3, 8),
 			W("filingRow", 1),
 			W("bigPlant", 3),
-			W("floorLamp", 3),
 			F("luggageCart", 2, 1.2),
 			F("infoKiosk", 1, 1.2),
 		},
@@ -1210,18 +1206,18 @@ local recipes: { [string]: Recipe } = {
 	ballroom = {
 		style = "deco",
 		steps = {
+			W("floorLamp", 2, 30),
 			W("bandStage", 1),
 			W("buffet", 2, 4),
 			F("cocktail", 14, 1),
 			W("bench", 3),
 			W("bigPlant", 6),
-			W("floorLamp", 6),
 			W("sideboard", 2),
 		},
 	},
 	bar = {
 		style = "deco",
-		steps = { W("booth", 4, 3), F("cocktail", 6, 1.2), W("bigPlant", 3), W("floorLamp", 3), W("sideboard", 2) },
+		steps = { W("booth", 4, 3), F("cocktail", 6, 1.2), W("bigPlant", 3), W("sideboard", 2) },
 	},
 	dining = {
 		style = "deco",
@@ -1229,13 +1225,12 @@ local recipes: { [string]: Recipe } = {
 			F("diningSet", 14, 1),
 			W("sideboard", 3, 8),
 			W("bigPlant", 4),
-			W("floorLamp", 4),
 			W("consoleTable", 2),
 		},
 	},
 	privdining = {
 		style = "exec",
-		steps = { F("diningSet", 2, 1.2), W("sideboard", 2), W("bigPlant", 2), W("floorLamp", 2) },
+		steps = { F("diningSet", 2, 1.2), W("sideboard", 2), W("bigPlant", 2) },
 	},
 	kitchen = {
 		style = "service",
@@ -1264,25 +1259,25 @@ local recipes: { [string]: Recipe } = {
 	library = {
 		style = "deco",
 		steps = {
+			W("floorLamp", 1, 30),
 			W("fireplace", 1),
 			W("bookcase", 12, 0),
 			F("bookRow", 5, 3),
 			F("readingTable", 5, 1.2),
 			F("loungeSet", 2, 1.2),
 			W("bigPlant", 4),
-			W("floorLamp", 4),
 		},
 	},
 	lobby = {
 		style = "hotel",
 		steps = {
+			W("floorLamp", 2, 30),
 			F("loungeSet", 8, 1),
 			F("infoKiosk", 2, 3),
 			F("luggageCart", 3, 3),
 			W("bench", 4),
 			W("consoleTable", 4, 10),
 			W("bigPlant", 8),
-			W("floorLamp", 6),
 			F("statue", 2, 3),
 		},
 	},
@@ -1296,7 +1291,6 @@ local recipes: { [string]: Recipe } = {
 			W("bookcase", 4, 0),
 			F("pianoSet", 1, 3),
 			W("bigPlant", 3),
-			W("floorLamp", 4),
 		},
 	},
 	casino = {
@@ -1313,17 +1307,17 @@ local recipes: { [string]: Recipe } = {
 	},
 	cardroom = {
 		style = "casino",
-		steps = { F("cardTable", 3, 1.2), W("sideboard", 2), W("bigPlant", 2), W("floorLamp", 2) },
+		steps = { F("cardTable", 3, 1.2), W("sideboard", 2), W("bigPlant", 2) },
 	},
 	hotelLobby = {
 		style = "hotel",
 		steps = {
+			W("floorLamp", 1, 30),
 			F("loungeSet", 3, 1.2),
 			F("luggageCart", 2, 3),
 			W("bench", 3),
 			W("consoleTable", 3, 10),
 			W("bigPlant", 5),
-			W("floorLamp", 3),
 		},
 	},
 	cage = {
@@ -1339,7 +1333,6 @@ local recipes: { [string]: Recipe } = {
 			W("sideboard", 2),
 			W("bookcase", 2, 0),
 			W("bigPlant", 3),
-			W("floorLamp", 3),
 		},
 	},
 	restroom = { style = "service", steps = { W("stall", 4, 0), W("sinkBasin", 3, 0) } },
@@ -1350,7 +1343,6 @@ local recipes: { [string]: Recipe } = {
 			F("cocktail", 4, 1.2),
 			W("bench", 6),
 			W("bigPlant", 6),
-			W("floorLamp", 4),
 			F("statue", 2, 3),
 		},
 	},
@@ -1358,7 +1350,7 @@ local recipes: { [string]: Recipe } = {
 		style = "deco",
 		steps = { F("exhibit", 6, 1.2), F("bench", 4, 3), W("consoleTable", 2, 12), W("bigPlant", 3) },
 	},
-	loft = { style = "deco", steps = { F("cocktail", 5, 1.2), W("booth", 2, 3), W("bigPlant", 2), W("floorLamp", 2) } },
+	loft = { style = "deco", steps = { F("cocktail", 5, 1.2), W("booth", 2, 3), W("bigPlant", 2) } },
 	winelounge = {
 		style = "deco",
 		steps = {
@@ -1366,7 +1358,6 @@ local recipes: { [string]: Recipe } = {
 			F("cocktail", 6, 1.2),
 			F("loungeSet", 2, 1.2),
 			W("bigPlant", 3),
-			W("floorLamp", 3),
 		},
 	},
 	cigarlounge = {
@@ -1377,7 +1368,6 @@ local recipes: { [string]: Recipe } = {
 			W("humidor", 2, 2),
 			W("bookcase", 3, 0),
 			W("bigPlant", 3),
-			W("floorLamp", 3),
 		},
 	},
 	stairhall = {
@@ -1387,7 +1377,6 @@ local recipes: { [string]: Recipe } = {
 			F("bench", 3, 3),
 			F("loungeSet", 2, 1.2),
 			W("bigPlant", 4),
-			W("floorLamp", 4),
 			W("consoleTable", 2, 10),
 		},
 	},
@@ -1524,7 +1513,6 @@ local recipes: { [string]: Recipe } = {
 			W("sofa", 1, 2),
 			W("consoleTable", 2, 4),
 			W("bigPlant", 2),
-			W("floorLamp", 2),
 		},
 	},
 	execsuite = {
@@ -1539,12 +1527,12 @@ local recipes: { [string]: Recipe } = {
 			F("bench", 8, 3),
 			F("cocktail", 4, 1.2),
 			W("bigPlant", 4),
-			W("floorLamp", 4),
 		},
 	},
 	greatroom = {
 		style = "exec",
 		steps = {
+			W("floorLamp", 2, 30),
 			F("loungeSet", 6, 1.2),
 			F("pianoSet", 1, 3),
 			F("exhibit", 3, 1.2),
@@ -1554,7 +1542,6 @@ local recipes: { [string]: Recipe } = {
 			W("bookcase", 6, 0),
 			W("sideboard", 2),
 			W("bigPlant", 4),
-			W("floorLamp", 4),
 		},
 	},
 	execoffice = { style = "exec", steps = { W("officeDesk", 1, 2), W("bookcase", 2, 0) } },
@@ -1565,17 +1552,16 @@ local recipes: { [string]: Recipe } = {
 			F("loungeSet", 2, 1.2),
 			F("statue", 2, 3),
 			W("bigPlant", 3),
-			W("floorLamp", 3),
 			W("consoleTable", 2, 8),
 		},
 	},
 	sanctum = {
 		style = "exec",
-		steps = { W("bookcase", 3, 0), W("sideboard", 1), W("bigPlant", 2), W("floorLamp", 2), F("exhibit", 2, 1.2) },
+		steps = { W("bookcase", 3, 0), W("sideboard", 1), W("bigPlant", 2), F("exhibit", 2, 1.2) },
 	},
 	foyer = {
 		style = "exec",
-		steps = { W("consoleTable", 2, 12), W("bigPlant", 2, 14), W("floorLamp", 2, 14), F("statue", 1, 3) },
+		steps = { W("consoleTable", 2, 12), W("bigPlant", 2, 14), F("statue", 1, 3) },
 	},
 	terrace = {
 		style = "outdoor",
@@ -1715,7 +1701,7 @@ local GROWABLE: { [string]: boolean } = {
 	bookRow = true,
 }
 local FILL_NARROW = 24 -- no gap fillers in a room narrower than this: corridors stay clear
-local FILLERS = { "bigPlant", "floorLamp", "bench", "armchair" }
+local FILLERS = { "bigPlant", "bench", "armchair" }
 local GROWTH = 4
 
 function Fabs.furnish(room: any, archetype: string, ctx: any)
