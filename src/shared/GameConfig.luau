@@ -272,7 +272,17 @@ local GameConfig = {
 	-- Ticket 19-pings (spec 21.3): team pings. How many a player may have up (UI.MaxPingsPerPlayer) and how long a Suspect ping
 	-- lasts (UI.SuspectPingSeconds) are in UI. SPEC-QUESTION: the other kinds last Seconds, which the spec does not give.
 	Ping = {
-		Kinds = { Look = true, Suspect = true, Intel = true, Danger = true }, -- spec 21.3
+		-- Spec 21.3 names Look, Suspect, Intel and Danger; the ping wheel (owner request 2026-11-21) adds Go, Hold, Help and Retreat.
+		Kinds = {
+			Look = true,
+			Suspect = true,
+			Intel = true,
+			Danger = true,
+			Go = true,
+			Hold = true,
+			Help = true,
+			Retreat = true,
+		},
 		Seconds = 8,
 		RangeStuds = 400, -- how far from the player a marker may be placed
 	},
@@ -285,6 +295,18 @@ local GameConfig = {
 		DangerPad = Enum.KeyCode.ButtonR1,
 		ModifierPad = Enum.KeyCode.ButtonL2,
 		TouchPosition = UDim2.fromScale(0.8, 0.45),
+		-- Ping wheel (owner request 2026-11-21): hold the ping key to open it, move the mouse (or right stick) toward a slice, release to ping.
+		-- A quick tap still pings what you aim at. Touch has no wheel. Slices run clockwise from the top. SPEC-QUESTION: sizes are guesses.
+		Wheel = {
+			HoldSeconds = 0.25,
+			Kinds = { "Look", "Intel", "Go", "Help", "Danger", "Retreat", "Hold", "Suspect" },
+			RadiusPixels = 130, -- from the middle to the centre of a slice
+			SlicePixels = Vector2.new(120, 44),
+			DeadzonePixels = 35, -- the cursor must leave this circle to choose a slice
+			MouseScale = 1,
+			StickDeadzone = 0.4,
+			CursorPixels = 10,
+		},
 		DangerTouchPosition = UDim2.fromScale(0.9, 0.45),
 	},
 
