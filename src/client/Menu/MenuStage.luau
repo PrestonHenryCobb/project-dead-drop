@@ -26,11 +26,12 @@ local UiAccessibility = require(Shared:WaitForChild("Util"):WaitForChild("UiAcce
 local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"))
 local ViewModel = require(script.Parent.Parent:WaitForChild("Combat"):WaitForChild("ViewModel"))
 
+local StagePose = require(script.Parent.Components.StagePose)
 local GalaSet = require(script.Parent.Components.GalaSet)
 local config = GameConfig.Menu.Stage
 local panInfo = TweenInfo.new(GameConfig.Menu.CameraPanSeconds, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 
-export type Framing = "Play" | "Agents" | "PreDeploy"
+export type Framing = "Play" | "Agents" | "Hardware" | "PreDeploy"
 
 local MenuStage = {}
 MenuStage.__index = MenuStage
@@ -49,6 +50,7 @@ export type MenuStage = typeof(setmetatable(
 		templateAttempts: number,
 		destroyed: boolean,
 		feet: CFrame,
+		framing: Framing,
 		cameraTween: Tween?,
 	},
 	MenuStage
@@ -192,6 +194,7 @@ function MenuStage.new(): MenuStage
 		loadingTemplate = false,
 		templateAttempts = 0,
 		destroyed = false,
+		framing = "Play" :: Framing,
 		-- The operative faces the camera (-Z); the open balcony and skyline sit behind them.
 		feet = origin * CFrame.Angles(0, math.rad(config.RigTurnDegrees), 0),
 		cameraTween = nil,
@@ -219,14 +222,65 @@ local function clearOperative(self: MenuStage)
 	end
 end
 
+local function poseOperative(self: MenuStage)
+	local rig = self.rig
+	if not rig then
+		return
+	end
+	local portrait = config.Portrait
+	local family = if self.requestedHardware
+		then (portrait.WeaponFamilies :: { [string]: string })[self.requestedHardware] or "TwoHanded"
+		else "OneHanded"
+	StagePose.apply(rig, self.framing, self.feet, family)
+	local hand = rig:FindFirstChild("RightHand") :: BasePart
+	local left = rig:FindFirstChild("LeftHand") :: BasePart
+	local weapon = self.weapon
+	if not weapon then
+		return
+	end
+	local angles = portrait.GripDegrees
+	local grip = CFrame.Angles(math.rad(angles.X), math.rad(angles.Y), math.rad(angles.Z))
+	local rightFrame = hand.CFrame * grip
+	local preset = (portrait.Screens :: { [string]: StagePose.Preset })[self.framing]
+	if preset.SupportWeapon and family == "TwoHanded" then
+		local target = rightFrame * weapon.rightGrip:Inverse() * weapon.leftGrip * grip:Inverse()
+		StagePose.reachLeftHand(rig, target)
+	end
+	if preset.SupportCuff and family ~= "Dual" then
+		StagePose.reachLeftHand(rig, hand.CFrame * portrait.CuffOffset)
+	end
+	weapon:placeAtRightHand(rightFrame, left.CFrame * grip)
+end
+
+local function replaceWeapon(self: MenuStage, hardwareId: string?)
+	if self.weapon then
+		self.weapon:destroy()
+		self.weapon = nil
+	end
+	local def = hardwareId and WeaponDefs.get(hardwareId)
+	if def then
+		local weapon = ViewModel.new(def)
+		weapon.model.Name = "StageWeapon"
+		weapon.model.Parent = self.folder
+		self.weapon = weapon
+	end
+	poseOperative(self)
+end
+
 -- Puts the operative on stage holding this Hardware. Rebuilds only when the agent or weapon changes.
 function MenuStage.show(self: MenuStage, agentId: string, hardwareId: string?)
 	if self.destroyed then
 		return
 	end
+	local previousAgent = self.requestedAgent
 	self.requestedAgent, self.requestedHardware = agentId, hardwareId
 	local key = `{agentId}/{hardwareId or ""}`
 	if self.shown == key then
+		return
+	end
+	if self.rig and previousAgent == agentId then
+		replaceWeapon(self, hardwareId)
+		self.shown = key
 		return
 	end
 	clearOperative(self)
@@ -308,20 +362,7 @@ function MenuStage.show(self: MenuStage, agentId: string, hardwareId: string?)
 	self.rig = rig
 	self.shown = key
 
-	local def = hardwareId and WeaponDefs.get(hardwareId)
-	local hand = rig:FindFirstChild("RightHand")
-	if def and hand and hand:IsA("BasePart") then
-		local weapon = ViewModel.new(def)
-		weapon.model.Name = "StageWeapon"
-		weapon.model.Parent = self.folder
-		local left = rig:FindFirstChild("LeftHand")
-		-- Held at the side, barrel forward: the rig's own resting hand, turned so the gun points along the body.
-		weapon:placeAtRightHand(
-			hand.CFrame * CFrame.Angles(math.rad(-90), 0, 0),
-			if left and left:IsA("BasePart") then left.CFrame else nil
-		)
-		self.weapon = weapon
-	end
+	replaceWeapon(self, hardwareId)
 end
 
 -- Takes the operative off the stage (a screen with no use for them); show() puts them back.
@@ -332,9 +373,11 @@ function MenuStage.hideOperative(self: MenuStage)
 end
 
 function MenuStage.frame(self: MenuStage, framing: Framing)
+	self.framing = framing
+	poseOperative(self)
 	local shot = config.Cameras[framing]
-	local goal =
-		CFrame.lookAt((self.feet * CFrame.new(shot.Eye)).Position, (self.feet * CFrame.new(shot.Focus)).Position)
+	local origin = CFrame.new(config.Origin)
+	local goal = CFrame.lookAt((origin * CFrame.new(shot.Eye)).Position, (origin * CFrame.new(shot.Focus)).Position)
 	local camera = workspace.CurrentCamera
 	camera.CameraType = Enum.CameraType.Scriptable
 	if self.cameraTween then
@@ -342,8 +385,9 @@ function MenuStage.frame(self: MenuStage, framing: Framing)
 	end
 	if UiAccessibility.reducedMotion() then
 		camera.CFrame = goal
+		camera.FieldOfView = shot.FieldOfView
 	else
-		local tween = TweenService:Create(camera, panInfo, { CFrame = goal })
+		local tween = TweenService:Create(camera, panInfo, { CFrame = goal, FieldOfView = shot.FieldOfView })
 		self.cameraTween = tween
 		tween:Play()
 	end

@@ -548,3 +548,9 @@ Codex review 2026-11-20 — input-hints and minimap-size: reviewed all mixed hin
 | Id | Ticket | Owner | Needs | Status |
 |---|---|---|---|---|
 | menu-agent-visibility | Always show an equipped/owned/first-roster preview even before a saved loadout; retained display intent, complete-template readiness and bounded asynchronous local R15 fallback, classic joints and visibility cleanup. No ownership/deploy changes. Source inspection/formatting only. See docs/MENU_AGENT_VISIBILITY_2026-11-21.md. | CODEX | Owner main-menu visual acceptance | READY_FOR_REVIEW |
+
+## Cinematic menu poses by screen (2026-11-22)
+
+| Id | Ticket | Owner | Needs | Status |
+|---|---|---|---|---|
+| menu-screen-poses | Distinct Play/Agents/Hardware/pre-deploy poses and lenses; static local FK, foot grounding and support-arm reach; held Hardware updates without rebuilding same-agent body. Armory now focuses selected agent/weapon and leaves its center clear. Source inspection/formatting only, no tests or desktop control. See docs/MENU_SCREEN_POSES_2026-11-22.md. | CODEX | Owner cinematic pose acceptance | READY_FOR_REVIEW |

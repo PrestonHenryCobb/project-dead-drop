@@ -467,6 +467,96 @@ local GameConfig = {
 			Origin = Vector3.new(0, 1600, 2600),
 			RigAttempts = 3, -- local blank-R15 preview if the server's StarterCharacter template is unavailable
 			RigRetrySeconds = 1,
+			-- Owner: each agent-focused screen gets its own cinematic silhouette; actual selected Hardware stays in hand.
+			Portrait = {
+				GripDegrees = Vector3.new(-90, 0, 0),
+				CuffOffset = CFrame.new(-0.2, 0.35, 0) * CFrame.Angles(0, 0, math.rad(-90)),
+				MinimumSegmentStuds = 0.001,
+				TwoHandedReachFraction = 0.98,
+				WeaponFamilies = {
+					GuisePistol = "OneHanded",
+					ReticlePistol = "OneHanded",
+					FeintPistol = "OneHanded",
+					LatticeTaser = "OneHanded",
+					SutureFlare = "OneHanded",
+					FeintKnives = "OneHanded",
+					SutureDualPistols = "Dual",
+					GuiseGarrote = "Dual",
+				},
+				Screens = {
+					Play = {
+						BodyYawDegrees = -30,
+						SupportWeapon = false,
+						Joints = {
+							LowerTorso = Vector3.new(0, -8, -4),
+							UpperTorso = Vector3.new(0, 8, 3),
+							Head = Vector3.new(-3, 32, 0),
+							RightUpperArm = Vector3.new(12, 0, -6),
+							RightLowerArm = Vector3.new(14, 0, 0),
+							RightHand = Vector3.new(-8, 0, 0),
+							LeftUpperArm = Vector3.new(-8, 0, 18),
+							LeftLowerArm = Vector3.new(32, 0, 0),
+							LeftHand = Vector3.new(0, -12, -8),
+							LeftUpperLeg = Vector3.new(-3, -8, -4),
+							RightUpperLeg = Vector3.new(6, 12, 6),
+							RightLowerLeg = Vector3.new(-8, 0, 0),
+						},
+					},
+					Hardware = {
+						BodyYawDegrees = -12,
+						SupportWeapon = true,
+						Joints = {
+							LowerTorso = Vector3.new(0, -5, 0),
+							UpperTorso = Vector3.new(3, 12, 0),
+							Head = Vector3.new(-3, 35, 0),
+							RightUpperArm = Vector3.new(32, 14, -20),
+							RightLowerArm = Vector3.new(76, 0, 0),
+							RightHand = Vector3.new(-18, 24, 0),
+							LeftUpperArm = Vector3.new(48, -12, 20),
+							LeftLowerArm = Vector3.new(58, 0, 0),
+							LeftHand = Vector3.new(-16, -24, 0),
+							LeftUpperLeg = Vector3.new(-6, -8, -5),
+							RightUpperLeg = Vector3.new(8, 12, 6),
+							RightLowerLeg = Vector3.new(-8, 0, 0),
+						},
+					},
+					Agents = {
+						BodyYawDegrees = 58,
+						SupportWeapon = false,
+						SupportCuff = true,
+						Joints = {
+							LowerTorso = Vector3.new(0, -6, -2),
+							UpperTorso = Vector3.new(0, 10, 0),
+							Head = Vector3.new(3, -30, -3),
+							RightUpperArm = Vector3.new(25, 8, -35),
+							RightLowerArm = Vector3.new(85, 0, 0),
+							RightHand = Vector3.new(-65, 0, -10),
+							LeftUpperArm = Vector3.new(32, 25, 28),
+							LeftLowerArm = Vector3.new(100, 0, 0),
+							LeftHand = Vector3.new(0, -32, 18),
+							LeftUpperLeg = Vector3.new(-3, -8, -4),
+							RightUpperLeg = Vector3.new(4, 10, 5),
+						},
+					},
+					PreDeploy = {
+						BodyYawDegrees = 90,
+						SupportWeapon = false,
+						Joints = {
+							LowerTorso = Vector3.new(0, -5, -3),
+							UpperTorso = Vector3.new(0, -18, 2),
+							Head = Vector3.new(-4, -60, 0),
+							RightUpperArm = Vector3.new(10, 0, -8),
+							RightLowerArm = Vector3.new(32, 0, 0),
+							RightHand = Vector3.new(-16, 0, 0),
+							LeftUpperArm = Vector3.new(-8, 0, 12),
+							LeftLowerArm = Vector3.new(22, 0, 0),
+							LeftUpperLeg = Vector3.new(-4, -8, -3),
+							RightUpperLeg = Vector3.new(5, 12, 5),
+							RightLowerLeg = Vector3.new(-6, 0, 0),
+						},
+					},
+				},
+			},
 			-- Ticket menu-art-pass: original Gala set dressing, no additional lights or shadows.
 			Art = {
 				Glass = Color3.fromHex("8EAFA9"),
@@ -504,9 +594,10 @@ local GameConfig = {
 			DefaultFieldOfView = 70, -- what the game camera returns to after deploy (Roblox's default)
 			-- Camera framings, as an eye offset and a look-at offset from the operative's feet.
 			Cameras = {
-				Play = { Eye = Vector3.new(0.3, 4.2, -15.5), Focus = Vector3.new(0, 3.1, 0) }, -- center-stage operative
-				Agents = { Eye = Vector3.new(0, 3.2, -17), Focus = Vector3.new(0, 0.6, 0) }, -- the whole body, above the mastery panel
-				PreDeploy = { Eye = Vector3.new(0.4, 3.8, -13), Focus = Vector3.new(0.4, 3.2, 0) },
+				Play = { Eye = Vector3.new(3.4, 3.5, -14.2), Focus = Vector3.new(0, 3.2, 0), FieldOfView = 40 },
+				Agents = { Eye = Vector3.new(-2.4, 3.5, -13.8), Focus = Vector3.new(0, 2.4, 0), FieldOfView = 42 },
+				Hardware = { Eye = Vector3.new(-3.2, 3.5, -12.6), Focus = Vector3.new(0, 3.4, 0), FieldOfView = 38 },
+				PreDeploy = { Eye = Vector3.new(2.8, 3.6, -13.5), Focus = Vector3.new(0, 3.3, 0), FieldOfView = 40 },
 			},
 		},
 	},

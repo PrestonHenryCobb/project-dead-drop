@@ -52,7 +52,7 @@ local MAIN_TABS: { { Tab: MenuTab, Label: string } } = {
 }
 
 -- Which camera framing each screen uses; screens not listed use Play's.
-local FRAMINGS: { [string]: MenuStage.Framing } = { Agents = "Agents", Hardware = "Agents" }
+local FRAMINGS: { [string]: MenuStage.Framing } = { Agents = "Agents", Hardware = "Hardware" }
 
 local MenuController = {}
 
@@ -198,15 +198,15 @@ local function mount(tab: string, view: MenuView, context: { [string]: any }?)
 	end
 	local target = screen :: Frame
 	current = { tab = tab, view = view }
+	if stage then
+		stage:frame(FRAMINGS[tab] or "Play")
+	end
 	view.Mount(target, navigator, context)
 	for name, button in tabButtons do
 		button.SetSelected(name == tab)
 	end
 	if footerLabel then
 		footerLabel.Text = string.upper(tab)
-	end
-	if stage then
-		stage:frame(FRAMINGS[tab] or "Play")
 	end
 	selectFirstButton()
 end
@@ -299,13 +299,13 @@ local function syncPreDeploy()
 	end
 	if active then
 		unmountCurrent()
-		current = { tab = "PreDeploy", view = preDeployView :: MenuView };
+		current = { tab = "PreDeploy", view = preDeployView :: MenuView }
+		if stage then
+			stage:frame("PreDeploy")
+		end
 		(preDeployView :: MenuView).Mount(screen :: Frame, navigator, nil)
 		if footerLabel then
 			footerLabel.Text = "AGENT SELECT"
-		end
-		if stage then
-			stage:frame("PreDeploy")
 		end
 		selectFirstButton()
 	end

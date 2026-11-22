@@ -22,15 +22,47 @@ function view.Mount(stage, navigator, context)
 	view.Unmount()
 	local filter = if context and Agents.get(context.AgentId) then context.AgentId else "All"
 	local selected = Weapons.getForAgent(if filter == "All" then "Guise" else filter)[1]
+	local selectedByUser = false
+	local drawnFilter = filter
+	local initial = navigator.snapshot()
+	if initial and initial.Loadout and (filter == "All" or filter == initial.Loadout.AgentId) then
+		for _, item in Weapons.getForAgent(initial.Loadout.AgentId) do
+			if item.Id == initial.Loadout.HardwareId then
+				selected = item
+				break
+			end
+		end
+	end
 	local session = Kit.session(stage, "HARDWARE / THE ARMORY", navigator)
 	cleanup:Add(session.destroy)
 	local function draw()
 		local restoreFocus = Kit.rememberFocus(session.Body)
+		local previous = session.Body:FindFirstChild("Armory")
+		local oldFilters = previous and previous:FindFirstChild("OperativeFilters")
+		local oldGrid = previous and previous:FindFirstChild("HardwareGrid")
+		local filterScroll = if oldFilters and oldFilters:IsA("ScrollingFrame")
+			then oldFilters.CanvasPosition
+			else Vector2.zero
+		local gridScroll = if drawnFilter == filter
+				and oldGrid
+				and oldGrid:IsA("ScrollingFrame")
+			then oldGrid.CanvasPosition
+			else Vector2.zero
+		drawnFilter = filter
 		content:Cleanup()
 		local root = Kit.frame(session.Body, "Armory", UDim2.new(), UDim2.fromScale(1, 1))
 		content:Add(root)
 		local data: Types.MetaSnapshot? = session.snapshot()
-		local filters = Kit.scroll(root, "OperativeFilters", UDim2.new(), UDim2.new(0.64, 0, 0, 116))
+		if not selectedByUser and data and data.Loadout and (filter == "All" or filter == data.Loadout.AgentId) then
+			for _, item in Weapons.getForAgent(data.Loadout.AgentId) do
+				if item.Id == data.Loadout.HardwareId then
+					selected = item
+					break
+				end
+			end
+		end
+		navigator.focusAgent(selected.Agent, selected.Id)
+		local filters = Kit.scroll(root, "OperativeFilters", UDim2.new(), UDim2.new(0.26, 0, 0, 116))
 		local options = { "All" }
 		for _, id in Agents.order do
 			table.insert(options, id)
@@ -40,28 +72,27 @@ function view.Mount(stage, navigator, context)
 				Name = "Filter" .. id,
 				Text = if id == "All" then "ALL 18 HARDWARE" else string.upper(id),
 				Parent = filters,
-				Size = UDim2.new(0.25, -8, 0, 46),
-				Position = UDim2.new(((index - 1) % 4) * 0.25, 0, 0, math.floor((index - 1) / 4) * 58),
+				Size = UDim2.new(0.5, -8, 0, 46),
+				Position = UDim2.new(((index - 1) % 2) * 0.5, 0, 0, math.floor((index - 1) / 2) * 58),
 				OnActivated = function()
 					filter = id
+					if id ~= "All" and selected.Agent ~= id then
+						selected = Weapons.getForAgent(id)[1]
+						selectedByUser = true
+					end
 					draw()
 				end,
 			})
 			button.SetSelected(filter == id)
 		end
-		local grid = Kit.scroll(root, "HardwareGrid", UDim2.fromOffset(0, 126), UDim2.new(0.64, 0, 1, -126))
+		local grid = Kit.scroll(root, "HardwareGrid", UDim2.fromOffset(0, 126), UDim2.new(0.26, 0, 1, -126))
 		local index = 0
 		for _, id in Agents.order do
 			if filter ~= "All" and filter ~= id then
 				continue
 			end
 			for _, item in Weapons.getForAgent(id) do
-				local card = Kit.panel(
-					grid,
-					item.Id,
-					UDim2.new((index % 3) / 3, 0, 0, math.floor(index / 3) * 218),
-					UDim2.new(1 / 3, -12, 0, 206)
-				)
+				local card = Kit.panel(grid, item.Id, UDim2.fromOffset(0, index * 218), UDim2.new(1, -12, 0, 206))
 				index += 1
 				local mastery = if data then data.Profile.Mastery[id] else nil
 				local unlocked = data
@@ -81,13 +112,14 @@ function view.Mount(stage, navigator, context)
 					Kit.text(art, item.Category .. "\nIN DEVELOPMENT", 0, 80, true)
 				end
 				local button = Kit.button(card, item.Name .. "\n" .. state, 126, function()
+					selectedByUser = true
 					selected = item
 					draw()
 				end)
 				button.SetSelected(selected.Id == item.Id)
 			end
 		end
-		local inspector = Kit.frame(root, "HardwareInspector", UDim2.fromScale(0.67, 0), UDim2.fromScale(0.33, 1))
+		local inspector = Kit.frame(root, "HardwareInspector", UDim2.fromScale(0.72, 0), UDim2.fromScale(0.28, 1))
 		local actionHeight = config.PrimaryHeightPixels + config.GapPixels + config.SecondaryHeightPixels
 		local side =
 			Kit.scroll(inspector, "Details", UDim2.new(), UDim2.new(1, 0, 1, -(actionHeight + config.GapPixels)))
@@ -155,6 +187,7 @@ function view.Mount(stage, navigator, context)
 			navigator.navigateTo("Agents", { AgentId = selected.Agent })
 		end)
 		Kit.text(side, "Earn Hardware through Agent Mastery. Weapon finishes are not yet published.", 412, 70)
+		filters.CanvasPosition, grid.CanvasPosition = filterScroll, gridScroll
 		restoreFocus(root)
 	end
 	draw()
