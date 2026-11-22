@@ -1,6 +1,6 @@
 --!strict
--- Ticket menu-shell: the 3D stage behind the menu. A small walnut-and-brass mezzanine built on this client only, far from
--- the map, with one operative on it holding their Hardware, and the camera framings each screen uses.
+-- Cinematic gala balcony behind the menu. Client-only geometry far from the map, with one operative holding
+-- their Hardware and the camera framings each screen uses.
 --
 -- The operative is the game's own rig (StarterPlayer.StarterCharacter, made by RigService) dressed by OutfitApplier.
 -- Agents have no look of their own until Step 16, so every agent stands in the shared True Form outfit; only the weapon
@@ -83,92 +83,27 @@ local function lamp(parent: Instance, position: Vector3, color: Color3, brightne
 	light.Parent = holder
 end
 
--- The room: floor, carpet, back and side walls in walnut, a brass rail across the back (the mezzanine balustrade),
--- pilasters, sconces and a cool rim light behind the operative. Open towards the camera (-Z).
+-- The balcony floor and a small fixed non-shadowed light budget. Set dressing is built by GalaSet.
 local function buildRoom(folder: Folder, origin: CFrame)
-	local size = config.RoomSize
-	local wood = Enum.Material.WoodPlanks
 	part(
 		folder,
-		"Floor",
-		Vector3.new(size.X, 1, size.Z),
+		"BalconyFloor",
+		Vector3.new(config.RoomSize.X, 1, config.RoomSize.Z),
 		origin * CFrame.new(0, -0.5, 0),
 		config.Floor,
 		Enum.Material.Marble
 	)
-	part(
-		folder,
-		"Carpet",
-		Vector3.new(10, 0.1, 10),
-		origin * CFrame.new(0, 0.05, 0),
-		config.Carpet,
-		Enum.Material.Fabric
-	)
-	part(
-		folder,
-		"BackWall",
-		Vector3.new(size.X, size.Y, 1),
-		origin * CFrame.new(0, size.Y / 2, size.Z / 2),
-		config.Walnut,
-		wood
-	)
+	-- Only local, non-shadowed stage lights; the map's Lighting and time of day remain untouched.
+	lamp(folder, (origin * CFrame.new(-3, 9, -4)).Position, config.LampColor, config.LampBrightness, config.LampRange)
 	for _, side in { -1, 1 } do
-		part(
+		lamp(
 			folder,
-			"SideWall",
-			Vector3.new(1, size.Y, size.Z),
-			origin * CFrame.new(side * size.X / 2, size.Y / 2, 0),
-			config.Walnut,
-			wood
-		)
-		for _, x in { 7, 15 } do
-			part(
-				folder,
-				"Pilaster",
-				Vector3.new(1.6, size.Y, 1.2),
-				origin * CFrame.new(side * x, size.Y / 2, size.Z / 2 - 1),
-				config.Floor,
-				Enum.Material.Marble
-			)
-			lamp(
-				folder,
-				(origin * CFrame.new(side * x, 9, size.Z / 2 - 1.8)).Position,
-				config.LampColor,
-				config.LampBrightness,
-				config.LampRange
-			)
-		end
-	end
-	-- The balustrade: a brass handrail on slim posts in front of the back wall.
-	local railZ = size.Z / 2 - 4
-	part(
-		folder,
-		"Rail",
-		Vector3.new(size.X - 4, 0.3, 0.3),
-		origin * CFrame.new(0, 3.4, railZ),
-		config.Brass,
-		Enum.Material.Metal
-	)
-	part(
-		folder,
-		"RailFoot",
-		Vector3.new(size.X - 4, 0.3, 0.6),
-		origin * CFrame.new(0, 0.15, railZ),
-		config.Brass,
-		Enum.Material.Metal
-	)
-	for x = -(size.X / 2 - 3), size.X / 2 - 3, 1.5 do
-		part(
-			folder,
-			"Baluster",
-			Vector3.new(0.15, 3.3, 0.15),
-			origin * CFrame.new(x, 1.75, railZ),
-			config.Brass,
-			Enum.Material.Metal
+			(origin * CFrame.new(side * 15, 7, 5)).Position,
+			config.LampColor,
+			config.LampBrightness,
+			config.LampRange
 		)
 	end
-	-- Key light over the operative and a cyan rim from behind, so the silhouette reads against the dark wood.
-	lamp(folder, (origin * CFrame.new(-3, 11, -4)).Position, config.LampColor, config.LampBrightness, config.LampRange)
 	local rim = part(
 		folder,
 		"Rim",
@@ -178,11 +113,12 @@ local function buildRoom(folder: Folder, origin: CFrame)
 		Enum.Material.Neon
 	)
 	rim.Transparency = 1
-	local rimLight = Instance.new("PointLight")
-	rimLight.Color = config.RimColor
-	rimLight.Brightness = config.RimBrightness
-	rimLight.Range = config.LampRange / 2
-	rimLight.Parent = rim
+	local light = Instance.new("PointLight")
+	light.Color = config.RimColor
+	light.Brightness = config.RimBrightness
+	light.Range = config.LampRange / 2
+	light.Shadows = false
+	light.Parent = rim
 end
 
 function MenuStage.new(): MenuStage
@@ -200,7 +136,7 @@ function MenuStage.new(): MenuStage
 		rig = nil,
 		weapon = nil,
 		shown = nil,
-		-- The operative faces the open side of the room (-Z), where the camera is; the back wall is behind them.
+		-- The operative faces the camera (-Z); the open balcony and skyline sit behind them.
 		feet = origin * CFrame.Angles(0, math.rad(config.RigTurnDegrees), 0),
 		cameraTween = nil,
 	}, MenuStage)
@@ -227,12 +163,13 @@ function MenuStage.show(self: MenuStage, agentId: string, hardwareId: string?)
 	if self.shown == key then
 		return
 	end
-	self.shown = key
 	clearOperative(self)
+	self.shown = nil
 	local template = StarterPlayer:FindFirstChild("StarterCharacter")
 	if not (template and template:IsA("Model")) then
 		return -- RigService has not made the rig yet; the next show() call tries again
 	end
+	self.shown = key
 	local rig = template:Clone()
 	local root = rig:FindFirstChild("HumanoidRootPart") :: BasePart
 	local humanoid = rig:FindFirstChildOfClass("Humanoid") :: Humanoid

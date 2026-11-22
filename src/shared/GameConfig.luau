@@ -394,15 +394,15 @@ local GameConfig = {
 			Text = Color3.fromHex("F5F0E6"),
 			TextDim = Color3.fromHex("B8B0A0"),
 			TextOnBright = Color3.fromHex("14161A"),
-			Emerald = Color3.fromHex("149A74"),
-			EmeraldBright = Color3.fromHex("22D39F"),
-			EmeraldDeep = Color3.fromHex("0B3B2D"),
+			Emerald = Color3.fromHex("405D54"),
+			EmeraldBright = Color3.fromHex("B9CEBB"),
+			EmeraldDeep = Color3.fromHex("1D302B"),
 			Slate = Color3.fromHex("272D38"), -- secondary button fill
-			Brass = Color3.fromHex("D4A856"),
-			BrassBright = Color3.fromHex("F3C978"),
+			Brass = Color3.fromHex("B69A67"),
+			BrassBright = Color3.fromHex("E3C795"),
 			Burgundy = Color3.fromHex("7A1C30"),
 			BurgundyBright = Color3.fromHex("B82947"),
-			Focus = Color3.fromHex("38E8FC"),
+			Focus = Color3.fromHex("E3C795"),
 			Border = Color3.fromHex("3A4150"),
 		},
 		Fonts = {
@@ -412,9 +412,9 @@ local GameConfig = {
 			Mono = Enum.Font.RobotoMono, -- timers, stats, key hints
 		},
 		TextSizes = { Display = 28, Title = 20, Button = 17, Body = 17, Small = 14, Chip = 12 },
-		SurfaceTransparency = 0.1,
-		InfoPanelTransparency = 0.12,
-		CornerPixels = 4,
+		SurfaceTransparency = 0.28,
+		InfoPanelTransparency = 0.3,
+		CornerPixels = 2,
 		StrokePixels = 1,
 		TrimPixels = 1.5,
 		AccentBarPixels = 3,
@@ -432,10 +432,10 @@ local GameConfig = {
 		-- Ticket menu-art-pass: native illustration readability and explicit scroll affordance.
 		Art = { BodyTextPixels = 17, ScrollbarPixels = 8 },
 		-- Ticket menu-shell: the frame every screen sits in, and the two lobby screens' columns.
-		HeaderPixels = 68,
+		HeaderPixels = 80,
 		FooterPixels = 44,
-		TabWidthPixels = 104, -- six tabs and two bumpers must fit between the title and the balances at 1280 wide
-		BumperWidthPixels = 40,
+		TabWidthPixels = 92, -- slim tabs fit between the wordmark and compact balances at the reference width
+		BumperWidthPixels = 28,
 		TabGapPixels = 4,
 		GapPixels = 12,
 		LeftRailPixels = 420,
@@ -446,6 +446,22 @@ local GameConfig = {
 		ProfileAttempts = 5, -- asks for the profile this many times on join before giving up
 		ProfileRetrySeconds = 1,
 		DeployRetrySeconds = 3, -- Deploy is offered again if agent select has not started by then
+		-- Owner menu choices: cinematic balcony, center-stage agent, essentials left and Play at bottom-right.
+		Cinematic = {
+			RailWidthPixels = 304,
+			ActionWidthPixels = 304,
+			SquadWidthPixels = 260,
+			HeroTitlePixels = 52,
+			HeaderTitlePixels = 20,
+			NavigationTextPixels = 12,
+			SecondaryTransparency = 0.82,
+			SecondaryHoverTransparency = 0.4,
+			PanelStrokeTransparency = 0.8,
+			TextShadowTransparency = 0.6,
+			EdgeWidthFraction = 0.34,
+			EdgeTransparency = 0.12,
+			VerticalVeilPixels = 160,
+		},
 		-- The 3D stage behind the menu: a small walnut-and-brass mezzanine built on the client only, far from the map.
 		Stage = {
 			Origin = Vector3.new(0, 1600, 2600),
@@ -457,8 +473,20 @@ local GameConfig = {
 				ChandelierHeight = 13,
 			},
 			RoomSize = Vector3.new(44, 22, 34),
+			Balcony = {
+				SkyColor = Color3.fromHex("0A1020"),
+				TowerColor = Color3.fromHex("141E30"),
+				TowerCount = 18,
+				TowerSpacingStuds = 9,
+				TowerDistanceStuds = 82,
+				WindowRows = 6,
+				WindowColor = Color3.fromHex("BD9E78"),
+				CoolWindowColor = Color3.fromHex("657F99"),
+				RailZ = 7,
+				StarCount = 28,
+			},
 			Walnut = Color3.fromHex("3B2418"),
-			Floor = Color3.fromHex("D9D2C3"),
+			Floor = Color3.fromHex("333337"),
 			Carpet = Color3.fromHex("5A1626"),
 			Brass = Color3.fromHex("C9A04F"),
 			LampColor = Color3.fromHex("FFD9A0"),
@@ -467,14 +495,14 @@ local GameConfig = {
 			-- Shadow-casting lights are the stage's one real cost under Future lighting (about 13 fps and a long first-frame
 			-- hitch measured with five of them); the room is small, so the menu goes without.
 			LampShadows = false,
-			RimColor = Color3.fromHex("38E8FC"),
+			RimColor = Color3.fromHex("8CABC1"),
 			RimBrightness = 0.5,
 			RigTurnDegrees = -18, -- the operative stands angled toward the camera
 			FieldOfView = 45,
 			DefaultFieldOfView = 70, -- what the game camera returns to after deploy (Roblox's default)
 			-- Camera framings, as an eye offset and a look-at offset from the operative's feet.
 			Cameras = {
-				Play = { Eye = Vector3.new(5.5, 4.4, -16), Focus = Vector3.new(4.2, 3, 0) }, -- operative right of centre
+				Play = { Eye = Vector3.new(0.3, 4.2, -15.5), Focus = Vector3.new(0, 3.1, 0) }, -- center-stage operative
 				Agents = { Eye = Vector3.new(0, 3.2, -17), Focus = Vector3.new(0, 0.6, 0) }, -- the whole body, above the mastery panel
 				PreDeploy = { Eye = Vector3.new(0.4, 3.8, -13), Focus = Vector3.new(0.4, 3.2, 0) },
 			},

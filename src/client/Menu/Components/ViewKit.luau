@@ -32,6 +32,8 @@ function Kit.text(parent: Instance, value: string, y: number, height: number, la
 	label.Font = if large then Theme.Fonts.Bold else Theme.Fonts.Body
 	label.TextSize = if large then Theme.TextSizes.Display else config.Art.BodyTextPixels
 	label.TextColor3 = Theme.Colors.Text
+	label.TextStrokeColor3 = Theme.Colors.Canvas
+	label.TextStrokeTransparency = config.Cinematic.TextShadowTransparency
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.TextYAlignment = Enum.TextYAlignment.Top
 	label.TextWrapped = true

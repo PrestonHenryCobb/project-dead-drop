@@ -315,8 +315,8 @@ local function pill(parent: Instance, name: string, order: number, accent: Color
 	local frame = Instance.new("Frame")
 	frame.Name = name
 	frame.BackgroundColor3 = colors.Surface
-	frame.BackgroundTransparency = config.SurfaceTransparency
-	frame.Size = UDim2.fromOffset(0, config.ChipHeightPixels + config.ChipPaddingPixels)
+	frame.BackgroundTransparency = 1
+	frame.Size = UDim2.fromOffset(0, config.ChipHeightPixels)
 	frame.AutomaticSize = Enum.AutomaticSize.X
 	frame.LayoutOrder = order
 	local corner = Instance.new("UICorner")
@@ -325,6 +325,7 @@ local function pill(parent: Instance, name: string, order: number, accent: Color
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = accent
 	stroke.Thickness = config.StrokePixels
+	stroke.Transparency = 1
 	stroke.Parent = frame
 	local padding = Instance.new("UIPadding")
 	padding.PaddingLeft = UDim.new(0, config.PaddingPixels)
@@ -340,6 +341,7 @@ local function pill(parent: Instance, name: string, order: number, accent: Color
 	})
 	text.AutomaticSize = Enum.AutomaticSize.X
 	text.TextWrapped = false
+	text.TextSize = config.Cinematic.NavigationTextPixels
 	frame.Parent = parent
 	return text
 end
@@ -348,7 +350,7 @@ local function buildHeader(parent: Frame): Frame
 	local bar = Instance.new("Frame")
 	bar.Name = "Header"
 	bar.BackgroundColor3 = colors.Canvas
-	bar.BackgroundTransparency = config.SurfaceTransparency
+	bar.BackgroundTransparency = 1
 	bar.BorderSizePixel = 0
 	bar.Size = UDim2.new(1, 0, 0, config.HeaderPixels)
 	bar.Parent = parent
@@ -356,11 +358,12 @@ local function buildHeader(parent: Frame): Frame
 	trim.Name = "Trim"
 	trim.BackgroundColor3 = colors.Brass
 	trim.BorderSizePixel = 0
-	trim.Position = UDim2.fromScale(0, 1)
-	trim.Size = UDim2.new(1, 0, 0, config.TrimPixels)
+	trim.Size = UDim2.new(1, -config.PaddingPixels * 4, 0, config.StrokePixels)
+	trim.Position = UDim2.new(0, config.PaddingPixels * 2, 1, 0)
+	trim.BackgroundTransparency = config.Cinematic.PanelStrokeTransparency
 	trim.Parent = bar
 
-	-- Left: a brass-framed burgundy diamond and the title.
+	-- Left: an outline emblem and compact ivory wordmark.
 	local brand = Instance.new("Frame")
 	brand.Name = "Brand"
 	brand.BackgroundTransparency = 1
@@ -372,7 +375,7 @@ local function buildHeader(parent: Frame): Frame
 	brandLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 	local diamond = Instance.new("Frame")
 	diamond.Name = "Emblem"
-	diamond.BackgroundColor3 = colors.Burgundy
+	diamond.BackgroundTransparency = 1
 	diamond.Rotation = 45
 	diamond.Size = UDim2.fromOffset(config.ChipHeightPixels + 6, config.ChipHeightPixels + 6)
 	diamond.Parent = brand
@@ -388,6 +391,7 @@ local function buildHeader(parent: Frame): Frame
 		Size = UDim2.fromScale(0, 1),
 		LayoutOrder = 1,
 	})
+	title.TextSize = config.Cinematic.HeaderTitlePixels
 	title.AutomaticSize = Enum.AutomaticSize.X
 	title.TextWrapped = false
 
@@ -405,7 +409,7 @@ local function buildHeader(parent: Frame): Frame
 	tabLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 	local bumpers: { GuiObject } = {}
 	local function bumper(name: string, order: number, step: number)
-		local item = MenuTheme.secondaryButton({
+		local item = MenuTheme.navigationButton({
 			Name = name,
 			Text = name,
 			Parent = tabs,
@@ -421,7 +425,7 @@ local function buildHeader(parent: Frame): Frame
 	end
 	bumper("LB", 0, -1)
 	for index, entry in MAIN_TABS do
-		local button = MenuTheme.secondaryButton({
+		local button = MenuTheme.navigationButton({
 			Name = entry.Tab,
 			Text = entry.Label,
 			Parent = tabs,
@@ -433,7 +437,7 @@ local function buildHeader(parent: Frame): Frame
 				navigateTo(entry.Tab)
 			end,
 		})
-		button.Instance.TextSize = config.TextSizes.Small
+		button.Instance.TextSize = config.Cinematic.NavigationTextPixels
 		tabButtons[entry.Tab] = button
 	end
 	bumper("RB", #MAIN_TABS + 1, 1)
@@ -449,10 +453,11 @@ local function buildHeader(parent: Frame): Frame
 	purse.BackgroundTransparency = 1
 	purse.AnchorPoint = Vector2.new(1, 0.5)
 	purse.Position = UDim2.new(1, -config.PaddingPixels * 2, 0.5, 0)
-	purse.Size = UDim2.fromOffset(0, config.ChipHeightPixels + config.ChipPaddingPixels)
+	purse.Size = UDim2.fromOffset(0, config.ChipHeightPixels * 2)
 	purse.AutomaticSize = Enum.AutomaticSize.X
 	purse.Parent = bar
-	local purseLayout = MenuTheme.stack(purse, true)
+	local purseLayout = MenuTheme.stack(purse)
+	purseLayout.Padding = UDim.new(0, 0)
 	purseLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 	stocksText = pill(purse, "Stocks", 1, colors.EmeraldBright)
 	creditsText = pill(purse, "Credits", 2, colors.Brass)
@@ -476,7 +481,7 @@ local function buildFooter(parent: Frame)
 	local bar = Instance.new("Frame")
 	bar.Name = "Footer"
 	bar.BackgroundColor3 = colors.Canvas
-	bar.BackgroundTransparency = config.SurfaceTransparency
+	bar.BackgroundTransparency = 1
 	bar.BorderSizePixel = 0
 	bar.AnchorPoint = Vector2.new(0, 1)
 	bar.Position = UDim2.fromScale(0, 1)
@@ -722,6 +727,32 @@ local function openMenu()
 	root.Name = "Root"
 	root.BackgroundTransparency = 1
 	root.Parent = gui
+	local function veil(name: string, position: UDim2, size: UDim2, rotation: number)
+		local edge = Instance.new("Frame")
+		edge.Name = name
+		edge.BorderSizePixel = 0
+		edge.BackgroundColor3 = colors.Canvas
+		edge.Position, edge.Size = position, size
+		local gradient = Instance.new("UIGradient")
+		gradient.Rotation = rotation
+		gradient.Transparency = NumberSequence.new(config.Cinematic.EdgeTransparency, 1)
+		gradient.Parent = edge
+		edge.Parent = root
+	end
+	veil("LeftVeil", UDim2.new(), UDim2.fromScale(config.Cinematic.EdgeWidthFraction, 1), 0)
+	veil(
+		"RightVeil",
+		UDim2.new(1 - config.Cinematic.EdgeWidthFraction, 0, 0, 0),
+		UDim2.fromScale(config.Cinematic.EdgeWidthFraction, 1),
+		180
+	)
+	veil("TopVeil", UDim2.new(), UDim2.new(1, 0, 0, config.Cinematic.VerticalVeilPixels), 90)
+	veil(
+		"BottomVeil",
+		UDim2.new(0, 0, 1, -config.Cinematic.VerticalVeilPixels),
+		UDim2.new(1, 0, 0, config.Cinematic.VerticalVeilPixels),
+		270
+	)
 	header = buildHeader(root)
 	buildFooter(root)
 	local area = Instance.new("Frame")

@@ -11,7 +11,7 @@
 --   MenuTheme.stack(panel)                      -- children top to bottom in LayoutOrder
 --   local left = MenuTheme.rail(stage, "Left", "Left", 420)   -- a scrolling column down one side
 --
--- Every interactive component shows hover, pressed, selected, disabled and a cyan controller/keyboard focus ring, and
+-- Every interactive component shows hover, pressed, selected, disabled and a brass controller/keyboard focus ring, and
 -- states are always spelled out in text as well as colour. Connections belong to the instances they are made on, so
 -- destroying a component (or its parent) cleans it up.
 
@@ -158,6 +158,8 @@ type ButtonStyle = {
 	StrokeThickness: number,
 	TextColor: Color3,
 	TextSize: number,
+	FillTransparency: number,
+	Navigation: boolean?,
 }
 
 -- Keep supporting copy in sentence case on multiline cards.
@@ -171,7 +173,7 @@ local function makeButton(props: ButtonProps, style: ButtonStyle): Button
 	button.Name = props.Name
 	button.Text = actionText(props.Text)
 	button.TextWrapped = true
-	button.Font = config.Fonts.Body
+	button.Font = config.Fonts.Bold
 	button.TextSize = style.TextSize
 	button.TextColor3 = style.TextColor
 	button.AutoButtonColor = false
@@ -185,6 +187,15 @@ local function makeButton(props: ButtonProps, style: ButtonStyle): Button
 	button.SelectionImageObject = noSelectionImage
 	corner(button)
 	local border = stroke(button, style.Stroke, style.StrokeThickness)
+	local underline = Instance.new("Frame")
+	underline.Name = "SelectionUnderline"
+	underline.BorderSizePixel = 0
+	underline.BackgroundColor3 = colors.BrassBright
+	underline.AnchorPoint = Vector2.new(0.5, 1)
+	underline.Position = UDim2.new(0.5, 0, 1, 0)
+	underline.Size = UDim2.new(1, -config.PaddingPixels * 2, 0, config.TrimPixels)
+	underline.Visible = false
+	underline.Parent = button
 
 	local scale = Instance.new("UIScale")
 	scale.Parent = button
@@ -214,11 +225,25 @@ local function makeButton(props: ButtonProps, style: ButtonStyle): Button
 	local function refresh()
 		button.Active = enabled
 		button.Selectable = enabled
-		button.BackgroundTransparency = if enabled then 0 else config.DisabledTransparency
-		button.BackgroundColor3 = if selected then colors.EmeraldDeep else style.Fill
+		button.BackgroundTransparency = if style.Navigation
+			then 1
+			elseif
+				(hovered or selected)
+				and enabled
+				and style.FillTransparency > 0
+			then config.Cinematic.SecondaryHoverTransparency
+			else style.FillTransparency
+		button.BackgroundColor3 = if enabled
+			then style.Fill
+			else style.Fill:Lerp(colors.Canvas, config.DisabledTransparency)
+		button.TextColor3 = if style.Navigation and selected then colors.BrassBright else style.TextColor
 		border.Thickness = if selected then config.FocusPixels else style.StrokeThickness
 		button.TextTransparency = if enabled then 0 else config.DisabledTransparency
-		border.Transparency = if enabled then 0 else config.DisabledTransparency
+		border.Transparency = if style.Navigation
+			then 1
+			elseif hovered or selected then 0.25
+			else config.Cinematic.PanelStrokeTransparency
+		underline.Visible = style.Navigation == true and (selected or (hovered and enabled))
 		setProperty(border, { Color = restingStroke() })
 	end
 
@@ -270,17 +295,18 @@ local function makeButton(props: ButtonProps, style: ButtonStyle): Button
 	}
 end
 
--- The 64-pixel emerald call to action (Deploy, Lock in, Equip). One per screen.
+-- The ivory call to action (Play, Lock in, Equip). One per screen.
 function MenuTheme.primaryButton(props: ButtonProps): Button
 	return makeButton(props, {
 		Height = config.PrimaryHeightPixels,
-		Fill = colors.Emerald,
-		Stroke = colors.EmeraldBright,
+		Fill = colors.Text,
+		Stroke = colors.BrassBright,
 		StrokeHover = colors.Text,
 		StrokeSelected = colors.Text,
 		StrokeThickness = config.FocusPixels,
-		TextColor = colors.Text,
+		TextColor = colors.TextOnBright,
 		TextSize = config.TextSizes.Title,
+		FillTransparency = 0,
 	})
 end
 
@@ -295,10 +321,27 @@ function MenuTheme.secondaryButton(props: ButtonProps): Button
 		StrokeThickness = config.TrimPixels,
 		TextColor = colors.Text,
 		TextSize = config.TextSizes.Button,
+		FillTransparency = config.Cinematic.SecondaryTransparency,
 	})
 end
 
--- A non-interactive panel with a thin border and an accent bar down its left edge. Put content inside it; it grows to
+-- Slim floating navigation keeps selection distinct without enclosing every section in a card.
+function MenuTheme.navigationButton(props: ButtonProps): Button
+	return makeButton(props, {
+		Height = config.SecondaryHeightPixels,
+		Fill = colors.Canvas,
+		Stroke = colors.Brass,
+		StrokeHover = colors.BrassBright,
+		StrokeSelected = colors.BrassBright,
+		StrokeThickness = config.StrokePixels,
+		TextColor = colors.Text,
+		TextSize = config.Cinematic.NavigationTextPixels,
+		FillTransparency = 1,
+		Navigation = true,
+	})
+end
+
+-- A translucent dark panel with restrained accent linework. Put content inside it; it grows to
 -- fit its contents unless a Size is given.
 function MenuTheme.infoPanel(props: PanelProps): Frame
 	local panel = Instance.new("Frame")
@@ -315,33 +358,15 @@ function MenuTheme.infoPanel(props: PanelProps): Frame
 		panel.AutomaticSize = Enum.AutomaticSize.Y
 	end
 	corner(panel)
-	stroke(panel, colors.Border, config.StrokePixels)
-
-	-- The accent bar is a hard edge in the background gradient, not a child frame, so a layout the caller adds to the
-	-- panel never treats it as a row. The edge is kept AccentBarPixels wide as the panel resizes.
-	panel.BackgroundColor3 = Color3.new(1, 1, 1)
-	local accent = accentColors[props.Accent or "Brass"]
-	local fill = Instance.new("UIGradient")
-	fill.Parent = panel
-	local function fitBar()
-		local width = math.max(panel.AbsoluteSize.X, config.AccentBarPixels * 2)
-		local edge = math.clamp(config.AccentBarPixels / width, 0.001, 0.5)
-		fill.Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, accent),
-			ColorSequenceKeypoint.new(edge, accent),
-			ColorSequenceKeypoint.new(math.min(edge + 0.0005, 0.999), colors.InfoPanel),
-			ColorSequenceKeypoint.new(1, colors.InfoPanel),
-		})
-	end
-	panel:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitBar)
-	fitBar()
+	local border = stroke(panel, accentColors[props.Accent or "Brass"], config.StrokePixels)
+	border.Transparency = config.Cinematic.PanelStrokeTransparency
 
 	local padding = Instance.new("UIPadding")
 	local pad = UDim.new(0, config.PaddingPixels)
 	padding.PaddingTop = pad
 	padding.PaddingBottom = pad
 	padding.PaddingRight = pad
-	padding.PaddingLeft = UDim.new(0, config.AccentBarPixels + config.PaddingPixels)
+	padding.PaddingLeft = pad
 	padding.Parent = panel
 
 	panel.Parent = props.Parent
@@ -380,6 +405,8 @@ function MenuTheme.label(props: LabelProps): TextLabel
 	text.Font = style.Font
 	text.TextSize = style.Size
 	text.TextColor3 = props.Color or style.Color
+	text.TextStrokeColor3 = colors.Canvas
+	text.TextStrokeTransparency = config.Cinematic.TextShadowTransparency
 	text.TextWrapped = true
 	text.TextXAlignment = props.Alignment or Enum.TextXAlignment.Left
 	text.BackgroundTransparency = 1

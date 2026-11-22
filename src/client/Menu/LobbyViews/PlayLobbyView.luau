@@ -1,8 +1,6 @@
 --!strict
--- Ticket menu-shell: the Play screen. Left: the operation briefing, the first-launch free agent picks (while any are
--- left), the queue, the equipped loadout and Deploy. Centre: the operative on the stage. Right: the player's team and a
--- short field briefing. Everything shown comes from the server's snapshot; Deploy only asks the server to start agent
--- select.
+-- Cinematic gala landing: mission essentials on the left, center-stage operative, compact squad at top-right and
+-- Play at bottom-right. Free agent picks and briefing details expand on demand. All actions keep server authority.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,7 +17,6 @@ local MenuTheme = require(Menu:WaitForChild("MenuTheme"))
 local AssetDraft = require(Menu.AssetDraft)
 local Kit = require(Menu.Components.ViewKit)
 local RequestFeedback = require(Menu.RequestFeedback)
-local Art = require(Menu.Components.DecoArt)
 local RemoteController = require(Menu.Parent:WaitForChild("Controllers"):WaitForChild("RemoteController"))
 local Matchmaking = require(Menu.Parent.Controllers.MatchmakingController)
 
@@ -41,6 +38,8 @@ local claiming: string? = nil
 local claimNotice: string? = nil
 local claimGeneration = 0
 local queueMode: Types.QueueMode? = nil
+local picksExpanded = false
+local detailsExpanded = false
 
 local function hardwareName(agentId: string, hardwareId: string): (string, number)
 	for _, item in WeaponDefs.getForAgent(agentId) do
@@ -54,6 +53,11 @@ end
 local function panel(parent: Instance, name: string, order: number, accent: MenuTheme.Accent?): Frame
 	local frame = MenuTheme.infoPanel({ Name = name, Accent = accent, Parent = parent, LayoutOrder = order })
 	MenuTheme.stack(frame).Padding = UDim.new(0, config.GapPixels / 2)
+	frame.BackgroundTransparency = 1
+	local border = frame:FindFirstChildOfClass("UIStroke")
+	if border then
+		border.Transparency = 1
+	end
 	return frame
 end
 
@@ -91,35 +95,16 @@ local function buildLeft(
 	onRetry: () -> ()
 )
 	local briefing = panel(rail, "Briefing", 1, "Brass")
-	local paperGradient = briefing:FindFirstChildOfClass("UIGradient")
-	if paperGradient then
-		paperGradient.Enabled = false
-	end
-	briefing.BackgroundColor3 = colors.Text
-	briefing.BackgroundTransparency = 0
 	MenuTheme.label({
 		Name = "Kicker",
-		Text = "COVER STORY / OPERATION",
+		Text = "YOUR NEXT OPERATION",
 		Style = "Kicker",
-		Color = colors.TextOnBright,
 		Parent = briefing,
 		LayoutOrder = 1,
 	})
-	MenuTheme.label({
-		Name = "Title",
-		Text = "THE GALA",
-		Style = "Display",
-		Color = colors.TextOnBright,
-		Parent = briefing,
-		LayoutOrder = 2,
-	})
-	MenuTheme.label({
-		Name = "Body",
-		Text = "Blend into the crowd. Open the vault. Take the Package. Leave no trace.",
-		Color = colors.TextOnBright,
-		Parent = briefing,
-		LayoutOrder = 3,
-	})
+	local title =
+		MenuTheme.label({ Name = "Title", Text = "THE GALA", Style = "Display", Parent = briefing, LayoutOrder = 2 })
+	title.TextSize = config.Cinematic.HeroTitlePixels
 
 	if not snapshot then
 		MenuTheme.label({
@@ -141,6 +126,19 @@ local function buildLeft(
 		end
 	end
 	if #openClasses > 0 then
+		local entry = MenuTheme.secondaryButton({
+			Name = "ToggleFreePicks",
+			Text = if picksExpanded then "CLOSE FREE AGENT PICKS" else "CLAIM YOUR FREE AGENTS",
+			Parent = rail,
+			LayoutOrder = 2,
+			OnActivated = function()
+				picksExpanded = not picksExpanded
+				onRetry()
+			end,
+		})
+		entry.Instance.TextSize = config.TextSizes.Small
+	end
+	if #openClasses > 0 and picksExpanded then
 		local picks = panel(rail, "FreePicks", 2, "Emerald")
 		MenuTheme.label({ Name = "Kicker", Text = "FIRST LAUNCH", Style = "Kicker", Parent = picks, LayoutOrder = 1 })
 		MenuTheme.label({
@@ -201,9 +199,9 @@ local function buildLeft(
 		end
 	end
 
-	-- Queue: one mode per server until matchmaking (Step 22); the other is shown but cannot be chosen here.
+	-- Use matchmaking modes in the lobby place, otherwise the authoritative current-server queue.
 	local queue = panel(rail, "Queue", 3, "Brass")
-	MenuTheme.label({ Name = "Kicker", Text = "QUEUE", Style = "Kicker", Parent = queue, LayoutOrder = 1 })
+	MenuTheme.label({ Name = "Kicker", Text = "OPERATION MODE", Style = "Kicker", Parent = queue, LayoutOrder = 1 })
 	local modes = Instance.new("Frame")
 	modes.Name = "Modes"
 	modes.BackgroundTransparency = 1
@@ -244,7 +242,7 @@ local function buildLeft(
 		})
 		button.SetSelected(mode == (if matchmaking then queueMode or snapshot.Queue.Mode else snapshot.Queue.Mode))
 	end
-	if anyUnavailable and not Matchmaking.available() then
+	if anyUnavailable and not Matchmaking.available() and detailsExpanded then
 		MenuTheme.label({
 			Name = "Note",
 			Text = `This session plays {snapshot.Queue.Mode}. Other modes are currently unavailable.`,
@@ -283,10 +281,30 @@ local function buildLeft(
 	else
 		MenuTheme.label({
 			Name = "Empty",
-			Text = "No agent yet. Choose your free agents above.",
+			Text = "Choose a free agent to prepare your loadout.",
 			Style = "Small",
 			Parent = kit,
 			LayoutOrder = 2,
+		})
+	end
+
+	MenuTheme.navigationButton({
+		Name = "MissionDetails",
+		Text = if detailsExpanded then "HIDE MISSION DETAILS −" else "MISSION DETAILS +",
+		Parent = rail,
+		LayoutOrder = 5,
+		OnActivated = function()
+			detailsExpanded = not detailsExpanded
+			onRetry()
+		end,
+	})
+	if detailsExpanded then
+		local details = panel(rail, "MissionDetailsText", 6, "Brass")
+		MenuTheme.label({
+			Name = "Brief",
+			Text = "Blend into the crowd. Breach the active vaults. Take the Package. Extract.",
+			Style = "Small",
+			Parent = details,
 		})
 	end
 
@@ -320,9 +338,9 @@ local function buildLeft(
 				then `SEARCHING · {search.Mode or queueMode or snapshot.Queue.Mode}`
 				elseif search.State == "Found" then "MATCH FOUND · CONNECTING…"
 				elseif Matchmaking.busy() then "CONTACTING MATCHMAKING…"
-				else "Find a match in the selected mode."
+				else ""
 		end
-		MenuTheme.label({ Name = "MatchmakingStatus", Text = line, Style = "Small", Parent = queue, LayoutOrder = 4 })
+
 		if search.State ~= "Idle" or Matchmaking.busy() or Matchmaking.notice() ~= "" then
 			MenuTheme.label({
 				Name = "QueueActionStatus",
@@ -340,9 +358,9 @@ local function buildLeft(
 				then (if Matchmaking.cancelling() then "CANCELLING…" else "CANCEL SEARCH")
 				elseif search.State == "Found" then "MATCH FOUND"
 				elseif Matchmaking.busy() then "SUBMITTING…"
-				else "FIND MATCH")
+				else "PLAY  →")
 			elseif deploying then "DEPLOYING…"
-			else `DEPLOY · {string.upper(snapshot.Queue.Mode)}`,
+			else "PLAY  →",
 		Parent = actions,
 		LayoutOrder = 3,
 		Enabled = if matchmaking and search.State == "Searching"
@@ -391,36 +409,18 @@ end
 
 local function buildRight(rail: ScrollingFrame)
 	local team = panel(rail, "Team", 1, "Emerald")
-	MenuTheme.label({ Name = "Kicker", Text = "YOUR TEAM", Style = "Kicker", Parent = team, LayoutOrder = 1 })
+	MenuTheme.label({ Name = "Kicker", Text = "SQUAD", Style = "Kicker", Parent = team, LayoutOrder = 1 })
 	for order, member in LobbyState.roster() do
 		local you = member == Players.LocalPlayer
 		MenuTheme.label({
 			Name = `Member{order}`,
 			Text = if you then `{member.DisplayName}  (YOU)` else member.DisplayName,
-			Style = "Body",
+			Style = "Small",
 			Color = if you then colors.EmeraldBright else colors.Text,
 			Parent = team,
 			LayoutOrder = 1 + order,
 		})
 	end
-
-	local artwork = Instance.new("Frame")
-	artwork.Name = "OperationInsignia"
-	artwork.Size = UDim2.new(1, 0, 0, 156)
-	artwork.BackgroundTransparency = 1
-	artwork.LayoutOrder = 2
-	artwork.Parent = rail
-	Art.plate(artwork, "COVERT / THE GALA", UDim2.new(), UDim2.fromScale(1, 1), "Asset")
-	local note = panel(rail, "FieldBriefing", 3, "Focus")
-	MenuTheme.label({ Name = "Kicker", Text = "FIELD BRIEFING", Style = "Kicker", Parent = note, LayoutOrder = 1 })
-	MenuTheme.label({
-		Name = "Body",
-		Text = "Every agent carries one of their three Hardware items into the match. Assets are found in the "
-			.. "match and paid for with intel; they are never bought.",
-		Style = "Small",
-		Parent = note,
-		LayoutOrder = 2,
-	})
 end
 
 local render: () -> ()
@@ -440,8 +440,9 @@ function render()
 		else Vector2.zero
 	content:Cleanup()
 	local snapshot = navigator.snapshot()
-	local left = content:Add(MenuTheme.rail(frame, "Left", "Left", config.LeftRailPixels)) :: ScrollingFrame
-	local right = content:Add(MenuTheme.rail(frame, "Right", "Right", config.RightRailPixels)) :: ScrollingFrame
+	local left = content:Add(MenuTheme.rail(frame, "Left", "Left", config.Cinematic.RailWidthPixels)) :: ScrollingFrame
+	local right =
+		content:Add(MenuTheme.rail(frame, "Right", "Right", config.Cinematic.SquadWidthPixels)) :: ScrollingFrame
 	local actionHeight = config.PrimaryHeightPixels
 		+ (
 			if AssetDraft.selection(snapshot and snapshot.Loadout and snapshot.Loadout.AssetIds)
@@ -454,13 +455,14 @@ function render()
 	then
 		actionHeight += config.TextSizes.Small * 3 + config.GapPixels
 	end
-	left.Size = UDim2.new(0, config.LeftRailPixels, 1, -config.GapPixels * 5 - actionHeight)
+	left.Size = UDim2.new(0, config.Cinematic.RailWidthPixels, 1, -config.GapPixels * 4)
+	right.Size = UDim2.new(0, config.Cinematic.SquadWidthPixels, 1, -config.GapPixels * 5 - actionHeight)
 	local actions = content:Add(Instance.new("Frame"))
 	actions.Name = "DeployActions"
 	actions.BackgroundTransparency = 1
-	actions.AnchorPoint = Vector2.new(0, 1)
-	actions.Position = UDim2.new(0, config.GapPixels * 2, 1, -config.GapPixels * 2)
-	actions.Size = UDim2.fromOffset(config.LeftRailPixels, actionHeight)
+	actions.AnchorPoint = Vector2.new(1, 1)
+	actions.Position = UDim2.new(1, -config.GapPixels * 2, 1, -config.GapPixels * 2)
+	actions.Size = UDim2.fromOffset(config.Cinematic.ActionWidthPixels, actionHeight)
 	actions.Parent = frame
 	MenuTheme.stack(actions).VerticalAlignment = Enum.VerticalAlignment.Bottom
 	buildLeft(left, actions, snapshot, navigator, render)
@@ -470,22 +472,21 @@ function render()
 	if loadout then
 		navigator.focusAgent(loadout.AgentId, loadout.HardwareId)
 		local agent = AgentDefs.byId[loadout.AgentId]
-		local name = hardwareName(loadout.AgentId, loadout.HardwareId)
 		local plate = MenuTheme.label({
 			Name = "Nameplate",
-			Text = `{string.upper(agent.DisplayName)} · {string.upper(agent.Class)} · {string.upper(name)}`,
-			Style = "Kicker",
+			Text = string.upper(agent.DisplayName),
+			Style = "Title",
 			Parent = frame,
 			AnchorPoint = Vector2.new(0.5, 1),
 			Position = UDim2.new(0.5, 0, 1, -config.GapPixels * 2),
 			Size = UDim2.fromOffset(config.LeftRailPixels, config.ChipHeightPixels),
 			Alignment = Enum.TextXAlignment.Center,
 		})
-		plate.TextSize = config.TextSizes.Body
-		-- Over the carpet gold text washes out, so the plate gets its own dark backing.
+		plate.TextSize = config.TextSizes.Title
+		-- The shared bottom veil supplies contrast without enclosing the operative name.
 		plate.TextColor3 = colors.Text
 		plate.BackgroundColor3 = colors.Canvas
-		plate.BackgroundTransparency = 0.35
+		plate.BackgroundTransparency = 1
 		content:Add(plate)
 	end
 	left.CanvasPosition, right.CanvasPosition = leftScroll, rightScroll
@@ -495,6 +496,7 @@ end
 function PlayLobbyView.Mount(stage: Frame, navigator: Types.MenuNavigator, _context: { [string]: any }?)
 	claimGeneration += 1
 	claiming, claimNotice = nil, nil
+	picksExpanded, detailsExpanded = false, false
 	stageFrame = stage
 	nav = navigator
 	janitor:Add(navigator.onSnapshot(render))

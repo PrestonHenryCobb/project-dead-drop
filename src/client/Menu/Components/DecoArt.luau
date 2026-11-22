@@ -130,7 +130,7 @@ function Art.plate(parent: Instance, title: string, position: UDim2, size: UDim2
 	root.BorderSizePixel = 0
 	root.ClipsDescendants = true
 	root.Parent = parent
-	outline(root, colors.Brass, config.TrimPixels)
+	outline(root, colors.Brass, config.TrimPixels).Transparency = config.Cinematic.PanelStrokeTransparency
 	local gradient = Instance.new("UIGradient")
 	gradient.Color = ColorSequence.new(colors.Walnut, colors.Canvas)
 	gradient.Rotation = 28
@@ -157,7 +157,8 @@ function Art.plate(parent: Instance, title: string, position: UDim2, size: UDim2
 	aspect.AspectRatio = 1
 	aspect.Parent = field
 	Art.insignia(field, kind or "Archive")
-	local band = shape(root, "IvoryTitleBand", 0.5, 0.87, 0.92, 0.2, colors.Text)
+	local band = shape(root, "EngravedTitleBand", 0.5, 0.87, 0.92, 0.2, colors.Canvas)
+	band.BackgroundTransparency = config.InfoPanelTransparency
 	local label = Instance.new("TextLabel")
 	label.Name = "IllustrationTitle"
 	label.BackgroundTransparency = 1
@@ -165,7 +166,9 @@ function Art.plate(parent: Instance, title: string, position: UDim2, size: UDim2
 	label.Size = UDim2.fromScale(0.92, 0.84)
 	label.Font = config.Fonts.Bold
 	label.TextSize = config.TextSizes.Title
-	label.TextColor3 = colors.TextOnBright
+	label.TextColor3 = colors.Text
+	label.TextStrokeColor3 = colors.Canvas
+	label.TextStrokeTransparency = config.Cinematic.TextShadowTransparency
 	label.TextWrapped = true
 	label.Text = title:gsub("\n", " / ")
 	label.Parent = band
