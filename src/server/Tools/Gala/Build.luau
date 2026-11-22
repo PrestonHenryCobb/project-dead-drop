@@ -237,6 +237,7 @@ local DRESS = {
 	StopClear = 3.2, -- from the edge of a free-standing piece
 	StopSpacing = 5, -- a stop within this of an existing node retags that node instead of adding another
 	StopsPerKind = 3, -- stops one room registers for one kind of piece
+	StopMinRoomStuds = 24, -- no stop node in a room piece narrower than this (a body does not fit between the piece and the far wall)
 	PaintingSpacing = 24,
 	PaintingsPerRoom = 4,
 	SconceSpacing = 20,
@@ -3795,18 +3796,22 @@ function Build.run(options: {
 
 	-- Is this wall the building's outside (glass)? Nothing is hung on glass.
 	function Dress.exteriorSide(room: Room, axis: string, line: number): boolean
-		if not room.glass then
-			return false
-		end
 		for _, edge in edges do
 			if
 				edge.level == room.level
 				and edge.axis == axis
 				and math.abs(edge.line - line) < EPS
 				and (edge.roomA.id == room.id or (edge.roomB ~= nil and edge.roomB.id == room.id))
-				and edge.kind ~= "shared"
 			then
-				return true
+				-- The same rules the wall builder uses to make a wall glass: the building's outside, or a shared wall to an outdoor room.
+				local other = edge.roomB
+				local glass = if edge.kind == "shared" and other
+					then (edge.roomA.glass == true or other.glass == true)
+						and (edge.roomA.kind == "outdoor" or other.kind == "outdoor")
+					else edge.kind == "free" and edge.roomA.glass == true and edge.roomA.kind == "indoor"
+				if glass then
+					return true
+				end
 			end
 		end
 		return false
@@ -5422,7 +5427,8 @@ function Build.run(options: {
 				end
 			end
 			local piece = pieceAt(stop.level, stop.x, stop.z)
-			if not retagged and piece then
+			local roomSpan = if piece then math.min(piece.rect.x2 - piece.rect.x1, piece.rect.z2 - piece.rect.z1) else 0
+			if not retagged and piece and roomSpan >= DRESS.StopMinRoomStuds then
 				table.insert(list, {
 					level = stop.level,
 					x = stop.x,

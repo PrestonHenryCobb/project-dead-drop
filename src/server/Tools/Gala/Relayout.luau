@@ -397,15 +397,7 @@ room(
 	{ props = { "filing", "bookshelves", "plants", "sconces", "desks" } }
 )
 room("m_hub", "M", "Security hub", 2, IN, { -40, -155, 40, -84 }, { props = { "filing", "sconces", "desks" } })
-room(
-	"m_records",
-	"M",
-	"Executive records",
-	3,
-	IN,
-	{ 10, -155, 40, -120 },
-	{ parent = "m_hub", props = { "bookshelves", "filing", "rugs" } }
-)
+room("m_records", "M", "Executive records", 3, IN, { 10, -155, 40, -120 }, { parent = "m_hub", props = { "rugs" } })
 room(
 	"m_catering",
 	"M",
@@ -570,8 +562,8 @@ room(
 )
 room("t_west", "T", "West guard hall", 2, IN, { -90, -120, -60, 100 }, { props = { "sconces", "pillars" } })
 room("t_east", "T", "East guard hall", 2, IN, { 60, -120, 90, 100 }, { props = { "sconces", "pillars" } })
-room("t_guard_nw", "T", "North guard post west", 2, IN, { -60, -120, -30, -60 }, { props = { "lockers", "sconces" } })
-room("t_guard_ne", "T", "North guard post east", 2, IN, { 30, -120, 60, -60 }, { props = { "lockers", "sconces" } })
+room("t_guard_nw", "T", "North guard post west", 2, IN, { -60, -120, -30, -60 })
+room("t_guard_ne", "T", "North guard post east", 2, IN, { 30, -120, 60, -60 })
 room(
 	"t_vaultb_ante",
 	"T",
@@ -612,15 +604,7 @@ room(
 	{ props = { "paintings", "sofas", "sconces", "rugs", "vitrines" } }
 )
 room("t_panic", "T", "Panic room", 3, IN, { -90, 38, -70, 62 }, { parent = "t_west", props = { "sconces" } })
-room(
-	"t_office",
-	"T",
-	"Executive office",
-	3,
-	IN,
-	{ 70, 38, 90, 62 },
-	{ parent = "t_east", props = { "bookshelves", "filing", "rugs", "sconces", "paintings" } }
-)
+room("t_office", "T", "Executive office", 3, IN, { 70, 38, 90, 62 }, { parent = "t_east", props = { "rugs" } })
 room(
 	"wt_terrace",
 	"T",
@@ -666,15 +650,7 @@ room(
 	{ 205, 55, 221, 125 },
 	{ props = { "beds", "rugs", "sofas", "bookshelves", "paintings", "sconces", "plants", "tables" }, glass = true }
 )
-room(
-	"wt_exec",
-	"T",
-	"Executive suite",
-	3,
-	IN,
-	{ 264, -85, 280, -15 },
-	{ props = { "beds", "rugs", "sofas", "bookshelves", "paintings", "sconces", "plants" } }
-)
+room("wt_exec", "T", "Executive suite", 3, IN, { 264, -85, 280, -15 }, { props = { "rugs" } })
 room(
 	"wt_suite5",
 	"T",

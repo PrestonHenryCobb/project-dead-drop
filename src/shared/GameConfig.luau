@@ -693,7 +693,7 @@ local GameConfig = {
 			FoodSpot = 20,
 			AssetSafe = 12,
 		},
-		NPCNodeCount = { Min = 150, Max = 800 }, -- spec says 150 to 250; 200 NPCs on the larger re-planned layout need more (SPEC-QUESTION)
+		NPCNodeCount = { Min = 150, Max = 1000 }, -- spec says 150 to 250; dressing task stops (owner test 2026-11-21) added more, still cheap (tick 0.16 ms); 200 NPCs on the larger re-planned layout need more (SPEC-QUESTION)
 		SupplyCachesPerTier = { [0] = 2, [1] = 2, [2] = 1, [3] = 1 },
 		InsertionMinSpacing = 60,
 		TeamSpawnRadius = 8, -- teammates spawn within this many studs of each other
