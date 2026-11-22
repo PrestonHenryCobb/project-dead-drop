@@ -24,17 +24,54 @@ end
 
 local function links(rig: Model, offsets: { [string]: Vector3 }): { Link }
 	local result: { Link } = {}
+	local attached: { [BasePart]: boolean } = {}
+	-- AddAccessory's generated weld can lag a freshly built preview. Resolve from the authored attachment pair
+	-- immediately, rather than leaving an anchored Handle behind and repeatedly lifting it with the feet.
+	for _, accessory in rig:GetChildren() do
+		if not accessory:IsA("Accessory") then
+			continue
+		end
+		local handle = accessory:FindFirstChild("Handle")
+		if not (handle and handle:IsA("BasePart")) then
+			continue
+		end
+		for _, attachment in handle:GetChildren() do
+			if not attachment:IsA("Attachment") then
+				continue
+			end
+			for _, body in rig:GetChildren() do
+				if not body:IsA("BasePart") then
+					continue
+				end
+				local target = body:FindFirstChild(attachment.Name)
+				if target and target:IsA("Attachment") then
+					table.insert(
+						result,
+						{ a = body, b = handle, relative = target.CFrame * attachment.CFrame:Inverse() }
+					)
+					attached[handle] = true
+					break
+				end
+			end
+			if attached[handle] then
+				break
+			end
+		end
+	end
 	for _, item in rig:GetDescendants() do
 		if item:IsA("Motor6D") or item:IsA("Weld") then
 			local a, b = item.Part0, item.Part1
 			if a and b and a:IsDescendantOf(rig) and b:IsDescendantOf(rig) then
+				item.Enabled = false
+				if (attached[a] and b.Parent == rig) or (attached[b] and a.Parent == rig) then
+					continue
+				end
 				local pose = if item:IsA("Motor6D") then offsets[b.Name] else nil
 				table.insert(result, {
 					a = a,
 					b = b,
 					relative = item.C0 * (if pose then rotation(pose) else CFrame.identity) * item.C1:Inverse(),
 				})
-				item.Enabled = false
 			end
 		elseif item:IsA("RigidConstraint") then
 			local a, b = item.Attachment0, item.Attachment1
@@ -48,14 +85,22 @@ local function links(rig: Model, offsets: { [string]: Vector3 }): { Link }
 				and a:IsDescendantOf(rig)
 				and b:IsDescendantOf(rig)
 			then
-				table.insert(result, { a = a.Parent, b = b.Parent, relative = a.CFrame * b.CFrame:Inverse() })
 				item.Enabled = false
+				if
+					(attached[a.Parent] and b.Parent.Parent == rig) or (attached[b.Parent] and a.Parent.Parent == rig)
+				then
+					continue
+				end
+				table.insert(result, { a = a.Parent, b = b.Parent, relative = a.CFrame * b.CFrame:Inverse() })
 			end
 		elseif item:IsA("WeldConstraint") then
 			local a, b = item.Part0, item.Part1
 			if a and b and a:IsDescendantOf(rig) and b:IsDescendantOf(rig) then
-				table.insert(result, { a = a, b = b, relative = a.CFrame:ToObjectSpace(b.CFrame) })
 				item.Enabled = false
+				if (attached[a] and b.Parent == rig) or (attached[b] and a.Parent == rig) then
+					continue
+				end
+				table.insert(result, { a = a, b = b, relative = a.CFrame:ToObjectSpace(b.CFrame) })
 			end
 		end
 	end
@@ -83,6 +128,7 @@ local function resolve(edges: { Link }, known: { [BasePart]: CFrame })
 	for part, frame in known do
 		part.CFrame = frame
 	end
+	return known
 end
 
 function StagePose.describe(screen: string, family: string): State
@@ -138,7 +184,7 @@ function StagePose.apply(rig: Model, state: State, feet: CFrame)
 	root.CFrame = feet
 		* CFrame.Angles(0, math.rad(state.BodyYawDegrees), 0)
 		* CFrame.new(0, humanoid.HipHeight + root.Size.Y / 2, 0)
-	resolve(edges, { [root] = root.CFrame })
+	local posed = resolve(edges, { [root] = root.CFrame })
 	-- Ground the lowest sole after the weight shift, without changing the actual player rig or HipHeight.
 	local lowest = math.huge
 	for _, name in { "LeftFoot", "RightFoot" } do
@@ -155,10 +201,8 @@ function StagePose.apply(rig: Model, state: State, feet: CFrame)
 	end
 	if lowest < math.huge then
 		local lift = Vector3.new(0, feet.Position.Y - lowest, 0)
-		for _, item in rig:GetDescendants() do
-			if item:IsA("BasePart") then
-				item.CFrame += lift
-			end
+		for item in posed do
+			item.CFrame += lift
 		end
 	end
 end

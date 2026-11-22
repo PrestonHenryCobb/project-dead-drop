@@ -462,6 +462,18 @@ function MenuStage.show(self: MenuStage, agentId: string, hardwareId: string?)
 	root.Anchored = true
 	rig.Parent = self.folder
 	OutfitApplier.apply(rig, OutfitDefs.trueForm)
+	-- The shared fallback Crop is a flat rectangular Part. Give this close-up display a rounded crown,
+	-- with its center at the head's HairAttachment instead of a visor-shaped box lowered across the face.
+	local hair = rig:FindFirstChild("Hair")
+	local hairHandle = hair and hair:FindFirstChild("Handle")
+	if hairHandle and hairHandle:IsA("Part") then
+		hairHandle.Shape = Enum.PartType.Ball
+		hairHandle.Size *= Vector3.new(1, 1.5, 0.9)
+		local attachment = hairHandle:FindFirstChild("HairAttachment")
+		if attachment and attachment:IsA("Attachment") then
+			attachment.CFrame = CFrame.identity
+		end
+	end
 	rig:PivotTo(self.feet * CFrame.new(0, humanoid.HipHeight + root.Size.Y / 2, 0))
 	self.rig = rig
 	self.shown = key

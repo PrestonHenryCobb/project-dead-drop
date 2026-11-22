@@ -572,3 +572,9 @@ Codex review 2026-11-20 — input-hints and minimap-size: reviewed all mixed hin
 | Id | Ticket | Owner | Needs | Status |
 |---|---|---|---|---|
 | menu-camera-helpers | Hide solid light-holder boxes and the display rig pivot; enter the lobby at a valid balcony camera shot rather than tweening through the map/world. Preserve smooth in-menu camera/pose transitions. Source inspection/formatting only; exact reported obstruction not visually confirmed. See docs/MENU_CAMERA_HELPERS_2026-11-22.md. | CODEX | Owner visual acceptance | READY_FOR_REVIEW |
+
+## Lobby hair attachment, image follow-up (2026-11-22)
+
+| Id | Ticket | Owner | Needs | Status |
+|---|---|---|---|---|
+| menu-hair-attachment | Image/source identify the broad black face-level primitive as fallback Crop hair. Round/raise the lobby copy; resolve accessory body attachment pairs directly and prevent grounding accumulation on unresolved parts. Preserve internal accessory welds and smooth transitions. Source inspection/formatting only. See docs/MENU_HAIR_ATTACHMENT_2026-11-22.md. | CODEX | Owner image/transition acceptance | READY_FOR_REVIEW |
