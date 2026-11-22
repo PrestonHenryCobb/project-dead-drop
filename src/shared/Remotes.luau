@@ -97,6 +97,7 @@ local Remotes = {
 		"RequestMelee",
 		"RequestPurchase",
 		"RequestSpray", -- (position, normal): place your equipped spray on the wall you aim at (ticket spray); the server checks everything
+		"RequestReturnToLobby", -- a match server whose automatic return to the lobby place failed: try again (Matchmaking)
 		"RequestPing", -- ticket 19-pings: (kind, position, targetId?) a team-only marker; the server limits range, count and kind
 		"RequestPassPackage",
 		"RequestEmote",

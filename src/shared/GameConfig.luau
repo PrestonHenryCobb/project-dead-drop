@@ -158,6 +158,8 @@ local GameConfig = {
 		Modes = { "Solos", "Duos" }, -- the modes that can be queued for (Squads has no team-select support yet)
 		JoinLoadWaitSeconds = 30, -- a teleported player's agent select waits this long for their profile to load
 		JoinLoadPollSeconds = 0.5,
+		ReturnRetries = 3, -- tries at the teleport back to the lobby place when a match ends
+		ReturnRetrySeconds = 4,
 	},
 
 	-- Spec 3.2 / 3.3: agent select and team colors (in the order teams are assigned).
@@ -2517,6 +2519,7 @@ local GameConfig = {
 			GetBlackMarketOffers = { PerSecond = 1, Burst = 3 },
 			RequestFindMatch = { PerSecond = 1, Burst = 2 }, -- ticket matchmaking: a button
 			RequestCancelFindMatch = { PerSecond = 1, Burst = 2 },
+			RequestReturnToLobby = { PerSecond = 1, Burst = 2 }, -- a button on a match server whose automatic return failed
 			RequestQueueMode = { PerSecond = 2, Burst = 4 },
 			RequestStartPreDeploy = { PerSecond = 1, Burst = 2 },
 			RequestLockInPreDeploy = { PerSecond = 3, Burst = 6 },

@@ -2,7 +2,8 @@
 -- Wrist watch (owner test 2026-11-21): while a player hacks (any InteractService hold named in GameConfig.WristWatch.HackLabels) and,
 -- briefly, while they re-cover, a small watch sits on their left wrist. It is a real part welded to the character, so every client sees
 -- it, and it is removed as soon as the action ends (plus LingerSeconds), so nobody carries one the rest of the time. Hacking is already
--- something NPCs never do, so showing it leaks nothing new. The owner also gets WristWatchState to draw the raised first-person watch.
+-- something NPCs never do. The wrist watch is built only while the agent is Exposed (a covered agent shows none, so it never marks a disguised
+-- player), on any look. The owner always gets WristWatchState to draw their own raised first-person watch.
 --
 -- The model is named "Watch" and carries no player, team or agent information. A character that is destroyed takes its watch with it.
 
@@ -12,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
+local CoverService = require(script.Parent.CoverService)
 local DisguiseService = require(script.Parent.DisguiseService)
 local DroneService = require(script.Parent.DroneService)
 local InteractService = require(script.Parent.InteractService)
@@ -21,7 +23,7 @@ local WristWatchService = {}
 
 local config = GameConfig.WristWatch
 
-type Shown = { watch: Model, holdUntil: number, kind: string }
+type Shown = { watch: Model?, holdUntil: number, kind: string }
 
 local shown: { [Player]: Shown } = {}
 
@@ -67,7 +69,9 @@ local function remove(player: Player)
 	local entry = shown[player]
 	if entry then
 		shown[player] = nil
-		entry.watch:Destroy()
+		if entry.watch then
+			entry.watch:Destroy()
+		end
 	end
 end
 
@@ -76,7 +80,9 @@ local function tellOwner(player: Player, kind: string, seconds: number, active: 
 	RemoteService.fireClient("WristWatchState", player, info)
 end
 
--- The watch goes up for `seconds` (and a hold that ends sooner lowers it sooner, see lower).
+-- The watch goes up for `seconds` (and an action that ends sooner lowers it sooner, see lower). The owner always gets their own raised
+-- watch. The one on the wrist that everyone sees goes on only while the agent is Exposed (out of cover), on whatever look they wear:
+-- a covered agent's wrist shows nothing, so a watch never marks a disguised player.
 local function raise(player: Player, kind: string, seconds: number)
 	local character = player.Character
 	local hand = character and character:FindFirstChild("LeftHand")
@@ -84,16 +90,20 @@ local function raise(player: Player, kind: string, seconds: number)
 		return
 	end
 	local entry = shown[player]
-	if entry and entry.watch.Parent ~= character then
+	if entry and entry.watch and entry.watch.Parent ~= character then
 		remove(player)
 		entry = nil
 	end
 	if not entry then
-		entry = { watch = build(hand), holdUntil = 0, kind = kind }
-		entry.watch.Parent = character
+		entry = { watch = nil, holdUntil = 0, kind = kind }
 		shown[player] = entry
 	end
 	local mine = entry :: Shown
+	if not mine.watch and CoverService.isExposed(player) then
+		local created = build(hand)
+		created.Parent = character
+		mine.watch = created
+	end
 	mine.kind = kind
 	mine.holdUntil = os.clock() + seconds + config.LingerSeconds
 	tellOwner(player, kind, seconds, true)

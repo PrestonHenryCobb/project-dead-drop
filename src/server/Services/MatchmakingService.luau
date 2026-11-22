@@ -12,7 +12,7 @@
 -- Match servers:
 --   A player who arrives from a lobby starts agent select at once, as if they had pressed Play (TeamService has already taken the
 --   mode from the teleport data). Empty slots are filled by the bots (BotService). When the results screen ends, everyone is
---   teleported back to the lobby place (the menu); if that fails, the match server opens its own lobby as before.
+--   teleported back to the lobby place (the menu), retried a few times; if that keeps failing they get a Return to lobby button.
 --
 --   MatchmakingService.role() -> "Single" | "Lobby" | "Match"
 
@@ -182,17 +182,42 @@ local function teleportMatch(message: any)
 	end
 end
 
--- The results screen is over: send everyone back to the lobby place, the menu. A failed teleport leaves them in this server's lobby.
+-- One try at sending players to the lobby place; true if the teleport was accepted.
+local function teleportToLobby(group: { Player }): boolean
+	if #group == 0 then
+		return true
+	end
+	return (pcall(function()
+		TeleportService:TeleportAsync(config.LobbyPlaceId, group)
+	end))
+end
+
+-- The results screen is over: send everyone back to the lobby place, the menu. A failed teleport is retried ReturnRetries times,
+-- ReturnRetrySeconds apart; players still here after that are told (State "ReturnFailed") and get a button that tries again
+-- (RequestReturnToLobby).
 local function returnToLobby()
 	local group = Players:GetPlayers()
-	if #group == 0 then
+	for attempt = 1, config.ReturnRetries do
+		if teleportToLobby(group) then
+			return
+		end
+		task.wait(config.ReturnRetrySeconds)
+		group = Players:GetPlayers()
+		if attempt == config.ReturnRetries then
+			warn("[Matchmaking] could not return the players to the lobby place")
+			for _, player in group do
+				tell(player, "ReturnFailed", nil, nil)
+			end
+		end
+	end
+end
+
+local function onReturnRequest(player: Player)
+	if PlaceRole.get() ~= "Match" or MatchService.isInMatch() then
 		return
 	end
-	local ok = pcall(function()
-		TeleportService:TeleportAsync(config.LobbyPlaceId, group)
-	end)
-	if not ok then
-		warn("[Matchmaking] could not return the players to the lobby place")
+	if not teleportToLobby({ player }) then
+		tell(player, "ReturnFailed", nil, nil)
 	end
 end
 
@@ -222,6 +247,7 @@ function MatchmakingService.Start()
 		Players.PlayerAdded:Connect(function(player)
 			task.spawn(greetArrival, player)
 		end)
+		RemoteService.onRequest("RequestReturnToLobby", onReturnRequest)
 		for _, player in Players:GetPlayers() do
 			task.spawn(greetArrival, player)
 		end
@@ -230,7 +256,7 @@ function MatchmakingService.Start()
 			if phase == "Results" then
 				sawResults = true
 			elseif phase == "Lobby" and sawResults then
-				returnToLobby() -- the results screen has ended (not the server's first Lobby at boot)
+				task.spawn(returnToLobby) -- the results screen has ended (not the server's first Lobby at boot)
 			end
 		end)
 		return
