@@ -32,6 +32,7 @@ local Shared = script.Parent:FindFirstChild("SharedOverride") or ReplicatedStora
 local Enums = require(Shared:WaitForChild("Enums"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Tag = Enums.Tag
+local Fabs = require(script.Parent.Fabs)
 
 type Rect = { x1: number, z1: number, x2: number, z2: number, railed: boolean? }
 type Room = LayoutTypes.Room
@@ -233,6 +234,7 @@ local CRATES_PER_ROOM = 14 -- crates tried in a storage room; more choke the rou
 local PLACE_STEP = 3 -- studs between the spots tried along a wall for a placed object
 -- Dressing (owner test 2026-11-21): how much of each piece a room gets, and where an NPC stops to use one.
 local DRESS = {
+	ReservedMargin = 3, -- furniture stays this much further from doorways, stairs and windows than ordinary props (an NPC node needs the room)
 	StopOffset = 5.2, -- from a wall to an NPC using a piece against it (clear of the piece's reserved strip and a node's prop clearance)
 	StopClear = 3.2, -- from the edge of a free-standing piece
 	StopSpacing = 5, -- a stop within this of an existing node retags that node instead of adding another
@@ -242,27 +244,9 @@ local DRESS = {
 	PaintingsPerRoom = 4,
 	SconceSpacing = 20,
 	SconcesPerRoom = 4,
-	PlantsPerRoom = 4,
 	ShrubsPerRoom = 14,
 	ChandelierSpacing = 34,
 	ChandeliersPerRoom = 2,
-	SofasPerRoom = 3,
-	ShelvesPerRoom = 5,
-	BunksPerRoom = 4,
-	LockersPerRoom = 8,
-	FilingPerRoom = 6,
-	ShelvingPerRoom = 5,
-	BarrelsPerRoom = 8,
-	CountersPerRoom = 4,
-	SlotsPerRoom = 12,
-	LaundryPerRoom = 6,
-	DiningSetsPerRoom = 10, -- furniture groups (Dress.group) per room
-	CocktailSetsPerRoom = 10,
-	LoungeSetsPerRoom = 8,
-	DeskPodsPerRoom = 5,
-	CasinoTablesPerRoom = 9,
-	DisplaysPerRoom = 7,
-	StationsPerRoom = 2,
 }
 local PLACE_SPREAD = 60 -- placed objects in one room are spread up to this far apart
 local NODE_PROP_CLEAR = 3 -- studs a node keeps from a prop
@@ -3713,7 +3697,8 @@ function Build.run(options: {
 		end
 	end
 	-- Is this area on the room's floor, away from doorways, ramps and other props?
-	local function freeFor(room: Room, rect: Rect): boolean
+	-- margin: how much further from the reserved places (doorways, stairs, windows, set pieces) the rect must stay.
+	local function freeFor(room: Room, rect: Rect, margin: number?): boolean
 		local fits = false
 		for _, piece in piecesOfRoom[room.id] do
 			local p = piece.rect
@@ -3726,7 +3711,7 @@ function Build.run(options: {
 			return false
 		end
 		for _, blocked in reserved[room.level] do
-			if overlaps(rect, blocked) then
+			if overlaps(rect, if margin then inflate(blocked, margin) else blocked) then
 				return false
 			end
 		end
@@ -3850,9 +3835,9 @@ function Build.run(options: {
 		depth: number,
 		limit: number,
 		place: (WallSpot) -> boolean
-	)
+	): number
 		if room.kind ~= "indoor" then
-			return
+			return 0
 		end
 		local count = 0
 		for _, piece in piecesOfRoom[room.id] do
@@ -3885,7 +3870,8 @@ function Build.run(options: {
 					local hw, hd =
 						if side.nz ~= 0 then width / 2 else depth / 2, if side.nz ~= 0 then depth / 2 else width / 2
 					local rect: Rect = { x1 = cx - hw, z1 = cz - hd, x2 = cx + hw, z2 = cz + hd }
-					if freeFor(room, rect) then
+					local advance = 2 -- after a miss, look again a little further along
+					if freeFor(room, rect, DRESS.ReservedMargin) then
 						local spot: WallSpot = {
 							wallX = if side.nz ~= 0 then t else side.line + side.nx * (WALL_T / 2 + 0.1),
 							wallZ = if side.nz ~= 0 then side.line + side.nz * (WALL_T / 2 + 0.1) else t,
@@ -3897,12 +3883,14 @@ function Build.run(options: {
 						if place(spot) then
 							count += 1
 							table.insert(propRects[room.level], rect)
+							advance = spacing
 						end
 					end
-					t += spacing
+					t += advance
 				end
 			end
 		end
+		return count
 	end
 
 	-- One box of a wall piece: `along` studs along the wall, `out` studs from the wall to its middle, `up` studs above the floor.
@@ -4003,30 +3991,6 @@ function Build.run(options: {
 	Dress.STEEL = Color3.fromRGB(175, 180, 188)
 	Dress.SLOT_SCREENS = { Color3.fromRGB(90, 220, 255), Color3.fromRGB(255, 90, 200), Color3.fromRGB(255, 200, 70) }
 
-	-- Furniture groups (owner 2026-11-22: rooms felt empty or held items that did not go together). A group is a small set that belongs
-	-- together (a table with its chairs, a sofa with armchairs and a coffee table on a rug, two desks facing with chairs and screens), placed
-	-- as one on open floor, so a room reads as what it is. Everything is a placeholder block for the art pass.
-	function Dress.piece(
-		frame: CFrame,
-		name: string,
-		size: Vector3,
-		x: number,
-		y: number,
-		z: number,
-		color: Color3,
-		material: Enum.Material?,
-		solid: boolean?
-	): Part
-		local p = part(propsFolder, name, size, frame * CFrame.new(x, y, z), color)
-		if material then
-			p.Material = material
-		end
-		if solid == false then
-			p.CanCollide = false
-		end
-		return p
-	end
-
 	-- An upright cylinder (a stool, a round tabletop, a barrel) standing at local x, z of the frame, resting on the floor plus lift.
 	function Dress.round(
 		frame: CFrame,
@@ -4053,53 +4017,75 @@ function Build.run(options: {
 		return p
 	end
 
-	-- A chair at local x, z whose front looks along the local direction (fx, fz): its back is on the far side.
-	function Dress.chair(frame: CFrame, x: number, z: number, fx: number, fz: number, color: Color3)
-		local at = frame * CFrame.new(x, 0, z) * CFrame.Angles(0, math.atan2(-fx, -fz), 0)
-		Dress.piece(at, "ChairSeat", Vector3.new(2, 1.9, 2), 0, 0.95, 0, color, Enum.Material.Fabric)
-		Dress.piece(at, "ChairBack", Vector3.new(2, 2.3, 0.4), 0, 3, 0.8, color, Enum.Material.Fabric)
-	end
-
-	-- A task stop outside a group's footprint, facing its middle. offset is in the group's own frame.
-	function Dress.stopAround(room: Room, frame: CFrame, x: number, z: number, activity: string)
-		local at = frame:PointToWorldSpace(Vector3.new(x, 0, z))
-		local middle = frame.Position
-		Dress.addStop(room, at.X, at.Z, activity, middle.X, middle.Z)
-	end
-
-	-- Places up to \`limit\` groups of footprint w by d (either way round) on open floor of the room, trying a jittered grid.
-	-- build gets the group's frame (floor level, centred) and the room's floor height; it returns nothing.
-	function Dress.group(room: Room, w: number, d: number, limit: number, spacing: number, build: (CFrame) -> ())
-		local count = 0
+	-- Places up to `limit` groups of footprint w by d (either way round) on open floor of the room. The footprint already includes the group's aisles.
+	-- Candidate centres cover the room's usable floor densely and are tried in random order (or row by row when packed), each kept
+	-- only if freeFor accepts it. Returns how many it placed. build gets the group's frame (floor level, centred).
+	function Dress.group(
+		room: Room,
+		w: number,
+		d: number,
+		limit: number,
+		packed: boolean,
+		build: (CFrame) -> ()
+	): number
+		local candidates: { { number } } = {}
+		local step = math.max(2, math.min(w, d) / 2)
 		for _, piece in piecesOfRoom[room.id] do
 			local p = piece.rect
-			local nx = math.max(1, math.floor((p.x2 - p.x1) / spacing))
-			local nz = math.max(1, math.floor((p.z2 - p.z1) / spacing))
-			for i = 0, nx - 1 do
-				for j = 0, nz - 1 do
-					if count >= limit then
-						return
-					end
-					local cx = p.x1 + (i + 0.5) * (p.x2 - p.x1) / nx + rng:NextNumber(-1.5, 1.5)
-					local cz = p.z1 + (j + 0.5) * (p.z2 - p.z1) / nz + rng:NextNumber(-1.5, 1.5)
-					for _, turn in { 0, math.pi / 2 } do
-						local hw, hd = if turn == 0 then w / 2 else d / 2, if turn == 0 then d / 2 else w / 2
-						local rect: Rect = { x1 = cx - hw, z1 = cz - hd, x2 = cx + hw, z2 = cz + hd }
-						if freeFor(room, rect) then
-							table.insert(propRects[room.level], rect)
-							build(CFrame.new(cx, levels[room.level], cz) * CFrame.Angles(0, turn, 0))
-							count += 1
-							break
+			for _, turn in { 0, math.pi / 2 } do
+				local hw, hd = if turn == 0 then w / 2 else d / 2, if turn == 0 then d / 2 else w / 2
+				local x0, x1 = p.x1 + 2 + hw, p.x2 - 2 - hw
+				local z0, z1 = p.z1 + 2 + hd, p.z2 - 2 - hd
+				if x1 >= x0 and z1 >= z0 then
+					local nx = math.floor((x1 - x0) / step)
+					local nz = math.floor((z1 - z0) / step)
+					-- No more than about 700 candidates a piece: a very big piece is sampled more coarsely.
+					local thin = math.max(1, math.ceil(math.sqrt((nx + 1) * (nz + 1) / 700)))
+					for i = 0, nx, thin do
+						for j = 0, nz, thin do
+							table.insert(candidates, {
+								if nx == 0 then (x0 + x1) / 2 else x0 + (x1 - x0) * i / nx,
+								if nz == 0 then (z0 + z1) / 2 else z0 + (z1 - z0) * j / nz,
+								turn,
+							})
 						end
 					end
 				end
 			end
 		end
+		if packed then
+			-- Row by row, so many groups pack tight and read as a laid-out room.
+			table.sort(candidates, function(c, e)
+				if c[2] ~= e[2] then
+					return c[2] < e[2]
+				end
+				if c[1] ~= e[1] then
+					return c[1] < e[1]
+				end
+				return c[3] < e[3]
+			end)
+		else
+			for index = #candidates, 2, -1 do
+				local other = rng:NextInteger(1, index)
+				candidates[index], candidates[other] = candidates[other], candidates[index]
+			end
+		end
+		local count = 0
+		for _, candidate in candidates do
+			if count >= limit then
+				break
+			end
+			local cx, cz, turn = candidate[1], candidate[2], candidate[3]
+			local hw, hd = if turn == 0 then w / 2 else d / 2, if turn == 0 then d / 2 else w / 2
+			local rect: Rect = { x1 = cx - hw, z1 = cz - hd, x2 = cx + hw, z2 = cz + hd }
+			if freeFor(room, rect, DRESS.ReservedMargin) then
+				table.insert(propRects[room.level], rect)
+				build(CFrame.new(cx, levels[room.level], cz) * CFrame.Angles(0, turn, 0))
+				count += 1
+			end
+		end
+		return count
 	end
-
-	Dress.GREEN_FELT = Color3.fromRGB(28, 90, 62)
-	Dress.CLOTH = Color3.fromRGB(235, 230, 220)
-	Dress.METAL_DARK = Color3.fromRGB(60, 62, 68)
 
 	local propBuilders: { [string]: (Room) -> () } = {
 		pillars = function(room)
@@ -4371,23 +4357,6 @@ function Build.run(options: {
 				return true
 			end)
 		end,
-		plants = function(room)
-			local floorY = levels[room.level]
-			Dress.alongWalls(room, 15, 3, 3, DRESS.PlantsPerRoom, function(spot)
-				local x, z = spot.wallX + spot.nx * 1.6, spot.wallZ + spot.nz * 1.6
-				Dress.upright("Pot", x, z, floorY, 2.4, 2.6, Color3.fromRGB(150, 100, 70))
-				local leaves = part(
-					propsFolder,
-					"Plant",
-					Vector3.new(4.2, 4.6, 4.2),
-					CFrame.new(x, floorY + 4.7, z),
-					Color3.fromRGB(50 + rng:NextInteger(0, 25), 105 + rng:NextInteger(0, 30), 55)
-				)
-				leaves.Shape = Enum.PartType.Ball
-				leaves.CanCollide = false
-				return true
-			end)
-		end,
 		shrubs = function(room)
 			local b = bounds(room)
 			local floorY = levels[room.level]
@@ -4446,631 +4415,6 @@ function Build.run(options: {
 				x += DRESS.ChandelierSpacing
 			end
 		end,
-		rugs = function(room)
-			if room.kind ~= "indoor" or room.w then
-				return
-			end
-			-- A rug lies on open floor only: not over a stair, its landing or opening, a doorway, a window or any prop (owner test 2026-11-22: a
-			-- rug covered a wide staircase). It tries each piece of the room, smaller and smaller, and several spots, and is skipped if nothing fits.
-			local pieces: { Rect } = {}
-			for _, piece in piecesOfRoom[room.id] do
-				table.insert(pieces, piece.rect)
-			end
-			table.sort(pieces, function(p, q)
-				return (p.x2 - p.x1) * (p.z2 - p.z1) > (q.x2 - q.x1) * (q.z2 - q.z1)
-			end)
-			local spots = { { 0, 0 }, { -0.25, 0 }, { 0.25, 0 }, { 0, -0.25 }, { 0, 0.25 } }
-			local found: Rect? = nil
-			for _, p in pieces do
-				for _, share in { 0.5, 0.38, 0.28 } do
-					local w = math.min((p.x2 - p.x1) * share, 36)
-					local d = math.min((p.z2 - p.z1) * share, 36)
-					if w < 10 or d < 10 then
-						continue
-					end
-					for _, spot in spots do
-						local cx = (p.x1 + p.x2) / 2 + spot[1] * (p.x2 - p.x1)
-						local cz = (p.z1 + p.z2) / 2 + spot[2] * (p.z2 - p.z1)
-						local rect: Rect = { x1 = cx - w / 2, z1 = cz - d / 2, x2 = cx + w / 2, z2 = cz + d / 2 }
-						if freeFor(room, rect) then
-							found = rect
-							break
-						end
-					end
-					if found then
-						break
-					end
-				end
-				if found then
-					break
-				end
-			end
-			if not found then
-				return
-			end
-			local cx, cz = (found.x1 + found.x2) / 2, (found.z1 + found.z2) / 2
-			local w, d = found.x2 - found.x1, found.z2 - found.z1
-			local floorY = levels[room.level]
-			local color = Dress.RUGS[rng:NextInteger(1, #Dress.RUGS)]
-			for index, size in { Vector3.new(w, 0.12, d), Vector3.new(w - 2.4, 0.16, d - 2.4) } do
-				local rug = part(
-					propsFolder,
-					"Rug",
-					size,
-					CFrame.new(cx, floorY + size.Y / 2, cz),
-					if index == 1 then Color3.fromRGB(190, 165, 110) else color
-				)
-				rug.CanCollide, rug.CanQuery, rug.CanTouch, rug.CastShadow = false, false, false, false
-				rug.Material = Enum.Material.Fabric
-			end
-		end,
-		sofas = function(room)
-			local floorY = levels[room.level]
-			local stops = 0
-			Dress.alongWalls(room, 16, 7.6, 3.4, DRESS.SofasPerRoom, function(spot)
-				local fabric = Dress.FABRICS[rng:NextInteger(1, #Dress.FABRICS)]
-				Dress.dress(
-					"SofaSeat",
-					spot,
-					floorY,
-					0,
-					1.7,
-					1.1,
-					Vector3.new(7, 2.2, 3.4),
-					fabric,
-					Enum.Material.Fabric
-				)
-				Dress.dress("SofaBack", spot, floorY, 0, 0.5, 3.8, Vector3.new(7, 3.2, 1), fabric, Enum.Material.Fabric)
-				for _, side in { -3.2, 3.2 } do
-					Dress.dress(
-						"SofaArm",
-						spot,
-						floorY,
-						side,
-						1.7,
-						1.6,
-						Vector3.new(0.8, 3.2, 3.4),
-						fabric,
-						Enum.Material.Fabric
-					)
-				end
-				if stops < DRESS.StopsPerKind then
-					stops += 1
-					Dress.stopBefore(room, spot, 3.4, "Sit")
-				end
-				return true
-			end)
-		end,
-		bookshelves = function(room)
-			local floorY = levels[room.level]
-			Dress.alongWalls(room, 12, 9, 1.8, DRESS.ShelvesPerRoom, function(spot)
-				Dress.dress(
-					"Bookcase",
-					spot,
-					floorY,
-					0,
-					0.9,
-					6,
-					Vector3.new(9, 12, 1.8),
-					Dress.DARK_WOOD,
-					Enum.Material.Wood
-				)
-				for row = 0, 3 do
-					Dress.dress(
-						"Books",
-						spot,
-						floorY,
-						0,
-						1.3,
-						2.2 + row * 2.7,
-						Vector3.new(8.2, 1.9, 1.2),
-						Dress.BOOKS[rng:NextInteger(1, #Dress.BOOKS)],
-						Enum.Material.SmoothPlastic,
-						false
-					)
-				end
-				return true
-			end)
-		end,
-		beds = function(room)
-			local floorY = levels[room.level]
-			Dress.alongWalls(room, 30, 7, 9.5, 2, function(spot)
-				Dress.dress(
-					"BedFrame",
-					spot,
-					floorY,
-					0,
-					4.75,
-					0.8,
-					Vector3.new(7, 1.6, 9.5),
-					Dress.DARK_WOOD,
-					Enum.Material.Wood
-				)
-				Dress.dress(
-					"Mattress",
-					spot,
-					floorY,
-					0,
-					4.75,
-					2.1,
-					Vector3.new(6.6, 1, 9),
-					Color3.fromRGB(235, 232, 225),
-					Enum.Material.Fabric
-				)
-				Dress.dress(
-					"Headboard",
-					spot,
-					floorY,
-					0,
-					0.3,
-					2.25,
-					Vector3.new(7, 4.5, 0.6),
-					Dress.DARK_WOOD,
-					Enum.Material.Wood
-				)
-				for _, side in { -1.8, 1.8 } do
-					Dress.dress(
-						"Pillow",
-						spot,
-						floorY,
-						side,
-						1.6,
-						2.9,
-						Vector3.new(2.8, 0.7, 1.6),
-						Color3.fromRGB(245, 242, 236),
-						Enum.Material.Fabric,
-						false
-					)
-				end
-				return true
-			end)
-		end,
-		bunks = function(room)
-			local floorY = levels[room.level]
-			local stops = 0
-			Dress.alongWalls(room, 14, 7, 3.4, DRESS.BunksPerRoom, function(spot)
-				for _, level in { 2.6, 5.6 } do
-					Dress.dress(
-						"Bunk",
-						spot,
-						floorY,
-						0,
-						1.7,
-						level,
-						Vector3.new(6.8, 0.8, 3.2),
-						Color3.fromRGB(70, 85, 110),
-						Enum.Material.Fabric
-					)
-				end
-				for _, side in { -3.3, 3.3 } do
-					for _, out in { 0.2, 3.2 } do
-						Dress.dress("BunkPost", spot, floorY, side, out, 3.8, Vector3.new(0.4, 7.6, 0.4), METAL)
-					end
-				end
-				if stops < DRESS.StopsPerKind then
-					stops += 1
-					Dress.stopBefore(room, spot, 3.4, "Lean")
-				end
-				return true
-			end)
-		end,
-		lockers = function(room)
-			local floorY = levels[room.level]
-			local stops = 0
-			Dress.alongWalls(room, 4, 3.6, 2, DRESS.LockersPerRoom, function(spot)
-				Dress.dress(
-					"Locker",
-					spot,
-					floorY,
-					0,
-					1,
-					4.5,
-					Vector3.new(3.6, 9, 2),
-					Color3.fromRGB(85, 95, 110),
-					Enum.Material.Metal
-				)
-				if stops < 1 then
-					stops += 1
-					Dress.stopBefore(room, spot, 2, "Lean")
-				end
-				return true
-			end)
-		end,
-		filing = function(room)
-			local floorY = levels[room.level]
-			Dress.alongWalls(room, 4.5, 3, 2.2, DRESS.FilingPerRoom, function(spot)
-				Dress.dress(
-					"FilingCabinet",
-					spot,
-					floorY,
-					0,
-					1.1,
-					3,
-					Vector3.new(3, 6, 2.2),
-					Color3.fromRGB(120, 125, 130),
-					Enum.Material.Metal
-				)
-				return true
-			end)
-		end,
-		shelving = function(room)
-			local floorY = levels[room.level]
-			Dress.alongWalls(room, 13, 10, 2.4, DRESS.ShelvingPerRoom, function(spot)
-				for _, side in { -4.8, 4.8 } do
-					Dress.dress("ShelfPost", spot, floorY, side, 1.2, 5, Vector3.new(0.4, 10, 2.4), METAL)
-				end
-				for _, height in { 2.5, 5.5, 8.5 } do
-					Dress.dress("Shelf", spot, floorY, 0, 1.2, height, Vector3.new(10, 0.3, 2.4), METAL)
-					Dress.dress(
-						"StoredBox",
-						spot,
-						floorY,
-						rng:NextNumber(-3, 3),
-						1.2,
-						height + 0.15 + 0.7,
-						Vector3.new(rng:NextNumber(1.5, 3), 1.4, 1.8),
-						Color3.fromRGB(150 + rng:NextInteger(-20, 20), 120, 85),
-						Enum.Material.Cardboard,
-						false
-					)
-				end
-				return true
-			end)
-		end,
-		winerack = function(room)
-			local floorY = levels[room.level]
-			Dress.alongWalls(room, 10, 8, 2.2, DRESS.ShelvesPerRoom, function(spot)
-				Dress.dress(
-					"WineRack",
-					spot,
-					floorY,
-					0,
-					1.1,
-					4.5,
-					Vector3.new(8, 9, 2.2),
-					Dress.DARK_WOOD,
-					Enum.Material.Wood
-				)
-				for row = 0, 3 do
-					Dress.dress(
-						"Bottles",
-						spot,
-						floorY,
-						0,
-						1.6,
-						1.8 + row * 2.1,
-						Vector3.new(7.4, 1.1, 1.4),
-						Color3.fromRGB(35, 65, 45),
-						Enum.Material.Glass,
-						false
-					)
-				end
-				return true
-			end)
-		end,
-		barrels = function(room)
-			local b = bounds(room)
-			for _ = 1, DRESS.BarrelsPerRoom do
-				addProp(
-					room,
-					"Barrel",
-					rng:NextNumber(b.x1 + 8, b.x2 - 8),
-					rng:NextNumber(b.z1 + 8, b.z2 - 8),
-					3.2,
-					3.8,
-					3.2,
-					WOOD,
-					true,
-					true
-				)
-			end
-		end,
-		counters = function(room)
-			local floorY = levels[room.level]
-			local stops = 0
-			Dress.alongWalls(room, 11, 10, 3, DRESS.CountersPerRoom, function(spot)
-				Dress.dress(
-					"Counter",
-					spot,
-					floorY,
-					0,
-					1.5,
-					1.7,
-					Vector3.new(10, 3.4, 3),
-					Dress.STEEL,
-					Enum.Material.Metal
-				)
-				Dress.dress(
-					"CounterTop",
-					spot,
-					floorY,
-					0,
-					1.6,
-					3.55,
-					Vector3.new(10.2, 0.3, 3.2),
-					Color3.fromRGB(215, 218, 222),
-					Enum.Material.Metal
-				)
-				if stops < DRESS.StopsPerKind then
-					stops += 1
-					Dress.stopBefore(room, spot, 3, "Lean")
-				end
-				return true
-			end)
-		end,
-		slots = function(room)
-			local floorY = levels[room.level]
-			Dress.alongWalls(room, 5, 3.4, 2.6, DRESS.SlotsPerRoom, function(spot)
-				Dress.dress(
-					"SlotMachine",
-					spot,
-					floorY,
-					0,
-					1.3,
-					3.5,
-					Vector3.new(3.4, 7, 2.6),
-					Color3.fromRGB(95, 25, 35),
-					Enum.Material.SmoothPlastic
-				)
-				Dress.dress(
-					"SlotScreen",
-					spot,
-					floorY,
-					0,
-					2.65,
-					5,
-					Vector3.new(2.6, 2.2, 0.15),
-					Dress.SLOT_SCREENS[rng:NextInteger(1, #Dress.SLOT_SCREENS)],
-					Enum.Material.Neon,
-					false
-				)
-				return true
-			end)
-		end,
-		laundry = function(room)
-			local floorY = levels[room.level]
-			Dress.alongWalls(room, 5, 4, 3.6, DRESS.LaundryPerRoom, function(spot)
-				Dress.dress(
-					"Washer",
-					spot,
-					floorY,
-					0,
-					1.8,
-					2.5,
-					Vector3.new(4, 5, 3.6),
-					Color3.fromRGB(230, 232, 235),
-					Enum.Material.SmoothPlastic
-				)
-				Dress.dress(
-					"Porthole",
-					spot,
-					floorY,
-					0,
-					3.65,
-					2.8,
-					Vector3.new(2.2, 2.2, 0.2),
-					Color3.fromRGB(60, 90, 120),
-					Enum.Material.Glass,
-					false
-				)
-				return true
-			end)
-		end,
-		piano = function(room)
-			local b = bounds(room)
-			local x, z = b.x1 + (b.x2 - b.x1) * 0.25, b.z1 + (b.z2 - b.z1) * 0.5
-			if addProp(room, "Piano", x, z, 8, 3.4, 6, Color3.fromRGB(20, 20, 24), true) then
-				addProp(room, "PianoBench", x, z + 5, 4, 1.6, 1.6, Dress.DARK_WOOD, true)
-				Dress.addStop(room, x, z + 8.5, "Idle", x, z)
-			end
-		end,
-		-- Furniture groups (see Dress.group): each is one thing a room is for.
-		diningSets = function(room)
-			Dress.group(room, 14, 11, DRESS.DiningSetsPerRoom, 18, function(frame)
-				Dress.piece(frame, "DiningTable", Vector3.new(9, 0.4, 4), 0, 3.4, 0, WOOD, Enum.Material.Wood)
-				Dress.piece(
-					frame,
-					"TableBase",
-					Vector3.new(6, 3.2, 1.6),
-					0,
-					1.6,
-					0,
-					Dress.DARK_WOOD,
-					Enum.Material.Wood
-				)
-				Dress.piece(
-					frame,
-					"Cloth",
-					Vector3.new(9.4, 0.15, 2),
-					0,
-					3.65,
-					0,
-					Dress.CLOTH,
-					Enum.Material.Fabric,
-					false
-				)
-				Dress.piece(
-					frame,
-					"Centerpiece",
-					Vector3.new(0.9, 1.4, 0.9),
-					0,
-					4.4,
-					0,
-					Dress.BRASS,
-					Enum.Material.Metal,
-					false
-				)
-				local fabric = Dress.FABRICS[rng:NextInteger(1, #Dress.FABRICS)]
-				for _, x in { -2.4, 2.4 } do
-					Dress.chair(frame, x, -3.6, 0, 1, fabric) -- on the near side, facing the table
-					Dress.chair(frame, x, 3.6, 0, -1, fabric)
-				end
-				Dress.chair(frame, -6, 0, 1, 0, fabric)
-				Dress.chair(frame, 6, 0, -1, 0, fabric)
-				Dress.stopAround(room, frame, 0, 8.8, "Talk")
-			end)
-		end,
-		cocktailSets = function(room)
-			Dress.group(room, 10, 10, DRESS.CocktailSetsPerRoom, 16, function(frame)
-				Dress.round(frame, "CocktailTable", 0, 0, 0, 3.6, 3.4, WOOD, Enum.Material.Wood)
-				Dress.round(frame, "TableTop", 0, 0, 3.6, 0.3, 4, Dress.DARK_WOOD, Enum.Material.Wood)
-				for step = 0, 2 do
-					local angle = step * 2 * math.pi / 3 + math.pi / 6
-					Dress.round(
-						frame,
-						"Stool",
-						math.sin(angle) * 3.6,
-						math.cos(angle) * 3.6,
-						0,
-						2.6,
-						1.8,
-						Dress.FABRICS[rng:NextInteger(1, #Dress.FABRICS)],
-						Enum.Material.Fabric
-					)
-				end
-				Dress.stopAround(room, frame, 0, 8.4, "Talk")
-			end)
-		end,
-		loungeSets = function(room)
-			Dress.group(room, 15, 11, DRESS.LoungeSetsPerRoom, 20, function(frame)
-				local fabric = Dress.FABRICS[rng:NextInteger(1, #Dress.FABRICS)]
-				local rugColor = Dress.RUGS[rng:NextInteger(1, #Dress.RUGS)]
-				Dress.piece(frame, "Rug", Vector3.new(13, 0.14, 9), 0, 0.07, 0, rugColor, Enum.Material.Fabric, false).CanQuery =
-					false
-				-- A sofa along the back, two armchairs facing in from the sides, a coffee table between, a lamp in the corner.
-				Dress.piece(frame, "SofaSeat", Vector3.new(7, 2.2, 3.2), 0, 1.1, 3.4, fabric, Enum.Material.Fabric)
-				Dress.piece(frame, "SofaBack", Vector3.new(7, 3.2, 1), 0, 3.8, 4.7, fabric, Enum.Material.Fabric)
-				for _, x in { -3.2, 3.2 } do
-					Dress.piece(frame, "SofaArm", Vector3.new(0.8, 3.2, 3.2), x, 1.6, 3.4, fabric, Enum.Material.Fabric)
-				end
-				for _, side in { -1, 1 } do
-					Dress.chair(frame, side * 5.2, -0.6, -side, 0, fabric)
-				end
-				Dress.piece(frame, "CoffeeTable", Vector3.new(4, 1.5, 2.4), 0, 0.75, -0.2, WOOD, Enum.Material.Wood)
-				Dress.round(frame, "LampPost", 6.2, 4.2, 0, 5.5, 0.3, Dress.BRASS, Enum.Material.Metal)
-				local shade = Dress.piece(
-					frame,
-					"LampShade",
-					Vector3.new(1.6, 1.4, 1.6),
-					6.2,
-					6,
-					4.2,
-					Dress.WARM,
-					Enum.Material.Neon,
-					false
-				)
-				shade.Shape = Enum.PartType.Ball
-				Dress.stopAround(room, frame, 0, -8.8, "Talk")
-			end)
-		end,
-		deskPods = function(room)
-			Dress.group(room, 11, 10, DRESS.DeskPodsPerRoom, 14, function(frame)
-				for _, side in { -1, 1 } do
-					Dress.piece(frame, "Desk", Vector3.new(7, 3, 3), 0, 1.5, side * 2, WOOD, Enum.Material.Wood)
-					Dress.piece(
-						frame,
-						"Monitor",
-						Vector3.new(2.4, 1.6, 0.2),
-						0,
-						4.2,
-						side * 2.8,
-						Color3.fromRGB(90, 220, 255),
-						Enum.Material.Neon,
-						false
-					)
-					Dress.chair(frame, 0, side * 4.6, 0, -side, Color3.fromRGB(60, 62, 70))
-				end
-				Dress.stopAround(room, frame, 0, 8.4, "Work")
-			end)
-		end,
-		casinoTables = function(room)
-			Dress.group(room, 16, 14, DRESS.CasinoTablesPerRoom, 22, function(frame)
-				Dress.round(frame, "TableBase", 0, 0, 0, 3, 4, Dress.DARK_WOOD, Enum.Material.Wood)
-				Dress.round(frame, "Felt", 0, 0, 3, 0.4, 9, Dress.GREEN_FELT, Enum.Material.Fabric)
-				for step = 0, 4 do
-					local angle = (step - 2) * 0.55
-					Dress.round(
-						frame,
-						"Stool",
-						math.sin(angle) * 6.3,
-						-math.cos(angle) * 6.3,
-						0,
-						2.6,
-						1.8,
-						Color3.fromRGB(95, 25, 35),
-						Enum.Material.Fabric
-					)
-				end
-				Dress.round(frame, "DealerStool", 0, 5.8, 0, 3.2, 1.8, Color3.fromRGB(20, 20, 24), Enum.Material.Fabric)
-				Dress.stopAround(room, frame, 0, -10.6, "Talk")
-			end)
-		end,
-		displays = function(room)
-			Dress.group(room, 9, 9, DRESS.DisplaysPerRoom, 20, function(frame)
-				Dress.piece(frame, "Plinth", Vector3.new(3.2, 3.2, 3.2), 0, 1.6, 0, Dress.CLOTH, Enum.Material.Marble)
-				local case = Dress.piece(
-					frame,
-					"Case",
-					Vector3.new(2.8, 2.8, 2.8),
-					0,
-					4.6,
-					0,
-					Color3.fromRGB(190, 220, 240),
-					Enum.Material.Glass,
-					false
-				)
-				case.Transparency = 0.5
-				Dress.piece(
-					frame,
-					"Exhibit",
-					Vector3.new(1.2, 1.6, 1.2),
-					0,
-					4.2,
-					0,
-					Dress.BRASS,
-					Enum.Material.Metal,
-					false
-				)
-				for _, x in { -3.6, 3.6 } do
-					for _, z in { -3.6, 3.6 } do
-						Dress.round(frame, "Stanchion", x, z, 0, 3, 0.4, Dress.BRASS, Enum.Material.Metal)
-					end
-				end
-				for _, z in { -3.6, 3.6 } do
-					Dress.piece(
-						frame,
-						"Rope",
-						Vector3.new(7.2, 0.2, 0.2),
-						0,
-						2.8,
-						z,
-						Dress.BANNERS[1],
-						Enum.Material.Fabric,
-						false
-					)
-				end
-				Dress.stopAround(room, frame, 0, 7.9, "Art")
-			end)
-		end,
-		stations = function(room)
-			Dress.group(room, 11, 7, DRESS.StationsPerRoom, 18, function(frame)
-				Dress.piece(frame, "PrepTable", Vector3.new(9, 3.4, 4), 0, 1.7, 0, Dress.STEEL, Enum.Material.Metal)
-				Dress.piece(
-					frame,
-					"CuttingBoard",
-					Vector3.new(3, 0.2, 2),
-					-2.4,
-					3.5,
-					0,
-					WOOD,
-					Enum.Material.Wood,
-					false
-				)
-				Dress.round(frame, "Pot", 2.2, 0.4, 3.4, 1.4, 1.8, Dress.METAL_DARK, Enum.Material.Metal)
-				Dress.round(frame, "Pot", 3.6, -0.6, 3.4, 1, 1.4, Dress.METAL_DARK, Enum.Material.Metal)
-				Dress.stopAround(room, frame, 0, 6.9, "Lean")
-			end)
-		end,
 		barStools = function(room)
 			-- Stools along the front of the Bar builder's counter (run after it); they join the counter's reserved strip.
 			local b = bounds(room)
@@ -5096,24 +4440,6 @@ function Build.run(options: {
 			end
 		end,
 	}
-	local propCount = 0
-	for _, room in rooms do
-		for _, kind in room.props or {} do
-			local build = propBuilders[kind]
-			assert(build, `Unknown prop kind {kind} on {room.id}`)
-			local before = #propRects[room.level]
-			build(room)
-			propCount += #propRects[room.level] - before
-		end
-	end
-
-	-- Crates and stacked boxes can be climbed (climbing breaks Cover, spec 7.2).
-	for _, item in propsFolder:GetChildren() do
-		if item.Name == "Crate" then
-			tag(item, Tag.ClimbSurface)
-		end
-	end
-
 	-- Placed objects (Layout.placements): each goes to a free spot along a wall of its room, as far as possible from the
 	-- other things placed in that room, clear of doorways, stairs and props. Wall-mounted ones sit against the wall.
 	type Spot = { x: number, z: number, nx: number, nz: number }
@@ -5323,6 +4649,43 @@ function Build.run(options: {
 		print(`[Gala]      no room for {missing}`)
 	end
 	print(`[Gala]      intel stations by type: {intelByType[0]}, {intelByType[1]}, {intelByType[2]}, {intelByType[3]}`)
+
+	-- Furniture: after the placements, so intel, safes and the rest keep their wall spots.
+	-- What a furnishing recipe (Fabs) needs from the generator.
+	local furnishContext = {
+		levels = levels,
+		propsFolder = propsFolder,
+		part = part,
+		alongWalls = Dress.alongWalls,
+		group = Dress.group,
+		addStop = Dress.addStop,
+		stopBefore = Dress.stopBefore,
+		stopsPerKind = DRESS.StopsPerKind,
+		stopClear = DRESS.StopClear,
+	}
+	local propCount = 0
+	for _, room in rooms do
+		for _, kind in room.props or {} do
+			local before = #propRects[room.level]
+			local archetype = string.match(kind, "^furnish:(.+)$")
+			if archetype then
+				Fabs.furnish(room, archetype, furnishContext)
+			else
+				local build = propBuilders[kind]
+				assert(build, `Unknown prop kind {kind} on {room.id}`)
+				build(room)
+			end
+			propCount += #propRects[room.level] - before
+		end
+	end
+
+	-- Crates and stacked boxes can be climbed (climbing breaks Cover, spec 7.2).
+	for _, item in propsFolder:GetChildren() do
+		if item.Name == "Crate" then
+			tag(item, Tag.ClimbSurface)
+		end
+	end
+
 	check(#intelMisplaced == 0, `Intel types in rooms of their tier ({#intelMisplaced} misplaced)`)
 	for _, what in intelMisplaced do
 		print(`[Gala]      too low a tier for {what}`)

@@ -146,27 +146,40 @@ const DRESS = {
 	wt_terrace: ["shrubs"], r_deck: ["shrubs"], wr_garden: ["shrubs"], r_deck_w: ["shrubs"], wd_skydeck: ["shrubs"],
 };
 for (const id of Object.keys(DRESS)) if (!rooms.some((r) => r.id === id)) bad(`dressing room ${id} does not exist`);
-// Furniture groups replace the lone tables and desks (owner 2026-11-22): every room is furnished with sets that belong together.
-Object.assign(PROPS, {
-	b_camera: ["deskPods"], wb_security: ["deskPods"], g_concierge: ["deskPods"], g_coat: [], wg_cage: ["deskPods"],
-	g_ballroom: ["pillars", "cocktailSets"], g_bar: ["bar", "barStools", "cocktailSets"], g_dining: ["diningSets"], g_privdining: ["diningSets"],
-	g_kitchen: ["islands", "stations"], g_pantry: ["islands", "stations"], g_library: ["loungeSets"], g_lobby: ["reception", "pillars", "loungeSets"],
-	g_lounge: ["loungeSets", "cocktailSets"], wg_casino: ["pillars", "casinoTables"], wg_entry: ["reception", "loungeSets"],
-	wg_highroller: ["loungeSets", "cocktailSets"], g_gallery: ["partitions", "displays"], m_gallery: ["partitions", "displays"],
-	m_ball_gal: ["cocktailSets"], m_bar_loft: ["cocktailSets"], m_offices: ["deskPods"], m_hub: ["deskPods"], m_catering: ["deskPods", "stations"],
-	m_wine: ["cocktailSets"], m_cigar: ["loungeSets"], wm_lobby: ["reception", "loungeSets"], wm_bar: ["bar", "barStools", "cocktailSets"],
-	t_ter_w: ["planters", "cocktailSets", "trees"], t_ter_e: ["planters", "cocktailSets", "trees"], wt_terrace: ["trees", "planters", "cocktailSets"],
-	r_deck: ["cocktailSets", "planters", "bar", "barStools"], wr_garden: ["trees", "planters", "bar", "barStools", "cocktailSets"],
-	t_gallery: ["vitrines", "displays"], t_great: ["loungeSets", "displays"], r_summit: ["loungeSets"], s_sanctum: ["loungeSets"],
-	wt_suite1: ["loungeSets"], wt_suite2: ["loungeSets"], wt_suite3: ["loungeSets"], wt_suite4: ["loungeSets"], wt_suite5: ["loungeSets"],
-});
+// Furnishing (owner 2026-11-22: fill every room with fabs that make sense). Each room's props are, in order: its structural pieces (PROPS: pillars, reception
+// desk, bar counter, planters, trees, partitions), its furnishing recipe (FURNISH, see Tools/Gala/Fabs.luau), then wall decor (DRESS) in whatever wall is left.
+const DECOR = new Set(["sconces", "paintings", "banners", "chandeliers", "shrubs"]);
+const STRUCTURE = new Set(["pillars", "reception", "bar", "barStools", "planters", "trees", "partitions"]);
+for (const id of Object.keys(DRESS)) DRESS[id] = DRESS[id].filter((k) => DECOR.has(k));
+for (const id of Object.keys(PROPS)) PROPS[id] = PROPS[id].filter((k) => STRUCTURE.has(k));
+for (const id of ["g_bar", "wm_bar", "r_deck", "wr_garden"]) PROPS[id] = [...PROPS[id].filter((k) => k !== "barStools"), "barStools"];
+const FURNISH = {
+	b_ring_n: "servicering", b_ring_s: "servicering", b_ring_w: "servicering", b_ring_e: "servicering", b_stores_w1: "stores", b_stores_e1: "stores",
+	b_stores_w2: "laundry", b_cellar: "cellar", b_gate: "checkpoint", b_camera: "camera", b_barracks: "barracks", b_muster: "muster", b_spine: "spine",
+	b_armory: "armory", b_mess: "mess", b_tunnel: "tunnel", wb_security: "security", wb_linen: "linen", wb_laundry: "laundry", wb_vaultd_ante: "countinghall",
+	wb_boiler: "boiler", wb_service: "servicehall",
+	g_atrium: "atrium", g_ring_n: "colonnade", g_ring_s: "colonnade", g_ring_w: "colonnade", g_ring_e: "colonnade", g_gallery: "gallery", g_concierge: "concierge",
+	g_coat: "cloakroom", g_ballroom: "ballroom", g_bar: "bar", g_dining: "dining", g_kitchen: "kitchen", g_pantry: "pantry", g_service_n: "servicering",
+	g_vaultc_ante: "coldroom", g_library: "library", g_lobby: "lobby", g_lounge: "lounge", wg_casino: "casino", wg_entry: "hotelLobby", wg_cage: "cage",
+	wg_highroller: "highroller", g_restroom: "restroom", wg_restroom: "restroom", m_restroom: "restroom", wm_restroom: "restroom", g_staffwc: "restroom",
+	t_washroom: "restroom", g_coldstore: "coldstore", g_privdining: "privdining", g_stockroom: "stockroom", g_humidor: "cigarlounge", wg_cardroom: "cardroom",
+	m_balcony: "balcony", m_gallery: "gallerylift", m_ball_gal: "loft", m_bridge_hall: "bridgehall", m_bar_loft: "loft", m_offices: "offices", m_hub: "security",
+	m_records: "records", m_catering: "offices", m_wine: "winelounge", m_stairhall: "stairhall", m_cigar: "cigarlounge", wm_lobby: "hotelLobby", wm_bar: "bar",
+	wm_housekeeping: "housekeeping",
+	t_west: "guardhall", t_east: "guardhall", t_guard_nw: "guardpost", t_guard_ne: "guardpost", t_vaultb_ante: "displayhall", t_great: "greatroom", t_gallery: "gallery",
+	t_panic: "panic", t_office: "execoffice", wt_arcade: "arcade", wt_suite1: "suite", wt_suite2: "suite", wt_suite3: "suite", wt_suite4: "suite", wt_suite5: "suite",
+	wt_exec: "execsuite", r_summit: "summit", r_vaulte_ante: "observatory", r_plant: "plant", wr_plant: "plant", s_sanctum: "sanctum", s_foyer: "foyer",
+	t_ter_n: "terrace", t_ter_s: "terrace", t_ter_w: "garden", t_ter_e: "terrace", wt_terrace: "terrace", r_deck: "roofdeck", wr_garden: "garden", wd_skydeck: "skydeck",
+};
+for (const id of Object.keys(FURNISH)) if (!rooms.some((r) => r.id === id)) bad(`furnished room ${id} does not exist`);
 const DENSITY = {
 	g_atrium: 2, g_ballroom: 2, g_bar: 1.6, g_dining: 1.3, g_gallery: 1.4, g_lobby: 1.5, m_balcony: 1.2, wg_casino: 2, wm_lobby: 1.4, wm_bar: 1.4, r_deck: 2,
 	wr_garden: 1.5, b_muster: 1, t_great: 1, wt_terrace: 1, m_ball_gal: 1.2, m_gallery: 1.2, m_stairhall: 1.2, g_privdining: 0.6, wg_cardroom: 1.2,
 };
 const THEME = { A: "bank", B: "gallery", C: "cold", D: "counting", E: "observatory" };
 for (const r of rooms) {
-	if (PROPS[r.id] || DRESS[r.id]) r.props = [...(DRESS[r.id] || []), ...(PROPS[r.id] || [])];
+	const furnished = [...(PROPS[r.id] || []), ...(FURNISH[r.id] ? ["furnish:" + FURNISH[r.id]] : []), ...(DRESS[r.id] || [])];
+	if (furnished.length) r.props = furnished;
 	if (DENSITY[r.id]) r.density = DENSITY[r.id];
 	if (r.kind === "indoor" && r.tier === 0 && !r.w) r.glass = true; // windows onto the city on every public facade
 	if (r.vault && r.tier === 3 && r.id !== "s_sanctum") { r.noNodes = true; r.theme = THEME[r.vault]; }
