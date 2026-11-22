@@ -75,6 +75,14 @@ function GadgetHudController.Start()
 			UDim2.fromOffset(theme.CaptionSize * 2, theme.CaptionSize)
 		)
 		status.TextSize = theme.CaptionSize
+		local bind = HudKit.text(
+			panel,
+			"GadgetBind",
+			UDim2.new(0.5, 0, 1, theme.PaddingPixels / 2),
+			Vector2.new(0.5, 0),
+			UDim2.fromOffset(size, theme.CaptionSize)
+		)
+		bind.TextSize = theme.CaptionSize
 
 		table.insert(cards, {
 			root = root,
@@ -82,6 +90,7 @@ function GadgetHudController.Start()
 			border = border,
 			name = name,
 			status = status,
+			bind = bind,
 			emblem = nil :: Frame?,
 			id = nil :: string?,
 			charges = nil :: number?,
@@ -121,7 +130,8 @@ function GadgetHudController.Start()
 				hintUntil = os.clock() + floating.HintSeconds
 			end
 			local key = if index == 1 then GameConfig.Controls.Gadget1 else GameConfig.Controls.Gadget2
-			card.name.Text = InputHints.bracket(key, GameConfig.Controls.GadgetNextPad, def.Name)
+			card.bind.Text = InputHints.bracket(key, GameConfig.Controls.GadgetNextPad, "")
+			card.name.Text = def.Name
 			local held = info ~= nil and info.Held == index
 			if card.charges ~= slot.Charges then
 				hintUntil = os.clock() + floating.HintSeconds

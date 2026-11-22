@@ -70,9 +70,11 @@ function HudLayout.regions(graphics: HudTheme.Theme): { [string]: Region }
 		Vault = {
 			Edge = "Center",
 			Offset = 0,
-			Top = match.TimerTopPixels + GameConfig.UI.FloatingHud.WatchPixels + match.PaddingPixels,
-			Width = match.PanelWidthPixels,
-			Height = GameConfig.Vault.ActiveVaults * (match.BodySize + match.PaddingPixels) + match.PaddingPixels,
+			Top = match.TimerTopPixels
+				+ GameConfig.UI.FloatingHud.WatchPixels
+				+ GameConfig.UI.VaultGraphic.TopGapPixels,
+			Width = GameConfig.Vault.ActiveVaults * GameConfig.UI.VaultGraphic.CellWidthPixels,
+			Height = GameConfig.UI.VaultGraphic.HeightPixels,
 		},
 	}
 end

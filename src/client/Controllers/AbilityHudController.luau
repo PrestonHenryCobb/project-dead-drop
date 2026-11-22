@@ -41,12 +41,24 @@ function AbilityHudController.Start()
 	local name = HudKit.text(
 		panel,
 		"AbilityName",
-		UDim2.new(1, 0, 0, -theme.CaptionSize - theme.PaddingPixels),
+		UDim2.new(1, 0, 0, -theme.CaptionSize * 2 - theme.PaddingPixels * 2),
 		Vector2.new(1, 0),
 		UDim2.fromOffset(theme.AmmoWidthPixels, theme.CaptionSize)
 	)
 	name.TextSize = theme.CaptionSize
 	name.TextXAlignment = Enum.TextXAlignment.Right
+	local bind = HudKit.text(
+		panel,
+		"AbilityBind",
+		UDim2.new(0.5, 0, 0, -theme.PaddingPixels / 2),
+		Vector2.new(0.5, 1),
+		UDim2.fromOffset(floating.AbilitySizePixels, theme.CaptionSize)
+	)
+	bind.TextSize = theme.CaptionSize
+	local function refreshBind()
+		bind.Text = InputHints.bracket(GameConfig.Controls.Ability, GameConfig.Controls.AbilityPad, "")
+	end
+	refreshBind()
 	local status = HudKit.text(
 		panel,
 		"AbilityCooldown",
@@ -84,7 +96,7 @@ function AbilityHudController.Start()
 			lastInfo = info
 		end
 		name.Visible = os.clock() < hintUntil
-		name.Text = InputHints.bracket(GameConfig.Controls.Ability, GameConfig.Controls.AbilityPad, info.Name)
+		name.Text = info.Name
 		local remaining = math.max(0, info.ReadyAt - workspace:GetServerTimeNow())
 		local locked = TaserStatusController.remaining()
 		status.Text = if locked > 0
@@ -106,6 +118,7 @@ function AbilityHudController.Start()
 		end
 	end
 	janitor:Add(InputHints.onChange(function()
+		refreshBind()
 		hintUntil = os.clock() + floating.HintSeconds
 	end))
 	janitor:Add(RemoteController.connect("PhaseChanged", function(nextPhase: Types.Phase)

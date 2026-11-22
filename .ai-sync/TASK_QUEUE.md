@@ -530,3 +530,9 @@ Codex review 2026-11-20 — input-hints and minimap-size: reviewed all mixed hin
 | Id | Ticket | Owner | Needs | Status |
 |---|---|---|---|---|
 | hud-floating-redesign | Owner HUD choices: transparent gameplay, ivory line icons, contextual names/hints, warning-only backing; top-center watch ring, top-right minimap, vertical bottom-left vitals around disguise/cover, adjacent gadgets and Talent beside ammo. Client only, source inspection and formatting; no tests or desktop control. Report and Claude prompt: docs/HUD_FLOATING_REDESIGN_2026-11-21.md. | CODEX | Owner visual acceptance | READY_FOR_REVIEW |
+
+## Ability binds and vault graphic (2026-11-21)
+
+| Id | Ticket | Owner | Needs | Status |
+|---|---|---|---|---|
+| hud-binds-vaults | Persistent configured Talent/gadget keybinds via InputHints; linked horizontal vault-door progress dials below the watch for every revealed active vault, with percentages, contested warning and completion checks. Client only; source inspection/formatting, no tests or desktop control. See docs/HUD_BINDS_VAULTS_2026-11-21.md. | CODEX | Owner visual acceptance | READY_FOR_REVIEW |

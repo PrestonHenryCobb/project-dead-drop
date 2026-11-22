@@ -1649,6 +1649,15 @@ local GameConfig = {
 			RingStrokePixels = 2,
 			InactiveTransparency = 0.8,
 		},
+		-- Owner follow-up: one graphical progress dial for each revealed active vault beneath the watch.
+		VaultGraphic = {
+			DialPixels = 64,
+			IconPixels = 32,
+			CellWidthPixels = 108,
+			HeightPixels = 112,
+			TopGapPixels = 12,
+			ConnectorTransparency = 0.75,
+		},
 		-- Ticket 19-traversal-warnings: presentation only; server traversal rules remain authoritative.
 		TraversalWarnings = {
 			CheckSeconds = 0.1,
