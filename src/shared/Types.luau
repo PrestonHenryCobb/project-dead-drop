@@ -23,14 +23,26 @@ export type ModeConfig = {
 }
 
 -- Spec 25.3: an outfit is a data record. Characters are built from these, never from Roblox avatar items.
-export type AccessoryKind = "Tie" | "BowTie" | "Lapels" | "PocketSquare" | "LapelPin" | "Fedora" | "Sunglasses"
+export type AccessoryKind =
+	"Tie"
+	| "BowTie"
+	| "Lapels"
+	| "PocketSquare"
+	| "LapelPin"
+	| "Fedora"
+	| "Sunglasses"
+	| "Glasses"
+	| "Scarf"
+	| "Necklace"
+	| "Beard"
+	| "Mustache"
 
 export type AccessoryDef = {
 	Kind: AccessoryKind,
 	Color: Color3,
 }
 
-export type HairStyle = "Bald" | "Crop" | "Short" | "Long" | "Bun"
+export type HairStyle = "Bald" | "Crop" | "Short" | "Long" | "Bun" | "Afro" | "Curly" | "Ponytail" | "SlickBack"
 
 export type OutfitDef = {
 	OutfitId: string,

@@ -241,9 +241,9 @@ local DRESS = {
 	StopsPerKind = 3, -- stops one room registers for one kind of piece
 	StopMinRoomStuds = 24, -- no stop node in a room piece narrower than this (a body does not fit between the piece and the far wall)
 	PaintingSpacing = 24,
-	PaintingsPerRoom = 4,
+	PaintingsPerRoom = 8,
 	SconceSpacing = 20,
-	SconcesPerRoom = 4,
+	SconcesPerRoom = 8,
 	ShrubsPerRoom = 14,
 	ChandelierSpacing = 34,
 	ChandeliersPerRoom = 2,
@@ -4651,8 +4651,35 @@ function Build.run(options: {
 	print(`[Gala]      intel stations by type: {intelByType[0]}, {intelByType[1]}, {intelByType[2]}, {intelByType[3]}`)
 
 	-- Furniture: after the placements, so intel, safes and the rest keep their wall spots.
+	-- How much of a room's floor is covered by the fittings placed since `first` (each footprint counts with its aisles).
+	local function roomCoverage(room: Room, first: number): (number, number)
+		local floorArea, covered = 0, 0
+		for _, piece in piecesOfRoom[room.id] do
+			floorArea += (piece.rect.x2 - piece.rect.x1) * (piece.rect.z2 - piece.rect.z1)
+		end
+		for index = first, #propRects[room.level] do
+			local rect = propRects[room.level][index]
+			covered += (rect.x2 - rect.x1) * (rect.z2 - rect.z1)
+		end
+		return if floorArea > 0 then covered / floorArea else 1, floorArea
+	end
+	local furnishFirst = 1 -- the first prop rect of the room being furnished
 	-- What a furnishing recipe (Fabs) needs from the generator.
 	local furnishContext = {
+		-- The narrowest side of the room's biggest piece of floor: corridors are narrow and are left clear for walking.
+		span = function(room: Room): number
+			local best, bestArea = 0, -1
+			for _, piece in piecesOfRoom[room.id] do
+				local w, d = piece.rect.x2 - piece.rect.x1, piece.rect.z2 - piece.rect.z1
+				if w * d > bestArea then
+					best, bestArea = math.min(w, d), w * d
+				end
+			end
+			return best
+		end,
+		coverage = function(room: Room): number
+			return (roomCoverage(room, furnishFirst))
+		end,
 		levels = levels,
 		propsFolder = propsFolder,
 		part = part,
@@ -4665,6 +4692,8 @@ function Build.run(options: {
 	}
 	local propCount = 0
 	for _, room in rooms do
+		local roomFirst = #propRects[room.level] + 1
+		furnishFirst = roomFirst
 		for _, kind in room.props or {} do
 			local before = #propRects[room.level]
 			local archetype = string.match(kind, "^furnish:(.+)$")
@@ -4676,6 +4705,10 @@ function Build.run(options: {
 				build(room)
 			end
 			propCount += #propRects[room.level] - before
+		end
+		local share, floorArea = roomCoverage(room, roomFirst)
+		if floorArea >= 300 then
+			print(`[Gala]      fill {room.id} {math.floor(100 * share)}% of {math.floor(floorArea)}`)
 		end
 	end
 

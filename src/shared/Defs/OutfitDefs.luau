@@ -23,28 +23,50 @@ type OutfitDef = Types.OutfitDef
 type AccessoryDef = Types.AccessoryDef
 type Role = Types.Role
 
-local OUTFITS_PER_ROLE = 24
+-- Owner 2026-11-22: the crowd looked too alike. Ninety-six outfits a role, drawn from wide palettes of skin, hair, jackets, trousers and accessories; the tier
+-- signatures (zone colours) are unchanged so a role still reads at a glance.
+local OUTFITS_PER_ROLE = 96
 
 local SKIN = {
 	Color3.fromRGB(255, 224, 189),
+	Color3.fromRGB(246, 208, 170),
 	Color3.fromRGB(241, 194, 143),
 	Color3.fromRGB(224, 172, 105),
 	Color3.fromRGB(198, 134, 66),
+	Color3.fromRGB(160, 100, 55),
 	Color3.fromRGB(141, 85, 36),
 	Color3.fromRGB(90, 56, 37),
 }
 local HAIR_COLORS = {
 	Color3.fromRGB(20, 18, 16),
+	Color3.fromRGB(40, 30, 28),
 	Color3.fromRGB(60, 38, 24),
 	Color3.fromRGB(105, 66, 36),
 	Color3.fromRGB(140, 60, 40),
+	Color3.fromRGB(176, 92, 50),
 	Color3.fromRGB(214, 180, 110),
+	Color3.fromRGB(235, 225, 200),
 	Color3.fromRGB(170, 170, 170),
+	Color3.fromRGB(232, 232, 232),
 }
-local HAIR_STYLES: { Types.HairStyle } = { "Short", "Long", "Bun", "Crop", "Bald" }
-local SHOES = { Color3.fromRGB(25, 25, 28), Color3.fromRGB(70, 45, 30), Color3.fromRGB(110, 20, 30) }
+local HAIR_STYLES: { Types.HairStyle } =
+	{ "Short", "Long", "Bun", "Crop", "Bald", "Afro", "Curly", "Ponytail", "SlickBack" }
+local SHOES = {
+	Color3.fromRGB(25, 25, 28),
+	Color3.fromRGB(70, 45, 30),
+	Color3.fromRGB(110, 20, 30),
+	Color3.fromRGB(90, 90, 95),
+	Color3.fromRGB(150, 110, 70),
+}
+local FRAMES = {
+	Color3.fromRGB(30, 30, 34),
+	Color3.fromRGB(120, 85, 50),
+	Color3.fromRGB(190, 160, 90),
+	Color3.fromRGB(150, 40, 50),
+}
+local JEWELLERY = { Color3.fromRGB(215, 180, 90), Color3.fromRGB(205, 208, 215) }
 
--- Formal jackets and trousers for guests.
+-- Formal jackets and trousers for guests (never navy, black or cream: those are other roles' colours).
 local GUEST_JACKETS = {
 	Color3.fromRGB(110, 25, 45),
 	Color3.fromRGB(35, 110, 75),
@@ -56,21 +78,67 @@ local GUEST_JACKETS = {
 	Color3.fromRGB(110, 100, 150),
 	Color3.fromRGB(215, 100, 85),
 	Color3.fromRGB(95, 110, 50),
+	Color3.fromRGB(170, 60, 60),
+	Color3.fromRGB(60, 140, 100),
+	Color3.fromRGB(125, 60, 95),
+	Color3.fromRGB(220, 170, 80),
+	Color3.fromRGB(80, 150, 170),
+	Color3.fromRGB(180, 90, 60),
+	Color3.fromRGB(150, 130, 180),
+	Color3.fromRGB(90, 120, 90),
+	Color3.fromRGB(200, 80, 120),
+	Color3.fromRGB(140, 150, 60),
 }
-local GUEST_PANTS =
-	{ Color3.fromRGB(20, 20, 24), Color3.fromRGB(45, 45, 52), Color3.fromRGB(32, 38, 60), Color3.fromRGB(85, 70, 55) }
+local GUEST_PANTS = {
+	Color3.fromRGB(20, 20, 24),
+	Color3.fromRGB(45, 45, 52),
+	Color3.fromRGB(32, 38, 60),
+	Color3.fromRGB(85, 70, 55),
+	Color3.fromRGB(60, 50, 45),
+	Color3.fromRGB(95, 95, 105),
+	Color3.fromRGB(50, 60, 50),
+	Color3.fromRGB(120, 100, 80),
+}
 local ACCENTS = {
 	Color3.fromRGB(190, 40, 50),
 	Color3.fromRGB(230, 200, 80),
 	Color3.fromRGB(230, 140, 60), -- not green: green ties and lapels are the Staff signature
 	Color3.fromRGB(240, 240, 240),
 	Color3.fromRGB(200, 120, 160),
+	Color3.fromRGB(70, 110, 190),
 }
 
-local STAFF_SUITS = { Color3.fromRGB(62, 88, 138), Color3.fromRGB(56, 80, 128), Color3.fromRGB(68, 95, 145) }
-local STAFF_TROUSERS = { Color3.fromRGB(48, 66, 108), Color3.fromRGB(44, 60, 100), Color3.fromRGB(52, 72, 116) }
-local SECURITY_SUITS = { Color3.fromRGB(16, 16, 20), Color3.fromRGB(22, 22, 26), Color3.fromRGB(28, 28, 32) }
-local EXECUTIVE_SUITS = { Color3.fromRGB(236, 228, 208), Color3.fromRGB(228, 222, 206), Color3.fromRGB(240, 234, 218) }
+local STAFF_SUITS = {
+	Color3.fromRGB(62, 88, 138),
+	Color3.fromRGB(56, 80, 128),
+	Color3.fromRGB(68, 95, 145),
+	Color3.fromRGB(74, 100, 150),
+	Color3.fromRGB(58, 84, 134),
+	Color3.fromRGB(66, 92, 126),
+}
+local STAFF_TROUSERS = {
+	Color3.fromRGB(48, 66, 108),
+	Color3.fromRGB(44, 60, 100),
+	Color3.fromRGB(52, 72, 116),
+	Color3.fromRGB(56, 76, 120),
+	Color3.fromRGB(46, 64, 104),
+	Color3.fromRGB(50, 68, 98),
+}
+local SECURITY_SUITS = {
+	Color3.fromRGB(16, 16, 20),
+	Color3.fromRGB(22, 22, 26),
+	Color3.fromRGB(28, 28, 32),
+	Color3.fromRGB(20, 22, 28),
+	Color3.fromRGB(26, 24, 30),
+}
+local EXECUTIVE_SUITS = {
+	Color3.fromRGB(236, 228, 208),
+	Color3.fromRGB(228, 222, 206),
+	Color3.fromRGB(240, 234, 218),
+	Color3.fromRGB(232, 224, 200),
+	Color3.fromRGB(244, 238, 224),
+	Color3.fromRGB(226, 218, 198),
+}
 local BLACK = Color3.fromRGB(14, 14, 16)
 
 local tierColors = GameConfig.Zones.TierColors
@@ -83,12 +151,12 @@ end
 local rig = GameConfig.Rig
 local function scaleFor(index: number): { Height: number, Width: number, Depth: number, Head: number }
 	local function at(min: number, max: number, step: number, offset: number): number
-		return min + (max - min) * (((index * step + offset) % 5) / 4)
+		return min + (max - min) * (((index * step + offset) % 11) / 10)
 	end
 	return {
-		Height = at(rig.HeightScaleMin, rig.HeightScaleMax, 1, 0),
-		Width = at(rig.WidthScaleMin, rig.WidthScaleMax, 2, 1),
-		Depth = at(rig.WidthScaleMin, rig.WidthScaleMax, 3, 2),
+		Height = at(rig.HeightScaleMin, rig.HeightScaleMax, 3, 0),
+		Width = at(rig.WidthScaleMin, rig.WidthScaleMax, 4, 5),
+		Depth = at(rig.WidthScaleMin, rig.WidthScaleMax, 9, 2),
 		Head = 1,
 	}
 end
@@ -111,30 +179,65 @@ local function outfit(
 		OutfitId = string.format("%s%02d", role, index + 1),
 		Role = role,
 		Tier = tier,
-		BodyColors = { Skin = pick(SKIN, index, 5), Shoes = pick(SHOES, index, 2) },
+		BodyColors = { Skin = pick(SKIN, index, 3), Shoes = pick(SHOES, index, 2) },
 		Shirt = { Color = shirt, LongSleeves = longSleeves },
 		Pants = { Color = pants },
 		Accessories = accessories,
-		Hair = { Style = pick(HAIR_STYLES, index, 3), Color = pick(HAIR_COLORS, index, 5) },
+		Hair = { Style = pick(HAIR_STYLES, index, 5), Color = pick(HAIR_COLORS, index, 3) },
 		Face = "Default",
 		Scale = scale or scaleFor(index),
 	}
 end
 
+-- Facial hair and glasses are chosen from the index too; they match the outfit's hair colour.
+local function hairColorOf(index: number): Color3
+	return pick(HAIR_COLORS, index, 3)
+end
+
+local function extras(index: number, glasses: number, mustache: number, beard: number): { AccessoryDef }
+	local list: { AccessoryDef } = {}
+	if index % glasses == 0 then
+		table.insert(list, { Kind = "Glasses", Color = pick(FRAMES, index, 1) })
+	end
+	if index % mustache == 1 then
+		table.insert(list, { Kind = "Mustache", Color = hairColorOf(index) })
+	end
+	if index % beard == 2 then
+		table.insert(list, { Kind = "Beard", Color = hairColorOf(index) })
+	end
+	return list
+end
+
 local builders: { [Role]: (number) -> OutfitDef } = {
 	Guest = function(index)
 		local accessories: { AccessoryDef } = {}
-		local accent = pick(ACCENTS, index, 3)
-		if index % 3 == 0 then
+		local accent = pick(ACCENTS, index, 5)
+		local kind = index % 9
+		if kind == 0 then
 			table.insert(accessories, { Kind = "Tie", Color = accent })
-		elseif index % 3 == 1 then
+		elseif kind == 1 then
 			table.insert(accessories, { Kind = "BowTie", Color = accent })
+		elseif kind == 2 then
+			table.insert(accessories, { Kind = "Tie", Color = accent })
+			table.insert(accessories, { Kind = "Glasses", Color = pick(FRAMES, index, 1) })
+		elseif kind == 3 then
+			table.insert(accessories, { Kind = "BowTie", Color = accent })
+			table.insert(accessories, { Kind = "Mustache", Color = hairColorOf(index) })
+		elseif kind == 4 then
+			table.insert(accessories, { Kind = "Scarf", Color = accent })
+		elseif kind == 5 then
+			table.insert(accessories, { Kind = "Necklace", Color = pick(JEWELLERY, index, 1) })
+		elseif kind == 6 then
+			table.insert(accessories, { Kind = "Tie", Color = accent })
+			table.insert(accessories, { Kind = "Beard", Color = hairColorOf(index) })
+		elseif kind == 7 then
+			table.insert(accessories, { Kind = "Glasses", Color = pick(FRAMES, index, 1) })
 		end
 		return outfit(
 			"Guest",
 			Enums.Tier.Public,
 			index,
-			pick(GUEST_JACKETS, index, 1),
+			pick(GUEST_JACKETS, index, 7),
 			true,
 			pick(GUEST_PANTS, index, 3),
 			accessories
@@ -151,26 +254,42 @@ local builders: { [Role]: (number) -> OutfitDef } = {
 		if index % 4 ~= 3 then
 			table.insert(accessories, { Kind = "Fedora", Color = BLACK })
 		end
+		for _, extra in extras(index, 5, 7, 9) do
+			table.insert(accessories, extra)
+		end
 		return outfit("Staff", Enums.Tier.Staff, index, suit, true, pick(STAFF_TROUSERS, index, 1), accessories)
 	end,
 	Security = function(index)
 		local suit = pick(SECURITY_SUITS, index, 1)
 		local purple = tierColors[Enums.Tier.Security] -- dark purple
-		return outfit("Security", Enums.Tier.Security, index, suit, true, suit, {
+		local accessories: { AccessoryDef } = {
 			{ Kind = "Tie", Color = purple },
 			{ Kind = "Lapels", Color = purple },
 			{ Kind = "Sunglasses", Color = BLACK },
-		})
+		}
+		if index % 4 == 0 then
+			table.insert(accessories, { Kind = "Beard", Color = hairColorOf(index) })
+		elseif index % 5 == 1 then
+			table.insert(accessories, { Kind = "Mustache", Color = hairColorOf(index) })
+		end
+		return outfit("Security", Enums.Tier.Security, index, suit, true, suit, accessories)
 	end,
 	Executive = function(index)
 		local suit = pick(EXECUTIVE_SUITS, index, 1)
 		local gold = tierColors[Enums.Tier.Executive]
-		return outfit("Executive", Enums.Tier.Executive, index, suit, true, suit, {
+		local accessories: { AccessoryDef } = {
 			{ Kind = "Tie", Color = gold },
 			{ Kind = "Lapels", Color = gold },
 			{ Kind = "PocketSquare", Color = gold },
 			{ Kind = "LapelPin", Color = gold },
-		})
+		}
+		for _, extra in extras(index, 3, 5, 4) do
+			table.insert(accessories, extra)
+		end
+		if index % 6 == 2 then
+			table.insert(accessories, { Kind = "Scarf", Color = gold })
+		end
+		return outfit("Executive", Enums.Tier.Executive, index, suit, true, suit, accessories)
 	end,
 	-- The Tier 4 NPCs wear crimson with gold (one outfit each, so a scan copies exactly it).
 	Warden = function(index)

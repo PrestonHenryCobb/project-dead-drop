@@ -11,7 +11,7 @@
 --   Fabs.has(archetype) -> boolean
 --
 -- ctx (from Build.luau): levels, propsFolder, part(parent, name, size, cframe, color), alongWalls(room, spacing, width, depth, limit, place),
--- group(room, w, d, limit, packed, build), addStop(room, x, z, activity, faceX, faceZ), stopBefore(room, spot, depth, activity), stopsPerKind, stopClear.
+-- group(room, w, d, limit, packed, build), span(room), coverage(room) -> fraction of the floor covered so far, addStop(room, x, z, activity, faceX, faceZ), stopBefore(room, spot, depth, activity), stopsPerKind, stopClear.
 
 local V = Vector3.new
 local RAD90 = math.rad(90)
@@ -1646,6 +1646,34 @@ local function hash(text: string): number
 	return h
 end
 
+-- How much of a room's floor its furniture covers (each footprint counts with its aisles) before the rest is left open to walk. Owner 2026-11-22:
+-- the rooms were still mostly empty, so free-standing groups keep being added, round after round, until the target is met or nothing more fits.
+local FILL_TARGET = 0.5
+local FILL_PASSES = 8
+-- Real furniture sets (tables, bunks, shelves, desks) asked for in numbers may grow to GROWTH times as many to fill the floor; decoration (lanterns, fire
+-- bowls, statues, carts) keeps to its number, or it would wall off the walkways.
+local GROWABLE: { [string]: boolean } = {
+	diningSet = true,
+	cocktail = true,
+	loungeSet = true,
+	deskPod = true,
+	bunk = true,
+	longTable = true,
+	shelfRow = true,
+	casinoTable = true,
+	slotIsland = true,
+	cardTable = true,
+	foldingTable = true,
+	exhibit = true,
+	barrelStack = true,
+	palletStack = true,
+	readingTable = true,
+	bookRow = true,
+}
+local FILL_NARROW = 24 -- no gap fillers in a room narrower than this: corridors stay clear
+local FILLERS = { "bigPlant", "floorLamp", "bench", "armchair" }
+local GROWTH = 4
+
 function Fabs.furnish(room: any, archetype: string, ctx: any)
 	local recipe = recipes[archetype]
 	assert(recipe, `Unknown furnishing recipe {archetype} on {room.id}`)
@@ -1654,49 +1682,90 @@ function Fabs.furnish(room: any, archetype: string, ctx: any)
 	local floorY = ctx.levels[room.level]
 	local stops: { [string]: number } = {}
 	local report: { string } = {}
-	for _, step in recipe.steps do
+
+	local function placeWall(step: Step): number
 		local def = defs[step.f]
-		assert(def, `Unknown fab {step.f} in recipe {archetype}`)
+		local spacing = def.w + (step.gap or 2)
+		return ctx.alongWalls(room, spacing, def.w, def.d + 1.5, step.n, function(spot: any): boolean
+			local frame = CFrame.new(spot.wallX + spot.nx * def.d / 2, floorY, spot.wallZ + spot.nz * def.d / 2)
+				* CFrame.Angles(0, math.atan2(spot.nx, spot.nz), 0)
+			build(ctx, frame, step.f, pal, rng)
+			if def.stop and (stops[step.f] or 0) < ctx.stopsPerKind then
+				stops[step.f] = (stops[step.f] or 0) + 1
+				ctx.stopBefore(room, spot, def.d + 1.5, def.stop)
+			end
+			return true
+		end)
+	end
+
+	local function placeFree(step: Step, limit: number): number
+		local def = defs[step.f]
+		local aisle = step.aisle or 2
+		return ctx.group(room, def.w + aisle * 2, def.d + aisle * 2, limit, step.n >= 6, function(frame: CFrame)
+			build(ctx, frame, step.f, pal, rng)
+			if def.stop and (stops[step.f] or 0) < ctx.stopsPerKind then
+				stops[step.f] = (stops[step.f] or 0) + 1
+				local at = frame:PointToWorldSpace(Vector3.new(0, 0, def.d / 2 + aisle + ctx.stopClear + 0.4))
+				local middle = frame.Position
+				ctx.addStop(room, at.X, at.Z, def.stop, middle.X, middle.Z)
+			end
+		end)
+	end
+
+	-- Pieces against the walls first: they claim the walls.
+	local frees: { Step } = {}
+	for _, step in recipe.steps do
+		assert(defs[step.f], `Unknown fab {step.f} in recipe {archetype}`)
 		if step.m == "wall" then
-			local spacing = def.w + (step.gap or 2)
-			local wallPlaced: number = ctx.alongWalls(
-				room,
-				spacing,
-				def.w,
-				def.d + 1.5,
-				step.n,
-				function(spot: any): boolean
-					local frame = CFrame.new(spot.wallX + spot.nx * def.d / 2, floorY, spot.wallZ + spot.nz * def.d / 2)
-						* CFrame.Angles(0, math.atan2(spot.nx, spot.nz), 0)
-					build(ctx, frame, step.f, pal, rng)
-					if def.stop and (stops[step.f] or 0) < ctx.stopsPerKind then
-						stops[step.f] = (stops[step.f] or 0) + 1
-						ctx.stopBefore(room, spot, def.d + 1.5, def.stop)
-					end
-					return true
-				end
-			)
-			table.insert(report, `{step.f} {wallPlaced}/{step.n}`)
+			table.insert(report, `{step.f} {placeWall(step)}/{step.n}`)
 		else
-			local aisle = step.aisle or 2
-			local placed: number = ctx.group(
-				room,
-				def.w + aisle * 2,
-				def.d + aisle * 2,
-				step.n,
-				step.n >= 6, -- many of them are laid out in rows
-				function(frame: CFrame)
-					build(ctx, frame, step.f, pal, rng)
-					if def.stop and (stops[step.f] or 0) < ctx.stopsPerKind then
-						stops[step.f] = (stops[step.f] or 0) + 1
-						local at = frame:PointToWorldSpace(Vector3.new(0, 0, def.d / 2 + aisle + ctx.stopClear + 0.4))
-						local middle = frame.Position
-						ctx.addStop(room, at.X, at.Z, def.stop, middle.X, middle.Z)
-					end
-				end
-			)
-			table.insert(report, `{step.f} {placed}/{step.n}`)
+			table.insert(frees, step)
 		end
+	end
+	-- Then the free-standing groups, a round at a time so every kind gets its share of the floor.
+	local total: { [Step]: number } = {}
+	for _ = 1, FILL_PASSES do
+		if ctx.coverage(room) >= FILL_TARGET then
+			break
+		end
+		local progressed = false
+		for _, step in frees do
+			local cap = if GROWABLE[step.f] then step.n * GROWTH else step.n
+			local done = total[step] or 0
+			if done < cap then
+				local placed = placeFree(step, math.min(cap - done, math.max(1, math.ceil(step.n / 3))))
+				total[step] = done + placed
+				if placed > 0 then
+					progressed = true
+				end
+			end
+		end
+		if not progressed then
+			break
+		end
+	end
+	for _, step in frees do
+		table.insert(report, `{step.f} {total[step] or 0}/{step.n}`)
+	end
+	-- Last, small pieces (plants, lamps, benches) tucked into whatever gaps are left, for the indoor rooms that are still bare (outdoors the walkways stay open).
+	local tucked = 0
+	for _ = 1, FILL_PASSES do
+		if room.kind ~= "indoor" or ctx.span(room) < FILL_NARROW or ctx.coverage(room) >= FILL_TARGET + 0.1 then
+			break
+		end
+		local progressed = false
+		for _, filler in FILLERS do
+			if placeFree({ m = "free", f = filler, n = 4, aisle = 1.5 }, 4) > 0 then
+				progressed = true
+				tucked += 1
+			end
+		end
+		if not progressed then
+			break
+		end
+	end
+	if tucked > 0 then
+		table.insert(report, `gap fillers {tucked}`)
 	end
 	print(`[Gala]      furnish {room.id} ({archetype}): {table.concat(report, ", ")}`)
 end

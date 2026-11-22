@@ -127,6 +127,56 @@ local function buildAccessory(kind: Types.AccessoryKind, color: Color3): Accesso
 		)
 		addExtra(accessory, newPart("Crown", Vector3.new(1.6, 0.8, 1.6), color), CFrame.new(0, 0.5, 0))
 		return accessory
+	elseif kind == "Glasses" then
+		local accessory = newAccessory(
+			"Glasses",
+			"FaceFrontAttachment",
+			newPart("Handle", Vector3.new(1.35, 0.1, 0.1), color),
+			CFrame.new(0, 0.12, -0.05)
+		)
+		for _, x in { -0.4, 0.4 } do
+			local lens = newPart("Lens", Vector3.new(0.5, 0.4, 0.06), Color3.fromRGB(200, 225, 240))
+			lens.Transparency = 0.6
+			addExtra(accessory, lens, CFrame.new(x, 0, -0.03))
+		end
+		return accessory
+	elseif kind == "Scarf" then
+		-- Wrapped round the neck, one end hanging down the front.
+		local accessory = newAccessory(
+			"Scarf",
+			"BodyFrontAttachment",
+			newPart("Handle", Vector3.new(1.9, 0.5, 1.1), color),
+			CFrame.new(0, 0.95, 0.2)
+		)
+		addExtra(accessory, newPart("ScarfEnd", Vector3.new(0.4, 1.1, 0.12), color), CFrame.new(0.5, -0.55, -0.5))
+		return accessory
+	elseif kind == "Necklace" then
+		local accessory = newAccessory(
+			"Necklace",
+			"BodyFrontAttachment",
+			newPart("Handle", Vector3.new(0.9, 0.06, 0.06), color),
+			CFrame.new(0, 0.75, -0.1)
+		)
+		addExtra(
+			accessory,
+			newPart("Pendant", Vector3.new(0.25, 0.25, 0.25), color, Enum.PartType.Ball),
+			CFrame.new(0, -0.2, -0.02)
+		)
+		return accessory
+	elseif kind == "Beard" then
+		return newAccessory(
+			"Beard",
+			"FaceFrontAttachment",
+			newPart("Handle", Vector3.new(1, 0.5, 0.25), color),
+			CFrame.new(0, -0.55, 0)
+		)
+	elseif kind == "Mustache" then
+		return newAccessory(
+			"Mustache",
+			"FaceFrontAttachment",
+			newPart("Handle", Vector3.new(0.7, 0.14, 0.12), color),
+			CFrame.new(0, -0.15, -0.06)
+		)
 	end
 	-- Sunglasses
 	return newAccessory(
@@ -141,11 +191,38 @@ local function buildHair(style: Types.HairStyle, color: Color3): Accessory?
 	if style == "Bald" then
 		return nil
 	end
-	local height = if style == "Crop" then 0.3 else 0.5
+	if style == "Afro" then
+		return newAccessory(
+			"Hair",
+			"HairAttachment",
+			newPart("Handle", Vector3.new(1.9, 1.9, 1.9), color, Enum.PartType.Ball),
+			CFrame.new(0, 0.25, 0.05)
+		)
+	end
+	local height = if style == "Crop" or style == "SlickBack" then 0.3 else 0.5
 	local cap = newPart("Handle", Vector3.new(1.3, height, 1.3), color)
 	local accessory = newAccessory("Hair", "HairAttachment", cap, CFrame.new(0, -0.15, 0))
 	if style == "Long" then
 		addExtra(accessory, newPart("HairBack", Vector3.new(1.3, 1.6, 0.35), color), CFrame.new(0, -0.9, 0.5))
+	elseif style == "Ponytail" then
+		addExtra(accessory, newPart("HairTail", Vector3.new(0.35, 1.3, 0.35), color), CFrame.new(0, -0.7, 0.6))
+	elseif style == "SlickBack" then
+		addExtra(accessory, newPart("HairSlick", Vector3.new(1.3, 0.6, 0.3), color), CFrame.new(0, -0.35, 0.55))
+	elseif style == "Curly" then
+		for _, spot in
+			{
+				Vector3.new(-0.5, 0.35, 0.2),
+				Vector3.new(0.5, 0.35, 0.2),
+				Vector3.new(0, 0.4, -0.4),
+				Vector3.new(0, 0.4, 0.5),
+			}
+		do
+			addExtra(
+				accessory,
+				newPart("HairCurl", Vector3.new(0.6, 0.6, 0.6), color, Enum.PartType.Ball),
+				CFrame.new(spot)
+			)
+		end
 	elseif style == "Bun" then
 		addExtra(
 			accessory,
