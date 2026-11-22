@@ -9,6 +9,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local WeaponController = require(script.Parent.WeaponController)
+local WristWatchController = require(script.Parent.WristWatchController)
 
 type Arm = {
 	side: number,
@@ -177,6 +178,12 @@ local function render()
 		part.LocalTransparencyModifier = if ownerView then 1 else 0
 	end
 	local right, left, drawScale = WeaponController.getHandTargets()
+	-- Checking the wrist watch: the left arm lifts it (the gun has dropped away), whether or not a gun is held.
+	local watchHand = WristWatchController.leftHand(camera)
+	if watchHand then
+		left = watchHand
+		drawScale = if drawScale > 0 then drawScale else 1
+	end
 	for _, arm in arms do
 		arm.upper.Transparency, arm.lower.Transparency, arm.hand.Transparency = 1, 1, 1
 		local target = if arm.side > 0 then right else left

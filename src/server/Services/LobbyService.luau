@@ -2,8 +2,8 @@
 -- Ticket menu-services: queueing and agent select, from the menu into the match.
 --
 -- A player in the menu asks to deploy (RequestStartPreDeploy). Their team's agent select starts and runs the full
--- GameConfig.Lobby.AgentSelectSeconds; it never ends early, and picks can be changed until the cutoff (SPEC_CHANGES
--- 2026-10-25). Teammates still in the menu are brought into the same select. The first teammate to lock in an agent
+-- GameConfig.Lobby.AgentSelectSeconds, and picks can be changed until the cutoff (SPEC_CHANGES 2026-10-25). Once every member
+-- of the team has locked in, the countdown runs down to GameConfig.Lobby.LockedCountdownSeconds (owner test 2026-11-22). Teammates still in the menu are brought into the same select. The first teammate to lock in an agent
 -- gets it; nobody else on the team can lock that agent (META_DRAFT). At the cutoff every member is equipped and spawned.
 --
 -- The state is sent only to the team's own members (CLAUDE.md rule 3: no rival learns a team's agents).
@@ -209,6 +209,18 @@ local function onLockIn(player: Player, request: unknown)
 	end
 	pick.loadout = loadout
 	pick.lockedIn = true
+	-- Once every member has locked in there is nothing left to wait for: the countdown runs down to LockedCountdownSeconds.
+	local everyone = true
+	for _, other in selection.picks do
+		if not other.lockedIn then
+			everyone = false
+		end
+	end
+	local short = now() + GameConfig.Lobby.LockedCountdownSeconds
+	if everyone and selection.endsAt > short then
+		selection.endsAt = short
+		task.delay(GameConfig.Lobby.LockedCountdownSeconds, finish, selection)
+	end
 	broadcast(selection, true)
 end
 

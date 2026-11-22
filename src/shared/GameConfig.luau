@@ -165,6 +165,7 @@ local GameConfig = {
 	-- Spec 3.2 / 3.3: agent select and team colors (in the order teams are assigned).
 	Lobby = {
 		AgentSelectSeconds = 30,
+		LockedCountdownSeconds = 10, -- once every member of a team has locked in, the countdown runs down to this (owner test 2026-11-22)
 		TeamColors = {
 			{ Name = "Cyan", Color = Color3.fromRGB(0, 220, 255) },
 			{ Name = "Magenta", Color = Color3.fromRGB(255, 0, 200) },
@@ -1423,6 +1424,7 @@ local GameConfig = {
 			KickRecoverSpeed = 14, -- per second, how quickly the gun returns from a shot's jolt
 			ReloadDipStuds = 0.9, -- how far the gun lowers while reloading
 			ReloadTilt = 25, -- degrees of roll while reloading
+			WatchLowerStuds = 2.4, -- how far the gun drops (out of view) while the wrist watch is up
 			GunColor = Color3.fromRGB(32, 33, 38),
 			AccentColor = Color3.fromRGB(70, 72, 80),
 		},
@@ -1451,8 +1453,13 @@ local GameConfig = {
 		FaceSize = Vector3.new(0.07, 0.55, 0.55),
 		FaceOffset = CFrame.new(-0.55, 0.2, 0), -- the outer side of the left wrist
 		FirstPerson = { -- your own view: a watch raised at the lower left of the screen
-			Offset = CFrame.new(-0.95, -0.75, -1.7) * CFrame.Angles(math.rad(25), math.rad(30), math.rad(-15)),
-			DownOffset = CFrame.new(0, -0.9, 0.2),
+			-- Camera space (+x right, +y up, -z forward). The left hand holds the watch up as if checking the time: the forearm comes in from the
+			-- lower left (Forearm points from the hand back toward the elbow) and the back of the hand faces the camera. SPEC-QUESTION: guesses.
+			HandPosition = Vector3.new(-0.5, -0.55, -1.3),
+			Forearm = Vector3.new(-0.55, -0.55, 0.65),
+			DownShift = Vector3.new(-0.15, -1.2, 0.3), -- how far the hand sits below its raised place when the watch is down
+			WatchOnHand = Vector3.new(0, 0.3, 0.2), -- the watch's middle, in the hand's own frame (+y toward the wrist, +z the back of the hand)
+			ScreenRotation = 0, -- degrees; turn the watch face if its words read the wrong way up
 			Size = Vector3.new(0.9, 0.12, 0.9),
 			RaiseSeconds = 0.18,
 			BarColor = Color3.fromRGB(90, 220, 255),

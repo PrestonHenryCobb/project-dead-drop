@@ -4345,24 +4345,46 @@ function Build.run(options: {
 			if room.kind ~= "indoor" or room.w then
 				return
 			end
-			local best: Rect? = nil
-			local bestArea = 0
+			-- A rug lies on open floor only: not over a stair, its landing or opening, a doorway, a window or any prop (owner test 2026-11-22: a
+			-- rug covered a wide staircase). It tries each piece of the room, smaller and smaller, and several spots, and is skipped if nothing fits.
+			local pieces: { Rect } = {}
 			for _, piece in piecesOfRoom[room.id] do
-				local p = piece.rect
-				local area = (p.x2 - p.x1) * (p.z2 - p.z1)
-				if area > bestArea then
-					best, bestArea = p, area
+				table.insert(pieces, piece.rect)
+			end
+			table.sort(pieces, function(p, q)
+				return (p.x2 - p.x1) * (p.z2 - p.z1) > (q.x2 - q.x1) * (q.z2 - q.z1)
+			end)
+			local spots = { { 0, 0 }, { -0.25, 0 }, { 0.25, 0 }, { 0, -0.25 }, { 0, 0.25 } }
+			local found: Rect? = nil
+			for _, p in pieces do
+				for _, share in { 0.5, 0.38, 0.28 } do
+					local w = math.min((p.x2 - p.x1) * share, 36)
+					local d = math.min((p.z2 - p.z1) * share, 36)
+					if w < 10 or d < 10 then
+						continue
+					end
+					for _, spot in spots do
+						local cx = (p.x1 + p.x2) / 2 + spot[1] * (p.x2 - p.x1)
+						local cz = (p.z1 + p.z2) / 2 + spot[2] * (p.z2 - p.z1)
+						local rect: Rect = { x1 = cx - w / 2, z1 = cz - d / 2, x2 = cx + w / 2, z2 = cz + d / 2 }
+						if freeFor(room, rect) then
+							found = rect
+							break
+						end
+					end
+					if found then
+						break
+					end
+				end
+				if found then
+					break
 				end
 			end
-			if not best then
+			if not found then
 				return
 			end
-			local w = math.min((best.x2 - best.x1) * 0.5, 36)
-			local d = math.min((best.z2 - best.z1) * 0.5, 36)
-			if w < 10 or d < 10 then
-				return
-			end
-			local cx, cz = (best.x1 + best.x2) / 2, (best.z1 + best.z2) / 2
+			local cx, cz = (found.x1 + found.x2) / 2, (found.z1 + found.z2) / 2
+			local w, d = found.x2 - found.x1, found.z2 - found.z1
 			local floorY = levels[room.level]
 			local color = Dress.RUGS[rng:NextInteger(1, #Dress.RUGS)]
 			for index, size in { Vector3.new(w, 0.12, d), Vector3.new(w - 2.4, 0.16, d - 2.4) } do
