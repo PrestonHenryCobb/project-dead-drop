@@ -215,8 +215,9 @@ local function beginActivity(npc: Npc, now: number, graph: NavGraph.Graph)
 	npc.state = "Idle"
 	npc.speed = npc.baseSpeed
 	local cluster = graph.clusters[npc.node]
-	if cluster and cluster.face then
-		local toward = cluster.face - npc.ground
+	local face = if cluster then cluster.face else graph.faces[npc.node]
+	if face then
+		local toward = face - npc.ground
 		if Vector3.new(toward.X, 0, toward.Z).Magnitude > 1e-3 then
 			npc.yaw = math.atan2(-toward.X, -toward.Z)
 		end

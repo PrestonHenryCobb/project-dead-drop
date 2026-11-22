@@ -231,6 +231,31 @@ local CEILING_PROBE_STUDS = 1.5 -- a ceiling light needs map geometry this close
 local DOOR_CLEAR = 7 -- studs props keep clear in front of a doorway
 local CRATES_PER_ROOM = 14 -- crates tried in a storage room; more choke the routes NPCs need
 local PLACE_STEP = 3 -- studs between the spots tried along a wall for a placed object
+-- Dressing (owner test 2026-11-21): how much of each piece a room gets, and where an NPC stops to use one.
+local DRESS = {
+	StopOffset = 5.2, -- from a wall to an NPC using a piece against it (clear of the piece's reserved strip and a node's prop clearance)
+	StopClear = 3.2, -- from the edge of a free-standing piece
+	StopSpacing = 5, -- a stop within this of an existing node retags that node instead of adding another
+	StopsPerKind = 3, -- stops one room registers for one kind of piece
+	PaintingSpacing = 24,
+	PaintingsPerRoom = 4,
+	SconceSpacing = 20,
+	SconcesPerRoom = 4,
+	PlantsPerRoom = 4,
+	ShrubsPerRoom = 14,
+	ChandelierSpacing = 34,
+	ChandeliersPerRoom = 2,
+	SofasPerRoom = 3,
+	ShelvesPerRoom = 5,
+	BunksPerRoom = 4,
+	LockersPerRoom = 8,
+	FilingPerRoom = 6,
+	ShelvingPerRoom = 5,
+	BarrelsPerRoom = 8,
+	CountersPerRoom = 4,
+	SlotsPerRoom = 12,
+	LaundryPerRoom = 6,
+}
 local PLACE_SPREAD = 60 -- placed objects in one room are spread up to this far apart
 local NODE_PROP_CLEAR = 3 -- studs a node keeps from a prop
 -- Where a node tries next when its grid spot is taken by a prop, nearest first (studs along x and z).
@@ -3755,6 +3780,217 @@ function Build.run(options: {
 		return toRect(room.rect)
 	end
 
+	-- Dressing (owner test 2026-11-21: the map felt empty). Wall-hung and wall-standing pieces go along a room's walls, clear of doorways,
+	-- windows, stairs and other props; each piece NPCs would use also registers a task stop, which buildNodes turns into an NPC node beside it
+	-- doing the matching activity and facing the piece, so the details match where NPCs stop.
+	local Dress: { [string]: any } = {}
+	type TaskStop = { level: string, x: number, z: number, activity: string, faceX: number, faceZ: number }
+	Dress.stops = {}
+	function Dress.addStop(room: Room, x: number, z: number, activity: string, faceX: number, faceZ: number)
+		table.insert(
+			Dress.stops,
+			{ level = room.level, x = x, z = z, activity = activity, faceX = faceX, faceZ = faceZ }
+		)
+	end
+
+	-- Is this wall the building's outside (glass)? Nothing is hung on glass.
+	function Dress.exteriorSide(room: Room, axis: string, line: number): boolean
+		if not room.glass then
+			return false
+		end
+		for _, edge in edges do
+			if
+				edge.level == room.level
+				and edge.axis == axis
+				and math.abs(edge.line - line) < EPS
+				and (edge.roomA.id == room.id or (edge.roomB ~= nil and edge.roomB.id == room.id))
+				and edge.kind ~= "shared"
+			then
+				return true
+			end
+		end
+		return false
+	end
+
+	function Dress.insidePiece(room: Room, x: number, z: number, margin: number): boolean
+		for _, piece in piecesOfRoom[room.id] do
+			local p = piece.rect
+			if x >= p.x1 + margin and x <= p.x2 - margin and z >= p.z1 + margin and z <= p.z2 - margin then
+				return true
+			end
+		end
+		return false
+	end
+
+	type WallSpot = {
+		wallX: number, -- the point on the wall surface this piece is centred on
+		wallZ: number,
+		nx: number, -- unit step into the room
+		nz: number,
+		tx: number, -- unit step along the wall
+		tz: number,
+	}
+	-- Calls place for spots along the walls of an indoor room (up to limit that place accepts). width runs along the wall, depth into the room.
+	function Dress.alongWalls(
+		room: Room,
+		spacing: number,
+		width: number,
+		depth: number,
+		limit: number,
+		place: (WallSpot) -> boolean
+	)
+		if room.kind ~= "indoor" then
+			return
+		end
+		local count = 0
+		for _, piece in piecesOfRoom[room.id] do
+			local r = piece.rect
+			for _, side in
+				{
+					{ nx = 0, nz = 1, line = r.z1, a = r.x1, b = r.x2 },
+					{ nx = 0, nz = -1, line = r.z2, a = r.x1, b = r.x2 },
+					{ nx = 1, nz = 0, line = r.x1, a = r.z1, b = r.z2 },
+					{ nx = -1, nz = 0, line = r.x2, a = r.z1, b = r.z2 },
+				}
+			do
+				local facesVoid = false
+				for _, void in voidRects[room.level] or {} do
+					local onLine = if side.nz ~= 0
+						then math.abs(void.z1 - side.line) < EPS or math.abs(void.z2 - side.line) < EPS
+						else math.abs(void.x1 - side.line) < EPS or math.abs(void.x2 - side.line) < EPS
+					if onLine then
+						facesVoid = true
+					end
+				end
+				if facesVoid or Dress.exteriorSide(room, if side.nz ~= 0 then "x" else "z", side.line) then
+					continue
+				end
+				local t = side.a + width / 2 + 3 + rng:NextNumber(0, spacing / 2)
+				while t <= side.b - width / 2 - 3 and count < limit do
+					local across = side.line + (side.nx + side.nz) * (2 + depth / 2) -- the spot freeFor checks, 2 studs from the wall
+					local cx = if side.nz ~= 0 then t else across
+					local cz = if side.nz ~= 0 then across else t
+					local hw, hd =
+						if side.nz ~= 0 then width / 2 else depth / 2, if side.nz ~= 0 then depth / 2 else width / 2
+					local rect: Rect = { x1 = cx - hw, z1 = cz - hd, x2 = cx + hw, z2 = cz + hd }
+					if freeFor(room, rect) then
+						local spot: WallSpot = {
+							wallX = if side.nz ~= 0 then t else side.line + side.nx * (WALL_T / 2 + 0.1),
+							wallZ = if side.nz ~= 0 then side.line + side.nz * (WALL_T / 2 + 0.1) else t,
+							nx = side.nx,
+							nz = side.nz,
+							tx = math.abs(side.nz),
+							tz = math.abs(side.nx),
+						}
+						if place(spot) then
+							count += 1
+							table.insert(propRects[room.level], rect)
+						end
+					end
+					t += spacing
+				end
+			end
+		end
+	end
+
+	-- One box of a wall piece: `along` studs along the wall, `out` studs from the wall to its middle, `up` studs above the floor.
+	-- size is (along the wall, height, depth into the room).
+	function Dress.dress(
+		name: string,
+		spot: WallSpot,
+		floorY: number,
+		along: number,
+		out: number,
+		up: number,
+		size: Vector3,
+		color: Color3,
+		material: Enum.Material?,
+		solid: boolean?
+	): Part
+		local pos = Vector3.new(
+			spot.wallX + spot.nx * out + spot.tx * along,
+			floorY + up,
+			spot.wallZ + spot.nz * out + spot.tz * along
+		)
+		local p = part(propsFolder, name, size, CFrame.lookAt(pos, pos + Vector3.new(spot.nx, 0, spot.nz)), color)
+		if material then
+			p.Material = material
+		end
+		if solid == false then
+			p.CanCollide = false
+		end
+		return p
+	end
+
+	-- A task stop in front of a wall piece of this depth, facing it.
+	function Dress.stopBefore(room: Room, spot: WallSpot, depth: number, activity: string)
+		local reach = depth + DRESS.StopOffset
+		Dress.addStop(
+			room,
+			spot.wallX + spot.nx * reach,
+			spot.wallZ + spot.nz * reach,
+			activity,
+			spot.wallX + spot.nx * depth / 2,
+			spot.wallZ + spot.nz * depth / 2
+		)
+	end
+
+	-- An Dress.upright cylinder (a pot, a barrel) standing on the floor.
+	function Dress.upright(
+		name: string,
+		x: number,
+		z: number,
+		floorY: number,
+		height: number,
+		diameter: number,
+		color: Color3
+	): Part
+		local p = part(
+			propsFolder,
+			name,
+			Vector3.new(height, diameter, diameter),
+			CFrame.new(x, floorY + height / 2, z) * CFrame.Angles(0, 0, math.rad(90)),
+			color
+		)
+		p.Shape = Enum.PartType.Cylinder
+		return p
+	end
+
+	Dress.PAINTINGS = {
+		Color3.fromRGB(150, 70, 60),
+		Color3.fromRGB(70, 100, 140),
+		Color3.fromRGB(190, 160, 90),
+		Color3.fromRGB(70, 110, 85),
+		Color3.fromRGB(120, 80, 130),
+		Color3.fromRGB(200, 195, 180),
+	}
+	Dress.FABRICS = {
+		Color3.fromRGB(110, 40, 50),
+		Color3.fromRGB(45, 70, 100),
+		Color3.fromRGB(70, 85, 60),
+		Color3.fromRGB(95, 80, 65),
+		Color3.fromRGB(60, 55, 75),
+	}
+	Dress.BOOKS = {
+		Color3.fromRGB(120, 50, 45),
+		Color3.fromRGB(50, 70, 110),
+		Color3.fromRGB(70, 95, 60),
+		Color3.fromRGB(140, 110, 60),
+		Color3.fromRGB(85, 60, 100),
+	}
+	Dress.RUGS = {
+		Color3.fromRGB(120, 45, 55),
+		Color3.fromRGB(50, 70, 105),
+		Color3.fromRGB(95, 85, 60),
+		Color3.fromRGB(60, 85, 80),
+	}
+	Dress.BANNERS = { Color3.fromRGB(110, 30, 40), Color3.fromRGB(30, 45, 85), Color3.fromRGB(150, 120, 50) }
+	Dress.DARK_WOOD = Color3.fromRGB(70, 50, 38)
+	Dress.BRASS = Color3.fromRGB(190, 150, 70)
+	Dress.WARM = Color3.fromRGB(255, 214, 150)
+	Dress.STEEL = Color3.fromRGB(175, 180, 188)
+	Dress.SLOT_SCREENS = { Color3.fromRGB(90, 220, 255), Color3.fromRGB(255, 90, 200), Color3.fromRGB(255, 200, 70) }
+
 	local propBuilders: { [string]: (Room) -> () } = {
 		pillars = function(room)
 			local b = bounds(room)
@@ -3785,6 +4021,7 @@ function Build.run(options: {
 		end,
 		tables = function(room)
 			local b = bounds(room)
+			local before = #propRects[room.level]
 			if room.kind == "indoor" and (styleOf(room) == "deco" or styleOf(room) == "casino") then
 				local seatSize = Sculptures.referenceSize("Settee")
 				local color = if styleOf(room) == "casino"
@@ -3823,6 +4060,11 @@ function Build.run(options: {
 					z += 17
 				end
 				x += 17
+			end
+			for index = before + 1, math.min(#propRects[room.level], before + DRESS.StopsPerKind) do
+				local r = propRects[room.level][index]
+				local midZ = (r.z1 + r.z2) / 2
+				Dress.addStop(room, r.x2 + DRESS.StopClear, midZ, "Talk", (r.x1 + r.x2) / 2, midZ)
 			end
 		end,
 		crates = function(room)
@@ -3863,11 +4105,15 @@ function Build.run(options: {
 		end,
 		desks = function(room)
 			local b = bounds(room)
+			local stops = 0
 			local x = b.x1 + 14
 			while x < b.x2 - 8 do
 				local z = b.z1 + 12
 				while z < b.z2 - 8 do
-					addProp(room, "Desk", x, z, 8, 3, 4, WOOD)
+					if addProp(room, "Desk", x, z, 8, 3, 4, WOOD) and stops < DRESS.StopsPerKind then
+						stops += 1
+						Dress.addStop(room, x, z + 2 + DRESS.StopClear, "Work", x, z)
+					end
 					z += 16
 				end
 				x += 18
@@ -3875,11 +4121,21 @@ function Build.run(options: {
 		end,
 		reception = function(room)
 			local b = bounds(room)
-			addProp(room, "Reception desk", (b.x1 + b.x2) / 2, b.z1 + 14, 26, 4, 6, WOOD)
+			local mid = (b.x1 + b.x2) / 2
+			if addProp(room, "Reception desk", mid, b.z1 + 14, 26, 4, 6, WOOD) then
+				for _, offset in { -6, 6 } do
+					Dress.addStop(room, mid + offset, b.z1 + 14 + 3 + DRESS.StopClear, "Lean", mid + offset, b.z1 + 14)
+				end
+			end
 		end,
 		bar = function(room)
 			local b = bounds(room)
-			addProp(room, "Bar counter", (b.x1 + b.x2) / 2, b.z1 + 12, 34, 4, 4, WOOD)
+			local mid = (b.x1 + b.x2) / 2
+			if addProp(room, "Bar counter", mid, b.z1 + 12, 34, 4, 4, WOOD) then
+				for _, offset in { -10, 0, 10 } do
+					Dress.addStop(room, mid + offset, b.z1 + 12 + 2 + DRESS.StopClear, "Drink", mid + offset, b.z1 + 12)
+				end
+			end
 			addProp(room, "Bar shelves", (b.x1 + b.x2) / 2, b.z1 + 5, 34, 8, 2, METAL)
 		end,
 		partitions = function(room)
@@ -3931,6 +4187,549 @@ function Build.run(options: {
 					canopy.Shape = Enum.PartType.Ball
 					canopy.CanCollide = false
 				end
+			end
+		end,
+		-- Dressing builders (see Dress.alongWalls). Each keeps to the numbers at the top of this file so a room is furnished, not packed.
+		paintings = function(room)
+			local floorY = levels[room.level]
+			local stops = 0
+			Dress.alongWalls(room, DRESS.PaintingSpacing, 8, 1, DRESS.PaintingsPerRoom, function(spot)
+				Dress.dress(
+					"Frame",
+					spot,
+					floorY,
+					0,
+					0.25,
+					11,
+					Vector3.new(8.6, 6.6, 0.4),
+					Dress.DARK_WOOD,
+					Enum.Material.Wood,
+					false
+				)
+				Dress.dress(
+					"Painting",
+					spot,
+					floorY,
+					0,
+					0.5,
+					11,
+					Vector3.new(7.6, 5.6, 0.2),
+					Dress.PAINTINGS[rng:NextInteger(1, #Dress.PAINTINGS)],
+					Enum.Material.SmoothPlastic,
+					false
+				)
+				if stops < DRESS.StopsPerKind then
+					stops += 1
+					Dress.stopBefore(room, spot, 1, "Art")
+				end
+				return true
+			end)
+		end,
+		sconces = function(room)
+			local floorY = levels[room.level]
+			Dress.alongWalls(room, DRESS.SconceSpacing, 1.6, 1, DRESS.SconcesPerRoom, function(spot)
+				Dress.dress(
+					"Sconce",
+					spot,
+					floorY,
+					0,
+					0.4,
+					13.5,
+					Vector3.new(1.2, 2.2, 0.8),
+					Dress.WARM,
+					Enum.Material.Neon,
+					false
+				)
+				return true
+			end)
+		end,
+		banners = function(room)
+			local floorY = levels[room.level]
+			Dress.alongWalls(room, 28, 3.2, 0.6, 4, function(spot)
+				Dress.dress(
+					"Banner",
+					spot,
+					floorY,
+					0,
+					0.3,
+					12,
+					Vector3.new(3.2, 13, 0.3),
+					Dress.BANNERS[rng:NextInteger(1, #Dress.BANNERS)],
+					Enum.Material.Fabric,
+					false
+				)
+				return true
+			end)
+		end,
+		plants = function(room)
+			local floorY = levels[room.level]
+			Dress.alongWalls(room, 15, 3, 3, DRESS.PlantsPerRoom, function(spot)
+				local x, z = spot.wallX + spot.nx * 1.6, spot.wallZ + spot.nz * 1.6
+				Dress.upright("Pot", x, z, floorY, 2.4, 2.6, Color3.fromRGB(150, 100, 70))
+				local leaves = part(
+					propsFolder,
+					"Plant",
+					Vector3.new(4.2, 4.6, 4.2),
+					CFrame.new(x, floorY + 4.7, z),
+					Color3.fromRGB(50 + rng:NextInteger(0, 25), 105 + rng:NextInteger(0, 30), 55)
+				)
+				leaves.Shape = Enum.PartType.Ball
+				leaves.CanCollide = false
+				return true
+			end)
+		end,
+		shrubs = function(room)
+			local b = bounds(room)
+			local floorY = levels[room.level]
+			for _ = 1, DRESS.ShrubsPerRoom do
+				local x, z = rng:NextNumber(b.x1 + 6, b.x2 - 6), rng:NextNumber(b.z1 + 6, b.z2 - 6)
+				local rect: Rect = { x1 = x - 2, z1 = z - 2, x2 = x + 2, z2 = z + 2 }
+				if freeFor(room, rect) then
+					local bush = part(
+						propsFolder,
+						"Shrub",
+						Vector3.new(3.8, 3.2, 3.8),
+						CFrame.new(x, floorY + 1.6, z),
+						Color3.fromRGB(45 + rng:NextInteger(0, 25), 95 + rng:NextInteger(0, 35), 50)
+					)
+					bush.Shape = Enum.PartType.Ball
+					table.insert(propRects[room.level], rect)
+				end
+			end
+		end,
+		chandeliers = function(room)
+			if room.kind ~= "indoor" then
+				return
+			end
+			local b = bounds(room)
+			local top = levels[room.level] + roomHeight(room)
+			local hung = 0
+			local x = b.x1 + DRESS.ChandelierSpacing / 2
+			while x < b.x2 and hung < DRESS.ChandeliersPerRoom do
+				local z = b.z1 + DRESS.ChandelierSpacing / 2
+				while z < b.z2 and hung < DRESS.ChandeliersPerRoom do
+					if Dress.insidePiece(room, x, z, 5) then
+						hung += 1
+						local cord = part(
+							propsFolder,
+							"ChandelierCord",
+							Vector3.new(0.3, 3, 0.3),
+							CFrame.new(x, top - 1.5, z),
+							Dress.DARK_WOOD
+						)
+						cord.CanCollide = false
+						local hoop = Dress.upright("Chandelier", x, z, top - 4.3, 0.6, 6, Dress.BRASS)
+						hoop.CanCollide = false
+						local glow = part(
+							propsFolder,
+							"ChandelierGlow",
+							Vector3.new(2.2, 2.2, 2.2),
+							CFrame.new(x, top - 5.4, z),
+							Dress.WARM
+						)
+						glow.Shape = Enum.PartType.Ball
+						glow.Material = Enum.Material.Neon
+						glow.CanCollide = false
+					end
+					z += DRESS.ChandelierSpacing
+				end
+				x += DRESS.ChandelierSpacing
+			end
+		end,
+		rugs = function(room)
+			if room.kind ~= "indoor" or room.w then
+				return
+			end
+			local best: Rect? = nil
+			local bestArea = 0
+			for _, piece in piecesOfRoom[room.id] do
+				local p = piece.rect
+				local area = (p.x2 - p.x1) * (p.z2 - p.z1)
+				if area > bestArea then
+					best, bestArea = p, area
+				end
+			end
+			if not best then
+				return
+			end
+			local w = math.min((best.x2 - best.x1) * 0.5, 36)
+			local d = math.min((best.z2 - best.z1) * 0.5, 36)
+			if w < 10 or d < 10 then
+				return
+			end
+			local cx, cz = (best.x1 + best.x2) / 2, (best.z1 + best.z2) / 2
+			local floorY = levels[room.level]
+			local color = Dress.RUGS[rng:NextInteger(1, #Dress.RUGS)]
+			for index, size in { Vector3.new(w, 0.12, d), Vector3.new(w - 2.4, 0.16, d - 2.4) } do
+				local rug = part(
+					propsFolder,
+					"Rug",
+					size,
+					CFrame.new(cx, floorY + size.Y / 2, cz),
+					if index == 1 then Color3.fromRGB(190, 165, 110) else color
+				)
+				rug.CanCollide, rug.CanQuery, rug.CanTouch, rug.CastShadow = false, false, false, false
+				rug.Material = Enum.Material.Fabric
+			end
+		end,
+		sofas = function(room)
+			local floorY = levels[room.level]
+			local stops = 0
+			Dress.alongWalls(room, 16, 7.6, 3.4, DRESS.SofasPerRoom, function(spot)
+				local fabric = Dress.FABRICS[rng:NextInteger(1, #Dress.FABRICS)]
+				Dress.dress(
+					"SofaSeat",
+					spot,
+					floorY,
+					0,
+					1.7,
+					1.1,
+					Vector3.new(7, 2.2, 3.4),
+					fabric,
+					Enum.Material.Fabric
+				)
+				Dress.dress("SofaBack", spot, floorY, 0, 0.5, 3.8, Vector3.new(7, 3.2, 1), fabric, Enum.Material.Fabric)
+				for _, side in { -3.2, 3.2 } do
+					Dress.dress(
+						"SofaArm",
+						spot,
+						floorY,
+						side,
+						1.7,
+						1.6,
+						Vector3.new(0.8, 3.2, 3.4),
+						fabric,
+						Enum.Material.Fabric
+					)
+				end
+				if stops < DRESS.StopsPerKind then
+					stops += 1
+					Dress.stopBefore(room, spot, 3.4, "Sit")
+				end
+				return true
+			end)
+		end,
+		bookshelves = function(room)
+			local floorY = levels[room.level]
+			Dress.alongWalls(room, 12, 9, 1.8, DRESS.ShelvesPerRoom, function(spot)
+				Dress.dress(
+					"Bookcase",
+					spot,
+					floorY,
+					0,
+					0.9,
+					6,
+					Vector3.new(9, 12, 1.8),
+					Dress.DARK_WOOD,
+					Enum.Material.Wood
+				)
+				for row = 0, 3 do
+					Dress.dress(
+						"Books",
+						spot,
+						floorY,
+						0,
+						1.3,
+						2.2 + row * 2.7,
+						Vector3.new(8.2, 1.9, 1.2),
+						Dress.BOOKS[rng:NextInteger(1, #Dress.BOOKS)],
+						Enum.Material.SmoothPlastic,
+						false
+					)
+				end
+				return true
+			end)
+		end,
+		beds = function(room)
+			local floorY = levels[room.level]
+			Dress.alongWalls(room, 30, 7, 9.5, 2, function(spot)
+				Dress.dress(
+					"BedFrame",
+					spot,
+					floorY,
+					0,
+					4.75,
+					0.8,
+					Vector3.new(7, 1.6, 9.5),
+					Dress.DARK_WOOD,
+					Enum.Material.Wood
+				)
+				Dress.dress(
+					"Mattress",
+					spot,
+					floorY,
+					0,
+					4.75,
+					2.1,
+					Vector3.new(6.6, 1, 9),
+					Color3.fromRGB(235, 232, 225),
+					Enum.Material.Fabric
+				)
+				Dress.dress(
+					"Headboard",
+					spot,
+					floorY,
+					0,
+					0.3,
+					2.25,
+					Vector3.new(7, 4.5, 0.6),
+					Dress.DARK_WOOD,
+					Enum.Material.Wood
+				)
+				for _, side in { -1.8, 1.8 } do
+					Dress.dress(
+						"Pillow",
+						spot,
+						floorY,
+						side,
+						1.6,
+						2.9,
+						Vector3.new(2.8, 0.7, 1.6),
+						Color3.fromRGB(245, 242, 236),
+						Enum.Material.Fabric,
+						false
+					)
+				end
+				return true
+			end)
+		end,
+		bunks = function(room)
+			local floorY = levels[room.level]
+			local stops = 0
+			Dress.alongWalls(room, 14, 7, 3.4, DRESS.BunksPerRoom, function(spot)
+				for _, level in { 2.6, 5.6 } do
+					Dress.dress(
+						"Bunk",
+						spot,
+						floorY,
+						0,
+						1.7,
+						level,
+						Vector3.new(6.8, 0.8, 3.2),
+						Color3.fromRGB(70, 85, 110),
+						Enum.Material.Fabric
+					)
+				end
+				for _, side in { -3.3, 3.3 } do
+					for _, out in { 0.2, 3.2 } do
+						Dress.dress("BunkPost", spot, floorY, side, out, 3.8, Vector3.new(0.4, 7.6, 0.4), METAL)
+					end
+				end
+				if stops < DRESS.StopsPerKind then
+					stops += 1
+					Dress.stopBefore(room, spot, 3.4, "Lean")
+				end
+				return true
+			end)
+		end,
+		lockers = function(room)
+			local floorY = levels[room.level]
+			local stops = 0
+			Dress.alongWalls(room, 4, 3.6, 2, DRESS.LockersPerRoom, function(spot)
+				Dress.dress(
+					"Locker",
+					spot,
+					floorY,
+					0,
+					1,
+					4.5,
+					Vector3.new(3.6, 9, 2),
+					Color3.fromRGB(85, 95, 110),
+					Enum.Material.Metal
+				)
+				if stops < 1 then
+					stops += 1
+					Dress.stopBefore(room, spot, 2, "Lean")
+				end
+				return true
+			end)
+		end,
+		filing = function(room)
+			local floorY = levels[room.level]
+			Dress.alongWalls(room, 4.5, 3, 2.2, DRESS.FilingPerRoom, function(spot)
+				Dress.dress(
+					"FilingCabinet",
+					spot,
+					floorY,
+					0,
+					1.1,
+					3,
+					Vector3.new(3, 6, 2.2),
+					Color3.fromRGB(120, 125, 130),
+					Enum.Material.Metal
+				)
+				return true
+			end)
+		end,
+		shelving = function(room)
+			local floorY = levels[room.level]
+			Dress.alongWalls(room, 13, 10, 2.4, DRESS.ShelvingPerRoom, function(spot)
+				for _, side in { -4.8, 4.8 } do
+					Dress.dress("ShelfPost", spot, floorY, side, 1.2, 5, Vector3.new(0.4, 10, 2.4), METAL)
+				end
+				for _, height in { 2.5, 5.5, 8.5 } do
+					Dress.dress("Shelf", spot, floorY, 0, 1.2, height, Vector3.new(10, 0.3, 2.4), METAL)
+					Dress.dress(
+						"StoredBox",
+						spot,
+						floorY,
+						rng:NextNumber(-3, 3),
+						1.2,
+						height + 0.15 + 0.7,
+						Vector3.new(rng:NextNumber(1.5, 3), 1.4, 1.8),
+						Color3.fromRGB(150 + rng:NextInteger(-20, 20), 120, 85),
+						Enum.Material.Cardboard,
+						false
+					)
+				end
+				return true
+			end)
+		end,
+		winerack = function(room)
+			local floorY = levels[room.level]
+			Dress.alongWalls(room, 10, 8, 2.2, DRESS.ShelvesPerRoom, function(spot)
+				Dress.dress(
+					"WineRack",
+					spot,
+					floorY,
+					0,
+					1.1,
+					4.5,
+					Vector3.new(8, 9, 2.2),
+					Dress.DARK_WOOD,
+					Enum.Material.Wood
+				)
+				for row = 0, 3 do
+					Dress.dress(
+						"Bottles",
+						spot,
+						floorY,
+						0,
+						1.6,
+						1.8 + row * 2.1,
+						Vector3.new(7.4, 1.1, 1.4),
+						Color3.fromRGB(35, 65, 45),
+						Enum.Material.Glass,
+						false
+					)
+				end
+				return true
+			end)
+		end,
+		barrels = function(room)
+			local b = bounds(room)
+			for _ = 1, DRESS.BarrelsPerRoom do
+				addProp(
+					room,
+					"Barrel",
+					rng:NextNumber(b.x1 + 8, b.x2 - 8),
+					rng:NextNumber(b.z1 + 8, b.z2 - 8),
+					3.2,
+					3.8,
+					3.2,
+					WOOD,
+					true,
+					true
+				)
+			end
+		end,
+		counters = function(room)
+			local floorY = levels[room.level]
+			local stops = 0
+			Dress.alongWalls(room, 11, 10, 3, DRESS.CountersPerRoom, function(spot)
+				Dress.dress(
+					"Counter",
+					spot,
+					floorY,
+					0,
+					1.5,
+					1.7,
+					Vector3.new(10, 3.4, 3),
+					Dress.STEEL,
+					Enum.Material.Metal
+				)
+				Dress.dress(
+					"CounterTop",
+					spot,
+					floorY,
+					0,
+					1.6,
+					3.55,
+					Vector3.new(10.2, 0.3, 3.2),
+					Color3.fromRGB(215, 218, 222),
+					Enum.Material.Metal
+				)
+				if stops < DRESS.StopsPerKind then
+					stops += 1
+					Dress.stopBefore(room, spot, 3, "Lean")
+				end
+				return true
+			end)
+		end,
+		slots = function(room)
+			local floorY = levels[room.level]
+			Dress.alongWalls(room, 5, 3.4, 2.6, DRESS.SlotsPerRoom, function(spot)
+				Dress.dress(
+					"SlotMachine",
+					spot,
+					floorY,
+					0,
+					1.3,
+					3.5,
+					Vector3.new(3.4, 7, 2.6),
+					Color3.fromRGB(95, 25, 35),
+					Enum.Material.SmoothPlastic
+				)
+				Dress.dress(
+					"SlotScreen",
+					spot,
+					floorY,
+					0,
+					2.65,
+					5,
+					Vector3.new(2.6, 2.2, 0.15),
+					Dress.SLOT_SCREENS[rng:NextInteger(1, #Dress.SLOT_SCREENS)],
+					Enum.Material.Neon,
+					false
+				)
+				return true
+			end)
+		end,
+		laundry = function(room)
+			local floorY = levels[room.level]
+			Dress.alongWalls(room, 5, 4, 3.6, DRESS.LaundryPerRoom, function(spot)
+				Dress.dress(
+					"Washer",
+					spot,
+					floorY,
+					0,
+					1.8,
+					2.5,
+					Vector3.new(4, 5, 3.6),
+					Color3.fromRGB(230, 232, 235),
+					Enum.Material.SmoothPlastic
+				)
+				Dress.dress(
+					"Porthole",
+					spot,
+					floorY,
+					0,
+					3.65,
+					2.8,
+					Vector3.new(2.2, 2.2, 0.2),
+					Color3.fromRGB(60, 90, 120),
+					Enum.Material.Glass,
+					false
+				)
+				return true
+			end)
+		end,
+		piano = function(room)
+			local b = bounds(room)
+			local x, z = b.x1 + (b.x2 - b.x1) * 0.25, b.z1 + (b.z2 - b.z1) * 0.5
+			if addProp(room, "Piano", x, z, 8, 3.4, 6, Color3.fromRGB(20, 20, 24), true) then
+				addProp(room, "PianoBench", x, z + 5, 4, 1.6, 1.6, Dress.DARK_WOOD, true)
+				Dress.addStop(room, x, z + 8.5, "Idle", x, z)
 			end
 		end,
 	}
@@ -4603,6 +5402,38 @@ function Build.run(options: {
 				activity = node.activity,
 				room = (pieceAt(node.level, node.x, node.z) or { room = { id = nil } }).room.id,
 			})
+		end
+		-- Task stops: a node beside each piece NPCs use, doing the matching activity and facing it (a node already there is retagged).
+		for _, stop in Dress.stops :: { TaskStop } do
+			if blockedForNode(stop.level, stop.x, stop.z) then
+				continue
+			end
+			local retagged = false
+			for _, other in list do
+				if
+					other.level == stop.level
+					and other.cluster == nil
+					and other.stairLink == nil
+					and (other.x - stop.x) ^ 2 + (other.z - stop.z) ^ 2 < DRESS.StopSpacing ^ 2
+				then
+					other.activity, other.faceX, other.faceZ = stop.activity, stop.faceX, stop.faceZ
+					retagged = true
+					break
+				end
+			end
+			local piece = pieceAt(stop.level, stop.x, stop.z)
+			if not retagged and piece then
+				table.insert(list, {
+					level = stop.level,
+					x = stop.x,
+					z = stop.z,
+					tier = tierAtPoint(stop.level, stop.x, stop.z),
+					activity = stop.activity,
+					room = piece.room.id,
+					faceX = stop.faceX,
+					faceZ = stop.faceZ,
+				})
+			end
 		end
 		-- Every doorway gets a walking node on each side so routes connect through it.
 		for _, d in placedDoors do

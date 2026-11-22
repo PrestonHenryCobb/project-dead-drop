@@ -691,6 +691,7 @@ local GameConfig = {
 			Drink = { "Drink" },
 			Work = { "Typing" },
 			Guard = { "GuardStance" },
+			Art = { "LookAtArt" }, -- beside a painting (a task stop: the dressing the NPCs use)
 		},
 		ActivityResyncSeconds = 5, -- the server repeats every NPC's animation this often, so late joiners catch up
 		-- Spec 5.2: NPCs open doors automatically and the doors close DoorCloseDelay after the last body passes.

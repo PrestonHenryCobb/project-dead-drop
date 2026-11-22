@@ -109,13 +109,50 @@ const PROPS = {
 	wt_suite1: ["tables"], wt_suite2: ["tables"], wt_suite3: ["tables"], wt_suite4: ["tables"], wt_suite5: ["tables"],
 	wt_terrace: ["trees", "planters", "tables"], r_deck: ["tables", "planters", "bar"], wr_garden: ["trees", "planters", "bar"], wd_skydeck: ["planters"],
 };
+// Dressing (owner test 2026-11-21): what furnishes each room so it reads as what it is. Built before PROPS, so wall pieces claim their walls first.
+const DRESS = {
+	b_ring_n: ["sconces"], b_ring_s: ["sconces"], b_ring_w: ["sconces"], b_ring_e: ["sconces"],
+	b_stores_w1: ["shelving", "sconces"], b_stores_e1: ["shelving", "sconces"], b_stores_w2: ["laundry", "shelving"], b_cellar: ["winerack", "barrels", "sconces"],
+	b_gate: ["sconces"], b_camera: ["filing", "sconces"], b_barracks: ["bunks", "lockers", "sconces"], b_muster: ["sconces"], b_armory: ["lockers", "shelving"],
+	b_mess: ["counters", "sconces"], b_spine: ["sconces"], wb_security: ["filing", "lockers"], wb_linen: ["shelving"], wb_laundry: ["laundry"],
+	wb_service: ["sconces"], wb_boiler: ["sconces"],
+	g_atrium: ["banners", "plants"], g_ring_n: ["sconces", "paintings"], g_ring_s: ["sconces", "paintings"], g_ring_w: ["sconces", "paintings"], g_ring_e: ["sconces", "paintings"],
+	g_gallery: ["paintings", "banners", "rugs", "sofas", "sconces"], g_concierge: ["paintings", "plants", "filing", "sconces", "rugs"], g_coat: ["lockers", "sconces"],
+	g_ballroom: ["rugs", "chandeliers", "paintings", "sconces", "banners", "plants", "piano"], g_bar: ["chandeliers", "sconces", "paintings", "plants", "sofas"],
+	g_dining: ["rugs", "chandeliers", "paintings", "sconces", "plants"], g_kitchen: ["counters", "shelving"], g_pantry: ["shelving", "counters"],
+	g_service_n: ["sconces"], g_vaultc_ante: ["sconces"],
+	g_library: ["bookshelves", "rugs", "sofas", "paintings", "chandeliers", "plants", "sconces"],
+	g_lobby: ["rugs", "chandeliers", "paintings", "plants", "sofas", "sconces", "banners"],
+	g_lounge: ["rugs", "sofas", "bookshelves", "paintings", "sconces", "plants", "piano", "chandeliers"],
+	wg_casino: ["slots", "chandeliers", "rugs", "sconces", "plants"], wg_entry: ["plants", "paintings", "sconces", "chandeliers", "sofas"],
+	wg_cage: ["filing", "sconces"], wg_highroller: ["rugs", "sofas", "chandeliers", "paintings", "plants", "sconces", "bookshelves"],
+	m_balcony: ["paintings", "plants", "sconces", "sofas"], m_gallery: ["paintings", "banners", "sofas", "sconces"], m_ball_gal: ["paintings", "sofas", "sconces", "plants"],
+	m_bridge_hall: ["paintings", "sconces", "plants"], m_bar_loft: ["sofas", "sconces", "paintings"], m_offices: ["filing", "bookshelves", "plants", "sconces"],
+	m_hub: ["filing", "sconces"], m_records: ["bookshelves", "filing", "rugs"], m_catering: ["filing", "counters", "plants"],
+	m_wine: ["winerack", "sofas", "rugs", "sconces", "paintings"], m_stairhall: ["banners", "paintings", "plants", "rugs", "chandeliers", "sconces"],
+	m_cigar: ["sofas", "rugs", "bookshelves", "paintings", "sconces", "plants"],
+	wm_lobby: ["rugs", "chandeliers", "plants", "paintings", "sofas", "sconces"], wm_bar: ["sofas", "chandeliers", "sconces", "plants", "paintings"],
+	wm_housekeeping: ["laundry", "shelving"],
+	t_west: ["sconces"], t_east: ["sconces"], t_guard_nw: ["lockers", "sconces"], t_guard_ne: ["lockers", "sconces"], t_vaultb_ante: ["paintings", "sconces"],
+	t_great: ["rugs", "chandeliers", "sofas", "paintings", "bookshelves", "plants", "sconces", "banners"], t_gallery: ["paintings", "sofas", "sconces", "rugs"],
+	t_panic: ["sconces"], t_office: ["bookshelves", "filing", "rugs", "sconces", "paintings"],
+	wt_arcade: ["paintings", "plants", "sconces", "sofas"],
+	wt_suite1: ["beds", "rugs", "sofas", "bookshelves", "paintings", "sconces", "plants"], wt_suite2: ["beds", "rugs", "sofas", "bookshelves", "paintings", "sconces", "plants"],
+	wt_suite3: ["beds", "rugs", "sofas", "bookshelves", "paintings", "sconces", "plants"], wt_suite4: ["beds", "rugs", "sofas", "bookshelves", "paintings", "sconces", "plants"],
+	wt_suite5: ["beds", "rugs", "sofas", "bookshelves", "paintings", "sconces", "plants"], wt_exec: ["beds", "rugs", "sofas", "bookshelves", "paintings", "sconces", "plants"],
+	r_summit: ["rugs", "chandeliers", "paintings", "sconces", "plants", "banners"], r_plant: ["shelving", "sconces"], wr_plant: ["shelving"],
+	s_sanctum: ["rugs", "chandeliers", "paintings", "sconces", "sofas", "bookshelves"], s_foyer: ["rugs", "paintings", "sconces", "plants"],
+	m_ter_n: ["shrubs"], m_ter_s: ["shrubs"], m_ter_w: ["shrubs"], m_ter_e: ["shrubs"], t_ter_n: ["shrubs"], t_ter_s: ["shrubs"], t_ter_w: ["shrubs"], t_ter_e: ["shrubs"],
+	wt_terrace: ["shrubs"], r_deck: ["shrubs"], wr_garden: ["shrubs"], r_deck_w: ["shrubs"], wd_skydeck: ["shrubs"],
+};
+for (const id of Object.keys(DRESS)) if (!rooms.some((r) => r.id === id)) bad(`dressing room ${id} does not exist`);
 const DENSITY = {
 	g_atrium: 2, g_ballroom: 2, g_bar: 1.6, g_dining: 1.3, g_gallery: 1.4, g_lobby: 1.5, m_balcony: 1.2, wg_casino: 2, wm_lobby: 1.4, wm_bar: 1.4, r_deck: 2,
 	wr_garden: 1.5, b_muster: 1, t_great: 1, wt_terrace: 1, m_ball_gal: 1.2, m_gallery: 1.2, m_stairhall: 1.2, g_privdining: 0.6, wg_cardroom: 1.2,
 };
 const THEME = { A: "bank", B: "gallery", C: "cold", D: "counting", E: "observatory" };
 for (const r of rooms) {
-	if (PROPS[r.id]) r.props = PROPS[r.id];
+	if (PROPS[r.id] || DRESS[r.id]) r.props = [...(DRESS[r.id] || []), ...(PROPS[r.id] || [])];
 	if (DENSITY[r.id]) r.density = DENSITY[r.id];
 	if (r.kind === "indoor" && r.tier === 0 && !r.w) r.glass = true; // windows onto the city on every public facade
 	if (r.vault && r.tier === 3 && r.id !== "s_sanctum") { r.noNodes = true; r.theme = THEME[r.vault]; }
@@ -782,10 +819,14 @@ push("\t\ttable.insert(placements, { kind = \"intel\", room = roomId, station = 
 push("\tend");
 push("end");
 const PLACE = {
-	intel0: ["g_lobby", "g_atrium", "g_ballroom", "g_bar", "g_lounge", "g_gallery", "m_gallery", "wg_casino", "wm_lobby", "r_deck", "wr_garden", "t_ter_s"],
-	intel1: ["g_kitchen", "g_pantry", "g_coat", "m_offices", "m_catering", "wb_laundry", "wm_housekeeping", "wg_cage", "b_stores_e1", "g_concierge"],
-	intel2: ["b_camera", "b_muster", "m_hub", "t_west", "t_east", "wb_security", "wr_plant", "r_plant"],
-	intel3: ["t_gallery", "b_armory", "wg_highroller", "wt_exec", "t_great", "m_records"],
+	intel0: ["g_lobby", "g_atrium", "g_ballroom", "g_bar", "g_lounge", "g_gallery", "m_gallery", "wg_casino", "wm_lobby", "r_deck", "wr_garden", "t_ter_s",
+		// owner test 2026-11-21: intel was far too sparse, so a second pass of tablets across the public rooms and terraces
+		"g_dining", "g_library", "g_ring_n", "g_ring_s", "g_ballroom", "g_bar", "wg_entry", "wm_bar", "m_balcony", "m_ball_gal", "m_wine", "m_cigar", "m_stairhall", "t_ter_n", "t_ter_w", "t_ter_e", "wt_terrace", "wt_arcade", "r_deck", "wr_garden", "m_ter_n", "m_ter_s"],
+	intel1: ["g_kitchen", "g_pantry", "g_coat", "m_offices", "m_catering", "wb_laundry", "wm_housekeeping", "wg_cage", "b_stores_e1", "g_concierge",
+		"g_service_n", "b_stores_w1", "b_stores_w2", "b_cellar", "wb_linen", "wb_service", "m_offices", "m_catering", "wm_housekeeping"],
+	intel2: ["b_camera", "b_muster", "m_hub", "t_west", "t_east", "wb_security", "wr_plant", "r_plant",
+		"b_barracks", "b_mess", "b_gate", "b_spine", "wb_boiler", "t_guard_nw", "t_guard_ne"],
+	intel3: ["t_gallery", "b_armory", "wg_highroller", "wt_exec", "t_great", "m_records", "b_mess", "t_vaultb_ante"],
 	health: ["g_restroom", "g_staffwc", "m_restroom", "t_washroom", "wm_restroom", "wg_restroom"],
 	ammo: ["g_service_n", "b_barracks", "m_hub", "b_gate", "t_west", "wg_cage", "wm_housekeeping", "wt_arcade"],
 	food: ["g_ballroom", "g_ballroom", "g_ballroom", "g_bar", "g_bar", "g_lounge", "g_dining", "g_dining", "wg_casino", "wg_casino", "wm_lobby", "wm_bar", "wr_garden", "wr_garden", "r_deck", "r_deck", "m_ball_gal", "m_cigar", "g_kitchen", "g_kitchen"],

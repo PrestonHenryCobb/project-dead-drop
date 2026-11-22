@@ -62,6 +62,7 @@ export type Graph = {
 	activities: { string },
 	rooms: { string }, -- the room each node is in ("" if the map did not say)
 	clusters: { [number]: { size: number, face: Vector3? } }, -- crowd clusters by node
+	faces: { [number]: Vector3 }, -- nodes beside a piece of furniture an NPC uses (a task stop): what the NPC faces there
 	edges: { { Edge } },
 	linkCount: number,
 }
@@ -123,6 +124,7 @@ function NavGraph.load(nodes: { BasePart }, tierAt: (Vector3) -> number): Graph
 		activities = {},
 		rooms = {},
 		clusters = {},
+		faces = {},
 		edges = {},
 		linkCount = 0,
 	}
@@ -140,6 +142,10 @@ function NavGraph.load(nodes: { BasePart }, tierAt: (Vector3) -> number): Graph
 		graph.activities[index] = (node:GetAttribute("Activity") :: string?) or "Idle"
 		graph.rooms[index] = (node:GetAttribute("Room") :: string?) or ""
 		graph.edges[index] = {}
+		local stopX, stopZ = node:GetAttribute("FaceX"), node:GetAttribute("FaceZ")
+		if type(stopX) == "number" and type(stopZ) == "number" and node:GetAttribute("ClusterSize") == nil then
+			graph.faces[index] = Vector3.new(stopX, graph.feet[index].Y, stopZ)
+		end
 		local clusterSize = node:GetAttribute("ClusterSize")
 		if type(clusterSize) == "number" then
 			local faceX, faceZ = node:GetAttribute("FaceX"), node:GetAttribute("FaceZ")
