@@ -96,16 +96,20 @@ function Art.insignia(parent: Instance, kind: string, color: Color3?)
 		shape(canvas, "TreasuryBase", 0.5, 0.72, 0.4, 0.025, ink)
 	elseif kind == "Archive" then
 		local folio = shape(canvas, "Folio", 0.5, 0.5, 0.56, 0.72, colors.Text)
+		folio.BackgroundTransparency = 1
 		outline(folio, ink, config.TrimPixels)
 		for i = 1, 5 do
-			shape(folio, "LedgerRule", 0.5, 0.25 + i * 0.09, 0.7, 0.012, colors.Walnut)
+			local rule = shape(folio, "LedgerRule", 0.5, 0.25 + i * 0.09, 0.7, 0.012, ink)
+			rule.BackgroundTransparency = config.Cinematic.SecondaryHoverTransparency
 		end
 		local seal = circle(canvas, 0.66, 0.68, 0.28, colors.Burgundy, true)
 		shape(seal, "SealDiamond", 0.5, 0.5, 0.32, 0.32, ink, 45)
 	elseif kind == "Market" then
 		local box = shape(canvas, "PresentationCase", 0.5, 0.6, 0.72, 0.38, colors.EmeraldDeep)
 		outline(box, ink, config.FocusPixels)
-		shape(canvas, "CaseLid", 0.5, 0.36, 0.72, 0.1, ink, -9)
+		local lid = shape(canvas, "CaseLid", 0.5, 0.36, 0.72, 0.1, colors.Canvas, -9)
+		lid.BackgroundTransparency = config.InfoPanelTransparency
+		outline(lid, ink, config.StrokePixels)
 		shape(canvas, "Latch", 0.5, 0.58, 0.08, 0.12, ink)
 		for i = -2, 2 do
 			shape(canvas, "Rays", 0.5 + i * 0.1, 0.2 + math.abs(i) * 0.025, 0.018, 0.14, ink, i * 18)
@@ -136,6 +140,20 @@ function Art.plate(parent: Instance, title: string, position: UDim2, size: UDim2
 	gradient.Rotation = 28
 	gradient.Parent = root
 	Art.trim(root)
+	-- Fine inner keylines and a catchlight give these original plates a restrained engraved finish.
+	for _, y in { 0.035, 0.965 } do
+		local line = shape(root, "InsetKeyline", 0.5, y, 0.88, 0.003, colors.Brass)
+		line.BackgroundTransparency = config.Cinematic.PanelStrokeTransparency
+	end
+	local light = shape(root, "PlateCatchlight", 0.5, 0.04, 0.65, 0.003, colors.Text)
+	light.BackgroundTransparency = config.Cinematic.SecondaryHoverTransparency
+	local falloff = Instance.new("UIGradient")
+	falloff.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.5, 0),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	falloff.Parent = light
 	-- Engraved sunburst, confined to the illustration field above the separate title band.
 	for i = 0, 16 do
 		local angle = math.rad(25 + i * 8)
@@ -152,7 +170,7 @@ function Art.plate(parent: Instance, title: string, position: UDim2, size: UDim2
 		line.BackgroundTransparency = 0.7
 	end
 	local field = shape(root, "MedallionField", 0.5, 0.4, 0.52, 0.64, colors.Canvas)
-	field.BackgroundTransparency = 0.25
+	field.BackgroundTransparency = config.Cinematic.SecondaryTransparency
 	local aspect = Instance.new("UIAspectRatioConstraint")
 	aspect.AspectRatio = 1
 	aspect.Parent = field

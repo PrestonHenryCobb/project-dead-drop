@@ -196,6 +196,32 @@ local function makeButton(props: ButtonProps, style: ButtonStyle): Button
 	underline.Size = UDim2.new(1, -config.PaddingPixels * 2, 0, config.TrimPixels)
 	underline.Visible = false
 	underline.Parent = button
+	local highlight = Instance.new("Frame")
+	highlight.Name = "EdgeHighlight"
+	highlight.BorderSizePixel = 0
+	highlight.BackgroundColor3 = colors.Text
+	highlight.BackgroundTransparency = config.Cinematic.PanelStrokeTransparency
+	highlight.Position = UDim2.fromOffset(config.PaddingPixels, config.StrokePixels)
+	highlight.Size = UDim2.new(1, -config.PaddingPixels * 2, 0, config.StrokePixels)
+	highlight.Visible = not style.Navigation
+	highlight.Parent = button
+	local sheen = Instance.new("UIGradient")
+	sheen.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.5, 0),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	sheen.Parent = highlight
+	local selectedMark = Instance.new("Frame")
+	selectedMark.Name = "SelectedDiamond"
+	selectedMark.BorderSizePixel = 0
+	selectedMark.BackgroundColor3 = colors.BrassBright
+	selectedMark.AnchorPoint = Vector2.new(1, 0)
+	selectedMark.Position = UDim2.new(1, -config.ChipPaddingPixels, 0, config.ChipPaddingPixels)
+	selectedMark.Size = UDim2.fromOffset(config.ChipPaddingPixels / 2, config.ChipPaddingPixels / 2)
+	selectedMark.Rotation = 45
+	selectedMark.Visible = false
+	selectedMark.Parent = button
 
 	local scale = Instance.new("UIScale")
 	scale.Parent = button
@@ -244,6 +270,10 @@ local function makeButton(props: ButtonProps, style: ButtonStyle): Button
 			elseif hovered or selected then 0.25
 			else config.Cinematic.PanelStrokeTransparency
 		underline.Visible = style.Navigation == true and (selected or (hovered and enabled))
+		selectedMark.Visible = selected and style.Navigation ~= true
+		highlight.BackgroundTransparency = if enabled and (hovered or selected)
+			then config.Cinematic.SecondaryHoverTransparency
+			else config.Cinematic.PanelStrokeTransparency
 		setProperty(border, { Color = restingStroke() })
 	end
 
@@ -360,6 +390,13 @@ function MenuTheme.infoPanel(props: PanelProps): Frame
 	corner(panel)
 	local border = stroke(panel, accentColors[props.Accent or "Brass"], config.StrokePixels)
 	border.Transparency = config.Cinematic.PanelStrokeTransparency
+	-- Background-only depth; text and icons keep their own ivory/semantic colors.
+	panel.BackgroundColor3 = Color3.new(1, 1, 1)
+	local depth = Instance.new("UIGradient")
+	depth.Color =
+		ColorSequence.new(colors.InfoPanel:Lerp(colors.SurfaceRaised, config.InfoPanelTransparency), colors.InfoPanel)
+	depth.Rotation = 90
+	depth.Parent = panel
 
 	local padding = Instance.new("UIPadding")
 	local pad = UDim.new(0, config.PaddingPixels)

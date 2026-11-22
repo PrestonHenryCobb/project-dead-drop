@@ -170,7 +170,20 @@ function Kit.session(stage: Frame, title: string, navigator: Types.MenuNavigator
 	local root =
 		Kit.frame(stage, "CollectionView", UDim2.fromOffset(margin, margin), UDim2.new(1, -margin * 2, 1, -margin * 2))
 	janitor:Add(root)
-	Kit.text(root, title, 0, 42, true)
+	local heading = Kit.text(root, title, 0, 42, true)
+	local titleParts = string.split(title, " / ")
+	if #titleParts > 1 then
+		heading.Text = titleParts[1]
+		heading.Size = UDim2.new(0.55, 0, 0, 42)
+		local context = Kit.text(root, table.concat(titleParts, " / ", 2), 0, 42)
+		context.Name = "SectionContext"
+		context.Position = UDim2.new(0.56, 0, 0, 0)
+		context.Size = UDim2.new(0.44, 0, 0, 42)
+		context.TextSize = config.TextSizes.Small
+		context.TextXAlignment = Enum.TextXAlignment.Right
+		context.TextYAlignment = Enum.TextYAlignment.Center
+		context.TextColor3 = Theme.Colors.TextDim
+	end
 	local body = Kit.frame(root, "Body", UDim2.fromOffset(0, 50), UDim2.new(1, 0, 1, -84))
 	local status = Kit.text(root, "Connecting to your operative dossier…", 0, 28)
 	status.Position = UDim2.new(0, 0, 1, -28)
