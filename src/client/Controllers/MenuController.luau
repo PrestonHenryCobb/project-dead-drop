@@ -438,7 +438,7 @@ local function buildHeader(parent: Frame): Frame
 	diamondStroke.Parent = diamond
 	local title = MenuTheme.label({
 		Name = "Title",
-		Text = "COVER STORY",
+		Text = "DEAD DROP",
 		Style = "Display",
 		Parent = brand,
 		Size = UDim2.fromScale(0, 1),
