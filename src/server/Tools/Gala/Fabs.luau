@@ -1566,34 +1566,34 @@ local recipes: { [string]: Recipe } = {
 	terrace = {
 		style = "outdoor",
 		steps = {
+			F("lanternPost", 5, 6),
 			F("outdoorLounge", 6, 1.2),
 			F("parasolTable", 8, 1.2),
 			F("fireBowl", 6, 1.2),
-			F("lanternPost", 10, 1.2),
 			F("bench", 4, 1.2),
 		},
 	},
 	roofdeck = {
 		style = "outdoor",
 		steps = {
+			F("lanternPost", 5, 6),
 			F("djBooth", 1, 3),
 			F("outdoorLounge", 10, 1.2),
 			F("parasolTable", 14, 1.2),
 			F("fireBowl", 8, 1.2),
-			F("lanternPost", 12, 1.2),
 		},
 	},
 	garden = {
 		style = "outdoor",
 		steps = {
+			F("lanternPost", 5, 6),
 			F("outdoorLounge", 4, 1.2),
 			F("parasolTable", 8, 1.2),
 			F("fireBowl", 4, 1.2),
-			F("lanternPost", 10, 1.2),
 			F("bench", 6, 1.2),
 		},
 	},
-	skydeck = { style = "outdoor", steps = { F("bench", 4, 1.2), F("fireBowl", 2, 1.2), F("lanternPost", 4, 1.2) } },
+	skydeck = { style = "outdoor", steps = { F("lanternPost", 5, 6), F("bench", 4, 1.2), F("fireBowl", 2, 1.2) } },
 }
 
 -- The engine ------------------------------------------------------------------------------------------------------------------------------------
