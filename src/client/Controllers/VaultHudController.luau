@@ -8,15 +8,15 @@ local Janitor = require(Shared.Util.Janitor)
 local HudKit = require(Shared.Util.HudKit)
 local HudTheme = require(Shared.Util.HudTheme)
 local Graphic = require(script.Parent.Parent.Combat.VaultProgressGraphic)
+local Badge = require(script.Parent.Parent.Combat.VaultBadge)
 local Presentation = require(script.Parent.Parent.Combat.ObjectivePresentation)
 local RemoteController = require(script.Parent.RemoteController)
-local Floors = require(script.Parent.FloorMarkerController)
 local VaultHudController = {}
 local janitor = Janitor.new()
 local state = Presentation.new()
 local config = GameConfig.MatchHud
 local theme = HudTheme.get()
-type Slot = { graphic: Graphic.View, point: BasePart, marker: BillboardGui, caption: TextLabel }
+type Slot = { graphic: Graphic.View, point: BasePart, marker: BillboardGui, badge: Badge.View }
 local slots: { Slot } = {}
 
 function VaultHudController.Init() end
@@ -24,13 +24,13 @@ function VaultHudController.Init() end
 function VaultHudController.Start()
 	local gui = HudKit.screen("VaultHud")
 	janitor:Add(gui)
-	local graphic = GameConfig.UI.VaultGraphic
+	local graphicConfig = GameConfig.UI.VaultGraphic
 	local panel = HudKit.panel(
 		gui,
 		"VaultProgress",
-		UDim2.new(0.5, 0, 0, config.TimerTopPixels + GameConfig.UI.FloatingHud.WatchPixels + graphic.TopGapPixels),
+		UDim2.new(0.5, 0, 0, config.TimerTopPixels + GameConfig.UI.FloatingHud.WatchPixels + graphicConfig.TopGapPixels),
 		Vector2.new(0.5, 0),
-		UDim2.fromOffset(GameConfig.Vault.ActiveVaults * graphic.CellWidthPixels, graphic.HeightPixels)
+		UDim2.fromOffset(GameConfig.Vault.ActiveVaults * graphicConfig.CellWidthPixels, graphicConfig.HeightPixels)
 	)
 	local panelRoot = panel.Parent :: Frame
 	panelRoot.Visible = false
@@ -51,13 +51,11 @@ function VaultHudController.Start()
 		marker.Adornee = point
 		marker.Enabled = false
 		marker.AlwaysOnTop = true
-		marker.Size = UDim2.fromOffset(config.TimerWidthPixels, config.TimerHeightPixels)
+		marker.Size = UDim2.fromOffset(graphicConfig.MarkerPixels, graphicConfig.MarkerPixels)
 		marker.StudsOffsetWorldSpace = Vector3.new(0, config.MarkerHeightStuds, 0)
 		marker.Parent = folder
-		local caption = HudKit.text(marker, "Vault", UDim2.fromScale(0, 0), Vector2.zero, UDim2.fromScale(1, 1))
-		caption.TextSize = config.BodySize
-		caption.RichText = false
-		table.insert(slots, { graphic = dial, point = point, marker = marker, caption = caption })
+		local badge = Badge.new(marker, graphicConfig.MarkerPixels)
+		table.insert(slots, { graphic = dial, point = point, marker = marker, badge = badge })
 	end
 	janitor:Add(RemoteController.connect("PhaseChanged", state.phase))
 	janitor:Add(RemoteController.connect("VaultProgress", state.vault))
@@ -71,9 +69,7 @@ function VaultHudController.Start()
 			if terminal then
 				local color = if terminal.Contested then GameConfig.UI.WarningColor else theme.AccentColor
 				slot.point.Position = terminal.Position
-				local floor = Floors.hint(terminal.Position)
-				slot.caption.Text = `◇ VAULT {terminal.VaultId}{if floor ~= "" then "\n" .. floor else ""}`
-				slot.caption.TextColor3 = color
+				slot.badge.update(terminal.VaultId, color)
 			end
 		end
 	end))

@@ -8,26 +8,10 @@ local HudKit = require(Shared.Util.HudKit)
 local HudTheme = require(Shared.Util.HudTheme)
 local config = GameConfig.UI.VaultGraphic
 local theme = HudTheme.get()
+local Badge = require(script.Parent.VaultBadge)
 local VaultProgressGraphic = {}
 
 export type View = { update: (Types.VaultTerminalInfo?) -> () }
-
-local DOOR = {
-	{ 0.15, 0.1, 0.85, 0.1 },
-	{ 0.85, 0.1, 0.85, 0.9 },
-	{ 0.85, 0.9, 0.15, 0.9 },
-	{ 0.15, 0.9, 0.15, 0.1 },
-	{ 0.25, 0.2, 0.75, 0.2 },
-	{ 0.75, 0.2, 0.75, 0.8 },
-	{ 0.75, 0.8, 0.25, 0.8 },
-	{ 0.25, 0.8, 0.25, 0.2 },
-	{ 0.5, 0.35, 0.5, 0.65 },
-	{ 0.36, 0.42, 0.64, 0.58 },
-	{ 0.36, 0.58, 0.64, 0.42 },
-	{ 0.08, 0.25, 0.22, 0.25 },
-	{ 0.08, 0.75, 0.22, 0.75 },
-}
-local CHECK = { { 0.2, 0.5, 0.4, 0.7 }, { 0.4, 0.7, 0.8, 0.28 } }
 
 function VaultProgressGraphic.new(parent: Instance, index: number, count: number): View
 	local root = Instance.new("Frame")
@@ -53,13 +37,8 @@ function VaultProgressGraphic.new(parent: Instance, index: number, count: number
 	dial.Position = UDim2.fromOffset((config.CellWidthPixels - config.DialPixels) / 2, 0)
 	dial.Size = UDim2.fromOffset(config.DialPixels, config.DialPixels)
 	dial.Parent = root
-	local ring = HudKit.ring(dial, "VaultTick", config.DialPixels)
-	local inset = (config.DialPixels - config.IconPixels) / 2
-	local door =
-		HudKit.icon(dial, "VaultDoor", UDim2.fromOffset(inset, inset), config.IconPixels, theme.TextColor, DOOR)
-	local check =
-		HudKit.icon(dial, "VaultComplete", UDim2.fromOffset(inset, inset), config.IconPixels, theme.AccentColor, CHECK)
-	check.Visible = false
+	local ring = HudKit.ring(dial, "VaultProgress", config.DialPixels)
+	local badge = Badge.new(dial, config.IconPixels)
 	local function caption(name: string, y: number): TextLabel
 		local label = HudKit.text(
 			root,
@@ -90,11 +69,11 @@ function VaultProgressGraphic.new(parent: Instance, index: number, count: number
 				elseif terminal.Hacked then theme.AccentColor
 				else theme.TextColor
 			ring(terminal.Progress, color)
-			identity.Text = `VAULT {terminal.VaultId}`
+			identity.Text = if terminal.Hacked then "✓" else ""
+			identity.TextColor3 = color
+			badge.update(terminal.VaultId, color)
 			percent.Text = `{math.floor(math.clamp(terminal.Progress, 0, 1) * 100)}%`
 			percent.TextColor3 = color
-			door.Visible = not terminal.Hacked
-			check.Visible = terminal.Hacked
 			warning.Visible = terminal.Contested and not terminal.Hacked
 		end,
 	}

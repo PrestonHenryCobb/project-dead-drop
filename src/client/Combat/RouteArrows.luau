@@ -1,5 +1,6 @@
 --!strict
--- Bounded, pooled client-only floor chevrons. Never parent an effect to a rig.
+-- The former chevron renderer now draws one pooled, continuous floor ribbon on authored route geometry.
+-- It begins at the room's route anchor, never at the player's root, and never identifies actors.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local GameConfig = require(Shared.GameConfig)
@@ -7,39 +8,44 @@ local Types = require(Shared.Types)
 local config = GameConfig.RouteHud
 local RouteArrows = {}
 
--- Sample only the nearby portion of same-floor segments; work is bounded even on long routes.
-function RouteArrows.samples(
-	route: Types.RouteInfo?,
-	origin: Vector3,
-	floor: string?,
-	floorAt: (number) -> string?
-): { { Point: Vector3, Direction: Vector3 } }
-	local out = {}
+-- Keep a contiguous prefix on the current floor. A distance budget trims only the tail;
+-- per-point radius tests and floor probes used to create arbitrary holes between chevrons.
+function RouteArrows.segments(route: Types.RouteInfo?, floor: string?, floorAt: (number) -> string?): { { Vector3 } }
+	local out: { { Vector3 } } = {}
 	if not route or not floor then
 		return out
 	end
+	local remaining = config.PathRangeStuds
+	local began = false
+	local traversalAt: { [number]: boolean } = {}
+	for _, step in route.Steps do
+		if step.CoverBreak then
+			traversalAt[step.Index] = true
+		end
+	end
 	for index = 1, #route.Points - 1 do
+		-- A vent/zipline/gondola is a traversal, not a walkable floor segment through walls or open air.
+		-- End at its entrance; the next server route resumes on arrival.
+		if traversalAt[index] then
+			break
+		end
 		local a, b = route.Points[index], route.Points[index + 1]
 		if floorAt(a.Y) ~= floor or floorAt(b.Y) ~= floor then
+			if began then
+				break
+			end
 			continue
 		end
-		local delta = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
-		local length = delta.Magnitude
+		local length = (b - a).Magnitude
 		if length <= GameConfig.UI.GraphicHud.DirectionEpsilonStuds then
 			continue
 		end
-		local direction = delta / length
-		local projection = (origin - a):Dot(direction)
-		local low = math.max(0, projection - config.ArrowRangeStuds)
-		local high = math.min(length, projection + config.ArrowRangeStuds)
-		for distance = math.ceil(low / config.ArrowSpacingStuds) * config.ArrowSpacingStuds, high, config.ArrowSpacingStuds do
-			local point = a:Lerp(b, distance / length)
-			if (point - origin).Magnitude <= config.ArrowRangeStuds then
-				table.insert(out, { Point = point, Direction = direction })
-				if #out >= config.ArrowMax then
-					return out
-				end
-			end
+		began = true
+		local shown = math.min(length, remaining)
+		table.insert(out, { a, a:Lerp(b, shown / length) })
+		remaining -= shown
+		if remaining <= 0 or #out >= config.PathMaxSegments then
+			break
 		end
 	end
 	return out
@@ -47,65 +53,49 @@ end
 
 function RouteArrows.new()
 	local folder = Instance.new("Folder")
-	folder.Name = "LocalRouteArrows"
+	folder.Name = "LocalRouteLine"
 	folder.Parent = workspace
-	local pool: { BasePart } = {}
-	for _ = 1, config.ArrowMax * 2 do
-		local part = Instance.new("Part")
-		part.Name = "RouteChevron"
-		part.Anchored = true
-		part.CanCollide = false
-		part.CanTouch = false
-		part.CanQuery = false
-		part.CastShadow = false
-		part.Material = Enum.Material.Neon
-		part.Transparency = 1
-		part.Parent = folder
-		table.insert(pool, part)
+	local lines: { BasePart } = {}
+	local joints: { BasePart } = {}
+	local function part(name: string): Part
+		local item = Instance.new("Part")
+		item.Name = name
+		item.Anchored = true
+		item.CanCollide, item.CanTouch, item.CanQuery = false, false, false
+		item.CastShadow = false
+		item.Material = Enum.Material.SmoothPlastic
+		item.Color = config.PathColor
+		item.Transparency = 1
+		item.Parent = folder
+		return item
 	end
-	-- Rays in the characters' collision group meet only the walkable map, never any body. (A check for a Humanoid would skip
-	-- players but not the Humanoid-less crowd rigs, so a chevron on a body would tell which bodies are players.)
-	local params = RaycastParams.new()
-	params.CollisionGroup = GameConfig.Rig.CollisionGroup
-	params.RespectCanCollide = true
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { folder }
+	for _ = 1, config.PathMaxSegments do
+		table.insert(lines, part("RouteLine"))
+		local joint = part("RouteJoin")
+		joint.Shape = Enum.PartType.Ball
+		joint.Size = Vector3.one * config.PathWidthStuds
+		table.insert(joints, joint)
+	end
 	local function hide()
-		for _, part in pool do
-			part.Transparency = 1
+		for _, list in { lines, joints } do
+			for _, item in list do
+				item.Transparency = 1
+			end
 		end
 	end
 	return {
 		hide = hide,
-		update = function(
-			route: Types.RouteInfo?,
-			origin: Vector3,
-			floor: string?,
-			floorAt: (number) -> string?,
-			color: Color3
-		)
+		update = function(route: Types.RouteInfo?, floor: string?, floorAt: (number) -> string?)
 			hide()
-			for index, sample in RouteArrows.samples(route, origin, floor, floorAt) do
-				local hit = workspace:Raycast(
-					sample.Point + Vector3.yAxis * config.ArrowProbeUpStuds,
-					-Vector3.yAxis * (config.ArrowProbeUpStuds + config.ArrowProbeDownStuds),
-					params
-				)
-				if not hit then
-					continue
-				end
-				local tip = hit.Position + Vector3.yAxis * config.ArrowLiftStuds
-				local side = sample.Direction:Cross(Vector3.yAxis)
-				for arm, sign in { -1, 1 } do
-					local tail = tip
-						- sample.Direction * config.ArrowLengthStuds
-						+ side * sign * config.ArrowLengthStuds / 2
-					local part = pool[(index - 1) * 2 + arm]
-					part.Size = Vector3.new(config.ArrowWidthStuds, config.ArrowWidthStuds, (tail - tip).Magnitude)
-					part.CFrame = CFrame.lookAt((tail + tip) / 2, tip)
-					part.Color = color
-					part.Transparency = 0
-				end
+			local lift = Vector3.yAxis * config.PathLiftStuds
+			for index, segment in RouteArrows.segments(route, floor, floorAt) do
+				local a, b = segment[1] + lift, segment[2] + lift
+				local line, joint = lines[index], joints[index]
+				line.Size = Vector3.new(config.PathWidthStuds, config.PathWidthStuds, (b - a).Magnitude)
+				line.CFrame = CFrame.lookAt((a + b) / 2, b)
+				line.Transparency = config.PathTransparency
+				joint.Position = a
+				joint.Transparency = config.PathTransparency
 			end
 		end,
 		Destroy = function()

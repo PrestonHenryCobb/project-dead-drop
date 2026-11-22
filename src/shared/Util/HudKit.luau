@@ -161,39 +161,79 @@ function HudKit.icon(
 	return root
 end
 
--- Allocated once; the caller updates only tick colors/transparency from an authoritative deadline.
+-- A continuous clockwise stroke over a dim circular track. Chords overlap at their joins;
+-- only the leading chord changes length between whole segments, so progress does not jump by ticks.
 function HudKit.ring(parent: Instance, name: string, pixels: number): (number, Color3) -> ()
-	local ticks: { Frame } = {}
 	local config = ui.FloatingHud
-	local lastCount = -1
+	local radius = pixels / 2 - config.RingInsetPixels
+	local root = Instance.new("Frame")
+	root.Name = name .. "Loop"
+	root.BackgroundTransparency = 1
+	root.AnchorPoint = Vector2.new(0.5, 0.5)
+	root.Position = UDim2.fromScale(0.5, 0.5)
+	root.Size = UDim2.fromOffset(pixels, pixels)
+	root.Parent = parent
+	local track = Instance.new("Frame")
+	track.Name = "Track"
+	track.BackgroundTransparency = 1
+	track.AnchorPoint = Vector2.new(0.5, 0.5)
+	track.Position = UDim2.fromScale(0.5, 0.5)
+	track.Size = UDim2.fromOffset(radius * 2, radius * 2)
+	track.Parent = root
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0.5, 0)
+	corner.Parent = track
+	local border = Instance.new("UIStroke")
+	border.Thickness = config.RingStrokePixels
+	border.Transparency = config.InactiveTransparency
+	border.Parent = track
+	local segments: { Frame } = {}
+	local lastFraction = -1
 	local lastColor: Color3? = nil
+	local function point(turn: number): Vector2
+		local angle = turn * math.pi * 2
+		return Vector2.new(pixels / 2 + math.sin(angle) * radius, pixels / 2 - math.cos(angle) * radius)
+	end
+	local function shape(segment: Frame, index: number, amount: number)
+		local a = point((index - 1) / config.RingSegments)
+		local b = point((index - 1 + amount) / config.RingSegments)
+		local delta = b - a
+		segment.Position = UDim2.fromOffset((a.X + b.X) / 2, (a.Y + b.Y) / 2)
+		segment.Size = UDim2.fromOffset(delta.Magnitude + config.RingOverlapPixels, config.RingStrokePixels)
+		segment.Rotation = math.deg(math.atan2(delta.Y, delta.X))
+	end
 	for index = 1, config.RingSegments do
-		local angle = (index - 1) / config.RingSegments * math.pi * 2
-		local tick = Instance.new("Frame")
-		tick.Name = `{name}{index}`
-		tick.AnchorPoint = Vector2.new(0.5, 0.5)
-		local radius = pixels / 2 - config.RingInsetPixels
-		tick.Position = UDim2.new(0.5, math.sin(angle) * radius, 0.5, -math.cos(angle) * radius)
-		tick.Size = UDim2.fromOffset(config.RingStrokePixels, config.RingTickPixels)
-		tick.Rotation = math.deg(angle)
-		tick.BorderSizePixel = 0
-		tick.Parent = parent
-		local outline = Instance.new("UIStroke")
-		outline.Color = Color3.new(0, 0, 0)
-		outline.Transparency = config.LineShadowTransparency
-		outline.Parent = tick
-		table.insert(ticks, tick)
+		local segment = Instance.new("Frame")
+		segment.Name = `{name}{index}`
+		segment.AnchorPoint = Vector2.new(0.5, 0.5)
+		segment.BorderSizePixel = 0
+		segment.Visible = false
+		segment.Parent = root
+		shape(segment, index, 1)
+		table.insert(segments, segment)
 	end
 	return function(fraction: number, color: Color3)
-		local count = math.ceil(math.clamp(fraction, 0, 1) * #ticks)
-		if count == lastCount and color == lastColor then
+		fraction = math.clamp(fraction, 0, 1)
+		if fraction == lastFraction and color == lastColor then
 			return
 		end
-		lastCount, lastColor = count, color
-		for index, tick in ticks do
-			tick.BackgroundColor3 = color
-			tick.BackgroundTransparency = if index <= count then 0 else config.InactiveTransparency
+		local previous = lastFraction * #segments
+		local progress = fraction * #segments
+		border.Color = color
+		for index, segment in segments do
+			local amount = math.clamp(progress - index + 1, 0, 1)
+			local oldAmount = math.clamp(previous - index + 1, 0, 1)
+			if amount ~= oldAmount or lastFraction < 0 then
+				segment.Visible = amount > 0
+				if amount > 0 then
+					shape(segment, index, amount)
+				end
+			end
+			if color ~= lastColor then
+				segment.BackgroundColor3 = color
+			end
 		end
+		lastFraction, lastColor = fraction, color
 	end
 end
 

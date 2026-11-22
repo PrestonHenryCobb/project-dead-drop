@@ -16,7 +16,9 @@ RouteResult = {
 }
 RouteInfo = { Points: {Vector3}, Length, HackIntel, CoverBreaks, Affordable, Steps: { {Index, Kind, Detail?, Intel?, CoverBreak} } }
 ```
-`Points` runs from the player to the target; `Steps[i].Index` is the point where that step starts. Step kinds: `Stair`,
+`Points` runs from the current room's exit approach to the target's floor position; it no longer starts at the player's exact
+root. For a target in the same room, it starts at an authored room lane anchor. Required action/warning steps are never trimmed
+away from the in-room approach. `Steps[i].Index` is the point where that step starts. Step kinds: `Stair`,
 `Elevator` (floor changes), `Hack` (Detail "Door" or "Elevator", Intel = its price), `Restricted` (a zone above your
 clearance), and the Cover-breaking `Vent`, `Zipline`, `Gondola`, `Ladder` (CoverBreak true). `Affordable` is false when the
 team's intel cannot pay every Hack on it (the real price may be lower with Wired or Deep Pockets).
@@ -28,6 +30,15 @@ team's intel cannot pay every Hack on it (the real price may be lower with Wired
 - Never the Package pedestal or carrier (owner decision).
 
 ## The routes
+- Owner HUD follow-up 2026-11-22: the server resolves the player's containing room before snapping to a lane. Nearby clear
+  same-room anchors are preferred; furniture blocking that probe falls back to another same-room anchor, never a lane behind
+  a different room's wall. Padded doorway overlaps retain the previous room until its volume is left.
+- Actual horizontal velocity supplies a bounded preference for room exits ahead of movement (48 studs maximum penalty
+  behind), retained for 1.5 seconds when stopping. Route eligibility, clearance, hacks, locked elevators and known vents
+  still use the original rules below. The visual line omits the initial walk across the room to its exit approach.
+- With no explicitly requested target, choose the nearest reachable objective using these costs: a reachable Clean route
+  takes priority, otherwise Fast. Objectives retain priority over teammates. Both all-node searches are reused, not repeated
+  for each vault. The client keeps automatic selection unpinned; manual cycling pins a target until it disappears or the phase resets.
 - **Clean**: only what the current disguise's clearance may walk (re-asked each time, so it follows a disguise swap), and nothing that
   breaks Cover. An Exposed player has clearance 0.
 - **Fast**: shortest overall. Hacks cost `Route.HackStudsPerIntel` studs per intel, a restricted zone `Route.RestrictedStuds`;
@@ -47,6 +58,13 @@ About 4 ms of server time per request in Studio with 202 NPCs. At 12 players ask
 The minimap, the route line (clean and fast, flagged steps), target cycling (next Id from `Targets`), switching clean and fast,
 and the floor arrows. Floor arrows are client-only and use `Points` for the current floor. Keys are still open (M toggles the
 minimap, per the spec).
+
+2026-11-22 presentation revision: the former floor-arrow renderer now draws a subtle, connected floor line using the
+authored graph geometry. Its 180-stud budget clips only the end of the contiguous run, with a bounded reusable part pool.
+It stops at a floor transition or a Cover-breaking traversal entrance rather than drawing through walls or open air.
+Per-arrow ray probes and player-root tethers are removed. A transient failed refresh keeps the last accepted route for up
+to five seconds; phase/death/target lifecycle cleanup still applies. M cycles small/full/off; Comma toggles round/square.
+No server or client runtime validation was run for this revision.
 
 ## Tested
 Guest (clearance 0): three terminals, no clean route, fast route 782 studs and 23 intel; clearance 3: clean routes with no intel

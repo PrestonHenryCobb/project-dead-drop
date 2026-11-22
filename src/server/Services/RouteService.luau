@@ -19,6 +19,7 @@
 --
 -- The answer carries positions, never identities: a route to a teammate says only where they are, which the team's roster and
 -- markers already show.
+-- Owner follow-up 2026-11-22: room-exit anchors, movement-biased exit costs and automatic nearest revealed objectives.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -64,6 +65,10 @@ local config = GameConfig.Route
 local feet: { Vector3 } = {}
 local adjacent: { { Link } } = {}
 local laneTiers: { number } = {}
+local laneRooms: { string } = {}
+local roomVolumes: { BasePart } = {}
+type Guide = { Room: string?, Direction: Vector3, MovedAt: number }
+local guides: { [Player]: Guide } = {}
 local laneCount = 0
 local grates: { BasePart } = {}
 local seen: { [Player]: { [BasePart]: boolean } } = {}
@@ -139,6 +144,62 @@ local function nearestLane(position: Vector3, limit: number): number?
 	return best
 end
 
+local function contains(volume: BasePart, position: Vector3): boolean
+	local point = volume.CFrame:PointToObjectSpace(position)
+	local half = volume.Size / 2
+	return math.abs(point.X) <= half.X and math.abs(point.Y) <= half.Y and math.abs(point.Z) <= half.Z
+end
+
+-- Resolve the actual room volume before snapping to its graph, so a nearby lane behind a wall is not chosen.
+-- Prefer the previous room in padded doorway overlaps; switch once the player leaves its volume.
+local function roomAt(position: Vector3, previous: string?): string?
+	local room: string? = nil
+	local smallest = math.huge
+	for _, volume in roomVolumes do
+		if not volume:IsDescendantOf(workspace) or not contains(volume, position) then
+			continue
+		end
+		local name = string.match(volume.Name, "^Zone_.-_T%d+_(.+)$")
+		if name == previous and previous ~= nil then
+			return previous
+		end
+		local area = volume.Size.X * volume.Size.Z
+		if name and area < smallest then
+			room, smallest = name, area
+		end
+	end
+	return room
+end
+
+local function inRoom(node: number, room: string?, height: number): boolean
+	return room ~= nil and laneRooms[node] == room and math.abs(feet[node].Y - height) <= config.ConnectFloorStuds
+end
+
+local function roomStart(position: Vector3, room: string?): number?
+	local best: number? = nil
+	local bestDistance = math.huge
+	local closest: number? = nil
+	local closestDistance = math.huge
+	for index = 1, laneCount do
+		if not inRoom(index, room, position.Y) then
+			continue
+		end
+		local delta = feet[index] - position
+		local distance = Vector3.new(delta.X, 0, delta.Z).Magnitude
+		if distance < closestDistance then
+			closest, closestDistance = index, distance
+		end
+		if distance < bestDistance then
+			local chest = Vector3.yAxis * config.JoinChestStuds
+			if workspace:Raycast(position + chest, feet[index] + chest - (position + chest), mapParams) == nil then
+				best, bestDistance = index, distance
+			end
+		end
+	end
+	-- In an authored room, never snap through its wall to a different room as a fallback.
+	return if room then best or closest else nearestLane(position, config.NodeSnapStuds)
+end
+
 -- A new node where a traversal starts or ends, walkable to the nearest lane node within ConnectStuds that has a clear line to it
 -- at chest height (so a join never goes through a wall). Nil if none does.
 local function joinNode(position: Vector3): number?
@@ -167,6 +228,7 @@ local function joinNode(position: Vector3): number?
 		return nil
 	end
 	local node = addNode(position)
+	laneRooms[node] = laneRooms[best]
 	local length = (feet[best] - position).Magnitude
 	addLink(node, {
 		to = best,
@@ -200,6 +262,11 @@ local function addTraversal(from: number, to: number, mode: string, start: Vecto
 end
 
 local function build()
+	for _, instance in CollectionService:GetTagged(Enums.Tag.ZoneVolume) do
+		if instance:IsA("BasePart") then
+			table.insert(roomVolumes, instance)
+		end
+	end
 	local nodes: { BasePart } = {}
 	for _, instance in CollectionService:GetTagged(Enums.Tag.NPCNode) do
 		if instance:IsA("BasePart") and instance:IsDescendantOf(workspace) then
@@ -216,6 +283,7 @@ local function build()
 		table.insert(feet, graph.feet[index])
 		table.insert(adjacent, {})
 		table.insert(laneTiers, graph.tiers[index])
+		laneRooms[index] = graph.rooms[index]
 	end
 	for index = 1, laneCount do
 		for _, edge in graph.edges[index] do
@@ -388,7 +456,10 @@ local function search(
 	start: number,
 	clearance: number,
 	fast: boolean,
-	known: { [BasePart]: boolean }
+	known: { [BasePart]: boolean },
+	room: string?,
+	origin: Vector3,
+	direction: Vector3
 ): ({ number }, { Link? }, { number })
 	local count = #feet
 	local distance: { number } = table.create(count, math.huge)
@@ -406,6 +477,23 @@ local function search(
 			for _, link in adjacent[node] do
 				if not done[link.to] then
 					local cost = evaluate(link, clearance, fast, known)
+					-- Compare valid exits by walking cost plus a bounded heading preference. Looking at a door
+					-- does not steer GPS: only actual horizontal movement does. No new links are invented.
+					if
+						cost
+						and direction.Magnitude > 0
+						and inRoom(node, room, origin.Y)
+						and not inRoom(link.to, room, origin.Y)
+					then
+						local middle = (#link.points + 1) / 2
+						local a = link.points[math.floor(middle)] or feet[node]
+						local b = link.points[math.ceil(middle)] or feet[link.to]
+						local exit = a:Lerp(b, middle % 1)
+						local delta = Vector3.new(exit.X - origin.X, 0, exit.Z - origin.Z)
+						if delta.Magnitude > GameConfig.UI.GraphicHud.DirectionEpsilonStuds then
+							cost += (1 - math.clamp(direction:Dot(delta.Unit), -1, 1)) * config.ExitDirectionCostStuds / 2
+						end
+					end
 					if cost and key + cost < distance[link.to] then
 						distance[link.to] = key + cost
 						via[link.to] = link
@@ -424,7 +512,7 @@ local function buildRoute(
 	from: { number },
 	start: number,
 	finish: number,
-	origin: Vector3,
+	room: string?,
 	destination: Vector3,
 	clearance: number,
 	fast: boolean,
@@ -432,19 +520,32 @@ local function buildRoute(
 	balance: number
 ): Types.RouteInfo
 	local chain: { Link } = {}
+	local sources: { number } = {}
 	local node = finish
 	while node ~= start do
 		table.insert(chain, 1, via[node] :: Link)
+		table.insert(sources, 1, from[node])
 		node = from[node]
 	end
-	local points: { Vector3 } = { origin }
+	-- Omit the approach across the current room; the visible guide begins at its exit approach.
+	-- Targets within this room still use the room's authored lane anchor, never a player-root tether.
+	local first = 1
+	for index, link in chain do
+		local _, flag = evaluate(link, clearance, fast, known)
+		-- Never trim away a required action or warning even if both endpoints share a room name.
+		if flag or (inRoom(sources[index], room, feet[start].Y) and not inRoom(link.to, room, feet[start].Y)) then
+			first = index
+			break
+		end
+	end
+	local points: { Vector3 } = { feet[sources[first] or start] }
 	local steps: { Types.RouteStepInfo } = {}
 	local intel, breaks = 0, 0
 	for linkIndex, link in chain do
 		local _, flag = evaluate(link, clearance, fast, known)
 		if flag then
 			table.insert(steps, {
-				Index = #points + (if linkIndex == 1 then 1 else 0),
+				Index = #points,
 				Kind = flag.Kind,
 				Detail = flag.Detail,
 				Intel = flag.Intel,
@@ -453,13 +554,16 @@ local function buildRoute(
 			intel += flag.Intel or 0
 			breaks += if flag.CoverBreak then 1 else 0
 		end
-		for pointIndex, point in link.points do
-			if linkIndex == 1 or pointIndex > 1 then
-				table.insert(points, point)
+		if linkIndex >= first then
+			for _, point in link.points do
+				if point ~= points[#points] then
+					table.insert(points, point)
+				end
 			end
 		end
 	end
-	table.insert(points, destination)
+	-- Markers can sit above the floor. Keep the ribbon on the destination lane's floor instead of ramping into the marker.
+	table.insert(points, Vector3.new(destination.X, feet[finish].Y, destination.Z))
 	local length = 0
 	for index = 2, #points do
 		length += (points[index] - points[index - 1]).Magnitude
@@ -517,6 +621,10 @@ local function targetsFor(player: Player): { Target }
 	return list
 end
 
+local function targetNode(target: Target): number?
+	return roomStart(target.Position, roomAt(target.Position, nil))
+end
+
 local function answer(player: Player, requested: unknown): any
 	if
 		(requested ~= nil and type(requested) ~= "string")
@@ -539,23 +647,64 @@ local function answer(player: Player, requested: unknown): any
 			chosen = target
 		end
 	end
-	chosen = chosen or targets[1]
-	if not chosen or #feet == 0 then
+	if #targets == 0 or #feet == 0 then
 		return result
 	end
-	result.Selected = chosen.Id
-	local origin = root.Position
-	local start = nearestLane(origin - Vector3.new(0, config.FootStuds, 0), config.NodeSnapStuds)
-	local finish = nearestLane(chosen.Position, config.NodeSnapStuds)
-	if not (start and finish) then
+	local origin = root.Position - Vector3.new(0, config.FootStuds, 0)
+	local guide: Guide = guides[player] or { Room = nil, Direction = Vector3.zero, MovedAt = 0 }
+	guide.Room = roomAt(root.Position, guide.Room)
+	local velocity = root.AssemblyLinearVelocity
+	local movement = Vector3.new(velocity.X, 0, velocity.Z)
+	if movement.Magnitude >= config.DirectionMinSpeed then
+		guide.Direction, guide.MovedAt = movement.Unit, os.clock()
+	elseif os.clock() - guide.MovedAt > config.DirectionHoldSeconds then
+		guide.Direction = Vector3.zero
+	end
+	guides[player] = guide
+	local start = roomStart(origin, guide.Room)
+	if not start then
 		return result
 	end
 	local clearance = DisguiseService.getClearance(player)
 	local known = seen[player] or {}
+	-- Both all-node searches are shared by automatic target selection and route reconstruction.
+	-- Keep objective priority over teammates; choose the closest reachable objective rather than list order.
+	local cleanDistance, cleanVia, cleanFrom =
+		search(start, clearance, false, known, guide.Room, origin, guide.Direction)
+	local fastDistance, fastVia, fastFrom = search(start, clearance, true, known, guide.Room, origin, guide.Direction)
+	if not chosen then
+		local kind = targets[1].Kind
+		local bestCost = math.huge
+		local bestClean = false
+		for _, target in targets do
+			if target.Kind ~= kind then
+				continue
+			end
+			local node = targetNode(target)
+			if not node then
+				continue
+			end
+			local clean = cleanDistance[node] < math.huge
+			local cost = (if clean then cleanDistance[node] else fastDistance[node])
+				+ (feet[node] - target.Position).Magnitude
+			if (clean and not bestClean) or (clean == bestClean and cost < bestCost) then
+				chosen, bestCost, bestClean = target, cost, clean
+			end
+		end
+	end
+	chosen = chosen or targets[1]
+	result.Selected = chosen.Id
+	local finish = targetNode(chosen)
+	if not finish then
+		return result
+	end
 	for _, fast in { false, true } do
-		local distance, via, from = search(start, clearance, fast, known)
+		local distance = if fast then fastDistance else cleanDistance
+		local via = if fast then fastVia else cleanVia
+		local from = if fast then fastFrom else cleanFrom
 		if distance[finish] < math.huge then
-			local route = buildRoute(via, from, start, finish, origin, chosen.Position, clearance, fast, known, balance)
+			local route =
+				buildRoute(via, from, start, finish, guide.Room, chosen.Position, clearance, fast, known, balance)
 			if fast then
 				result.Fast = route
 			else
@@ -606,9 +755,13 @@ function RouteService.Start()
 		if phase == "Insertion" then
 			table.clear(seen)
 		end
+		if phase == "Lobby" or phase == "Insertion" then
+			table.clear(guides)
+		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		seen[player] = nil
+		guides[player] = nil
 	end)
 end
 

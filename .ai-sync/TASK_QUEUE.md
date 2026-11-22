@@ -584,3 +584,9 @@ Codex review 2026-11-20 — input-hints and minimap-size: reviewed all mixed hin
 | Id | Ticket | Owner | Needs | Status |
 |---|---|---|---|---|
 | ui-reference-direction | Adapt reviewed roblox-ai dark-panel, selection and metallic-edge references into original gala controls, collection art, title hierarchy and six distinct Asset icons. No imported reference assets. Source inspection/formatting only. See docs/UI_REFERENCE_DIRECTION_2026-11-22.md. | CODEX | Owner visual acceptance | READY_FOR_REVIEW |
+
+## Solid HUD loops and room routes (2026-11-22)
+
+| Id | Ticket | Owner | Needs | Status |
+|---|---|---|---|---|
+| hud-loops-vault-routes | Continuous cooldown/vault progress strokes, original lettered vault emblems replacing global marker prose, subtle connected floor lines from room exit approaches, heading-aware valid exits and nearest revealed objective selection. Manual target pins and bounded transient-refresh retention. Updated server route contract; existing eligibility/rate limits remain. Source review and formatting only. See docs/HUD_ROUTES_2026-11-22.md. | CODEX | Owner in-game visual/navigation acceptance | READY_FOR_REVIEW |

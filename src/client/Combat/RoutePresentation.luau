@@ -91,6 +91,7 @@ function RoutePresentation.new()
 	local revision = 0
 	local result: Types.RouteResult? = nil
 	local selected: string? = nil
+	local requested: string? = nil
 	return {
 		revision = function(): number
 			return revision
@@ -101,12 +102,16 @@ function RoutePresentation.new()
 		selected = function(): string?
 			return selected
 		end,
+		requested = function(): string?
+			return requested
+		end,
 		clear = function()
 			revision += 1
-			result, selected = nil, nil
+			result, selected, requested = nil, nil, nil
 		end,
 		cycle = function()
 			selected = RoutePresentation.nextTarget(result, selected)
+			requested = selected
 			revision += 1
 			-- Preserve the list to permit another cycle; never draw routes for the old target.
 			if result then
@@ -119,6 +124,10 @@ function RoutePresentation.new()
 			end
 			result = value
 			selected = if value then value.Selected else nil
+			-- Once an explicitly pinned target disappears, resume automatic nearest-objective guidance.
+			if requested and value and value.Selected ~= requested then
+				requested = nil
+			end
 			return true
 		end,
 	}

@@ -44,6 +44,7 @@ function RouteHudController.Start()
 	local inFlight = false
 	local alive = true
 	local nextRequest = 0
+	local lastResponse = 0
 	local gui = HudKit.screen("RouteHud")
 	gui.DisplayOrder = GameConfig.MatchHud.DisplayOrder + 1
 	janitor:Add(gui)
@@ -394,14 +395,17 @@ function RouteHudController.Start()
 		if not inFlight and os.clock() >= nextRequest then
 			inFlight = true
 			nextRequest = os.clock() + config.RequestSeconds
-			local revision, selected = state.revision(), state.selected()
+			local revision, selected = state.revision(), state.requested()
 			task.spawn(function()
 				local ok, value = pcall(Remote.invoke, "RequestRoute", selected)
 				inFlight = false
 				if not alive or not active() then
 					return
 				end
-				state.apply(if ok and type(value) == "table" then value :: Types.RouteResult else nil, revision)
+				-- Keep the last good line through a transient failed/throttled request, bounded below by StaleSeconds.
+				if ok and type(value) == "table" and state.apply(value :: Types.RouteResult, revision) then
+					lastResponse = os.clock()
+				end
 			end)
 		end
 		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
@@ -478,13 +482,7 @@ function RouteHudController.Start()
 			renderer.marks(trackedMarks)
 			drawnMarks = marksRevision
 		end
-		arrows.update(
-			route,
-			root.Position,
-			here,
-			bands.nameAt,
-			if drawnModeNow == "Clean" then config.CleanColor else config.FastColor
-		)
+		arrows.update(if os.clock() - lastResponse <= config.StaleSeconds then route else nil, here, bands.nameAt)
 	end))
 	-- Every frame: the "you" marker follows the player, and in the minimap the plan slides so they stay in the middle.
 	janitor:Add(RunService.RenderStepped:Connect(function()
