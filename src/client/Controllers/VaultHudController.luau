@@ -27,7 +27,7 @@ function VaultHudController.Start()
 	local panel = HudKit.panel(
 		gui,
 		"VaultProgress",
-		UDim2.new(0.5, 0, 0, config.TimerTopPixels + config.TimerHeightPixels + config.PaddingPixels),
+		UDim2.new(0.5, 0, 0, config.TimerTopPixels + GameConfig.UI.FloatingHud.WatchPixels + config.PaddingPixels),
 		Vector2.new(0.5, 0),
 		UDim2.fromOffset(config.PanelWidthPixels, GameConfig.Vault.ActiveVaults * rowHeight + config.PaddingPixels)
 	)

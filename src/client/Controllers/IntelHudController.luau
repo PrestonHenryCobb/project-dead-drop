@@ -38,12 +38,19 @@ function IntelHudController.Start()
 	)
 	local panelRoot = panel.Parent :: Frame
 	panelRoot.Visible = false
+	HudKit.icon(
+		panel,
+		"Intel",
+		UDim2.fromOffset(theme.PaddingPixels, theme.PaddingPixels),
+		theme.IconPixels,
+		theme.TextColor
+	)
 	local balance = HudKit.text(
 		panel,
 		"Balance",
-		UDim2.fromOffset(theme.PaddingPixels, theme.PaddingPixels),
+		UDim2.fromOffset(theme.PaddingPixels * 2 + theme.IconPixels, theme.PaddingPixels),
 		Vector2.zero,
-		UDim2.new(1, -theme.PaddingPixels * 2, 0, config.BodySize)
+		UDim2.new(1, -theme.PaddingPixels * 3 - theme.IconPixels, 0, config.BodySize)
 	)
 	balance.TextSize = config.BodySize
 	balance.TextXAlignment = Enum.TextXAlignment.Left
@@ -119,8 +126,8 @@ function IntelHudController.Start()
 	janitor:Add(RunService.RenderStepped:Connect(function()
 		local view = state.view(workspace:GetServerTimeNow(), os.clock())
 		panelRoot.Visible = view.active
-		balance.Text = if view.balance ~= nil then `INTEL  {view.balance}` else "INTEL  —"
-		taken.Text = `{view.usedCount} STATIONS TAKEN BY YOUR TEAM`
+		balance.Text = if view.balance ~= nil then tostring(view.balance) else "—"
+		taken.Text = tostring(view.usedCount) .. " ✓"
 		actionRoot.Visible = view.hacking
 		bar.Size = UDim2.new(view.holdProgress, -theme.PaddingPixels * 2 * view.holdProgress, 0, theme.ReloadBarPixels)
 	end))

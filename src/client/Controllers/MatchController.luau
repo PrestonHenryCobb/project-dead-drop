@@ -21,6 +21,7 @@ local scores = Janitor.new()
 local state = Presentation.new()
 local config = GameConfig.MatchHud
 local theme = HudTheme.get()
+local floating = GameConfig.UI.FloatingHud
 
 local function label(parent: Instance, name: string, y: number, height: number, size: number): TextLabel
 	local result = HudKit.text(
@@ -57,7 +58,8 @@ function MatchController.Start()
 		"Briefing",
 		UDim2.fromScale(0.5, 0.5),
 		Vector2.new(0.5, 0.5),
-		UDim2.fromOffset(config.PanelWidthPixels, config.BriefHeightPixels)
+		UDim2.fromOffset(config.PanelWidthPixels, config.BriefHeightPixels),
+		true
 	)
 	local briefRoot = brief.Parent :: Frame
 	briefRoot.ZIndex = 3
@@ -86,11 +88,34 @@ function MatchController.Start()
 		"MatchClock",
 		UDim2.new(0.5, 0, 0, config.TimerTopPixels),
 		Vector2.new(0.5, 0),
-		UDim2.fromOffset(config.TimerWidthPixels, config.TimerHeightPixels)
+		UDim2.fromOffset(floating.WatchPixels, floating.WatchPixels)
 	)
+	local caseCorner = timer:FindFirstChildOfClass("UICorner")
+	if caseCorner then
+		caseCorner.CornerRadius = UDim.new(0.5, 0)
+	end
+	for _, side in { -1, 1 } do
+		local lug = Instance.new("Frame")
+		lug.AnchorPoint = Vector2.new(0.5, 0.5)
+		lug.Position = UDim2.new(0.5, 0, if side < 0 then 0 else 1, 0)
+		lug.Size = UDim2.fromOffset(floating.WatchPixels / 4, floating.RingStrokePixels)
+		lug.BorderSizePixel = 0
+		lug.BackgroundColor3 = theme.TextColor
+		lug.Parent = timer
+	end
 	local timerRoot = timer.Parent :: Frame
 	timerRoot.Visible = false
-	local clock = label(timer, "Clock", 0, config.TimerHeightPixels, config.TitleSize)
+	local clock = HudKit.text(
+		timer,
+		"Clock",
+		UDim2.fromScale(0.5, 0.5),
+		Vector2.new(0.5, 0.5),
+		UDim2.new(1, -floating.RingInsetPixels * 4, 0, config.TitleSize)
+	)
+	clock.TextSize = config.BodySize
+	local setRing = HudKit.ring(timer, "WatchTick", floating.WatchPixels)
+	local deadline: number? = nil
+	local duration = GameConfig.Match.MainTimerSeconds
 	local waitPanel = HudKit.panel(
 		gui,
 		"LobbyWait",
@@ -106,7 +131,8 @@ function MatchController.Start()
 		"Results",
 		UDim2.fromScale(0.5, 0.5),
 		Vector2.new(0.5, 0.5),
-		UDim2.fromOffset(config.PanelWidthPixels, config.ResultsHeightPixels)
+		UDim2.fromOffset(config.PanelWidthPixels, config.ResultsHeightPixels),
+		true
 	)
 	local resultsRoot = results.Parent :: Frame
 	resultsRoot.ZIndex = 4
@@ -152,6 +178,10 @@ function MatchController.Start()
 
 	local function onPhase(phase: Types.Phase, data: Types.PhaseData)
 		state.apply(phase, data)
+		deadline = if phase == "Overtime" then data.EndsAt else data.MainEndsAt
+		duration = if phase == "Overtime" and data.EndsAt
+			then math.max(data.EndsAt - data.StartedAt, 0.001)
+			else GameConfig.Match.MainTimerSeconds
 		gui.Enabled = true -- Lobby wait and Insertion must remain visible above the open menu.
 		scores:Cleanup()
 		board.CanvasPosition = Vector2.zero
@@ -223,7 +253,11 @@ function MatchController.Start()
 		banner.Text = view.banner or ""
 		timerRoot.Visible = view.mainTimer ~= nil
 		clock.Text = view.mainTimer or ""
-		clock.TextColor3 = if view.phase == "Overtime" then GameConfig.UI.WarningColor else theme.TextColor
+		local remaining = if deadline then math.max(0, deadline - workspace:GetServerTimeNow()) else 0
+		local urgent = view.phase == "Overtime" or (deadline ~= nil and remaining <= GameConfig.UI.TimerWarningSeconds)
+		clock.TextColor3 = if urgent then GameConfig.UI.WarningColor else theme.TextColor
+		setRing(remaining / duration, clock.TextColor3)
+		timer.BackgroundTransparency = if urgent then floating.WarningTransparency else 1
 		waitRoot.Visible = view.ready ~= nil
 		waiting.Text = if view.ready then `WAITING FOR PLAYERS · {view.ready} READY · FILL {view.phaseTimer}` else ""
 		resultsRoot.Visible = view.results ~= nil

@@ -121,9 +121,14 @@ local function build()
 	local coverPanel = HudKit.panel(
 		screen,
 		"Cover",
-		UDim2.new(0.5, 0, 1, -graphics.CoverBottomPixels),
-		Vector2.new(0.5, 1),
-		UDim2.fromOffset(graphics.CoverWidthPixels, graphics.CoverHeightPixels)
+		UDim2.new(
+			0,
+			graphics.MarginPixels + ui.FloatingHud.BracketGapPixels,
+			1,
+			-graphics.MarginPixels - ui.FloatingHud.MeterHeightPixels + graphics.CoverHeightPixels
+		),
+		Vector2.new(0, 1),
+		UDim2.fromOffset(ui.FloatingHud.DisguiseWidthPixels, graphics.CoverHeightPixels)
 	)
 	coverRoot = coverPanel.Parent :: Frame
 	HudKit.icon(
@@ -137,7 +142,8 @@ local function build()
 	meterBack.Name = "Meter"
 	meterBack.AnchorPoint = Vector2.new(0.5, 1)
 	meterBack.Position = UDim2.new(0.5, 0, 1, -graphics.PaddingPixels)
-	meterBack.Size = UDim2.fromOffset(graphics.CoverWidthPixels - graphics.PaddingPixels * 2, ui.MeterHeightPixels)
+	meterBack.Size =
+		UDim2.fromOffset(ui.FloatingHud.DisguiseWidthPixels - graphics.PaddingPixels * 2, ui.MeterHeightPixels)
 	meterBack.BackgroundColor3 = ui.ScanRingDimColor
 	meterBack.BorderSizePixel = 0
 	meterBack.Parent = coverPanel
@@ -161,7 +167,7 @@ local function build()
 		UDim2.new(1, -graphics.PaddingPixels, 0, graphics.PaddingPixels),
 		Vector2.new(1, 0),
 		UDim2.fromOffset(
-			graphics.CoverWidthPixels - graphics.PaddingPixels * 3 - graphics.IconPixels,
+			ui.FloatingHud.DisguiseWidthPixels - graphics.PaddingPixels * 3 - graphics.IconPixels,
 			graphics.IconPixels
 		)
 	)
@@ -192,12 +198,14 @@ local function build()
 		HudScale.bind(text)
 		text.BackgroundColor3 = graphics.PanelColor
 		text.BackgroundTransparency = graphics.PanelTransparency
-		text.TextStrokeTransparency = 1
+		text.TextStrokeTransparency = ui.FloatingHud.TextShadowTransparency
 		local corner = Instance.new("UICorner")
 		corner.CornerRadius = UDim.new(0, graphics.CornerPixels)
 		corner.Parent = text
 	end
 
+	warningText.BackgroundTransparency = ui.FloatingHud.WarningTransparency
+	promptText.BackgroundTransparency = ui.FloatingHud.WarningTransparency
 	local exposedPanel = HudKit.panel(
 		screen,
 		"ExposureNotice",
@@ -205,6 +213,7 @@ local function build()
 		HudLayout.anchor(layout.Exposure),
 		UDim2.fromOffset(ui.CoverBreak.BannerWidthPixels, ui.CoverBreak.BannerHeightPixels)
 	)
+	exposedPanel.BackgroundTransparency = ui.FloatingHud.WarningTransparency
 	local noticeRoot = exposedPanel.Parent :: Frame
 	noticeRoot.Visible = false
 	exposedRoot = noticeRoot
@@ -244,10 +253,10 @@ local function refreshText(now: number)
 	end
 	fill.BackgroundColor3 = color
 	fill.Size = UDim2.fromScale(math.clamp(suspicion.Value / cover.SuspicionMax, 0, 1), 1)
-	label.Text = if recovering then "RE-COVERING" else string.upper(coverState)
-	label.TextColor3 = graphics.TextColor
+	label.Text = if recovering then "RE-COVERING" elseif coverState == "Exposed" then "EXPOSED" else ""
+	label.TextColor3 = color
 	if alarmLabel then
-		alarmLabel.Text = `ALARM {alarm}`
+		alarmLabel.Text = tostring(alarm)
 		alarmLabel.Visible = alarm < GameConfig.Security.Alarm.MaxLevel
 	end
 	if lockdownBanner then

@@ -37,6 +37,7 @@ local janitor = Janitor.new()
 
 local ui = GameConfig.UI
 local graphics = HudTheme.get()
+local floating = GameConfig.UI.FloatingHud
 local layout = HudLayout.regions(graphics)
 local controls = GameConfig.Controls
 local localPlayer = Players.LocalPlayer
@@ -50,6 +51,7 @@ local ringSegments: { Frame } = {}
 local centerDot: Frame? = nil
 local badge: TextLabel? = nil
 local storedBadges: { TextLabel } = {}
+local storedIcons: { Frame } = {}
 local badgePanel: Frame? = nil
 local tierPips: { Frame } = {}
 local toast: TextLabel? = nil
@@ -58,6 +60,8 @@ local crouchTrack: AnimationTrack? = nil
 local sprintHeld = false
 local crouchHeld = false
 local latestDisguise: Types.DisguiseUpdate? = nil
+local hintUntil = 0
+local disguiseKey = ""
 
 local function buildHud()
 	local gui = HudKit.screen("DisguiseHud")
@@ -92,9 +96,9 @@ local function buildHud()
 	local disguisePanel = HudKit.panel(
 		gui,
 		"Disguise",
-		UDim2.new(0, graphics.MarginPixels, 1, -graphics.CoverBottomPixels),
+		UDim2.new(0, graphics.MarginPixels + floating.BracketGapPixels, 1, -graphics.MarginPixels),
 		Vector2.new(0, 1),
-		UDim2.fromOffset(graphics.VitalsWidthPixels, graphics.PaddingPixels * 4)
+		UDim2.fromOffset(floating.DisguiseWidthPixels, graphics.PaddingPixels * 4)
 	)
 	badgePanel = disguisePanel
 	HudKit.icon(
@@ -137,7 +141,7 @@ local function buildHud()
 	toastText.BackgroundTransparency = graphics.PanelTransparency
 	HudScale.bind(toastText)
 	toastText.TextTransparency = 1
-	toastText.TextStrokeTransparency = 1
+	toastText.TextStrokeTransparency = floating.TextShadowTransparency
 	toast = toastText
 end
 
@@ -151,12 +155,12 @@ local function showToast(text: string)
 	toastText.Text = text
 	toastText.Visible = true
 	toastText.TextTransparency = 0
-	toastText.TextStrokeTransparency = 1
+	toastText.TextStrokeTransparency = floating.TextShadowTransparency
 	task.delay(ui.ToastSeconds, function()
 		if token == toastToken and toastText.Parent then
 			toastText.Visible = false
 			toastText.TextTransparency = 1
-			toastText.TextStrokeTransparency = 1
+			toastText.TextStrokeTransparency = floating.TextShadowTransparency
 		end
 	end)
 end
@@ -167,6 +171,15 @@ local function roleOf(outfitId: string): string
 end
 
 local function showDisguise(update: Types.DisguiseUpdate)
+	local slots = {}
+	for _, slot in update.Slots do
+		table.insert(slots, tostring(slot))
+	end
+	local key = update.Worn .. tostring(update.Exposed) .. table.concat(slots, ":")
+	if key ~= disguiseKey then
+		disguiseKey = key
+		hintUntil = os.clock() + floating.HintSeconds
+	end
 	latestDisguise = update
 	local text = badge
 	if not text then
@@ -185,9 +198,11 @@ local function showDisguise(update: Types.DisguiseUpdate)
 		local count = math.max(1, #update.Slots)
 		local root = panel.Parent :: Frame
 		root.Size =
-			UDim2.fromOffset(graphics.VitalsWidthPixels, graphics.PaddingPixels * 3 + graphics.CaptionSize * count)
+			UDim2.fromOffset(floating.DisguiseWidthPixels, graphics.PaddingPixels * 3 + graphics.CaptionSize * count)
 		for index = #storedBadges, count + 1, -1 do
 			storedBadges[index]:Destroy()
+			storedIcons[index]:Destroy()
+			table.remove(storedIcons, index)
 			table.remove(storedBadges, index)
 		end
 		for index = 1, count do
@@ -207,9 +222,24 @@ local function showDisguise(update: Types.DisguiseUpdate)
 				storedText.TextColor3 = graphics.DimTextColor
 				storedText.TextXAlignment = Enum.TextXAlignment.Left
 				storedBadges[index] = storedText
+				storedIcons[index] = HudKit.icon(
+					panel,
+					"Badge",
+					UDim2.fromOffset(
+						graphics.PaddingPixels,
+						graphics.PaddingPixels * 2 + (index - 1) * graphics.CaptionSize
+					),
+					graphics.CaptionSize,
+					graphics.TextColor
+				)
 			end
 			local stored = update.Slots[index]
 			local storedLine = if type(stored) == "string" then roleOf(stored) else "EMPTY"
+			for _, line in storedIcons[index]:GetChildren() do
+				if line:IsA("Frame") then
+					line.BackgroundTransparency = if type(stored) == "string" then 0 else floating.InactiveTransparency
+				end
+			end
 			storedText.Text =
 				InputHints.bracket(controls.Disguise, controls.DisguisePad, `SLOT {index} · {storedLine}`)
 		end
@@ -349,6 +379,7 @@ function DisguiseController.Start()
 		showDisguise(update)
 	end))
 	janitor:Add(InputHints.onChange(function()
+		hintUntil = os.clock() + floating.HintSeconds
 		if latestDisguise then
 			showDisguise(latestDisguise)
 		end
@@ -371,6 +402,13 @@ function DisguiseController.Start()
 	end))
 
 	janitor:Add(RunService.RenderStepped:Connect(function()
+		local hintVisible = os.clock() < hintUntil
+		if badge then
+			badge.Visible = hintVisible or (latestDisguise ~= nil and latestDisguise.Exposed)
+		end
+		for _, text in storedBadges do
+			text.Visible = hintVisible
+		end
 		local canAct = HeldItemController.canAct()
 		if not canAct and (scanHeld or sprintHeld or crouchHeld or scanStartedAt ~= nil) then
 			cancelMovementInputs()

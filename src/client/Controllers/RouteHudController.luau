@@ -45,6 +45,7 @@ function RouteHudController.Start()
 	local alive = true
 	local nextRequest = 0
 	local gui = HudKit.screen("RouteHud")
+	gui.DisplayOrder = GameConfig.MatchHud.DisplayOrder + 1
 	janitor:Add(gui)
 	local rowHeight = theme.CaptionSize + theme.PaddingPixels * 2
 	local height = config.MapPixels
@@ -55,10 +56,15 @@ function RouteHudController.Start()
 	local panel = HudKit.panel(
 		gui,
 		"RoutePanel",
-		UDim2.fromOffset(theme.MarginPixels, config.TopPixels),
-		Vector2.zero,
+		UDim2.new(1, -theme.MarginPixels, 0, theme.MarginPixels),
+		Vector2.new(1, 0),
 		UDim2.fromOffset(config.WidthPixels, height)
 	)
+	local boundary = panel:FindFirstChildOfClass("UIStroke")
+	if boundary then
+		boundary.Color = theme.TextColor
+		boundary.Transparency = GameConfig.UI.FloatingHud.TextShadowTransparency
+	end
 	local panelRoot = panel.Parent :: Frame
 	panelRoot.Visible = false
 	local function text(name: string, y: number, h: number): TextLabel
@@ -184,6 +190,7 @@ function RouteHudController.Start()
 	-- pokes out of the corners), the whole GPS panel, or nothing (Visible is set where the route is refreshed).
 	local function applyView()
 		local full = view == "Full"
+		panel.BackgroundTransparency = if full then GameConfig.UI.FloatingHud.SurfaceTransparency else 1
 		for _, item in detail do
 			item.Visible = full
 		end

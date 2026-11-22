@@ -30,6 +30,22 @@ local ICONS: { [string]: { { number } } } = {
 		{ 0.5, 0.35, 0.5, 0.57 },
 		{ 0.5, 0.69, 0.5, 0.72 },
 	},
+	Shield = { { 0.15, 0.18, 0.85, 0.18 }, { 0.85, 0.18, 0.8, 0.65 }, { 0.8, 0.65, 0.5, 0.92 }, { 0.5, 0.92, 0.2, 0.65 }, {
+		0.2,
+		0.65,
+		0.15,
+		0.18,
+	} },
+	Intel = {
+		{ 0.2, 0.2, 0.8, 0.2 },
+		{ 0.8, 0.2, 0.8, 0.8 },
+		{ 0.8, 0.8, 0.2, 0.8 },
+		{ 0.2, 0.8, 0.2, 0.2 },
+		{ 0.35, 0.4, 0.65, 0.4 },
+		{ 0.35, 0.6, 0.65, 0.6 },
+		{ 0.4, 0.05, 0.4, 0.2 },
+		{ 0.6, 0.8, 0.6, 0.95 },
+	},
 	Health = { { 0.5, 0.12, 0.5, 0.88 }, { 0.12, 0.5, 0.88, 0.5 } },
 	Badge = {
 		{ 0.08, 0.18, 0.92, 0.18 },
@@ -60,7 +76,14 @@ local ICONS: { [string]: { { number } } } = {
 	},
 }
 
-function HudKit.panel(parent: Instance, name: string, position: UDim2, anchor: Vector2, size: UDim2): Frame
+function HudKit.panel(
+	parent: Instance,
+	name: string,
+	position: UDim2,
+	anchor: Vector2,
+	size: UDim2,
+	surface: boolean?
+): Frame
 	local root = Instance.new("Frame")
 	root.Name = name
 	root.BackgroundTransparency = 1
@@ -72,14 +95,14 @@ function HudKit.panel(parent: Instance, name: string, position: UDim2, anchor: V
 	shadow.Size = UDim2.fromScale(1, 1)
 	shadow.BorderSizePixel = 0
 	shadow.BackgroundColor3 = Color3.new(0, 0, 0)
-	shadow.BackgroundTransparency = graphics.ShadowTransparency
+	shadow.BackgroundTransparency = 1
 	shadow.Parent = root
 	local back = Instance.new("Frame")
 	back.Name = "Backdrop"
 	back.Size = UDim2.fromScale(1, 1)
 	back.BorderSizePixel = 0
 	back.BackgroundColor3 = graphics.PanelColor
-	back.BackgroundTransparency = graphics.PanelTransparency
+	back.BackgroundTransparency = if surface then ui.FloatingHud.SurfaceTransparency else 1
 	back.Parent = root
 	for _, frame in { shadow, back } do
 		local corner = Instance.new("UICorner")
@@ -88,11 +111,12 @@ function HudKit.panel(parent: Instance, name: string, position: UDim2, anchor: V
 	end
 	local border = Instance.new("UIStroke")
 	border.Color = graphics.BorderColor
-	border.Transparency = graphics.BorderTransparency
+	border.Transparency = if surface then 0.7 else 1
 	border.Thickness = graphics.StrokePixels
 	border.Parent = back
 	local accent = Instance.new("Frame")
 	accent.Name = "MapAccent"
+	accent.Visible = surface == true
 	accent.BorderSizePixel = 0
 	accent.BackgroundColor3 = graphics.AccentColor
 	accent.Position = UDim2.fromOffset(graphics.PaddingPixels, 0)
@@ -102,8 +126,15 @@ function HudKit.panel(parent: Instance, name: string, position: UDim2, anchor: V
 	return back
 end
 
-function HudKit.icon(parent: Instance, name: string, position: UDim2, pixels: number, color: Color3): Frame
-	local segments = ICONS[name]
+function HudKit.icon(
+	parent: Instance,
+	name: string,
+	position: UDim2,
+	pixels: number,
+	color: Color3,
+	drawing: { { number } }?
+): Frame
+	local segments = drawing or ICONS[name]
 	assert(segments, `Unknown HUD icon {name}`)
 	local root = Instance.new("Frame")
 	root.Name = name .. "Icon"
@@ -120,9 +151,50 @@ function HudKit.icon(parent: Instance, name: string, position: UDim2, pixels: nu
 		line.Rotation = math.deg(math.atan2(y, x))
 		line.BackgroundColor3 = color
 		line.BorderSizePixel = 0
+		local shadow = Instance.new("UIStroke")
+		shadow.Color = Color3.new(0, 0, 0)
+		shadow.Thickness = graphics.StrokePixels
+		shadow.Transparency = ui.FloatingHud.LineShadowTransparency
+		shadow.Parent = line
 		line.Parent = root
 	end
 	return root
+end
+
+-- Allocated once; the caller updates only tick colors/transparency from an authoritative deadline.
+function HudKit.ring(parent: Instance, name: string, pixels: number): (number, Color3) -> ()
+	local ticks: { Frame } = {}
+	local config = ui.FloatingHud
+	local lastCount = -1
+	local lastColor: Color3? = nil
+	for index = 1, config.RingSegments do
+		local angle = (index - 1) / config.RingSegments * math.pi * 2
+		local tick = Instance.new("Frame")
+		tick.Name = `{name}{index}`
+		tick.AnchorPoint = Vector2.new(0.5, 0.5)
+		local radius = pixels / 2 - config.RingInsetPixels
+		tick.Position = UDim2.new(0.5, math.sin(angle) * radius, 0.5, -math.cos(angle) * radius)
+		tick.Size = UDim2.fromOffset(config.RingStrokePixels, config.RingTickPixels)
+		tick.Rotation = math.deg(angle)
+		tick.BorderSizePixel = 0
+		tick.Parent = parent
+		local outline = Instance.new("UIStroke")
+		outline.Color = Color3.new(0, 0, 0)
+		outline.Transparency = config.LineShadowTransparency
+		outline.Parent = tick
+		table.insert(ticks, tick)
+	end
+	return function(fraction: number, color: Color3)
+		local count = math.ceil(math.clamp(fraction, 0, 1) * #ticks)
+		if count == lastCount and color == lastColor then
+			return
+		end
+		lastCount, lastColor = count, color
+		for index, tick in ticks do
+			tick.BackgroundColor3 = color
+			tick.BackgroundTransparency = if index <= count then 0 else config.InactiveTransparency
+		end
+	end
 end
 
 function HudKit.screen(name: string): ScreenGui
@@ -140,8 +212,9 @@ function HudKit.text(parent: Instance, name: string, position: UDim2, anchor: Ve
 	text.BackgroundTransparency = 1
 	text.Font = graphics.Font
 	text.TextSize = ui.TextSize
-	text.TextColor3 = if parent.Name == "Backdrop" then graphics.TextColor else ui.TextColor
-	text.TextStrokeTransparency = if parent.Name == "Backdrop" then 1 else 0.5
+	text.TextColor3 = graphics.TextColor
+	text.TextStrokeColor3 = Color3.new(0, 0, 0)
+	text.TextStrokeTransparency = ui.FloatingHud.TextShadowTransparency
 	text.AnchorPoint = anchor
 	text.Position = position
 	text.Size = size

@@ -18,6 +18,8 @@ local PackageHudController = {}
 local janitor = Janitor.new()
 local state = Presentation.new()
 local theme = HudTheme.get()
+local HudLayout = require(script.Parent.Parent.Combat.HudLayout)
+local layout = HudLayout.regions(theme)
 local config = GameConfig.MatchHud
 local visual = GameConfig.ExtractionVisuals
 
@@ -42,8 +44,8 @@ function PackageHudController.Start()
 	local panel = HudKit.panel(
 		gui,
 		"PackageStatus",
-		UDim2.new(1, -theme.MarginPixels, 0, theme.MarginPixels),
-		Vector2.new(1, 0),
+		HudLayout.position(layout.Package),
+		HudLayout.anchor(layout.Package),
 		UDim2.fromOffset(theme.CoverWidthPixels, theme.CoverHeightPixels)
 	)
 	local panelRoot = panel.Parent :: Frame
@@ -59,8 +61,8 @@ function PackageHudController.Start()
 	local extractionPanel = HudKit.panel(
 		gui,
 		"ExtractionStatus",
-		UDim2.new(1, -theme.MarginPixels, 0, theme.MarginPixels + theme.CoverHeightPixels + theme.PaddingPixels),
-		Vector2.new(1, 0),
+		HudLayout.position(layout.Extraction),
+		HudLayout.anchor(layout.Extraction),
 		UDim2.fromOffset(theme.CoverWidthPixels, theme.CoverHeightPixels)
 	)
 	local extractionRoot = extractionPanel.Parent :: Frame

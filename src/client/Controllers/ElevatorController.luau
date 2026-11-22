@@ -86,7 +86,8 @@ function ElevatorController.Start()
 		"ElevatorLevels",
 		UDim2.new(1, -theme.MarginPixels, 0.5, 0),
 		Vector2.new(1, 0.5),
-		UDim2.fromOffset(theme.ActionWidthPixels, theme.ActionHeightPixels)
+		UDim2.fromOffset(theme.ActionWidthPixels, theme.ActionHeightPixels),
+		true
 	)
 	local root = panel.Parent :: Frame
 	root.Visible = false

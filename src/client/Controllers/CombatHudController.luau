@@ -32,10 +32,10 @@ local ui = GameConfig.UI
 local graphics = HudTheme.get()
 local localPlayer = Players.LocalPlayer
 
-local BAR_WIDTH = graphics.VitalsWidthPixels - graphics.PaddingPixels * 2
-local BAR_HEIGHT = 8
+local floating = ui.FloatingHud
+local BAR_WIDTH = floating.MeterWidthPixels
+local BAR_HEIGHT = floating.MeterHeightPixels
 local MARGIN = graphics.MarginPixels
-local VITALS_BOTTOM = combat.Hud.VitalsBottomPixels
 local CROSSHAIR_THICKNESS = 2
 local TAKEDOWN_WIDTH = 160
 local TAKEDOWN_BAR_HEIGHT = 6
@@ -68,6 +68,8 @@ local weaponCaption: TextLabel? = nil
 local shownHP = hp / combat.MaxHP
 local shownArmor = armor
 local damageAt = -math.huge
+local previousWeapon = ""
+local weaponHintUntil = 0
 
 local function bar(parent: Instance, name: string, color: Color3): Frame
 	local frame = Instance.new("Frame")
@@ -133,41 +135,49 @@ local function build()
 	local vitals = HudKit.panel(
 		gui,
 		"Vitals",
-		UDim2.new(0, MARGIN, 1, -VITALS_BOTTOM + BAR_HEIGHT),
+		UDim2.new(0, MARGIN, 1, -MARGIN),
 		Vector2.new(0, 1),
-		UDim2.fromOffset(graphics.VitalsWidthPixels, graphics.VitalsHeightPixels)
+		UDim2.fromOffset(floating.DisguiseWidthPixels + floating.BracketGapPixels * 2, BAR_HEIGHT)
 	)
 	vitalsPanel = vitals
-	HudKit.icon(
-		vitals,
-		"Health",
-		UDim2.fromOffset(graphics.PaddingPixels, graphics.PaddingPixels),
-		graphics.IconPixels,
-		feedback.HealthColor
-	)
 	local health = HudKit.text(
 		vitals,
 		"Health",
-		UDim2.fromOffset(graphics.PaddingPixels * 2 + graphics.IconPixels, 0),
+		UDim2.fromOffset(graphics.CaptionSize, -graphics.CaptionSize - graphics.PaddingPixels * 2),
 		Vector2.zero,
-		UDim2.fromOffset(BAR_WIDTH - graphics.IconPixels, graphics.PaddingPixels * 3)
+		UDim2.fromOffset(floating.BracketGapPixels * 2, graphics.CaptionSize)
 	)
-	health.TextSize = graphics.NumberSize
-	health.TextXAlignment = Enum.TextXAlignment.Left
+	health.TextSize = graphics.CaptionSize
 	healthText = health
+	HudKit.icon(
+		vitals,
+		"Health",
+		UDim2.fromOffset(-BAR_WIDTH, -graphics.CaptionSize - graphics.PaddingPixels * 2),
+		graphics.CaptionSize,
+		feedback.HealthColor
+	)
+	HudKit.icon(
+		vitals,
+		"Shield",
+		UDim2.new(1, -graphics.CaptionSize, 0, -graphics.CaptionSize - graphics.PaddingPixels),
+		graphics.CaptionSize,
+		feedback.ArmorColor
+	)
 	local back = bar(vitals, "HealthBack", ui.ScanRingDimColor)
-	back.Position = UDim2.fromOffset(graphics.PaddingPixels, graphics.PaddingPixels * 3)
 	back.Size = UDim2.fromOffset(BAR_WIDTH, BAR_HEIGHT)
 	healthFill = bar(back, "Fill", feedback.HealthColor)
+	healthFill.AnchorPoint = Vector2.new(0, 1)
+	healthFill.Position = UDim2.fromScale(0, 1)
 	for index = 1, combat.MaxPlates do
-		local plateBack = bar(vitals, `PlateBack{index}`, ui.ScanRingDimColor)
-		local plateWidth = (BAR_WIDTH - graphics.PaddingPixels * (combat.MaxPlates - 1)) / combat.MaxPlates
-		plateBack.Position = UDim2.fromOffset(
-			graphics.PaddingPixels + (index - 1) * (plateWidth + graphics.PaddingPixels),
-			graphics.VitalsHeightPixels - graphics.PaddingPixels - BAR_HEIGHT
-		)
-		plateBack.Size = UDim2.fromOffset(plateWidth, BAR_HEIGHT)
-		plates[index] = bar(plateBack, "Fill", feedback.ArmorColor)
+		local plateBack = bar(vitals, "PlateBack" .. tostring(index), ui.ScanRingDimColor)
+		local plateHeight = (BAR_HEIGHT - graphics.ReloadBarPixels * (combat.MaxPlates - 1)) / combat.MaxPlates
+		plateBack.AnchorPoint = Vector2.new(1, 1)
+		plateBack.Position = UDim2.new(1, 0, 1, -(index - 1) * (plateHeight + graphics.ReloadBarPixels))
+		plateBack.Size = UDim2.fromOffset(BAR_WIDTH, plateHeight)
+		local fill = bar(plateBack, "Fill", feedback.ArmorColor)
+		fill.AnchorPoint = Vector2.new(0, 1)
+		fill.Position = UDim2.fromScale(0, 1)
+		plates[index] = fill
 	end
 
 	local ammoPanel = HudKit.panel(
@@ -246,6 +256,9 @@ local function updateCrosshair(viewportHeight: number)
 		line.Position = if horizontal then UDim2.new(0.5, along, 0.5, 0) else UDim2.new(0.5, 0, 0.5, along)
 	end
 	if ammunitionPanel then
+		if status.active and status.hasAmmo and not ammunitionPanel.Visible then
+			weaponHintUntil = os.clock() + floating.HintSeconds
+		end
 		ammunitionPanel.Visible = status.active and status.hasAmmo
 	end
 	if vitalsPanel then
@@ -256,7 +269,12 @@ local function updateCrosshair(viewportHeight: number)
 		ammoText.TextColor3 = if status.mag == 0 then feedback.LowHealthColor else graphics.TextColor
 	end
 	if weaponCaption then
+		if status.name ~= previousWeapon then
+			previousWeapon = status.name
+			weaponHintUntil = os.clock() + floating.HintSeconds
+		end
 		weaponCaption.Text = status.name
+		weaponCaption.Visible = os.clock() < weaponHintUntil
 	end
 	if reloadBack and reloadFill then
 		reloadBack.Visible = status.reloading
@@ -305,22 +323,22 @@ local function updateVitals(dt: number, now: number)
 	local settle = if reduced then 1 else 1 - math.exp(-graphics.MeterSettleSpeed * dt)
 	shownHP += (hp / combat.MaxHP - shownHP) * settle
 	shownArmor += (armor - shownArmor) * settle
-	if vitalsPanel then
-		local pulse = if reduced then 0 else math.clamp(1 - (now - damageAt) / graphics.DamagePulseSeconds, 0, 1)
-		vitalsPanel.BackgroundColor3 = graphics.PanelColor:Lerp(feedback.LowHealthColor, pulse)
-		vitalsPanel.BackgroundTransparency = graphics.PanelTransparency
-			+ (graphics.DamagePulseTransparency - graphics.PanelTransparency) * pulse
-	end
+
 	if healthText and healthFill then
 		local fraction = hp / combat.MaxHP
 		healthText.Text = `{math.ceil(hp)}`
-		healthFill.Size = UDim2.fromScale(math.clamp(shownHP, 0, 1), 1)
+		healthFill.Size = UDim2.fromScale(1, math.clamp(shownHP, 0, 1))
 		local color = if fraction <= feedback.LowHealthFraction then feedback.LowHealthColor else feedback.HealthColor
-		healthFill.BackgroundColor3 = color
+		local pulse = if reduced then 0 else math.clamp(1 - (now - damageAt) / graphics.DamagePulseSeconds, 0, 1)
+		healthFill.BackgroundColor3 = color:Lerp(feedback.LowHealthColor, pulse)
 		healthText.TextColor3 = if fraction <= feedback.LowHealthFraction then color else graphics.TextColor
+		healthText.BackgroundColor3 = graphics.PanelColor
+		healthText.BackgroundTransparency = if fraction <= feedback.LowHealthFraction
+			then floating.WarningTransparency
+			else 1
 	end
 	for index, fill in plates do
-		fill.Size = UDim2.fromScale(math.clamp((shownArmor - (index - 1) * combat.PlateHP) / combat.PlateHP, 0, 1), 1)
+		fill.Size = UDim2.fromScale(1, math.clamp((shownArmor - (index - 1) * combat.PlateHP) / combat.PlateHP, 0, 1))
 	end
 end
 

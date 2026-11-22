@@ -49,7 +49,8 @@ function SupplyHudController.Start()
 		"SupplyShop",
 		UDim2.fromScale(0.5, 0.5),
 		Vector2.new(0.5, 0.5),
-		UDim2.fromOffset(config.PanelWidthPixels, config.BriefHeightPixels * 2)
+		UDim2.fromOffset(config.PanelWidthPixels, config.BriefHeightPixels * 2),
+		true
 	)
 	local title = HudKit.text(
 		panel,

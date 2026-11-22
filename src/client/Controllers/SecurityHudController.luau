@@ -89,7 +89,8 @@ function SecurityHudController.Start()
 		"CameraRoomFeeds",
 		UDim2.fromOffset(theme.MarginPixels, config.FeedTopPixels),
 		Vector2.zero,
-		UDim2.fromOffset(config.FeedWidthPixels, config.FeedHeightPixels)
+		UDim2.fromOffset(config.FeedWidthPixels, config.FeedHeightPixels),
+		true
 	)
 	local panelRoot = panel.Parent :: Frame
 	panelRoot.Visible = false

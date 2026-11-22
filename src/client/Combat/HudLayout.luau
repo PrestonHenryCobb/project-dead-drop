@@ -11,6 +11,9 @@ export type Region = { Edge: "Left" | "Center" | "Right", Offset: number, Top: n
 function HudLayout.regions(graphics: HudTheme.Theme): { [string]: Region }
 	local margin, gap = graphics.MarginPixels, graphics.PaddingPixels
 	local height = graphics.CoverHeightPixels
+	local mapFootprint = GameConfig.RouteHud.MiniPixels + gap * 2
+	local objectiveTop = margin + mapFootprint + gap
+	local rightNoticesTop = objectiveTop + (height + gap) * 2
 	local noticesTop = margin + (height + gap) * 2
 	local match = GameConfig.MatchHud
 	return {
@@ -29,25 +32,31 @@ function HudLayout.regions(graphics: HudTheme.Theme): { [string]: Region }
 			Width = graphics.CoverWidthPixels,
 			Height = gap * 3,
 		},
-		Package = { Edge = "Right", Offset = margin, Top = margin, Width = graphics.CoverWidthPixels, Height = height },
+		Package = {
+			Edge = "Right",
+			Offset = margin,
+			Top = objectiveTop,
+			Width = graphics.CoverWidthPixels,
+			Height = height,
+		},
 		Extraction = {
 			Edge = "Right",
 			Offset = margin,
-			Top = margin + height + gap,
+			Top = objectiveTop + height + gap,
 			Width = graphics.CoverWidthPixels,
 			Height = height,
 		},
 		Exposure = {
 			Edge = "Right",
 			Offset = margin,
-			Top = noticesTop,
+			Top = rightNoticesTop,
 			Width = GameConfig.UI.CoverBreak.BannerWidthPixels,
 			Height = GameConfig.UI.CoverBreak.BannerHeightPixels,
 		},
 		Warning = {
 			Edge = "Right",
 			Offset = margin,
-			Top = noticesTop + GameConfig.UI.CoverBreak.BannerHeightPixels + gap,
+			Top = rightNoticesTop + GameConfig.UI.CoverBreak.BannerHeightPixels + gap,
 			Width = graphics.ActionWidthPixels,
 			Height = gap * 3,
 		},
@@ -55,13 +64,13 @@ function HudLayout.regions(graphics: HudTheme.Theme): { [string]: Region }
 			Edge = "Center",
 			Offset = 0,
 			Top = match.TimerTopPixels,
-			Width = match.TimerWidthPixels,
-			Height = match.TimerHeightPixels,
+			Width = GameConfig.UI.FloatingHud.WatchPixels,
+			Height = GameConfig.UI.FloatingHud.WatchPixels,
 		},
 		Vault = {
 			Edge = "Center",
 			Offset = 0,
-			Top = match.TimerTopPixels + match.TimerHeightPixels + match.PaddingPixels,
+			Top = match.TimerTopPixels + GameConfig.UI.FloatingHud.WatchPixels + match.PaddingPixels,
 			Width = match.PanelWidthPixels,
 			Height = GameConfig.Vault.ActiveVaults * (match.BodySize + match.PaddingPixels) + match.PaddingPixels,
 		},

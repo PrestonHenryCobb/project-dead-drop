@@ -55,6 +55,7 @@ function DownedHudController.Start()
 		Vector2.new(0.5, 0),
 		UDim2.fromOffset(graphics.ActionWidthPixels, graphics.ActionHeightPixels)
 	)
+	down.BackgroundTransparency = ui.FloatingHud.WarningTransparency
 	local downRoot = down.Parent :: Frame
 	HudKit.icon(
 		down,
