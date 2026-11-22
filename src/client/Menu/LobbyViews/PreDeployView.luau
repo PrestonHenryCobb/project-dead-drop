@@ -25,6 +25,7 @@ local AssetDefs = require(Shared.Defs.AssetDefs)
 local AssetStyle = require(Menu.Parent.Combat.AssetStyle)
 local Kit = require(Menu.Components.ViewKit)
 local KitPicker = require(Menu.Components.KitPicker)
+local AssetEffect = require(Menu.Components.AssetEffect)
 local RemoteController = require(Menu.Parent:WaitForChild("Controllers"):WaitForChild("RemoteController"))
 
 local config = GameConfig.Menu
@@ -46,6 +47,7 @@ local draftHardware: string? = nil
 local draftGadgets: { string }? = nil
 local draftTalent: string? = nil
 local draftInstinct: string? = nil
+local pickingAssetSlot: number? = nil
 
 local function me(state: Types.PreDeployState?): Types.PreDeployMember?
 	if not state then
@@ -188,7 +190,7 @@ local function buildLeft(rail: ScrollingFrame, state: Types.PreDeployState, redr
 	MenuTheme.label({ Name = "Kicker", Text = "ASSET DRAFT", Style = "Kicker", Parent = assets, LayoutOrder = 1 })
 	MenuTheme.label({
 		Name = "AssetInstructions",
-		Text = "Select a rarity slot to cycle its Asset. Already assigned Assets swap slots. Lock in to submit the draft.",
+		Text = "Choose a rarity slot, then pick from its list. Four different Assets are required. They activate from matching safes in the match.",
 		Style = "Small",
 		Parent = assets,
 		LayoutOrder = 2,
@@ -200,21 +202,47 @@ local function buildLeft(rail: ScrollingFrame, state: Types.PreDeployState, redr
 		local button = MenuTheme.secondaryButton({
 			Name = `PreDeployAsset{index}`,
 			Text = `{AssetStyle.name(rarity)} · {if def then def.Name else "EMPTY"}\n{if def
-				then AssetStyle.value(id, rarity)
+				then AssetEffect.short(id, rarity)
 				else "Select to assign"}`,
 			Parent = assets,
-			LayoutOrder = index + 2,
-			Size = UDim2.new(1, 0, 0, config.SecondaryHeightPixels + config.TextSizes.Small),
+			LayoutOrder = index * 10,
+			Size = UDim2.new(1, 0, 0, config.SecondaryHeightPixels + config.TextSizes.Small * 2),
 			OnActivated = function()
-				local current = AssetDraft.get()
-				local at = table.find(AssetDefs.order, current[index]) or 0
-				if AssetDraft.choose(index, AssetDefs.order[at % #AssetDefs.order + 1]) then
-					redraw()
-				end
+				pickingAssetSlot = if pickingAssetSlot == index then nil else index
+				redraw()
 			end,
 		})
 		button.Instance.TextSize = config.TextSizes.Small
-		button.Instance.TextColor3 = AssetStyle.color(rarity) or colors.Text
+		button.SetSelected(pickingAssetSlot == index)
+		if pickingAssetSlot == index then
+			for order, candidateId in AssetDefs.order do
+				local candidate = assert(AssetDefs.get(candidateId))
+				local used = table.find(picks, candidateId)
+				local previous = AssetDefs.get(picks[index])
+				local action = if used == index
+					then "CURRENT PICK"
+					elseif used and previous then "SWAPS " .. previous.Name .. " INTO " .. string.upper(
+						AssetStyle.name(AssetDefs.rarities[used])
+					)
+					elseif used then "MOVES FROM " .. string.upper(AssetStyle.name(AssetDefs.rarities[used]))
+					else "CHOOSE FOR " .. string.upper(AssetStyle.name(rarity))
+				local choice = MenuTheme.secondaryButton({
+					Name = "PickAsset_" .. candidateId,
+					Text = candidate.Name .. " · " .. AssetEffect.detail(candidateId, rarity) .. "\n" .. action,
+					Parent = assets,
+					LayoutOrder = index * 10 + order,
+					Size = UDim2.new(1, 0, 0, config.SecondaryHeightPixels + config.TextSizes.Small * 3),
+					OnActivated = function()
+						if AssetDraft.choose(index, candidateId) then
+							pickingAssetSlot = nil
+							redraw()
+						end
+					end,
+				})
+				choice.Instance.TextSize = config.TextSizes.Small
+				choice.SetSelected(used == index)
+			end
+		end
 	end
 end
 
@@ -499,6 +527,7 @@ function PreDeployView.Mount(stage: Frame, navigator: Types.MenuNavigator, _cont
 	draftAgent, draftHardware = nil, nil
 	draftGadgets = nil
 	draftTalent, draftInstinct = nil, nil
+	pickingAssetSlot = nil
 	janitor:Add(navigator.onSnapshot(render))
 	janitor:Add(LobbyState.onChanged(render))
 	-- The countdown is drawn from the server's cutoff, so it never drifts from it; only the text changes.
@@ -532,6 +561,7 @@ function PreDeployView.Unmount()
 	draftAgent, draftHardware = nil, nil
 	draftGadgets = nil
 	draftTalent, draftInstinct = nil, nil
+	pickingAssetSlot = nil
 end
 
 return PreDeployView

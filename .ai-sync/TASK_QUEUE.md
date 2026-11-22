@@ -560,3 +560,9 @@ Codex review 2026-11-20 — input-hints and minimap-size: reviewed all mixed hin
 | Id | Ticket | Owner | Needs | Status |
 |---|---|---|---|---|
 | menu-smooth-transitions | Retain the display agent across agent views; blend current-to-target pose/support gestures with camera/lens easing, actor fades for catalogue views, and noninteractive outgoing-content snapshots crossfaded with new views. Interruptions and close/spectate cleanup, Reduced Motion instant path. Source inspection/formatting only. See docs/MENU_TRANSITIONS_2026-11-22.md. | CODEX | Owner visual acceptance | READY_FOR_REVIEW |
+
+## Asset picker clarity (2026-11-22)
+
+| Id | Ticket | Owner | Needs | Status |
+|---|---|---|---|---|
+| asset-picker-clarity | Guided select-slot/choose-Asset flow, fixed four-slot summary, rarity-specific plain-language effects, selected/swap/move previews, 4/4 readiness and Continue to Play. Pre-deploy opens explicit candidate lists instead of blind cycling. Existing local draft and server validation unchanged. Source inspection/formatting only. See docs/ASSET_PICKER_CLARITY_2026-11-22.md. | CODEX | Owner visual acceptance | READY_FOR_REVIEW |
