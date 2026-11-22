@@ -234,7 +234,7 @@ local CRATES_PER_ROOM = 14 -- crates tried in a storage room; more choke the rou
 local PLACE_STEP = 3 -- studs between the spots tried along a wall for a placed object
 -- Dressing (owner test 2026-11-21): how much of each piece a room gets, and where an NPC stops to use one.
 local DRESS = {
-	ReservedMargin = 3, -- furniture stays this much further from doorways, stairs and windows than ordinary props (an NPC node needs the room)
+	ReservedMargin = 1, -- furniture stays this much further from doorways, stairs and windows than ordinary props (an NPC node needs the room)
 	StopOffset = 5.2, -- from a wall to an NPC using a piece against it (clear of the piece's reserved strip and a node's prop clearance)
 	StopClear = 3.2, -- from the edge of a free-standing piece
 	StopSpacing = 5, -- a stop within this of an existing node retags that node instead of adding another
@@ -3827,6 +3827,26 @@ function Build.run(options: {
 		tx: number, -- unit step along the wall
 		tz: number,
 	}
+	-- Wall pieces only go where there is a wall: a ray from just in front of the wall, towards it, must hit solid geometry at three points along the
+	-- piece's width (an open colonnade, an arch or a railing is not a wall; pieces there would hang in the air).
+	local wallRays = RaycastParams.new()
+	wallRays.FilterType = Enum.RaycastFilterType.Exclude
+	wallRays.FilterDescendantsInstances = { propsFolder, nodesFolder, zonesFolder }
+	wallRays.RespectCanCollide = true
+	local function wallBehind(room: Room, spot: WallSpot, width: number): boolean
+		local y = levels[room.level] + 4
+		for _, along in { -width * 0.4, 0, width * 0.4 } do
+			local origin = Vector3.new(
+				spot.wallX + spot.nx * 0.8 + spot.tx * along,
+				y,
+				spot.wallZ + spot.nz * 0.8 + spot.tz * along
+			)
+			if workspace:Raycast(origin, Vector3.new(-spot.nx, 0, -spot.nz) * 2.4, wallRays) == nil then
+				return false
+			end
+		end
+		return true
+	end
 	-- Calls place for spots along the walls of an indoor room (up to limit that place accepts). width runs along the wall, depth into the room.
 	function Dress.alongWalls(
 		room: Room,
@@ -3862,8 +3882,9 @@ function Build.run(options: {
 				if facesVoid or Dress.exteriorSide(room, if side.nz ~= 0 then "x" else "z", side.line) then
 					continue
 				end
-				local t = side.a + width / 2 + 3 + rng:NextNumber(0, spacing / 2)
-				while t <= side.b - width / 2 - 3 and count < limit do
+				local corner = 3 + width * 0.15 -- wide pieces keep further from a corner (a pilaster or the next wall)
+				local t = side.a + width / 2 + corner + rng:NextNumber(0, spacing / 2)
+				while t <= side.b - width / 2 - corner and count < limit do
 					local across = side.line + (side.nx + side.nz) * (2 + depth / 2) -- the spot freeFor checks, 2 studs from the wall
 					local cx = if side.nz ~= 0 then t else across
 					local cz = if side.nz ~= 0 then across else t
@@ -3880,7 +3901,7 @@ function Build.run(options: {
 							tx = math.abs(side.nz),
 							tz = math.abs(side.nx),
 						}
-						if place(spot) then
+						if wallBehind(room, spot, width) and place(spot) then
 							count += 1
 							table.insert(propRects[room.level], rect)
 							advance = spacing
@@ -3919,6 +3940,7 @@ function Build.run(options: {
 		if solid == false then
 			p.CanCollide = false
 		end
+		p:SetAttribute("WallNormal", Vector3.new(spot.nx, 0, spot.nz)) -- wall decor: a check finds pieces hanging away from a wall
 		return p
 	end
 

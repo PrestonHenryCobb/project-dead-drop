@@ -497,11 +497,15 @@ defs.luggageCart = {
 	w = 5,
 	d = 3,
 	parts = {
-		B("CartFrame", 4.4, 0.3, 2.4, 0, 0.9, 0, "brass", METALM),
-		B("CartPost", 0.3, 5.4, 0.3, -2.1, 3.3, 0, "brass", METALM),
-		B("CartPost", 0.3, 5.4, 0.3, 2.1, 3.3, 0, "brass", METALM),
-		B("Suitcase", 2.2, 1.8, 1.4, -1, 2, 0, "fabric", PLASTIC),
-		B("Suitcase", 1.8, 1.4, 1.2, 1.2, 1.8, 0, "dark", PLASTIC),
+		B("CartFrame", 4.4, 0.3, 2.4, 0, 0.5, 0, "brass", METALM),
+		B("CartWheel", 0.5, 0.35, 0.5, -2, 0.18, -0.9, "black", PLASTIC),
+		B("CartWheel", 0.5, 0.35, 0.5, 2, 0.18, -0.9, "black", PLASTIC),
+		B("CartWheel", 0.5, 0.35, 0.5, -2, 0.18, 0.9, "black", PLASTIC),
+		B("CartWheel", 0.5, 0.35, 0.5, 2, 0.18, 0.9, "black", PLASTIC),
+		B("CartPost", 0.3, 5.4, 0.3, -2.1, 3.2, 0, "brass", METALM),
+		B("CartPost", 0.3, 5.4, 0.3, 2.1, 3.2, 0, "brass", METALM),
+		B("Suitcase", 2.2, 1.8, 1.4, -1, 1.55, 0, "fabric", PLASTIC),
+		B("Suitcase", 1.8, 1.4, 1.2, 1.2, 1.35, 0, "dark", PLASTIC),
 	},
 }
 defs.coatRack = {
@@ -685,6 +689,8 @@ defs.whiteboard = {
 	w = 7,
 	d = 0.8,
 	parts = {
+		B("BoardLeg", 0.3, 6, 0.3, -3.2, 3, -0.25, "steel", METALM),
+		B("BoardLeg", 0.3, 6, 0.3, 3.2, 3, -0.25, "steel", METALM),
 		B("Whiteboard", 7, 4, 0.3, 0, 8, -0.2, "white", PLASTIC, false),
 		B("BoardFrame", 7.4, 4.4, 0.2, 0, 8, -0.3, "steel", METALM, false),
 		B("BoardMarks", 4.6, 0.12, 0.1, -0.4, 8.6, 0, "neon", PLASTIC, false),
@@ -694,6 +700,8 @@ defs.noticeboard = {
 	w = 6,
 	d = 0.8,
 	parts = {
+		B("BoardLeg", 0.3, 5.5, 0.3, -2.6, 2.75, -0.25, "dark", WOODM),
+		B("BoardLeg", 0.3, 5.5, 0.3, 2.6, 2.75, -0.25, "dark", WOODM),
 		B("Noticeboard", 6, 4, 0.3, 0, 7.5, -0.2, "cork", PLASTIC, false),
 		B("Notice", 1.2, 1.6, 0.1, -1.8, 7.8, 0, "cloth", PLASTIC, false),
 		B("Notice", 1.2, 1.6, 0.1, 0, 7.4, 0, "cloth", PLASTIC, false),
@@ -733,6 +741,8 @@ defs.weaponRack = {
 	w = 10,
 	d = 2,
 	parts = {
+		B("RackFoot", 0.5, 1.5, 0.5, -4.8, 0.75, -0.75, "dark", WOODM),
+		B("RackFoot", 0.5, 1.5, 0.5, 4.8, 0.75, -0.75, "dark", WOODM),
 		B("RackBoard", 10, 7, 0.5, 0, 5, -0.75, "dark", WOODM),
 		B("Rifle", 0.5, 4.6, 0.5, -3.6, 5.4, -0.2, "black", PLASTIC),
 		B("RifleStock", 0.7, 1.4, 0.5, -3.6, 2.6, -0.2, "dark", WOODM),
@@ -977,6 +987,10 @@ defs.cart = {
 	parts = {
 		B("CartDeck", 4, 0.3, 2.2, 0, 1.6, 0, "steel", METALM),
 		B("CartShelf", 4, 0.2, 2, 0, 0.8, 0, "steel", METALM),
+		B("CartWheel", 0.5, 0.7, 0.5, -1.8, 0.35, -0.8, "black", PLASTIC),
+		B("CartWheel", 0.5, 0.7, 0.5, 1.8, 0.35, -0.8, "black", PLASTIC),
+		B("CartWheel", 0.5, 0.7, 0.5, -1.8, 0.35, 0.8, "black", PLASTIC),
+		B("CartWheel", 0.5, 0.7, 0.5, 1.8, 0.35, 0.8, "black", PLASTIC),
 		B("CartPost", 0.2, 3.4, 0.2, -1.9, 2.6, -1, "steel", METALM),
 		B("CartPost", 0.2, 3.4, 0.2, 1.9, 2.6, -1, "steel", METALM),
 		B("CartLoad", 3, 1.4, 1.8, 0, 2.5, 0, "fabric", FAB, false),
@@ -1017,6 +1031,8 @@ defs.pipeRun = {
 	w = 14,
 	d = 1.8,
 	parts = {
+		B("PipePost", 0.4, 8.4, 0.4, -6, 4.2, -0.5, "dark", METALM),
+		B("PipePost", 0.4, 8.4, 0.4, 6, 4.2, -0.5, "dark", METALM),
 		Hx("Pipe", 14, 1.2, 0, 9, -0.5, "steel", METALM),
 		Hx("Pipe", 14, 0.8, 0, 6.6, -0.5, "brass", METALM),
 		B("PipeBracket", 0.4, 3, 0.8, -5, 7.8, -0.5, "dark", METALM, false),
@@ -1085,30 +1101,25 @@ defs.tvConsole = {
 		B("TvScreen", 5.2, 2.8, 0.1, 0, 4.4, -0.2, "screen", NEON, false),
 	},
 }
-defs.stallRow = {
-	w = 10,
+defs.stall = {
+	w = 5,
 	d = 4.8,
 	parts = {
-		B("StallWall", 0.2, 7, 4.4, -4.9, 3.5, -0.2, "steel", PLASTIC),
-		B("StallWall", 0.2, 7, 4.4, 0, 3.5, -0.2, "steel", PLASTIC),
-		B("StallWall", 0.2, 7, 4.4, 4.9, 3.5, -0.2, "steel", PLASTIC),
-		B("StallDoor", 4.6, 6.4, 0.15, -2.5, 3.4, 2, "steel", PLASTIC),
-		B("StallDoor", 4.6, 6.4, 0.15, 2.5, 3.4, 2, "steel", PLASTIC),
-		B("Toilet", 1.6, 1.6, 2.2, -2.5, 0.8, -1.2, "white", PLASTIC),
-		B("ToiletTank", 1.6, 1.8, 0.8, -2.5, 2.2, -2.1, "white", PLASTIC),
-		B("Toilet", 1.6, 1.6, 2.2, 2.5, 0.8, -1.2, "white", PLASTIC),
-		B("ToiletTank", 1.6, 1.8, 0.8, 2.5, 2.2, -2.1, "white", PLASTIC),
+		B("StallWall", 0.2, 7, 4.4, -2.4, 3.5, -0.2, "steel", PLASTIC),
+		B("StallWall", 0.2, 7, 4.4, 2.4, 3.5, -0.2, "steel", PLASTIC),
+		B("StallDoor", 4.6, 6.4, 0.15, 0, 3.4, 2, "steel", PLASTIC),
+		B("Toilet", 1.6, 1.6, 2.2, 0, 0.8, -1.2, "white", PLASTIC),
+		B("ToiletTank", 1.6, 1.8, 0.8, 0, 2.2, -2.1, "white", PLASTIC),
 	},
 }
-defs.sinkRow = {
-	w = 9,
+defs.sinkBasin = {
+	w = 4.6,
 	d = 2.8,
 	stop = "Lean",
 	parts = {
-		B("VanityCounter", 9, 3.2, 2.4, 0, 1.6, -0.2, "stone", MARBLE),
-		B("Basin", 2.4, 0.2, 1.6, -2.4, 3.3, 0, "white", PLASTIC, false),
-		B("Basin", 2.4, 0.2, 1.6, 2.4, 3.3, 0, "white", PLASTIC, false),
-		glass(B("Mirror", 8, 5, 0.2, 0, 7.5, -1.2, "glass", GLASSM, false)),
+		B("VanityCounter", 4.6, 3.2, 2.4, 0, 1.6, -0.2, "stone", MARBLE),
+		B("Basin", 2.4, 0.2, 1.6, 0, 3.3, 0, "white", PLASTIC, false),
+		glass(B("Mirror", 4, 5, 0.2, 0, 7.5, -1.2, "glass", GLASSM, false)),
 	},
 }
 
@@ -1158,7 +1169,7 @@ local recipes: { [string]: Recipe } = {
 		steps = {
 			F("statue", 3, 3),
 			F("bench", 8, 3),
-			F("bigPlant", 10, 2),
+			F("bigPlant", 10, 1.2),
 			W("bench", 4),
 			W("bigPlant", 6),
 			W("floorLamp", 6),
@@ -1171,7 +1182,7 @@ local recipes: { [string]: Recipe } = {
 	gallery = {
 		style = "deco",
 		steps = {
-			F("exhibit", 8, 2),
+			F("exhibit", 8, 1.2),
 			F("statue", 3, 3),
 			F("bench", 4, 3),
 			W("consoleTable", 3, 14),
@@ -1183,25 +1194,25 @@ local recipes: { [string]: Recipe } = {
 		style = "deco",
 		steps = {
 			W("officeDesk", 2, 6),
-			F("loungeSet", 1, 2),
+			F("loungeSet", 1, 1.2),
 			W("consoleTable", 3, 8),
 			W("filingRow", 1),
 			W("bigPlant", 3),
 			W("floorLamp", 3),
-			F("luggageCart", 2, 2),
-			F("infoKiosk", 1, 2),
+			F("luggageCart", 2, 1.2),
+			F("infoKiosk", 1, 1.2),
 		},
 	},
 	cloakroom = {
 		style = "service",
-		steps = { F("coatRack", 8, 2), W("cashierCounter", 1), W("lockerRow", 3), W("bench", 2) },
+		steps = { F("coatRack", 8, 1.2), W("cashierCounter", 1), W("lockerRow", 3), W("bench", 2) },
 	},
 	ballroom = {
 		style = "deco",
 		steps = {
 			W("bandStage", 1),
 			W("buffet", 2, 4),
-			F("cocktail", 14, 1.5),
+			F("cocktail", 14, 1),
 			W("bench", 3),
 			W("bigPlant", 6),
 			W("floorLamp", 6),
@@ -1210,12 +1221,12 @@ local recipes: { [string]: Recipe } = {
 	},
 	bar = {
 		style = "deco",
-		steps = { W("booth", 4, 3), F("cocktail", 6, 2), W("bigPlant", 3), W("floorLamp", 3), W("sideboard", 2) },
+		steps = { W("booth", 4, 3), F("cocktail", 6, 1.2), W("bigPlant", 3), W("floorLamp", 3), W("sideboard", 2) },
 	},
 	dining = {
 		style = "deco",
 		steps = {
-			F("diningSet", 14, 1.5),
+			F("diningSet", 14, 1),
 			W("sideboard", 3, 8),
 			W("bigPlant", 4),
 			W("floorLamp", 4),
@@ -1224,7 +1235,7 @@ local recipes: { [string]: Recipe } = {
 	},
 	privdining = {
 		style = "exec",
-		steps = { F("diningSet", 2, 2), W("sideboard", 2), W("bigPlant", 2), W("floorLamp", 2) },
+		steps = { F("diningSet", 2, 1.2), W("sideboard", 2), W("bigPlant", 2), W("floorLamp", 2) },
 	},
 	kitchen = {
 		style = "service",
@@ -1233,31 +1244,31 @@ local recipes: { [string]: Recipe } = {
 			W("fridge", 3, 1),
 			W("sinkUnit", 2, 2),
 			W("counterRun", 5, 1),
-			F("prepIsland", 4, 2),
+			F("prepIsland", 4, 1.2),
 			W("wallShelf", 3, 2),
-			F("cart", 2, 2),
+			F("cart", 2, 1.2),
 		},
 	},
 	pantry = {
 		style = "service",
 		steps = {
-			F("shelfRow", 8, 1.5),
+			F("shelfRow", 8, 1),
 			W("counterRun", 3),
 			W("fridge", 2),
-			F("palletStack", 4, 1.5),
-			F("cart", 2, 1.5),
+			F("palletStack", 4, 1),
+			F("cart", 2, 1),
 		},
 	},
-	coldstore = { style = "service", steps = { F("shelfRow", 2, 1.5), W("fridge", 2), F("palletStack", 2, 1.5) } },
-	stockroom = { style = "service", steps = { F("shelfRow", 2, 1.5), F("crateStack", 3, 1.5), W("wallShelf", 2) } },
+	coldstore = { style = "service", steps = { F("shelfRow", 2, 1), W("fridge", 2), F("palletStack", 2, 1) } },
+	stockroom = { style = "service", steps = { F("shelfRow", 2, 1), F("crateStack", 3, 1), W("wallShelf", 2) } },
 	library = {
 		style = "deco",
 		steps = {
 			W("fireplace", 1),
 			W("bookcase", 12, 0),
 			F("bookRow", 5, 3),
-			F("readingTable", 5, 2),
-			F("loungeSet", 2, 2),
+			F("readingTable", 5, 1.2),
+			F("loungeSet", 2, 1.2),
 			W("bigPlant", 4),
 			W("floorLamp", 4),
 		},
@@ -1265,7 +1276,7 @@ local recipes: { [string]: Recipe } = {
 	lobby = {
 		style = "hotel",
 		steps = {
-			F("loungeSet", 8, 1.5),
+			F("loungeSet", 8, 1),
 			F("infoKiosk", 2, 3),
 			F("luggageCart", 3, 3),
 			W("bench", 4),
@@ -1279,8 +1290,8 @@ local recipes: { [string]: Recipe } = {
 		style = "deco",
 		steps = {
 			W("fireplace", 1),
-			F("loungeSet", 4, 2),
-			F("cocktail", 4, 2),
+			F("loungeSet", 4, 1.2),
+			F("cocktail", 4, 1.2),
 			W("humidor", 2, 2),
 			W("bookcase", 4, 0),
 			F("pianoSet", 1, 3),
@@ -1292,22 +1303,22 @@ local recipes: { [string]: Recipe } = {
 		style = "casino",
 		steps = {
 			F("casinoTable", 8, 1),
-			F("slotIsland", 8, 1.5),
-			F("cardTable", 8, 1.5),
+			F("slotIsland", 8, 1),
+			F("cardTable", 8, 1),
 			W("slotWall", 14, 0),
-			F("cocktail", 6, 1.5),
+			F("cocktail", 6, 1),
 			W("bench", 3),
 			W("bigPlant", 4),
 		},
 	},
 	cardroom = {
 		style = "casino",
-		steps = { F("cardTable", 3, 2), W("sideboard", 2), W("bigPlant", 2), W("floorLamp", 2) },
+		steps = { F("cardTable", 3, 1.2), W("sideboard", 2), W("bigPlant", 2), W("floorLamp", 2) },
 	},
 	hotelLobby = {
 		style = "hotel",
 		steps = {
-			F("loungeSet", 3, 2),
+			F("loungeSet", 3, 1.2),
 			F("luggageCart", 2, 3),
 			W("bench", 3),
 			W("consoleTable", 3, 10),
@@ -1317,26 +1328,26 @@ local recipes: { [string]: Recipe } = {
 	},
 	cage = {
 		style = "service",
-		steps = { W("cashierCounter", 3, 2), W("safeWall", 3, 2), F("deskPod", 2, 2), W("filingRow", 2) },
+		steps = { W("cashierCounter", 3, 2), W("safeWall", 3, 2), F("deskPod", 2, 1.2), W("filingRow", 2) },
 	},
 	highroller = {
 		style = "exec",
 		steps = {
-			F("loungeSet", 4, 2),
-			F("cardTable", 2, 2),
-			F("cocktail", 3, 2),
+			F("loungeSet", 4, 1.2),
+			F("cardTable", 2, 1.2),
+			F("cocktail", 3, 1.2),
 			W("sideboard", 2),
 			W("bookcase", 2, 0),
 			W("bigPlant", 3),
 			W("floorLamp", 3),
 		},
 	},
-	restroom = { style = "service", steps = { W("stallRow", 2, 1), W("sinkRow", 2, 1) } },
+	restroom = { style = "service", steps = { W("stall", 4, 0), W("sinkBasin", 3, 0) } },
 	balcony = {
 		style = "deco",
 		steps = {
-			F("loungeSet", 8, 2),
-			F("cocktail", 4, 2),
+			F("loungeSet", 8, 1.2),
+			F("cocktail", 4, 1.2),
 			W("bench", 6),
 			W("bigPlant", 6),
 			W("floorLamp", 4),
@@ -1345,18 +1356,24 @@ local recipes: { [string]: Recipe } = {
 	},
 	gallerylift = {
 		style = "deco",
-		steps = { F("exhibit", 6, 2), F("bench", 4, 3), W("consoleTable", 2, 12), W("bigPlant", 3) },
+		steps = { F("exhibit", 6, 1.2), F("bench", 4, 3), W("consoleTable", 2, 12), W("bigPlant", 3) },
 	},
-	loft = { style = "deco", steps = { F("cocktail", 5, 2), W("booth", 2, 3), W("bigPlant", 2), W("floorLamp", 2) } },
+	loft = { style = "deco", steps = { F("cocktail", 5, 1.2), W("booth", 2, 3), W("bigPlant", 2), W("floorLamp", 2) } },
 	winelounge = {
 		style = "deco",
-		steps = { W("wineRack", 4, 2), F("cocktail", 6, 2), F("loungeSet", 2, 2), W("bigPlant", 3), W("floorLamp", 3) },
+		steps = {
+			W("wineRack", 4, 2),
+			F("cocktail", 6, 1.2),
+			F("loungeSet", 2, 1.2),
+			W("bigPlant", 3),
+			W("floorLamp", 3),
+		},
 	},
 	cigarlounge = {
 		style = "deco",
 		steps = {
 			W("fireplace", 1),
-			F("loungeSet", 4, 2),
+			F("loungeSet", 4, 1.2),
 			W("humidor", 2, 2),
 			W("bookcase", 3, 0),
 			W("bigPlant", 3),
@@ -1368,7 +1385,7 @@ local recipes: { [string]: Recipe } = {
 		steps = {
 			F("statue", 2, 3),
 			F("bench", 3, 3),
-			F("loungeSet", 2, 2),
+			F("loungeSet", 2, 1.2),
 			W("bigPlant", 4),
 			W("floorLamp", 4),
 			W("consoleTable", 2, 10),
@@ -1378,7 +1395,7 @@ local recipes: { [string]: Recipe } = {
 	offices = {
 		style = "service",
 		steps = {
-			F("deskPod", 8, 2),
+			F("deskPod", 8, 1.2),
 			W("filingRow", 3),
 			W("copier", 2, 3),
 			W("waterCooler", 2, 6),
@@ -1391,7 +1408,7 @@ local recipes: { [string]: Recipe } = {
 		style = "security",
 		steps = {
 			W("monitorWall", 2, 2),
-			F("deskPod", 3, 2),
+			F("deskPod", 3, 1.2),
 			W("filingRow", 2),
 			W("noticeboard", 2, 4),
 			W("lockerRow", 2),
@@ -1399,56 +1416,56 @@ local recipes: { [string]: Recipe } = {
 	},
 	camera = {
 		style = "security",
-		steps = { W("monitorWall", 3, 2), F("deskPod", 3, 2), W("filingRow", 1), W("noticeboard", 1) },
+		steps = { W("monitorWall", 3, 2), F("deskPod", 3, 1.2), W("filingRow", 1), W("noticeboard", 1) },
 	},
-	records = { style = "exec", steps = { F("readingTable", 1, 2), W("filingRow", 2) } },
+	records = { style = "exec", steps = { F("readingTable", 1, 1.2), W("filingRow", 2) } },
 	housekeeping = {
 		style = "service",
 		steps = {
 			W("washerRow", 2, 2),
-			F("foldingTable", 3, 2),
-			F("cart", 6, 1.5),
-			F("shelfRow", 4, 1.5),
-			F("laundryCart", 3, 1.5),
+			F("foldingTable", 3, 1.2),
+			F("cart", 6, 1),
+			F("shelfRow", 4, 1),
+			F("laundryCart", 3, 1),
 		},
 	},
 	servicehall = {
 		style = "service",
 		steps = {
-			F("cart", 8, 2),
+			F("cart", 8, 1.2),
 			W("wallShelf", 4, 3),
-			F("crateStack", 5, 2),
+			F("crateStack", 5, 1.2),
 			W("pipeRun", 2, 4),
-			F("laundryCart", 3, 2),
+			F("laundryCart", 3, 1.2),
 		},
 	},
 	laundry = {
 		style = "service",
 		steps = {
 			W("washerRow", 4, 2),
-			F("foldingTable", 3, 2),
-			F("laundryCart", 4, 1.5),
-			F("shelfRow", 3, 1.5),
-			F("cart", 3, 1.5),
+			F("foldingTable", 3, 1.2),
+			F("laundryCart", 4, 1),
+			F("shelfRow", 3, 1),
+			F("cart", 3, 1),
 		},
 	},
-	linen = { style = "service", steps = { F("shelfRow", 8, 1.5), F("cart", 2, 1.5), F("foldingTable", 1, 2) } },
+	linen = { style = "service", steps = { F("shelfRow", 8, 1), F("cart", 2, 1), F("foldingTable", 1, 1.2) } },
 	stores = {
 		style = "service",
-		steps = { F("shelfRow", 10, 1.5), F("palletStack", 8, 1.5), F("crateStack", 6, 1.5), W("wallShelf", 4, 2) },
+		steps = { F("shelfRow", 10, 1), F("palletStack", 8, 1), F("crateStack", 6, 1), W("wallShelf", 4, 2) },
 	},
 	cellar = {
 		style = "service",
-		steps = { W("wineRack", 8, 1), F("barrelStack", 6, 2), F("cocktail", 2, 2), F("palletStack", 2, 2) },
+		steps = { W("wineRack", 8, 1), F("barrelStack", 6, 1.2), F("cocktail", 2, 1.2), F("palletStack", 2, 1.2) },
 	},
 	barracks = {
 		style = "security",
-		steps = { F("bunk", 16, 1.5), W("lockerRow", 6, 1), F("longTable", 1, 2), W("noticeboard", 2, 4) },
+		steps = { F("bunk", 16, 1), W("lockerRow", 6, 1), F("longTable", 1, 1.2), W("noticeboard", 2, 4) },
 	},
 	mess = {
 		style = "security",
 		steps = {
-			F("longTable", 6, 2),
+			F("longTable", 6, 1.2),
 			W("counterRun", 3, 1),
 			W("fridge", 2, 1),
 			W("rangeStove", 1, 2),
@@ -1457,7 +1474,7 @@ local recipes: { [string]: Recipe } = {
 	},
 	armory = {
 		style = "security",
-		steps = { W("weaponRack", 10, 1), F("workbench", 2, 2), F("crateStack", 6, 1.5), W("lockerRow", 4, 1) },
+		steps = { W("weaponRack", 10, 1), F("workbench", 2, 1.2), F("crateStack", 6, 1), W("lockerRow", 4, 1) },
 	},
 	muster = {
 		style = "security",
@@ -1471,24 +1488,31 @@ local recipes: { [string]: Recipe } = {
 	},
 	checkpoint = {
 		style = "security",
-		steps = { F("securityDesk", 1, 2), W("monitorWall", 1, 2), W("lockerRow", 2), W("bench", 2) },
+		steps = { F("securityDesk", 1, 1.2), W("monitorWall", 1, 2), W("lockerRow", 2), W("bench", 2) },
 	},
 	spine = { style = "security", steps = { W("bench", 4, 12), W("noticeboard", 3, 14), W("bigPlant", 3, 18) } },
 	servicering = { style = "service", steps = { W("crateStack", 4, 22), W("pipeRun", 3, 16), W("cart", 2, 30) } },
 	tunnel = { style = "service", steps = { W("pipeRun", 1, 2) } },
-	boiler = { style = "service", steps = { F("boiler", 5, 2), W("pipeRun", 4, 4), W("generator", 1, 2) } },
+	boiler = { style = "service", steps = { F("boiler", 3, 3), W("pipeRun", 4, 4), W("generator", 1, 2) } },
 	plant = {
 		style = "service",
-		steps = { F("generator", 2, 2), W("serverRow", 3, 2), F("boiler", 1, 2), W("pipeRun", 2, 4) },
+		steps = { F("generator", 2, 1.2), W("serverRow", 3, 2), F("boiler", 1, 1.2), W("pipeRun", 2, 4) },
 	},
 	guardhall = {
 		style = "security",
-		steps = { W("bench", 6, 18), W("weaponRack", 2, 30), W("lockerRow", 3, 20), W("noticeboard", 3, 24) },
+		steps = {
+			W("bench", 6, 18),
+			W("weaponRack", 2, 30),
+			W("lockerRow", 3, 20),
+			W("noticeboard", 3, 24),
+			F("workbench", 4, 1),
+			F("crateStack", 4, 1),
+		},
 	},
-	guardpost = { style = "security", steps = { F("deskPod", 1, 2), W("monitorWall", 1, 2), W("weaponRack", 2, 2) } },
-	countinghall = { style = "security", steps = { F("deskPod", 3, 2), W("filingRow", 2), W("safeWall", 2) } },
-	coldroom = { style = "service", steps = { F("shelfRow", 3, 1.5), F("palletStack", 3, 1.5), W("fridge", 2) } },
-	displayhall = { style = "exec", steps = { F("exhibit", 5, 2), F("bench", 2, 3), W("bigPlant", 2) } },
+	guardpost = { style = "security", steps = { F("deskPod", 1, 1.2), W("monitorWall", 1, 2), W("weaponRack", 2, 2) } },
+	countinghall = { style = "security", steps = { F("deskPod", 3, 1.2), W("filingRow", 2), W("safeWall", 2) } },
+	coldroom = { style = "service", steps = { F("shelfRow", 3, 1), F("palletStack", 3, 1), W("fridge", 2) } },
+	displayhall = { style = "exec", steps = { F("exhibit", 5, 1.2), F("bench", 2, 3), W("bigPlant", 2) } },
 	observatory = { style = "exec", steps = { W("bench", 2), W("bigPlant", 2), F("statue", 1, 3) } },
 	suite = {
 		style = "hotel",
@@ -1509,15 +1533,22 @@ local recipes: { [string]: Recipe } = {
 	},
 	arcade = {
 		style = "casino",
-		steps = { W("slotWall", 10, 0), F("bench", 8, 3), F("cocktail", 4, 2), W("bigPlant", 4), W("floorLamp", 4) },
+		steps = {
+			W("slotWall", 10, 0),
+			F("slotIsland", 8, 1),
+			F("bench", 8, 3),
+			F("cocktail", 4, 1.2),
+			W("bigPlant", 4),
+			W("floorLamp", 4),
+		},
 	},
 	greatroom = {
 		style = "exec",
 		steps = {
-			F("loungeSet", 6, 2),
+			F("loungeSet", 6, 1.2),
 			F("pianoSet", 1, 3),
-			F("exhibit", 3, 2),
-			F("cocktail", 2, 2),
+			F("exhibit", 3, 1.2),
+			F("cocktail", 2, 1.2),
 			F("statue", 2, 3),
 			W("fireplace", 1),
 			W("bookcase", 6, 0),
@@ -1531,7 +1562,7 @@ local recipes: { [string]: Recipe } = {
 	summit = {
 		style = "exec",
 		steps = {
-			F("loungeSet", 2, 2),
+			F("loungeSet", 2, 1.2),
 			F("statue", 2, 3),
 			W("bigPlant", 3),
 			W("floorLamp", 3),
@@ -1540,14 +1571,7 @@ local recipes: { [string]: Recipe } = {
 	},
 	sanctum = {
 		style = "exec",
-		steps = {
-			F("loungeSet", 2, 2),
-			F("exhibit", 2, 2),
-			W("bookcase", 3, 0),
-			W("sideboard", 1),
-			W("bigPlant", 2),
-			W("floorLamp", 2),
-		},
+		steps = { W("bookcase", 3, 0), W("sideboard", 1), W("bigPlant", 2), W("floorLamp", 2), F("exhibit", 2, 1.2) },
 	},
 	foyer = {
 		style = "exec",
@@ -1556,34 +1580,34 @@ local recipes: { [string]: Recipe } = {
 	terrace = {
 		style = "outdoor",
 		steps = {
-			F("outdoorLounge", 6, 2),
-			F("parasolTable", 8, 2),
-			F("fireBowl", 6, 2),
-			F("lanternPost", 10, 2),
-			F("bench", 4, 2),
+			F("outdoorLounge", 6, 1.2),
+			F("parasolTable", 8, 1.2),
+			F("fireBowl", 6, 1.2),
+			F("lanternPost", 10, 1.2),
+			F("bench", 4, 1.2),
 		},
 	},
 	roofdeck = {
 		style = "outdoor",
 		steps = {
 			F("djBooth", 1, 3),
-			F("outdoorLounge", 10, 2),
-			F("parasolTable", 14, 2),
-			F("fireBowl", 8, 2),
-			F("lanternPost", 12, 2),
+			F("outdoorLounge", 10, 1.2),
+			F("parasolTable", 14, 1.2),
+			F("fireBowl", 8, 1.2),
+			F("lanternPost", 12, 1.2),
 		},
 	},
 	garden = {
 		style = "outdoor",
 		steps = {
-			F("outdoorLounge", 4, 2),
-			F("parasolTable", 8, 2),
-			F("fireBowl", 4, 2),
-			F("lanternPost", 10, 2),
-			F("bench", 6, 2),
+			F("outdoorLounge", 4, 1.2),
+			F("parasolTable", 8, 1.2),
+			F("fireBowl", 4, 1.2),
+			F("lanternPost", 10, 1.2),
+			F("bench", 6, 1.2),
 		},
 	},
-	skydeck = { style = "outdoor", steps = { F("bench", 4, 2), F("fireBowl", 2, 2), F("lanternPost", 4, 2) } },
+	skydeck = { style = "outdoor", steps = { F("bench", 4, 1.2), F("fireBowl", 2, 1.2), F("lanternPost", 4, 1.2) } },
 }
 
 -- The engine ------------------------------------------------------------------------------------------------------------------------------------
@@ -1606,12 +1630,32 @@ local function palette(style: string, rng: Random): { [string]: any }
 	return merged
 end
 
-local function build(ctx: any, frame: CFrame, id: string, pal: { [string]: any }, rng: Random)
+local instances = 0 -- each fab placed gets a number, written on its parts (Fab and FabIdx) so a check can find what overlaps what
+
+local function build(
+	ctx: any,
+	frame: CFrame,
+	id: string,
+	pal: { [string]: any },
+	rng: Random,
+	instance: number?,
+	wall: boolean?
+)
+	local index = instance or instances + 1
+	instances = math.max(instances, index)
 	local def = defs[id]
 	assert(def, `Unknown fab {id}`)
 	for _, spec in def.parts or {} do
 		local cf = frame * CFrame.new(spec.p) * (spec.rot or CFrame.identity)
 		local p: Part = ctx.part(ctx.propsFolder, spec.n, spec.size, cf, resolve(pal, spec.c, rng))
+		p:SetAttribute("Fab", id)
+		p:SetAttribute("FabIdx", index)
+		if wall then
+			-- a piece against a wall: where its back should meet the wall (a check finds pieces hanging away from one)
+			p:SetAttribute("WallOrigin", frame.Position + Vector3.new(0, 3, 0))
+			p:SetAttribute("WallBack", -frame.ZVector)
+			p:SetAttribute("WallDist", def.d / 2)
+		end
 		if spec.kind == "cyl" then
 			p.Shape = Enum.PartType.Cylinder
 		elseif spec.kind == "ball" then
@@ -1634,7 +1678,7 @@ local function build(ctx: any, frame: CFrame, id: string, pal: { [string]: any }
 		local at = frame
 			* CFrame.new(sub[2] :: number, (sub[5] :: number?) or 0, sub[3] :: number)
 			* CFrame.Angles(0, (sub[4] :: number?) or 0, 0)
-		build(ctx, at, sub[1] :: string, pal, rng)
+		build(ctx, at, sub[1] :: string, pal, rng, index)
 	end
 end
 
@@ -1689,7 +1733,7 @@ function Fabs.furnish(room: any, archetype: string, ctx: any)
 		return ctx.alongWalls(room, spacing, def.w, def.d + 1.5, step.n, function(spot: any): boolean
 			local frame = CFrame.new(spot.wallX + spot.nx * def.d / 2, floorY, spot.wallZ + spot.nz * def.d / 2)
 				* CFrame.Angles(0, math.atan2(spot.nx, spot.nz), 0)
-			build(ctx, frame, step.f, pal, rng)
+			build(ctx, frame, step.f, pal, rng, nil, true)
 			if def.stop and (stops[step.f] or 0) < ctx.stopsPerKind then
 				stops[step.f] = (stops[step.f] or 0) + 1
 				ctx.stopBefore(room, spot, def.d + 1.5, def.stop)
