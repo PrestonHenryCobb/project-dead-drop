@@ -1022,7 +1022,11 @@ local GameConfig = {
 	Vault = {
 		BaseRate = 1.25, -- percent per second, regardless of how many agents are in the zone
 		BonusMult = 1.25, -- team with HackBonusAt+ intel
-		HackZoneSize = 10,
+		HackZoneSize = 10, -- no longer used by a capture point; kept as the bots' dais size
+		HoldLabel = "Hack vault", -- the InteractService label of a terminal hold
+		InteractStuds = 7, -- how close to a terminal a hacker stands (its dais radius plus a step)
+		InteractSlackStuds = 1.5, -- allowance for lag while the hold runs
+		HackBufferSeconds = 1, -- a hold lasts this much longer than the time left, so it never ends a hair short
 		-- Ticket 12a (SPEC_CHANGES 2026-10-25: 3 of the 5 vaults are active and hacking their terminals opens the Sanctum).
 		-- BaseRate and BonusMult now apply to each terminal. SPEC-QUESTION: 1.25 percent a second (80 s a terminal) is the
 		-- old single-bar rate; tune in play.
@@ -1336,6 +1340,7 @@ local GameConfig = {
 	Interact = {
 		CheckHz = 10,
 		MaxTargetLength = 64, -- longest target name a RequestInteract may carry
+			["Hack vault"] = true,
 	},
 
 	-- Spec 14: downed, revive, rescue.

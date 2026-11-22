@@ -2,13 +2,14 @@
 -- Ticket 12a: the vault terminals and the Sanctum unlock (spec 10, SPEC_CHANGES 2026-10-25).
 --
 --   * At the start of a match Vault.ActiveVaults of the five vaults are chosen at random. Each gets a terminal on its dais
---     (the VaultTerminalSpot part); the other vaults stay empty. Nothing marks which vaults are active until the Vault Breach.
---   * Standing on a terminal's dais hacks it (spec 10.2, per terminal): Vault.BaseRate percent a second if one team is
---     there, however many agents; Vault.BonusMult times that if the team has Intel.Thresholds.HackBonusAt Intel; paused
---     (contested) while agents of two or more teams stand on it. Progress is global and never decays. An agent on the dais
---     is Exposed at once (spec 7.2 #8).
---   * The first progress on any terminal begins the Vault Breach if the 6:00 timer has not (MatchService), and from then
---     VaultProgress tells every client where the terminals are and how far along.
+--     (the VaultTerminalSpot part); the other vaults stay empty. From the start of Infiltration every client is told where the
+--     active terminals are (VaultProgress), so they are easy to find (owner test 2026-11-21).
+--   * A terminal is hacked by holding Interact at it (owner decision 2026-11-21: no capture point). InteractService runs the
+--     hold ("Vault", the vault id; label "Hack vault"); while at least one living holder (or bot on the dais) is at it, its
+--     progress rises Vault.BaseRate percent a second, Vault.BonusMult times that for a team with Intel.Thresholds.HackBonusAt
+--     Intel. Holders do not stack, rivals holding at once do not pause it (Contested only tells the HUD), and progress is global
+--     and never decays, so an interrupted hold is resumed by anyone. A holder is Exposed at once (spec 7.2 #8).
+--   * The first progress on any terminal begins the Vault Breach if the 6:00 timer has not (MatchService).
 --   * When every active terminal is hacked the Sanctum elevator unlocks and the Package Heist begins.
 --
 -- SPEC-QUESTION: the re-layout replaced the Intel unlock but not the Phase 2 to 3 rule. Phase 3 here begins at the earlier
@@ -28,6 +29,7 @@ local BotRegistry = require(script.Parent.Parent.Bots.BotRegistry)
 local CoverService = require(script.Parent.CoverService)
 local DownedService = require(script.Parent.DownedService)
 local ElevatorService = require(script.Parent.ElevatorService)
+local InteractService = require(script.Parent.InteractService)
 local IntelService = require(script.Parent.IntelService)
 local MatchService = require(script.Parent.MatchService)
 local RemoteService = require(script.Parent.RemoteService)
@@ -42,6 +44,7 @@ type Terminal = {
 	progress: number, -- percent, 0 to 100
 	contested: boolean,
 	hacked: boolean,
+	holders: { [Player]: boolean }, -- players holding Interact at it now
 }
 
 local VaultService = {}
@@ -115,6 +118,8 @@ local function setup()
 		prop.Material = Enum.Material.Neon
 		prop.CFrame = CFrame.new(dais.Position + Vector3.new(0, dais.Size.X / 2 + config.TerminalSize.Y / 2, 0))
 		prop.Parent = holder
+		prop:SetAttribute("VaultId", tostring(dais:GetAttribute("VaultId")))
+		CollectionService:AddTag(prop, Enums.Tag.VaultTerminal)
 		table.insert(terminals, {
 			vaultId = tostring(dais:GetAttribute("VaultId")),
 			dais = dais,
@@ -123,6 +128,7 @@ local function setup()
 			progress = 0,
 			contested = false,
 			hacked = false,
+			holders = {},
 		})
 	end
 	if GameConfig.Debug.PrintEvents then
@@ -134,27 +140,18 @@ local function setup()
 	end
 end
 
--- The teams with a living agent on a terminal's dais, and those agents.
+-- The teams at a terminal: players holding Interact at it, and (ticket 13B-a) bots on its dais, which count for their team.
 local function presence(terminal: Terminal): ({ [number]: boolean }, { Player })
 	local teams: { [number]: boolean } = {}
 	local present: { Player } = {}
-	local center = terminal.dais.Position
-	for _, player in Players:GetPlayers() do
+	for player in terminal.holders do
 		local teamId = TeamService.teamOf(player)
-		local character = player.Character
-		local root = character and character:FindFirstChild("HumanoidRootPart")
-		if teamId and root and root:IsA("BasePart") and not DownedService.isOut(player) then
-			local offset = root.Position - center
-			if
-				Vector3.new(offset.X, 0, offset.Z).Magnitude <= terminal.radius
-				and math.abs(offset.Y) <= config.TerminalHeightStuds
-			then
-				teams[teamId] = true
-				table.insert(present, player)
-			end
+		if teamId and player.Parent and not DownedService.isOut(player) then
+			teams[teamId] = true
+			table.insert(present, player)
 		end
 	end
-	-- Ticket 13B-a: a bot on its feet counts for its team like an agent does.
+	local center = terminal.dais.Position
 	for _, bot in BotRegistry.list() do
 		if BotRegistry.alive(bot) then
 			local offset = bot.npc.ground - center
@@ -178,6 +175,16 @@ local function allHacked(): boolean
 	return #terminals > 0
 end
 
+-- The faster rate applies when a team at the terminal has enough Intel (the best-off team there, so a rival cannot slow the hack).
+local function bonusFor(_: Terminal, teams: { [number]: boolean }): boolean
+	for teamId in teams do
+		if IntelService.balance(teamId) >= GameConfig.Intel.Thresholds.HackBonusAt then
+			return true
+		end
+	end
+	return false
+end
+
 local function check(dt: number)
 	for _, terminal in terminals do
 		if not terminal.hacked then
@@ -199,9 +206,9 @@ local function check(dt: number)
 				terminal.contested = contested
 				dirty = true
 			end
-			if count == 1 then
+			if count >= 1 then
 				local rate = config.BaseRate
-				if IntelService.balance(lone) >= GameConfig.Intel.Thresholds.HackBonusAt then
+				if bonusFor(terminal, teams) then
 					rate *= config.BonusMult
 				end
 				terminal.progress = math.min(100, terminal.progress + rate * dt)
@@ -211,6 +218,9 @@ local function check(dt: number)
 				end
 				if terminal.progress >= 100 then
 					terminal.hacked = true
+					if terminal.prop then
+						CollectionService:RemoveTag(terminal.prop, Enums.Tag.VaultTerminal)
+					end
 					if GameConfig.Debug.PrintEvents then
 						print(`[Vault] terminal {terminal.vaultId} hacked by team {lone}`)
 					end
@@ -235,14 +245,94 @@ function VaultService.openTerminals(): { Vector3 }
 	return list
 end
 
+-- The terminal a "Vault" hold names (its vault id), if it can be hacked now.
+local function terminalNamed(vaultId: string): Terminal?
+	for _, terminal in terminals do
+		if terminal.vaultId == vaultId and not terminal.hacked then
+			return terminal
+		end
+	end
+	return nil
+end
+
+local function inReach(player: Player, terminal: Terminal, slack: number): boolean
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not (root and root:IsA("BasePart")) then
+		return false
+	end
+	local offset = root.Position - terminal.dais.Position
+	return Vector3.new(offset.X, 0, offset.Z).Magnitude <= config.InteractStuds + slack
+		and math.abs(offset.Y) <= config.TerminalHeightStuds
+end
+
+local function beginHack(player: Player, vaultId: string): InteractService.Interaction?
+	local terminal = terminalNamed(vaultId)
+	if not terminal or not active() or not TeamService.teamOf(player) or DownedService.isOut(player) then
+		return nil
+	end
+	if not inReach(player, terminal, 0) then
+		return nil
+	end
+	local rate = config.BaseRate
+	if IntelService.balance(TeamService.teamOf(player) :: number) >= GameConfig.Intel.Thresholds.HackBonusAt then
+		rate *= config.BonusMult
+	end
+	return {
+		label = config.HoldLabel,
+		seconds = (100 - terminal.progress) / rate + config.HackBufferSeconds,
+		stillValid = function()
+			return not terminal.hacked
+				and not DownedService.isOut(player)
+				and active()
+				and inReach(player, terminal, config.InteractSlackStuds)
+		end,
+		complete = function() end, -- progress is added by check while the hold runs
+	}
+end
+
 function VaultService.Init() end
 
 function VaultService.Start()
+	InteractService.register("Vault", beginHack)
+	-- Who is holding at which terminal: a hold beginning or ending, whatever ended it.
+	InteractService.onHold(function(player, label, isActive, _seconds)
+		if label ~= config.HoldLabel then
+			return
+		end
+		for _, terminal in terminals do
+			terminal.holders[player] = nil
+		end
+		if not isActive then
+			return
+		end
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		if not (root and root:IsA("BasePart")) then
+			return
+		end
+		local best: Terminal? = nil
+		local bestDistance = math.huge
+		for _, terminal in terminals do
+			local distance = (root.Position - terminal.dais.Position).Magnitude
+			if not terminal.hacked and distance < bestDistance then
+				best, bestDistance = terminal, distance
+			end
+		end
+		if best then
+			best.holders[player] = true
+		end
+	end)
+	Players.PlayerRemoving:Connect(function(player)
+		for _, terminal in terminals do
+			terminal.holders[player] = nil
+		end
+	end)
 	MatchService.onPhaseChanged(function(phase)
 		if phase == "Insertion" then
 			setup()
-		elseif phase == "VaultBreach" or phase == "PackageHeist" then
-			broadcast() -- everyone learns where the terminals are
+		elseif phase == "Infiltration" or phase == "VaultBreach" or phase == "PackageHeist" then
+			broadcast() -- everyone learns where the terminals are, from the start of Infiltration
 		elseif phase == "Lobby" then
 			clear()
 		end
@@ -257,7 +347,7 @@ function VaultService.Start()
 				check(step)
 			end
 		end
-		if dirty and sinceBroadcast >= config.BroadcastSeconds and MatchService.phase() ~= "Infiltration" then
+		if dirty and sinceBroadcast >= config.BroadcastSeconds then
 			broadcast()
 		end
 	end)

@@ -57,8 +57,13 @@ function IntelController.balance(): number
 end
 
 local function idOf(part: BasePart): string?
-	local id = part:GetAttribute("IntelId")
+	local id = part:GetAttribute("IntelId") or part:GetAttribute("VaultId") -- a vault terminal is held like a station
 	return if type(id) == "string" then id else nil
+end
+
+-- Which interaction the server runs for this part: a station is "Intel", a vault terminal is "Vault".
+local function kindOf(part: BasePart): string
+	return if part:GetAttribute("VaultId") ~= nil then "Vault" else "Intel"
 end
 
 local function visible(from: Vector3, part: BasePart): boolean
@@ -118,7 +123,7 @@ local function onInteract(_: string, state: Enum.UserInputState): Enum.ContextAc
 		then
 			holding = true
 			heldStation = part
-			RemoteController.fire("RequestInteract", "Intel", id)
+			RemoteController.fire("RequestInteract", kindOf(part), id)
 			return Enum.ContextActionResult.Sink
 		end
 	elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
@@ -234,6 +239,12 @@ function IntelController.Start()
 	for _, instance in CollectionService:GetTagged(Enums.Tag.IntelSpawn) do
 		track(instance)
 	end
+	-- Vault terminals (owner decision 2026-11-21: hold Interact at one to hack it) are tracked the same way.
+	janitor:Add(CollectionService:GetInstanceAddedSignal(Enums.Tag.VaultTerminal):Connect(track))
+	janitor:Add(CollectionService:GetInstanceRemovedSignal(Enums.Tag.VaultTerminal):Connect(untrack))
+	for _, instance in CollectionService:GetTagged(Enums.Tag.VaultTerminal) do
+		track(instance)
+	end
 
 	janitor:Add(RemoteController.connect("IntelUpdate", function(info: Types.IntelUpdateInfo)
 		balance = info.Balance
@@ -272,7 +283,7 @@ function IntelController.Start()
 		refresh()
 	end))
 	janitor:Add(RemoteController.connect("InteractState", function(info: Types.InteractStateInfo)
-		if info.Kind == "Hack" and not info.Active then
+		if (info.Kind == "Hack" or info.Kind == GameConfig.Vault.HoldLabel) and not info.Active then
 			holding = false
 			heldStation = nil
 			refresh()

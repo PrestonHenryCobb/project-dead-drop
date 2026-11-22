@@ -101,6 +101,7 @@ local Enums = {
 		-- Gala re-layout (relayout-1): the five vault terminal spots (three are active a match), the five keycard printer
 		-- spots (one is active), prop-triggered secret exits, glass elevators, the Package doors and the service ladders.
 		VaultTerminalSpot = "VaultTerminalSpot", -- VaultId; the terminal itself is made at match start
+		VaultTerminal = "VaultTerminal", -- the made terminal while it can still be hacked (VaultId); clients offer the hold on it
 		KeycardPrinterSpot = "KeycardPrinterSpot", -- PrinterId, Cost, Seconds; the printer is made at match start
 		SecretExit = "SecretExit", -- the panel that opens; ExitId
 		SecretExitTrigger = "SecretExitTrigger", -- the prop inside that opens it; ExitId

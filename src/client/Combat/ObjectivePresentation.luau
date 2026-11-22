@@ -37,7 +37,9 @@ function ObjectivePresentation.new()
 			terminals = table.clone(info.Terminals)
 		end,
 		interaction = function(info: Types.InteractStateInfo, now: number)
-			holdStarted = if info.Active and info.Kind == "Hack" then now else nil
+			holdStarted = if info.Active and (info.Kind == "Hack" or info.Kind == GameConfig.Vault.HoldLabel)
+				then now
+				else nil
 			holdSeconds = info.Seconds
 		end,
 		view = function(serverNow: number, localNow: number)
@@ -58,8 +60,10 @@ function ObjectivePresentation.new()
 				holdProgress = if holdStarted and holdSeconds > 0
 					then math.clamp((localNow - holdStarted) / holdSeconds, 0, 1)
 					else 0,
-				terminals = if phase == "VaultBreach" then terminals else {},
-				showVaultBars = phase == "VaultBreach" and serverNow >= bannerUntil and #terminals > 0,
+				terminals = if phase == "Infiltration" or phase == "VaultBreach" then terminals else {}, -- shown from the start of Infiltration: easy to find
+				showVaultBars = (phase == "Infiltration" or phase == "VaultBreach")
+					and serverNow >= bannerUntil
+					and #terminals > 0,
 			}
 		end,
 	}
