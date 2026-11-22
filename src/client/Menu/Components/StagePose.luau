@@ -1,5 +1,5 @@
 --!strict
--- Authored static poses for the local menu display only. No animation assets, gameplay rig edits or frame loops.
+-- Authored local menu poses, evaluated during finite transitions only. No animation assets or gameplay rig edits.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local config = require(ReplicatedStorage.Shared.GameConfig).Menu.Stage.Portrait
 local StagePose = {}
@@ -10,6 +10,12 @@ export type Preset = {
 	Joints: { [string]: Vector3 },
 }
 local screens = config.Screens :: { [string]: Preset }
+export type State = {
+	BodyYawDegrees: number,
+	Joints: { [string]: Vector3 },
+	SupportWeapon: number,
+	SupportCuff: number,
+}
 type Link = { a: BasePart, b: BasePart, relative: CFrame }
 
 local function rotation(degrees: Vector3): CFrame
@@ -79,7 +85,7 @@ local function resolve(edges: { Link }, known: { [BasePart]: CFrame })
 	end
 end
 
-function StagePose.apply(rig: Model, screen: string, feet: CFrame, family: string)
+function StagePose.describe(screen: string, family: string): State
 	local preset = screens[screen] or screens.Play
 	local offsets: { [string]: Vector3 } = table.clone(preset.Joints :: { [string]: Vector3 })
 	if screen == "Hardware" and family == "OneHanded" then
@@ -92,6 +98,33 @@ function StagePose.apply(rig: Model, screen: string, feet: CFrame, family: strin
 			offsets[limb] = screens.Hardware.Joints[limb]
 		end
 	end
+	return {
+		BodyYawDegrees = preset.BodyYawDegrees,
+		Joints = offsets,
+		SupportWeapon = if preset.SupportWeapon and family == "TwoHanded" then 1 else 0,
+		SupportCuff = if preset.SupportCuff and family ~= "Dual" then 1 else 0,
+	}
+end
+
+function StagePose.blend(from: State, to: State, alpha: number): State
+	local joints: { [string]: Vector3 } = {}
+	for name, value in from.Joints do
+		joints[name] = value:Lerp(to.Joints[name] or Vector3.zero, alpha)
+	end
+	for name, value in to.Joints do
+		if not joints[name] then
+			joints[name] = Vector3.zero:Lerp(value, alpha)
+		end
+	end
+	return {
+		BodyYawDegrees = from.BodyYawDegrees + (to.BodyYawDegrees - from.BodyYawDegrees) * alpha,
+		Joints = joints,
+		SupportWeapon = from.SupportWeapon + (to.SupportWeapon - from.SupportWeapon) * alpha,
+		SupportCuff = from.SupportCuff + (to.SupportCuff - from.SupportCuff) * alpha,
+	}
+end
+
+function StagePose.apply(rig: Model, state: State, feet: CFrame)
 	local root = rig:FindFirstChild("HumanoidRootPart") :: BasePart
 	local humanoid = rig:FindFirstChildOfClass("Humanoid") :: Humanoid
 	humanoid.RequiresNeck = false
@@ -101,9 +134,9 @@ function StagePose.apply(rig: Model, screen: string, feet: CFrame, family: strin
 			item.Anchored = true
 		end
 	end
-	local edges = links(rig, offsets)
+	local edges = links(rig, state.Joints)
 	root.CFrame = feet
-		* CFrame.Angles(0, math.rad(preset.BodyYawDegrees), 0)
+		* CFrame.Angles(0, math.rad(state.BodyYawDegrees), 0)
 		* CFrame.new(0, humanoid.HipHeight + root.Size.Y / 2, 0)
 	resolve(edges, { [root] = root.CFrame })
 	-- Ground the lowest sole after the weight shift, without changing the actual player rig or HipHeight.

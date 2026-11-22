@@ -29,6 +29,7 @@ local ViewModel = require(script.Parent.Parent:WaitForChild("Combat"):WaitForChi
 local StagePose = require(script.Parent.Components.StagePose)
 local GalaSet = require(script.Parent.Components.GalaSet)
 local config = GameConfig.Menu.Stage
+local fadeInfo = TweenInfo.new(GameConfig.Menu.ScreenFadeSeconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local panInfo = TweenInfo.new(GameConfig.Menu.CameraPanSeconds, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 
 export type Framing = "Play" | "Agents" | "Hardware" | "PreDeploy"
@@ -51,6 +52,11 @@ export type MenuStage = typeof(setmetatable(
 		destroyed: boolean,
 		feet: CFrame,
 		framing: Framing,
+		poseState: StagePose.State?,
+		poseJanitor: Janitor.Janitor,
+		fadeJanitor: Janitor.Janitor,
+		visibility: NumberValue,
+		opacity: { [Instance]: number },
 		cameraTween: Tween?,
 	},
 	MenuStage
@@ -179,6 +185,12 @@ function MenuStage.new(): MenuStage
 	folder.Name = "MenuStage" -- inside a folder, so WeaponVisualController's scan of Workspace's children never sees the rig
 	folder.Parent = workspace
 	janitor:Add(folder)
+	local poseJanitor, fadeJanitor = Janitor.new(), Janitor.new()
+	janitor:Add(poseJanitor)
+	janitor:Add(fadeJanitor)
+	local visibility = Instance.new("NumberValue")
+	visibility.Value = 0
+	janitor:Add(visibility)
 	local origin = CFrame.new(config.Origin)
 	buildRoom(folder, origin)
 	GalaSet.build(folder, origin)
@@ -195,10 +207,22 @@ function MenuStage.new(): MenuStage
 		templateAttempts = 0,
 		destroyed = false,
 		framing = "Play" :: Framing,
+		poseState = nil,
+		poseJanitor = poseJanitor,
+		fadeJanitor = fadeJanitor,
+		visibility = visibility,
+		opacity = {},
 		-- The operative faces the camera (-Z); the open balcony and skyline sit behind them.
 		feet = origin * CFrame.Angles(0, math.rad(config.RigTurnDegrees), 0),
 		cameraTween = nil,
 	}, MenuStage)
+	janitor:Add(visibility.Changed:Connect(function(value: number)
+		for item, base in self.opacity do
+			if item.Parent and (item:IsA("BasePart") or item:IsA("Decal")) then
+				item.Transparency = base + (1 - base) * (1 - value)
+			end
+		end
+	end))
 	-- The server builds StarterCharacter asynchronously. A menu request must survive late/partial replication.
 	janitor:Add(StarterPlayer.DescendantAdded:Connect(function()
 		if self.requestedAgent and not self.rig then
@@ -212,6 +236,9 @@ function MenuStage.new(): MenuStage
 end
 
 local function clearOperative(self: MenuStage)
+	self.poseJanitor:Cleanup()
+	self.poseState = nil
+	table.clear(self.opacity)
 	if self.weapon then
 		self.weapon:destroy()
 		self.weapon = nil
@@ -222,16 +249,53 @@ local function clearOperative(self: MenuStage)
 	end
 end
 
-local function poseOperative(self: MenuStage)
+local function familyOf(self: MenuStage): string
+	return if self.requestedHardware
+		then (config.Portrait.WeaponFamilies :: { [string]: string })[self.requestedHardware] or "TwoHanded"
+		else "OneHanded"
+end
+
+local function captureOpacity(self: MenuStage, model: Model)
+	for _, item in model:GetDescendants() do
+		if item:IsA("BasePart") or item:IsA("Decal") then
+			local base = item.Transparency
+			self.opacity[item] = base
+			item.Transparency = base + (1 - base) * (1 - self.visibility.Value)
+		end
+	end
+end
+
+local function fadeOperative(self: MenuStage, value: number, finished: (() -> ())?)
+	self.fadeJanitor:Cleanup()
+	if UiAccessibility.reducedMotion() or self.visibility.Value == value then
+		self.visibility.Value = value
+		if finished then
+			finished()
+		end
+		return
+	end
+	local tween = TweenService:Create(self.visibility, fadeInfo, { Value = value })
+	self.fadeJanitor:Add(function()
+		tween:Cancel()
+	end)
+	if finished then
+		self.fadeJanitor:Add(tween.Completed:Connect(function(status)
+			if status == Enum.PlaybackState.Completed then
+				finished()
+			end
+		end))
+	end
+	tween:Play()
+end
+
+local function poseOperative(self: MenuStage, state: StagePose.State)
 	local rig = self.rig
 	if not rig then
 		return
 	end
 	local portrait = config.Portrait
-	local family = if self.requestedHardware
-		then (portrait.WeaponFamilies :: { [string]: string })[self.requestedHardware] or "TwoHanded"
-		else "OneHanded"
-	StagePose.apply(rig, self.framing, self.feet, family)
+	self.poseState = state
+	StagePose.apply(rig, state, self.feet)
 	local hand = rig:FindFirstChild("RightHand") :: BasePart
 	local left = rig:FindFirstChild("LeftHand") :: BasePart
 	local weapon = self.weapon
@@ -241,19 +305,44 @@ local function poseOperative(self: MenuStage)
 	local angles = portrait.GripDegrees
 	local grip = CFrame.Angles(math.rad(angles.X), math.rad(angles.Y), math.rad(angles.Z))
 	local rightFrame = hand.CFrame * grip
-	local preset = (portrait.Screens :: { [string]: StagePose.Preset })[self.framing]
-	if preset.SupportWeapon and family == "TwoHanded" then
+	if state.SupportWeapon > 0 then
 		local target = rightFrame * weapon.rightGrip:Inverse() * weapon.leftGrip * grip:Inverse()
-		StagePose.reachLeftHand(rig, target)
+		StagePose.reachLeftHand(rig, left.CFrame:Lerp(target, state.SupportWeapon))
 	end
-	if preset.SupportCuff and family ~= "Dual" then
-		StagePose.reachLeftHand(rig, hand.CFrame * portrait.CuffOffset)
+	if state.SupportCuff > 0 then
+		StagePose.reachLeftHand(rig, left.CFrame:Lerp(hand.CFrame * portrait.CuffOffset, state.SupportCuff))
 	end
 	weapon:placeAtRightHand(rightFrame, left.CFrame * grip)
 end
 
+local function transitionPose(self: MenuStage)
+	self.poseJanitor:Cleanup()
+	local goal = StagePose.describe(self.framing, familyOf(self))
+	local from = self.poseState
+	if not self.rig or not from or UiAccessibility.reducedMotion() then
+		self.poseState = goal
+		poseOperative(self, goal)
+		return
+	end
+	local alpha = self.poseJanitor:Add(Instance.new("NumberValue"))
+	self.poseJanitor:Add(alpha.Changed:Connect(function(value: number)
+		if not self.destroyed and self.rig then
+			poseOperative(self, StagePose.blend(from, goal, value))
+		end
+	end))
+	local tween = TweenService:Create(alpha, panInfo, { Value = 1 })
+	self.poseJanitor:Add(function()
+		tween:Cancel()
+	end)
+	poseOperative(self, from)
+	tween:Play()
+end
+
 local function replaceWeapon(self: MenuStage, hardwareId: string?)
 	if self.weapon then
+		for _, item in self.weapon.model:GetDescendants() do
+			self.opacity[item] = nil
+		end
 		self.weapon:destroy()
 		self.weapon = nil
 	end
@@ -263,24 +352,26 @@ local function replaceWeapon(self: MenuStage, hardwareId: string?)
 		weapon.model.Name = "StageWeapon"
 		weapon.model.Parent = self.folder
 		self.weapon = weapon
+		captureOpacity(self, weapon.model)
 	end
-	poseOperative(self)
+	transitionPose(self)
 end
 
--- Puts the operative on stage holding this Hardware. Rebuilds only when the agent or weapon changes.
+-- Keep the shared display body across selections and replace only the selected Hardware.
 function MenuStage.show(self: MenuStage, agentId: string, hardwareId: string?)
 	if self.destroyed then
 		return
 	end
-	local previousAgent = self.requestedAgent
 	self.requestedAgent, self.requestedHardware = agentId, hardwareId
 	local key = `{agentId}/{hardwareId or ""}`
 	if self.shown == key then
+		fadeOperative(self, 1)
 		return
 	end
-	if self.rig and previousAgent == agentId then
+	if self.rig then
 		replaceWeapon(self, hardwareId)
 		self.shown = key
+		fadeOperative(self, 1)
 		return
 	end
 	clearOperative(self)
@@ -361,20 +452,26 @@ function MenuStage.show(self: MenuStage, agentId: string, hardwareId: string?)
 	rig:PivotTo(self.feet * CFrame.new(0, humanoid.HipHeight + root.Size.Y / 2, 0))
 	self.rig = rig
 	self.shown = key
-
+	self.visibility.Value = 0
+	captureOpacity(self, rig)
 	replaceWeapon(self, hardwareId)
+	fadeOperative(self, 1)
 end
 
 -- Takes the operative off the stage (a screen with no use for them); show() puts them back.
 function MenuStage.hideOperative(self: MenuStage)
 	self.requestedAgent, self.requestedHardware = nil, nil
 	self.shown = nil
-	clearOperative(self)
+	fadeOperative(self, 0, function()
+		if not self.requestedAgent then
+			clearOperative(self)
+		end
+	end)
 end
 
 function MenuStage.frame(self: MenuStage, framing: Framing)
 	self.framing = framing
-	poseOperative(self)
+	transitionPose(self)
 	local shot = config.Cameras[framing]
 	local origin = CFrame.new(config.Origin)
 	local goal = CFrame.lookAt((origin * CFrame.new(shot.Eye)).Position, (origin * CFrame.new(shot.Focus)).Position)

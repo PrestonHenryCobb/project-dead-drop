@@ -12,6 +12,7 @@
 
 local ContextActionService = game:GetService("ContextActionService")
 local GuiService = game:GetService("GuiService")
+local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -35,6 +36,7 @@ local LobbyState = require(Menu:WaitForChild("LobbyState"))
 local MenuStage = require(Menu:WaitForChild("MenuStage"))
 local MenuTheme = require(Menu:WaitForChild("MenuTheme"))
 local SettingsPanel = require(Menu.Components.SettingsPanel)
+local UiAccessibility = require(Shared.Util.UiAccessibility)
 
 type MenuTab = Types.MenuTab
 type MenuView = Types.MenuView
@@ -52,7 +54,7 @@ local MAIN_TABS: { { Tab: MenuTab, Label: string } } = {
 }
 
 -- Which camera framing each screen uses; screens not listed use Play's.
-local FRAMINGS: { [string]: MenuStage.Framing } = { Agents = "Agents", Hardware = "Hardware" }
+local FRAMINGS: { [string]: MenuStage.Framing } = { Agents = "Agents", Hardware = "Hardware", PreDeploy = "PreDeploy" }
 
 local MenuController = {}
 
@@ -64,6 +66,8 @@ local listeners: { [number]: (Types.MetaSnapshot) -> () } = {}
 local nextListener = 0
 local snapshot: Types.MetaSnapshot? = nil
 local stage: MenuStage.MenuStage? = nil
+local screenTransitions = Janitor.new()
+local activeGroup: CanvasGroup? = nil
 local screen: Frame? = nil -- where the open view is mounted
 local header: Frame? = nil
 local footerLabel: TextLabel? = nil
@@ -167,6 +171,8 @@ local function setSnapshot(value: Types.MetaSnapshot)
 end
 
 local function unmountCurrent()
+	screenTransitions:Cleanup()
+	activeGroup = nil
 	if current then
 		current.view.Unmount()
 		current = nil
@@ -192,16 +198,68 @@ function selectFirstButton()
 end
 
 local function mount(tab: string, view: MenuView, context: { [string]: any }?)
+	local outgoing = if activeGroup and not UiAccessibility.reducedMotion() then activeGroup:Clone() else nil
 	unmountCurrent()
-	if stage then
-		stage:hideOperative() -- shown again only if this screen calls focusAgent
-	end
 	local target = screen :: Frame
+	if outgoing then
+		-- Only a visual snapshot survives: old requests and subscriptions are already unmounted.
+		for _, item in outgoing:GetDescendants() do
+			if item:IsA("GuiObject") then
+				item.Active = false
+				item.Selectable = false
+			end
+			if item:IsA("ScrollingFrame") then
+				item.ScrollingEnabled = false
+			end
+			if item:IsA("TextBox") then
+				item.TextEditable = false
+			end
+			if item:IsA("Script") or item:IsA("LocalScript") then
+				item:Destroy()
+			end
+		end
+		outgoing.Name = "OutgoingScreen"
+		outgoing.Active = false
+		outgoing.Parent = target
+		screenTransitions:Add(outgoing)
+		local fade = TweenService:Create(outgoing, MenuTheme.ScreenFadeInfo, { GroupTransparency = 1 })
+		screenTransitions:Add(function()
+			fade:Cancel()
+		end)
+		screenTransitions:Add(fade.Completed:Connect(function(status)
+			if status == Enum.PlaybackState.Completed then
+				outgoing:Destroy()
+			end
+		end))
+		fade:Play()
+	end
+	local group = Instance.new("CanvasGroup")
+	group.Name = "CurrentScreen"
+	group.BackgroundTransparency = 1
+	group.Size = UDim2.fromScale(1, 1)
+	group.GroupTransparency = if UiAccessibility.reducedMotion() then 0 else 1
+	group.Parent = target
+	activeGroup = group
+	local content = Instance.new("Frame")
+	content.Name = "ViewContent"
+	content.BackgroundTransparency = 1
+	content.Size = UDim2.fromScale(1, 1)
+	content.Parent = group
 	current = { tab = tab, view = view }
 	if stage then
+		if tab ~= "Play" and tab ~= "Agents" and tab ~= "Hardware" and tab ~= "PreDeploy" then
+			stage:hideOperative()
+		end
 		stage:frame(FRAMINGS[tab] or "Play")
 	end
-	view.Mount(target, navigator, context)
+	view.Mount(content, navigator, context)
+	if not UiAccessibility.reducedMotion() then
+		local fade = TweenService:Create(group, MenuTheme.ScreenFadeInfo, { GroupTransparency = 0 })
+		screenTransitions:Add(function()
+			fade:Cancel()
+		end)
+		fade:Play()
+	end
 	for name, button in tabButtons do
 		button.SetSelected(name == tab)
 	end
@@ -298,12 +356,7 @@ local function syncPreDeploy()
 		header.Visible = not active
 	end
 	if active then
-		unmountCurrent()
-		current = { tab = "PreDeploy", view = preDeployView :: MenuView }
-		if stage then
-			stage:frame("PreDeploy")
-		end
-		(preDeployView :: MenuView).Mount(screen :: Frame, navigator, nil)
+		mount("PreDeploy", preDeployView :: MenuView, nil)
 		if footerLabel then
 			footerLabel.Text = "AGENT SELECT"
 		end

@@ -554,3 +554,9 @@ Codex review 2026-11-20 — input-hints and minimap-size: reviewed all mixed hin
 | Id | Ticket | Owner | Needs | Status |
 |---|---|---|---|---|
 | menu-screen-poses | Distinct Play/Agents/Hardware/pre-deploy poses and lenses; static local FK, foot grounding and support-arm reach; held Hardware updates without rebuilding same-agent body. Armory now focuses selected agent/weapon and leaves its center clear. Source inspection/formatting only, no tests or desktop control. See docs/MENU_SCREEN_POSES_2026-11-22.md. | CODEX | Owner cinematic pose acceptance | READY_FOR_REVIEW |
+
+## Smooth menu transitions (2026-11-22)
+
+| Id | Ticket | Owner | Needs | Status |
+|---|---|---|---|---|
+| menu-smooth-transitions | Retain the display agent across agent views; blend current-to-target pose/support gestures with camera/lens easing, actor fades for catalogue views, and noninteractive outgoing-content snapshots crossfaded with new views. Interruptions and close/spectate cleanup, Reduced Motion instant path. Source inspection/formatting only. See docs/MENU_TRANSITIONS_2026-11-22.md. | CODEX | Owner visual acceptance | READY_FOR_REVIEW |
