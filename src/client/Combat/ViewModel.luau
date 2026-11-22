@@ -30,7 +30,6 @@ export type Input = {
 	pose: string, -- "Tucked", "Ready" or "Aim"
 	speedFraction: number, -- 0 standing, 1 at full speed
 	reloadProgress: number?, -- 0 to 1 while reloading
-	lower: number?, -- 0 to 1: how far the gun is dropped out of view (the wrist watch is up)
 }
 
 local config = GameConfig.Combat.ViewModel
@@ -798,10 +797,6 @@ function ViewModel.update(self: ViewModel, camera: Camera, dt: number, input: In
 		camera.FieldOfView,
 		camera.ViewportSize
 	)
-	-- The wrist watch drops the gun out of view after everything else has fitted it into the frame.
-	if input.lower and input.lower > 0 then
-		relative = CFrame.new(0, -config.WatchLowerStuds * input.lower, 0) * relative
-	end
 	-- Compress camera-space depth and geometry together: projection stays the same while the gun avoids the wall.
 	local scale = math.min(
 		presentation.ViewDepthScale,

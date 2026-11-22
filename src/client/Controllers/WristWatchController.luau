@@ -1,12 +1,9 @@
 --!strict
--- Wrist watch (owner test 2026-11-21), your own view: while you hack, or briefly while you re-cover, your left arm lifts a watch in front of
--- you as if checking the time, the gun drops out of view, and a bar on the watch fills over the action's time. The server sends
--- WristWatchState to you only; everyone else sees the real watch the server puts on an Exposed agent's wrist (WristWatchService).
--- The watch is a local part in the camera, never in the world. FirstPersonBodyController draws the left arm to leftHand(); WeaponController
--- lowers the gun by raised().
---
---   WristWatchController.raised() -> number            0 (down) to 1 (up), eased
---   WristWatchController.leftHand(camera) -> CFrame?   where the left hand is while the watch is up or rising, else nil
+-- Wrist watch (owner test 2026-11-21), your own view: while you hack, or briefly while you re-cover, a watch is raised at the lower left
+-- of the screen with a bar that fills over the action's time. The server sends WristWatchState to you only; everyone else sees the real
+-- watch the server puts on an Exposed agent's wrist (WristWatchService). The first-person watch is a local part in the camera, never in the
+-- world. Its face looks at the camera with its top toward the top of the screen, so the words read the right way up. (Owner 2026-11-22: keep
+-- it as a floating watch, not an arm lift with the gun dropped.)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -34,30 +31,6 @@ local startedAt = 0
 local seconds = 0
 local active = false
 local lifted = Instance.new("NumberValue")
-
-function WristWatchController.raised(): number
-	return raised
-end
-
--- The left hand's frame in camera space with the watch up: the forearm comes in from the lower left, the back of the hand faces the camera.
-local function raisedHand(): CFrame
-	local forearm = config.Forearm.Unit
-	local back = (Vector3.zAxis - forearm * forearm:Dot(Vector3.zAxis)).Unit
-	return CFrame.fromMatrix(config.HandPosition, forearm:Cross(back), forearm, back)
-end
-
--- The hand's frame in camera space at this height: lowered a little off the bottom of the screen at 0, up at 1.
-local function handAt(amount: number): CFrame
-	local up = raisedHand()
-	return up - up.Position + (up.Position + config.DownShift * (1 - amount))
-end
-
-function WristWatchController.leftHand(camera: Camera): CFrame?
-	if raised <= 0.001 then
-		return nil
-	end
-	return camera.CFrame * handAt(raised)
-end
 
 local function build(): Part
 	local part = Instance.new("Part")
@@ -116,16 +89,11 @@ local function render()
 		return
 	end
 	part.Parent = camera
-	-- On the back of the wrist, face to the camera, its top edge toward the top of the screen so the words read the right way up.
-	local hand = camera.CFrame * handAt(raised)
-	local face = hand * CFrame.new(config.WatchOnHand)
-	local normal = hand.ZVector -- the back of the hand
-	local up = Vector3.yAxis - normal * normal:Dot(Vector3.yAxis)
-	if up.Magnitude < 1e-3 then
-		up = camera.CFrame.UpVector
-	end
-	up = up.Unit
-	part.CFrame = CFrame.fromMatrix(face.Position, normal:Cross(-up), normal, -up)
+	-- A SurfaceGui on a part's Top face reads along the part's X with its top toward -Z. So the part's Y points at the camera, -Z points up
+	-- the screen, and X (Y cross Z) points right; the face is then upright to the player.
+	local position = config.Offset + config.DownOffset * (1 - raised)
+	local flat = CFrame.fromMatrix(position, Vector3.xAxis, Vector3.zAxis, -Vector3.yAxis)
+	part.CFrame = camera.CFrame * flat * CFrame.Angles(math.rad(config.TiltDegrees), 0, 0)
 	local fill = bar
 	if fill then
 		local progress = if active and seconds > 0 then math.clamp((os.clock() - startedAt) / seconds, 0, 1) else 1

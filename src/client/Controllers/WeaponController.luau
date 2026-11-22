@@ -33,7 +33,6 @@ local WeaponPlacement = require(Combat:WaitForChild("WeaponPlacement"))
 local WeaponAim = require(Combat:WaitForChild("WeaponAim"))
 local RemoteController = require(script.Parent.RemoteController)
 local HeldItemController = require(script.Parent.HeldItemController)
-local WristWatchController = require(script.Parent.WristWatchController)
 local CameraGuard = require(Combat.CameraGuard)
 
 export type Status = {
@@ -416,7 +415,6 @@ local function step(dt: number)
 		pose = pose,
 		speedFraction = math.clamp(speed / GameConfig.Speeds.Sprint, 0, 1),
 		reloadProgress = if isReloading(now) then (now - reloadStartedAt) / def.ReloadSeconds else nil,
-		lower = WristWatchController.raised(),
 	})
 end
 
