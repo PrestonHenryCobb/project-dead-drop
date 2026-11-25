@@ -162,6 +162,46 @@ local GameConfig = {
 		ReturnRetrySeconds = 4,
 	},
 
+	-- Owner 2026-11-25: themed loading screens (boot, arriving at either place, leaving for a match, returning to the lobby). See Defs/LoadingDefs.
+	Loading = {
+		PreviewScene = "", -- a scene id (see LoadingDefs) to show at boot and never close, for reviewing the layout; empty in the game
+		FadeInSeconds = 0.25,
+		FadeOutSeconds = 0.6,
+		MinShowSeconds = 2.5, -- the boot screen stays at least this long so it can be read
+		MaxPreloadSeconds = 25, -- the boot screen never waits longer than this for assets
+		PreloadBatch = 40, -- assets handed to ContentProvider at a time (each batch moves the bar)
+		PreloadClasses = {
+			"Sound",
+			"Decal",
+			"Texture",
+			"SurfaceAppearance",
+			"MeshPart",
+			"ImageLabel",
+			"ImageButton",
+			"Animation",
+		},
+		PreloadRoots = { "ReplicatedStorage", "Lighting", "StarterGui", "Workspace" }, -- services whose descendants are preloaded
+		TipSeconds = 5, -- how long each tip shows
+		TipFadeSeconds = 0.35,
+		StepSeconds = 2.2, -- a transition screen with no measurable progress moves to its next status line this often
+		BarSettleSpeed = 6, -- how fast the bar chases the real progress
+		DisplayOrder = 1000,
+		TransitionTimeoutSeconds = 40, -- a transition screen that has not been replaced by a teleport closes after this
+		PanelWidthPixels = 560,
+		BarHeightPixels = 6,
+		TitleSize = 40,
+		KickerSize = 14,
+		SubtitleSize = 18,
+		BodySize = 16,
+		TipSize = 18,
+		StampSize = 13,
+		BackgroundColor = Color3.fromHex("0B0F15"),
+		InkColor = Color3.fromHex("F4EFE6"),
+		DimInkColor = Color3.fromHex("A9A79F"),
+		RedactionColor = Color3.fromHex("E8E2D4"),
+		BarTrackColor = Color3.fromHex("1D242E"),
+	},
+
 	-- Spec 3.2 / 3.3: agent select and team colors (in the order teams are assigned).
 	Lobby = {
 		AgentSelectSeconds = 30,

@@ -2,6 +2,12 @@
 	"name": "CoverStory",
 	"tree": {
 		"$className": "DataModel",
+		"ReplicatedFirst": {
+			"$className": "ReplicatedFirst",
+			"Boot": {
+				"$path": "src/first"
+			}
+		},
 		"ReplicatedStorage": {
 			"$className": "ReplicatedStorage",
 			"Shared": {
