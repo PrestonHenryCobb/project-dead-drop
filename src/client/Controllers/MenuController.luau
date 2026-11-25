@@ -640,11 +640,16 @@ local function bindScale(gui: ScreenGui, root: Frame)
 end
 
 -- The in-match HUD has nothing to show before the player spawns, and must not draw over the menu: every other
--- ScreenGui is switched off while the menu is open and put back as it was when it closes.
+-- ScreenGui is switched off while the menu is open and put back as it was when it closes. A gui marked AlwaysVisible (the loading screens) stays on.
 local function hideOtherGuis(playerGui: Instance, menuGui: ScreenGui)
 	local hidden: { [ScreenGui]: boolean } = {}
 	local function hide(child: Instance)
-		if child:IsA("ScreenGui") and child ~= menuGui and hidden[child] == nil then
+		if
+			child:IsA("ScreenGui")
+			and child ~= menuGui
+			and hidden[child] == nil
+			and not child:GetAttribute("AlwaysVisible")
+		then
 			hidden[child] = child.Enabled
 			child.Enabled = false
 		end

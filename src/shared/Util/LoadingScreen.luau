@@ -117,7 +117,7 @@ local function briefingLine(parent: Instance, line: string, order: number, delay
 			local slot = Instance.new("Frame")
 			slot.BackgroundTransparency = 1
 			slot.Size = UDim2.fromOffset(width, height)
-			slot.LayoutOrder = index
+			slot.LayoutOrder = index * 1000
 			slot.Parent = row
 			local bar = Instance.new("Frame")
 			bar.BackgroundColor3 = config.RedactionColor
@@ -168,6 +168,7 @@ function LoadingScreen.show(sceneId: string): LoadingScreen
 	gui.IgnoreGuiInset = true
 	gui.DisplayOrder = config.DisplayOrder
 	gui.ScreenInsets = Enum.ScreenInsets.None
+	gui:SetAttribute("AlwaysVisible", true) -- the menu switches every other ScreenGui off; a loading screen must stay
 	janitor:Add(gui)
 
 	-- A CanvasGroup so the whole screen fades as one.
