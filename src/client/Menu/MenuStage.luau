@@ -241,7 +241,7 @@ function MenuStage.new(): MenuStage
 			end
 		end
 	end))
-	-- Idle life (owner 2026-11-25): the finished pose gets breathing, weight shifts, a roving head and the odd glance at the cuff added on top.
+	-- Idle life (owner 2026-11-25): the finished pose gets breathing, a leaning upper body and a roving head added on top.
 	janitor:Add(RunService.Heartbeat:Connect(function(dt: number)
 		idleStep(self, dt)
 	end))
@@ -359,7 +359,7 @@ idleStep = function(self: MenuStage, dt: number)
 	end
 	self.idleAccumulator = 0
 	local intensity = math.clamp((now - self.idleBusyUntil) / idle.BlendInSeconds, 0, 1)
-	poseOperative(self, StagePose.idle(base, now, intensity, familyOf(self) ~= "Dual"))
+	poseOperative(self, StagePose.idle(base, now, intensity))
 	self.poseState = base -- the base pose stays the thing a screen change blends from
 end
 

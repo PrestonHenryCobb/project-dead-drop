@@ -622,22 +622,18 @@ local GameConfig = {
 				},
 			},
 			-- Owner 2026-11-25: the operative was far too still. Idle life on the menu stage, added to whatever pose the screen asks for (all in degrees).
+			-- Only the upper body, head and arms move: the stage grounds the lowest foot every update, so moving the hips, legs or facing slid the feet.
 			Idle = {
 				Hz = 30, -- how often the pose is re-evaluated; the rig is rebuilt each time, so this is not the frame rate
 				BlendInSeconds = 0.8, -- idle motion fades in after a screen change so the pose transition is not disturbed
 				BreathSeconds = 3.6,
 				BreathDegrees = 2.2,
-				SwaySeconds = 6.5, -- weight shifting from one foot to the other
-				SwayDegrees = 3.5,
-				LegShiftDegrees = 4,
-				YawSeconds = 9,
-				YawDegrees = 4,
+				SwaySeconds = 6.5, -- the upper body leans one way then the other; hips, legs and feet never move, so the feet stay planted
+				SwayDegrees = 2.5,
 				ScanSeconds = 8, -- the head turns to look around the room
 				ScanDegrees = 22,
 				ScanPitchDegrees = 5,
-				ArmDegrees = 5, -- the arms drift with the breathing
-				GesturePeriodSeconds = 9, -- every so often the free hand goes to the cuff, as if checking the time
-				GestureSeconds = 2.2,
+				ArmDegrees = 3, -- the arms drift with the breathing, kept small so they never pass through the body
 			},
 			-- Ticket menu-art-pass: original Gala set dressing, no additional lights or shadows.
 			Art = {
