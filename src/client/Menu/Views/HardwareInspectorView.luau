@@ -151,7 +151,7 @@ function view.Mount(stage, navigator, context)
 			stats.Name = "HardwareStats"
 		else
 			Kit.documentArt(art, "IN\nDEVELOPMENT", UDim2.new(), UDim2.fromScale(1, 1))
-			Kit.text(side, "This weapon is not playable yet. No invented stats or unlock grants.", 282, 100)
+			Kit.text(side, "Not playable yet.", 282, 100)
 		end
 		local mastery = if data then data.Profile.Mastery[selected.Agent] else nil
 		local allowed = data
@@ -186,7 +186,7 @@ function view.Mount(stage, navigator, context)
 		Kit.button(actions, "BACK TO AGENT OVERVIEW", config.PrimaryHeightPixels + config.GapPixels, function()
 			navigator.navigateTo("Agents", { AgentId = selected.Agent })
 		end)
-		Kit.text(side, "Earn Hardware through Agent Mastery. Weapon finishes are not yet published.", 412, 70)
+		Kit.text(side, "Earn Hardware with Mastery.", 412, 70)
 		filters.CanvasPosition, grid.CanvasPosition = filterScroll, gridScroll
 		restoreFocus(root)
 	end

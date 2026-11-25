@@ -48,21 +48,10 @@ function view.Mount(stage, navigator)
 		if count == 0 then
 			local empty = Kit.frame(list, "EmptyArchive", UDim2.new(), UDim2.new(1, -14, 0, 260))
 			Kit.text(empty, "NO DOSSIERS ISSUED", 0, 70, true)
-			Kit.text(
-				empty,
-				"Permanent tracks will appear here when their rewards are published. Your profile has no Dossier tracks yet.",
-				84,
-				160
-			)
+			Kit.text(empty, "No Dossier tracks yet.", 84, 160)
 		end
 		Kit.text(right, "NON-EXPIRING / DIRECT MATCH XP", 0, 40, true).Position = UDim2.new(0, 0, 0.71, 0)
-		Kit.text(
-			right,
-			"No event tokens. Reward inspection and claiming become available when the server supplies a reward catalogue and tier requirements.",
-			0,
-			100
-		).Position =
-			UDim2.new(0, 0, 0.81, 0)
+		Kit.text(right, "No rewards published yet.", 0, 100).Position = UDim2.new(0, 0, 0.81, 0)
 	end)
 end
 return view

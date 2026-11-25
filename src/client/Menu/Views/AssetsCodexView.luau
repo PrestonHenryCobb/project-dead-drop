@@ -30,12 +30,8 @@ function view.Mount(stage, navigator)
 	local top = config.TextSizes.Small * 3 + config.GapPixels
 	local contentTop = top + config.TextSizes.Title + config.GapPixels
 	local bottom = config.PrimaryHeightPixels + config.GapPixels
-	local instructions = Kit.text(
-		session.Body,
-		"Choose four different Assets, one per rarity. During a match, open a matching-rarity safe to activate that Asset.",
-		0,
-		config.TextSizes.Small * 3
-	)
+	local instructions =
+		Kit.text(session.Body, "One per rarity. Matching safes unlock them in a match.", 0, config.TextSizes.Small * 3)
 	instructions.TextSize = config.TextSizes.Small
 	local slotHeading = Kit.text(session.Body, "1  SELECT A RARITY SLOT", top, config.TextSizes.Title)
 	slotHeading.TextSize = config.TextSizes.Body
@@ -158,7 +154,7 @@ function view.Mount(stage, navigator)
 		Size = UDim2.new(0.3, 0, 0, config.SecondaryHeightPixels),
 		OnActivated = function()
 			if Draft.clear(selectedSlot) then
-				lastAction = "Slot cleared. Choose its replacement from the list."
+				lastAction = "Slot cleared."
 				refresh()
 			end
 		end,
@@ -168,7 +164,7 @@ function view.Mount(stage, navigator)
 	progress.Position = UDim2.new(0.33, 0, 1, -config.PrimaryHeightPixels)
 	progress.Size = UDim2.new(0.39, 0, 0, config.TextSizes.Title)
 	progress.TextSize = config.TextSizes.Title
-	local explanation = Kit.text(session.Body, "Picks apply when you deploy.", 0, config.TextSizes.Small * 2)
+	local explanation = Kit.text(session.Body, "", 0, config.TextSizes.Small * 2)
 	explanation.Position =
 		UDim2.new(0.33, 0, 1, -config.PrimaryHeightPixels + config.TextSizes.Title + config.GapPixels / 2)
 	explanation.Size = UDim2.new(0.39, 0, 0, config.TextSizes.Small * 2)
@@ -219,27 +215,21 @@ function view.Mount(stage, navigator)
 			choice.value.Text = Effect.detail(id, rarity)
 			choice.button.SetSelected(used == selectedSlot)
 			if used == selectedSlot then
-				choice.note.Text = "Chosen for this rarity slot."
+				choice.note.Text = ""
 				choice.button.SetText("SELECTED ✓")
 			elseif used then
 				local other = Style.name(AssetDefs.rarities[used])
 				local previous = AssetDefs.get(picks[selectedSlot])
-				choice.note.Text = if previous
-					then `In {other}. Swaps {previous.Name} into that slot.`
-					else `Moves from {other}, leaving that slot empty.`
+				choice.note.Text = if previous then `Now in {other}` else `Leaves {other} empty`
 				choice.button.SetText(
 					if previous then `SWAP WITH {string.upper(other)}` else `MOVE FROM {string.upper(other)}`
 				)
 			else
-				choice.note.Text = "Not yet in your four picks."
+				choice.note.Text = ""
 				choice.button.SetText(`CHOOSE FOR {string.upper(Style.name(rarity))}`)
 			end
 		end
-		session.status(
-			if lastAction ~= ""
-				then lastAction
-				else "Select a slot on the left, then choose its Asset on the right. Each Asset can appear only once."
-		)
+		session.status(if lastAction ~= "" then lastAction else "")
 	end
 	refresh()
 	session.watch(function(data)

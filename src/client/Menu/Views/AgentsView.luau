@@ -107,7 +107,7 @@ function view.Mount(stage, navigator, context)
 				session.request("RequestBuyAgent", agentId)
 			end, true, true)
 		end
-		Kit.text(left, "One free operative per class. Claims and purchases are confirmed by the server.", 636, 80)
+		Kit.text(left, "One free agent per class.", 636, 80)
 		-- Transparent centre preserves the shell's large native rig and sculpted stage artwork.
 		local center = Kit.frame(area, "OperativeStage", UDim2.fromScale(0.25, 0), UDim2.new(0.41, -12, 1, 0))
 		local caption = Kit.panel(center, "Mastery", UDim2.new(0, 0, 1, -180), UDim2.new(1, 0, 0, 180))

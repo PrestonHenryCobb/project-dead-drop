@@ -150,7 +150,7 @@ local function buildLeft(
 		})
 		MenuTheme.label({
 			Name = "Body",
-			Text = "One from each class. The other three are earned with Credits.",
+			Text = "One free agent per class.",
 			Style = "Small",
 			Parent = picks,
 			LayoutOrder = 3,
@@ -245,7 +245,7 @@ local function buildLeft(
 	if anyUnavailable and not Matchmaking.available() and detailsExpanded then
 		MenuTheme.label({
 			Name = "Note",
-			Text = `This session plays {snapshot.Queue.Mode}. Other modes are currently unavailable.`,
+			Text = `{snapshot.Queue.Mode} only right now.`,
 			Style = "Small",
 			Parent = queue,
 			LayoutOrder = 3,
@@ -281,7 +281,7 @@ local function buildLeft(
 	else
 		MenuTheme.label({
 			Name = "Empty",
-			Text = "Choose a free agent to prepare your loadout.",
+			Text = "Pick a free agent.",
 			Style = "Small",
 			Parent = kit,
 			LayoutOrder = 2,
@@ -302,7 +302,7 @@ local function buildLeft(
 		local details = panel(rail, "MissionDetailsText", 6, "Brass")
 		MenuTheme.label({
 			Name = "Brief",
-			Text = "Blend into the crowd. Breach the active vaults. Take the Package. Extract.",
+			Text = "Blend in. Breach. Take the Package. Extract.",
 			Style = "Small",
 			Parent = details,
 		})
@@ -312,7 +312,7 @@ local function buildLeft(
 	if not assets then
 		MenuTheme.label({
 			Name = "IncompleteAssets",
-			Text = "Loadout incomplete: fill all four rarity slots in Assets before deploying.",
+			Text = "Fill all 4 Asset slots.",
 			Style = "Small",
 			Parent = actions,
 			LayoutOrder = 1,

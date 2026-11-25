@@ -185,7 +185,7 @@ function Kit.session(stage: Frame, title: string, navigator: Types.MenuNavigator
 		context.TextColor3 = Theme.Colors.TextDim
 	end
 	local body = Kit.frame(root, "Body", UDim2.fromOffset(0, 50), UDim2.new(1, 0, 1, -84))
-	local status = Kit.text(root, "Connecting to your operative dossier…", 0, 28)
+	local status = Kit.text(root, "Connecting…", 0, 28)
 	status.Position = UDim2.new(0, 0, 1, -28)
 	local active = true
 	local busy = false
@@ -260,7 +260,7 @@ function Kit.session(stage: Frame, title: string, navigator: Types.MenuNavigator
 				session.status("")
 				callback(value)
 			elseif active and not snapshot then
-				session.status("Profile unavailable. Reopen this page to retry.")
+				session.status("Profile unavailable. Reopen to retry.")
 			end
 		end)
 	end

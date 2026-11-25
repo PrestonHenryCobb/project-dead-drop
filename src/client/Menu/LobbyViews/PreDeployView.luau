@@ -180,7 +180,7 @@ local function buildLeft(rail: ScrollingFrame, state: Types.PreDeployState, redr
 	MenuTheme.label({ Name = "Title", Text = "THE PACKAGE", Style = "Title", Parent = objective, LayoutOrder = 2 })
 	MenuTheme.label({
 		Name = "Body",
-		Text = "Gather intel to open the vault, take the Package and carry it to an extraction site.",
+		Text = "Intel, vault, Package, extract.",
 		Style = "Small",
 		Parent = objective,
 		LayoutOrder = 3,
@@ -190,7 +190,7 @@ local function buildLeft(rail: ScrollingFrame, state: Types.PreDeployState, redr
 	MenuTheme.label({ Name = "Kicker", Text = "ASSET DRAFT", Style = "Kicker", Parent = assets, LayoutOrder = 1 })
 	MenuTheme.label({
 		Name = "AssetInstructions",
-		Text = "Choose a rarity slot, then pick from its list. Four different Assets are required. They activate from matching safes in the match.",
+		Text = "Fill all 4 slots.",
 		Style = "Small",
 		Parent = assets,
 		LayoutOrder = 2,
@@ -353,7 +353,7 @@ local function buildRight(
 	local picks = draftGadgets or {}
 	MenuTheme.label({
 		Name = "GadgetsKicker",
-		Text = `GADGETS · {#picks}/{GameConfig.Gadgets.Slots} · SELECT TO ADD / REMOVE`,
+		Text = `GADGETS · {#picks}/{GameConfig.Gadgets.Slots}`,
 		Style = "Kicker",
 		Parent = gadgets,
 		LayoutOrder = 1,
@@ -408,7 +408,7 @@ local function buildRight(
 	if not assets then
 		MenuTheme.label({
 			Name = "IncompleteAssets",
-			Text = "Loadout incomplete: fill all four Asset slots on the left before locking in.",
+			Text = "Fill all 4 Asset slots.",
 			Style = "Small",
 			Parent = actions,
 			LayoutOrder = 1,

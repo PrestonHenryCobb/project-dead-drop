@@ -165,7 +165,7 @@ function SettingsPanel.open(parent: Frame)
 	})
 	MenuTheme.label({
 		Name = "MotionDescription",
-		Text = "Enables extra reduced motion for HUD and menu effects. Roblox's Reduce Motion preference is always respected; weapon recoil stays unchanged.",
+		Text = "Extra reduced motion for HUD and menus.",
 		Style = "Small",
 		Parent = body,
 		LayoutOrder = 6,
@@ -212,7 +212,7 @@ function SettingsPanel.open(parent: Frame)
 	})
 	MenuTheme.label({
 		Name = "CameraShakeDescription",
-		Text = "Light feedback when hurt or starting a takedown. Off by default; reduced motion disables it. Weapon recoil is unchanged.",
+		Text = "Light feedback when hurt or on takedowns.",
 		Style = "Small",
 		Parent = body,
 		LayoutOrder = 11,
@@ -323,7 +323,7 @@ function SettingsPanel.open(parent: Frame)
 		local pad = InputHints.isGamepad()
 		sessionDescription.Text = InputHints.text(
 			`Session preferences. {InputHints.name(GameConfig.ClientSettings.Key)} opens settings during a match. Changes take effect immediately.`,
-			"Session preferences. Changes take effect immediately. B closes settings."
+			"Applies immediately. B closes."
 		)
 		recoverDescription.Text = `Re-cover automatically when possible. {InputHints.bracket(
 			GameConfig.Controls.Disguise,

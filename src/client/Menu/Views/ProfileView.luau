@@ -80,12 +80,7 @@ function view.Mount(stage, navigator)
 				Preview.mount(art, hardware.Def, content)
 			end
 		end
-		Kit.text(
-			root,
-			"Match history and calling cards have not been published. No sample operations are presented as your career.",
-			800 + headerExtra,
-			80
-		)
+		Kit.text(root, "No match history yet.", 800 + headerExtra, 80)
 	end)
 end
 return view

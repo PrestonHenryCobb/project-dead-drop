@@ -53,9 +53,9 @@ function view.Mount(stage, navigator)
 			draw()
 			session.status(
 				if connected and accepted
-					then "Purchased. No art yet; this cosmetic cannot be equipped."
+					then "Purchased."
 					elseif connected then Feedback.declined(reason)
-					else "Connection unavailable. Refresh ownership before retrying."
+					else "Connection lost. Refresh."
 			)
 		end)
 	end
@@ -77,7 +77,7 @@ function view.Mount(stage, navigator)
 		)
 		if offers then
 			local clock = Kit.flowText(header, "DailyReset", "", 3)
-			table.insert(clocks, { label = clock, at = offers.ResetsAt, prefix = "DAILY RESETS IN" })
+			table.insert(clocks, { label = clock, at = offers.ResetsAt, prefix = "RESETS IN" })
 		end
 		Kit.button(
 			header,
@@ -91,7 +91,6 @@ function view.Mount(stage, navigator)
 			navigator.navigateTo("Mint")
 		end).Instance.LayoutOrder =
 			5
-		Kit.flowText(header, "ArtNotice", "Cosmetic ownership only. No art yet; purchased items cannot be equipped.", 6)
 		local state = offers
 		if not state then
 			Kit.flowText(
@@ -116,7 +115,6 @@ function view.Mount(stage, navigator)
 			Kit.flowText(card, "Name", offer.Name, 1, true)
 			Kit.flowText(card, "Category", `{offer.AgentId} · {offer.Kind} · {offer.Tier}`, 2)
 			Kit.flowText(card, "Price", `{offer.Price} {string.upper(offer.Currency)}`, 3)
-			Kit.flowText(card, "Artwork", "NO ART YET · NOT EQUIPPABLE", 4)
 			local title = if not profile
 				then "LOADING PROFILE"
 				elseif owned then "OWNED"
@@ -146,7 +144,7 @@ function view.Mount(stage, navigator)
 		local card = content:Add(Kit.flowPanel(featured, "FeaturedBundle"))
 		Kit.flowText(card, "FeaturedTitle", "FEATURED BUNDLE", 1, true)
 		local clock = Kit.flowText(card, "FeaturedReset", "", 2)
-		table.insert(clocks, { label = clock, at = state.FeaturedResetsAt, prefix = "FEATURED RESETS IN" })
+		table.insert(clocks, { label = clock, at = state.FeaturedResetsAt, prefix = "RESETS IN" })
 		Kit.flowText(card, "Name", bundle.Name, 3, true)
 		Kit.flowText(card, "Price", `{bundle.Price} STOCKS`, 4)
 		local owned, agentsOwned = profile ~= nil, profile ~= nil
@@ -158,7 +156,6 @@ function view.Mount(stage, navigator)
 		end
 		local enough = profile ~= nil and profile.Stocks >= bundle.Price
 		local expired = workspace:GetServerTimeNow() >= state.FeaturedResetsAt
-		Kit.flowText(card, "ArtNotice", "NO ART YET · NOT EQUIPPABLE", 5 + #bundle.Items)
 		Kit.button(
 			card,
 			if not profile

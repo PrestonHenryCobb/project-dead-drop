@@ -69,22 +69,13 @@ function view.Mount(stage, navigator)
 	local left = Kit.flowPanel(rail, "Treasury")
 	Kit.flowText(left, "TreasuryTitle", "YOUR STOCKS", 1, true)
 	local balance = Kit.flowText(left, "VerifiedBalance", "Loading verified balance…", 2, true)
-	Kit.flowText(
-		left,
-		"TreasuryNotice",
-		"Stocks buy cosmetics. Robux purchases are coming soon; no Robux payment is available here yet.",
-		3
-	)
+	Kit.flowText(left, "TreasuryNotice", "Stocks buy cosmetics. Robux coming soon.", 3)
 	Kit.button(left, "BACK TO BLACK MARKET", 0, function()
 		navigator.navigateTo("BlackMarket")
 	end).Instance.LayoutOrder =
 		5
 	Kit.button(left, "INSPECT MINT POLICY", 0, function()
-		view.OpenInspection(
-			session.Root,
-			"THE MINT",
-			"The listed packages show planned prices. Robux purchases are coming soon. Studio preview grants are confirmed by the server."
-		)
+		view.OpenInspection(session.Root, "THE MINT", "Planned prices. Robux coming soon.")
 	end).Instance.LayoutOrder =
 		6
 	local packages = Kit.scroll(session.Body, "StockPackages", UDim2.fromScale(0.44, 0), UDim2.fromScale(0.56, 1))
@@ -97,9 +88,7 @@ function view.Mount(stage, navigator)
 		Kit.flowText(
 			card,
 			"Availability",
-			if RunService:IsStudio()
-				then "Studio preview only. No Robux charge."
-				else "COMING SOON · Robux purchases are not available yet.",
+			if RunService:IsStudio() then "Studio preview only. No Robux charge." else "COMING SOON",
 			3
 		)
 		Kit.button(card, if RunService:IsStudio() then "PREVIEW STOCKS IN STUDIO" else "COMING SOON", 0, function()
