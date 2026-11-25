@@ -4849,7 +4849,7 @@ function Build.run(options: {
 		end
 		-- How much flat top a device needs, by station type: {along the desk, across it}.
 		local NEED = { [0] = { 1.2, 1 }, [1] = { 2.2, 1.6 }, [2] = { 3.6, 2 } }
-		local onFurniture, ownDesk = 0, 0
+		local onFurniture, ownDesk, intelCleared = 0, 0, 0
 		for _, work in deferredIntel do
 			local room, stationType = work.room, work.station
 			local station = GameConfig.Intel.Stations[stationType]
@@ -4905,6 +4905,29 @@ function Build.run(options: {
 			if bestGroup and bestTop then
 				bestGroup.used = true
 				local top = bestTop :: BasePart
+				-- Owner 2026-11-25: a hackable computer's table carries nothing else. Everything resting on any part of its top (lamps, books, screens) goes.
+				local topY = top.Position.Y + top.Size.Y / 2
+				local surfaces: { BasePart } = {}
+				for _, piece in bestGroup.parts do
+					if math.abs(piece.Position.Y + piece.Size.Y / 2 - topY) <= 0.3 then
+						table.insert(surfaces, piece)
+					end
+				end
+				for _, item in propsFolder:GetChildren() do
+					if item:IsA("BasePart") and item ~= top and not table.find(surfaces, item) then
+						local bottom = item.Position.Y - item.Size.Y / 2
+						if bottom >= topY - 0.15 and bottom <= topY + 0.3 then
+							for _, piece in surfaces do
+								local offset = piece.CFrame:PointToObjectSpace(item.Position)
+								if math.abs(offset.X) <= piece.Size.X / 2 and math.abs(offset.Z) <= piece.Size.Z / 2 then
+									item:Destroy()
+									intelCleared += 1
+									break
+								end
+							end
+						end
+					end
+				end
 				stand(Vector3.new(top.Position.X, top.Position.Y + top.Size.Y / 2, top.Position.Z))
 				doneIn[room.id] = doneIn[room.id] or {}
 				table.insert(doneIn[room.id], top.Position)
@@ -4950,7 +4973,7 @@ function Build.run(options: {
 			end
 		end
 		check(#unplaced == 0, `Every intel station found a spot`)
-		print(`[Gala]      intel on room furniture: {onFurniture}, on their own desk or rack: {ownDesk}`)
+		print(`[Gala]      intel on room furniture: {onFurniture}, on their own desk or rack: {ownDesk}, props cleared off those tables: {intelCleared}`)
 		print(
 			`[Gala]      intel stations by type: {intelByType[0]}, {intelByType[1]}, {intelByType[2]}, {intelByType[3]}`
 		)
