@@ -19,6 +19,7 @@ export type Logo = {
 	dot: Frame,
 	slash: Frame,
 	slashLength: number,
+	slashCenter: UDim2, -- where the slash's centre ends up; it grows from its start by moving there while it lengthens
 }
 
 local StudioLogo = {}
@@ -29,6 +30,8 @@ local LETTER_GROW = 1.7
 local LETTER_CENTER = 0.62
 local BAR_WIDTH = 0.07
 local BAR_HEIGHT = 1.0
+local BAR_LEAN = 12 -- degrees: the bars lean with the dollar signs' streak
+local BAR_CENTER = 0.62 -- the bars' centre, down the letter height
 local SERIF_WIDTH = 0.42
 local SERIF_HEIGHT = 0.07
 local WIFI_WIDTH = 1.0
@@ -39,6 +42,9 @@ local WIFI_SWEEP = math.rad(50) -- each ring covers this angle either side of st
 local WIFI_SEGMENTS = 8
 local WIFI_DOT = 0.1
 local WIFI_BASE = 0.88 -- where the sign's point sits, down the letter height
+local STRIKE_ANGLE = 40 -- degrees from straight up
+local STRIKE_OVER = 0.14 -- how far the slash runs past the outer ring, against the letter height
+local STRIKE_TAIL = 0.18 -- how far it runs past the dot
 local WIFI_REACH = 1.6 -- ring radius multiplier against the half width
 
 local function line(parent: Instance, a: Vector2, b: Vector2, thickness: number, color: Color3): Frame
@@ -97,10 +103,10 @@ function StudioLogo.build(parent: Instance, letterPixels: number): Logo
 			local group = Instance.new("Frame")
 			group.Name = "Bar" .. index
 			group.BackgroundTransparency = 1
-			group.AnchorPoint = Vector2.new(0.5, 0)
-			group.Position = UDim2.fromOffset((index - 0.5) * cell, pixels * 0.12)
+			group.AnchorPoint = Vector2.new(0.5, 0.5)
+			group.Position = UDim2.fromOffset((index - 0.5) * cell, pixels * BAR_CENTER)
+			group.Rotation = BAR_LEAN
 			group.Size = UDim2.fromOffset(pixels * SERIF_WIDTH, 0)
-			group.ClipsDescendants = true
 			group.Parent = root
 			local stem = Instance.new("Frame")
 			stem.BackgroundColor3 = config.RedColor
@@ -157,13 +163,16 @@ function StudioLogo.build(parent: Instance, letterPixels: number): Logo
 	corner.CornerRadius = UDim.new(0.5, 0)
 	corner.Parent = dot
 
-	-- The strike: from the upper left of the sign to the lower right, grown from its start.
-	local start = Vector2.new(wifi * 0.1, pixels * 0.3)
-	local finish = Vector2.new(wifi * 0.95, pixels * 1.0)
+	-- The strike: a line through the dot that crosses every ring, from just past the outer ring down to a short tail under the dot.
+	local angle = math.rad(STRIKE_ANGLE)
+	local direction = Vector2.new(-math.sin(angle), -math.cos(angle)) -- up and to the left, from the dot
+	local outer = WIFI_RINGS[#WIFI_RINGS] * wifi / 2 * WIFI_REACH
+	local start = origin + direction * (outer + pixels * STRIKE_OVER)
+	local finish = origin - direction * (pixels * STRIKE_TAIL)
 	local length = (finish - start).Magnitude
 	local slash = Instance.new("Frame")
 	slash.Name = "Slash"
-	slash.AnchorPoint = Vector2.new(0, 0.5)
+	slash.AnchorPoint = Vector2.new(0.5, 0.5) -- a rotated frame turns about its centre, so it grows from the start by centre and length together
 	slash.Position = UDim2.fromOffset(start.X, start.Y)
 	slash.Size = UDim2.fromOffset(0, stroke * 1.1)
 	slash.Rotation = math.deg(math.atan2(finish.Y - start.Y, finish.X - start.X))
@@ -180,6 +189,7 @@ function StudioLogo.build(parent: Instance, letterPixels: number): Logo
 		dot = dot,
 		slash = slash,
 		slashLength = length,
+		slashCenter = UDim2.fromOffset((start.X + finish.X) / 2, (start.Y + finish.Y) / 2),
 	}
 end
 

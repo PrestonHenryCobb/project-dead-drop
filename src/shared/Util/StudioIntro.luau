@@ -118,7 +118,11 @@ function StudioIntro.play()
 		if not pause(config.WifiRingSeconds) then
 			return false
 		end
-		tween(logo.slash, config.StrikeSeconds, { Size = UDim2.fromOffset(logo.slashLength, logo.slash.Size.Y.Offset) })
+		tween(
+			logo.slash,
+			config.StrikeSeconds,
+			{ Size = UDim2.fromOffset(logo.slashLength, logo.slash.Size.Y.Offset), Position = logo.slashCenter }
+		)
 		tween(name, config.TaglineFadeSeconds, { TextTransparency = 0 })
 		return pause(config.StrikeSeconds + config.HoldSeconds)
 	end

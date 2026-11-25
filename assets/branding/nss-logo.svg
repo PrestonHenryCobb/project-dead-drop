@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 160" width="860" height="320" role="img" aria-label="Never Seen Swag">
+	<title>Never Seen Swag</title>
+	<g fill="none" stroke="#F4EFE6" stroke-linecap="round" stroke-linejoin="round" stroke-width="13">
+		<path d="M22 122 L30 30 L72 120 L84 28"/>
+		<path d="M171 52 C158 32 126 38 129 62 C132 84 174 72 172 99 C170 124 136 128 125 108"/>
+		<path d="M253 52 C240 32 208 38 211 62 C214 84 256 72 254 99 C252 124 218 128 207 108"/>
+	</g>
+	<g fill="none" stroke="#C2383F" stroke-linecap="round" stroke-linejoin="round" stroke-width="7">
+		<g transform="rotate(12 150 75)"><path d="M150 14 V136 M128 14 H172 M128 136 H172"/></g>
+		<g transform="rotate(12 232 75)"><path d="M232 14 V136 M210 14 H254 M210 136 H254"/></g>
+	</g>
+	<g fill="none" stroke="#F4EFE6" stroke-linecap="round" stroke-width="10">
+		<path d="M326.6 106.6 A24 24 0 0 1 363.4 106.6"/>
+		<path d="M311.3 93.7 A44 44 0 0 1 378.7 93.7"/>
+		<path d="M296.0 80.9 A64 64 0 0 1 394.0 80.9"/>
+	</g>
+	<circle cx="345" cy="122" r="7" fill="#F4EFE6"/>
+	<g fill="none" stroke="#C2383F" stroke-linecap="round" stroke-width="8">
+		<path d="M294.9 62.2 L356.6 135.8"/>
+	</g>
+</svg>

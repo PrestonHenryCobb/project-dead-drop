@@ -22,3 +22,4 @@ Owner ask: custom, dynamic, themed loading screens for changing places and pre-l
 Not verified in Studio when written (Studio was not connected): layout, the teleport screens (need two published places and matchmaking config).
 
 - Studio intro (Never Seen Swag): `StudioIntro` + `StudioLogo` (code-drawn logo, no background), plays over the boot screen, any key/click skips; set `GameConfig.StudioIntro.Enabled = false` to turn it off.
+- Logo files: `assets/branding/nss-logo.svg` (light ink, for dark backgrounds) and `nss-logo-dark.svg` (dark ink, for light ones), both transparent; regenerate with `node tools/build-nss-logo.cjs`.
