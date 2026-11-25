@@ -33,6 +33,7 @@ local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Effects = require(script.Parent.Parent.Combat.Effects)
 local KitRules = require(script.Parent.Parent.Combat.KitRules)
 local Smoke = require(script.Parent.Parent.Combat.Smoke)
+local AgentLooks = require(Shared:WaitForChild("Defs"):WaitForChild("AgentLooks"))
 local OutfitDefs = require(Shared:WaitForChild("Defs"):WaitForChild("OutfitDefs"))
 local Types = require(Shared:WaitForChild("Types"))
 local OutfitApplier = require(Shared:WaitForChild("Util"):WaitForChild("OutfitApplier"))
@@ -410,6 +411,9 @@ function DisguiseService.expose(player: Player)
 	state.lastDisguise = state.worn
 	state.sprinting = false
 	state.crouching = false
+	-- Exposed, the agent shows as their own agent model (spec 6.1); with no loadout (a bare test server) it is the plain True Form.
+	local loadout = require(script.Parent.MetaProgressionService).getLoadout(player)
+	local trueForm = if loadout then AgentLooks.outfit(loadout.AgentId) else OutfitDefs.trueForm
 
 	local _, root = aliveRoot(player)
 	if root then
@@ -420,7 +424,7 @@ function DisguiseService.expose(player: Player)
 		if states[player] ~= state or state.applyId ~= applyId or not humanoid then
 			return
 		end
-		wear(player, state, OutfitDefs.trueForm, humanoid.Parent :: Model, humanoid)
+		wear(player, state, trueForm, humanoid.Parent :: Model, humanoid)
 	end)
 	-- Tell the player now; the look follows after the strip.
 	sendUpdate(player, state)

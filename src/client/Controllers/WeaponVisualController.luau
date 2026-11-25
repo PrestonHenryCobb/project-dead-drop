@@ -1,5 +1,5 @@
 --!strict
--- Step 8B.8: attach a local gun visually to any rig wearing the visible True Form outfit. No roster, attributes,
+-- Step 8B.8: attach a local gun visually to any rig wearing a visible True Form outfit (the plain one or an agent's own). No roster, attributes,
 -- tags, player names or new server messages. The display model stays in a client-only workspace folder.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -7,45 +7,61 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
+local AgentLooks = require(Shared:WaitForChild("Defs"):WaitForChild("AgentLooks"))
 local OutfitDefs = require(Shared:WaitForChild("Defs"):WaitForChild("OutfitDefs"))
+local Types = require(Shared:WaitForChild("Types"))
 local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"))
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local ViewModel = require(script.Parent.Parent:WaitForChild("Combat"):WaitForChild("ViewModel"))
 
 local WeaponVisualController = {}
 local config = GameConfig.Combat.ThirdPersonWeapon
-local look = OutfitDefs.trueForm
 local janitor = Janitor.new()
 local visuals: { [Model]: ViewModel.ViewModel } = {}
 local elapsed = 0
 local folder: Folder? = nil
-local colors = {
-	Head = look.BodyColors.Skin,
-	UpperTorso = look.Shirt.Color,
-	LowerTorso = look.Pants.Color,
-	RightUpperArm = look.Shirt.Color,
-	LeftUpperArm = look.Shirt.Color,
-	RightLowerArm = if look.Shirt.LongSleeves then look.Shirt.Color else look.BodyColors.Skin,
-	LeftLowerArm = if look.Shirt.LongSleeves then look.Shirt.Color else look.BodyColors.Skin,
-	RightHand = look.BodyColors.Skin,
-	LeftHand = look.BodyColors.Skin,
-	RightUpperLeg = look.Pants.Color,
-	LeftUpperLeg = look.Pants.Color,
-	RightFoot = look.BodyColors.Shoes,
-	LeftFoot = look.BodyColors.Shoes,
-}
+
+-- A player who is Exposed wears their agent's True Form (or the plain one), so any of these looks marks a model that holds a weapon.
+local function bodyColors(look: Types.OutfitDef): { [string]: Color3 }
+	return {
+		Head = look.BodyColors.Skin,
+		UpperTorso = look.Shirt.Color,
+		LowerTorso = look.Pants.Color,
+		RightUpperArm = look.Shirt.Color,
+		LeftUpperArm = look.Shirt.Color,
+		RightLowerArm = if look.Shirt.LongSleeves then look.Shirt.Color else look.BodyColors.Skin,
+		LeftLowerArm = if look.Shirt.LongSleeves then look.Shirt.Color else look.BodyColors.Skin,
+		RightHand = look.BodyColors.Skin,
+		LeftHand = look.BodyColors.Skin,
+		RightUpperLeg = look.Pants.Color,
+		LeftUpperLeg = look.Pants.Color,
+		RightFoot = look.BodyColors.Shoes,
+		LeftFoot = look.BodyColors.Shoes,
+	}
+end
+local lookColors: { { [string]: Color3 } } = { bodyColors(OutfitDefs.trueForm) }
+for _, look in AgentLooks.all() do
+	table.insert(lookColors, bodyColors(look))
+end
 
 local function matches(model: Model): boolean
 	if model == Players.LocalPlayer.Character then
 		return false
 	end
-	for name, color in colors do
-		local part = model:FindFirstChild(name)
-		if not (part and part:IsA("BasePart") and part.Color == color) then
-			return false
+	for _, colors in lookColors do
+		local all = true
+		for name, color in colors do
+			local part = model:FindFirstChild(name)
+			if not (part and part:IsA("BasePart") and part.Color == color) then
+				all = false
+				break
+			end
+		end
+		if all then
+			return true
 		end
 	end
-	return true
+	return false
 end
 
 local function sweep()

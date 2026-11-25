@@ -1,9 +1,11 @@
 --!strict
--- How each of the six agents looks on the menu stage and in their menu portrait (owner 2026-11-25: every agent gets their own outfit). The looks are
--- derived from each agent's epithet, class and role in AgentDefs. This is the MENU look only: in a match every player is disguised as a guest, member
--- of staff, security or an executive, and an Exposed player wears the plain True Form, so none of this reaches the game world (identity secrecy).
+-- How each of the six agents looks (owner 2026-11-25: every agent gets their own outfit, and it is what they wear when they pop out of cover). The looks
+-- come from each agent's epithet, class and role in AgentDefs. The same outfit shows on the menu stage and portraits and is the agent's True Form in a
+-- match (spec 6.1: while Exposed they look like their agent model). While disguised, a player still looks like an NPC, so none of this shows until they
+-- are Exposed.
 --
---   AgentLooks.outfit(agentId) -> OutfitDef       the outfit for the stage rig (OutfitApplier.apply)
+--   AgentLooks.outfit(agentId) -> OutfitDef       the agent's True Form outfit (OutfitApplier.apply); the plain True Form for an unknown id
+--   AgentLooks.all() -> { OutfitDef }             every agent's outfit
 --   AgentLooks.accent(agentId) -> Color3          the agent's colour on cards and portraits
 
 local GameConfig = require(script.Parent.Parent.GameConfig)
@@ -47,60 +49,60 @@ local function look(
 end
 
 local accents: { [string]: Color3 } = {
-	Guise = color(0, 170, 150), -- teal: the chameleon
+	Guise = color(0, 160, 170), -- teal-blue: the chameleon
 	Parapet = color(120, 150, 190), -- steel blue: the bulwark
-	Lattice = color(0, 205, 225), -- cyan: the technician
+	Lattice = color(90, 200, 255), -- sky cyan: the technician
 	Reticle = color(150, 160, 90), -- olive: the marksman
-	Suture = color(190, 60, 80), -- crimson: the medic
-	Feint = color(150, 100, 215), -- violet: the illusionist
+	Suture = color(200, 70, 90), -- crimson: the medic
+	Feint = color(160, 110, 225), -- violet: the illusionist
 }
 
+-- True Form must read as "an agent" at a glance (spec 6.1, 7.2), so every look is a dark tactical base with its colour in small trims, and none uses an NPC
+-- signature: no green, purple or gold ties and lapels, no black fedora, no sunglasses.
 local outfits: { [string]: OutfitDef } = {
-	-- The Chameleon: a quiet charcoal suit in a teal that can pass for anything, a fedora, a pocket square for a change of face.
+	-- The Chameleon: a quiet charcoal-teal coat, slicked hair and a pocket square for a change of face.
 	Guise = look(
 		"Guise",
 		color(224, 172, 105),
 		"SlickBack",
 		color(20, 18, 16),
-		color(40, 58, 62),
-		color(26, 32, 34),
+		color(30, 44, 48),
+		color(22, 28, 30),
 		color(20, 20, 22),
 		{
-			{ Kind = "Fedora", Color = color(56, 64, 68) },
-			{ Kind = "Tie", Color = accents.Guise },
-			{ Kind = "Lapels", Color = color(30, 44, 48) },
 			{ Kind = "PocketSquare", Color = accents.Guise },
+			{ Kind = "LapelPin", Color = accents.Guise },
+			{ Kind = "Scarf", Color = color(40, 62, 66) },
 		},
 		middleHeight,
 		middleWidth
 	),
-	-- The Bulwark: the widest build, a steel-blue coat, no hair and a heavy beard.
+	-- The Bulwark: the widest build, a dark steel coat, no hair and a heavy beard.
 	Parapet = look(
 		"Parapet",
 		color(141, 85, 36),
 		"Bald",
 		color(20, 18, 16),
-		color(44, 56, 78),
-		color(30, 36, 50),
+		color(34, 42, 58),
+		color(24, 28, 38),
 		color(24, 24, 28),
 		{
 			{ Kind = "Beard", Color = color(20, 18, 16) },
-			{ Kind = "Lapels", Color = accents.Parapet },
-			{ Kind = "Tie", Color = color(120, 140, 170) },
 			{ Kind = "LapelPin", Color = accents.Parapet },
+			{ Kind = "Scarf", Color = color(60, 74, 100) },
 		},
 		middleHeight,
 		rig.WidthScaleMax
 	),
-	-- The Technician: slim and short, glasses, a cyan scarf over a dark hoodie-grey jacket.
+	-- The Technician: slim and short, glasses, a sky-cyan scarf over a dark grey jacket.
 	Lattice = look(
 		"Lattice",
 		color(246, 208, 170),
 		"Ponytail",
 		color(60, 38, 24),
-		color(36, 40, 50),
-		color(28, 30, 38),
-		color(240, 240, 244),
+		color(30, 32, 40),
+		color(24, 26, 32),
+		color(210, 214, 220),
 		{
 			{ Kind = "Glasses", Color = accents.Lattice },
 			{ Kind = "Scarf", Color = accents.Lattice },
@@ -108,55 +110,54 @@ local outfits: { [string]: OutfitDef } = {
 		rig.HeightScaleMin,
 		rig.WidthScaleMin
 	),
-	-- The Marksman: the tallest, olive drab, sunglasses and a moustache.
+	-- The Marksman: the tallest, dark olive, a moustache and an olive scarf.
 	Reticle = look(
 		"Reticle",
 		color(198, 134, 66),
 		"Crop",
 		color(40, 30, 28),
-		color(66, 72, 50),
-		color(42, 46, 34),
+		color(40, 44, 32),
+		color(32, 36, 26),
 		color(28, 24, 20),
 		{
-			{ Kind = "Sunglasses", Color = color(14, 14, 16) },
 			{ Kind = "Mustache", Color = color(40, 30, 28) },
-			{ Kind = "Tie", Color = color(40, 44, 30) },
-			{ Kind = "Lapels", Color = color(54, 60, 42) },
+			{ Kind = "Scarf", Color = accents.Reticle },
+			{ Kind = "LapelPin", Color = accents.Reticle },
 		},
 		rig.HeightScaleMax,
 		middleWidth
 	),
-	-- The Field Medic: a burgundy coat, a pale scarf, a gold chain, red hair in a bun.
+	-- The Field Medic: a deep wine coat, a pale scarf, a gold chain, red hair in a bun.
 	Suture = look(
 		"Suture",
 		color(255, 224, 189),
 		"Bun",
 		color(140, 60, 40),
-		color(124, 30, 50),
-		color(44, 28, 32),
+		color(66, 24, 36),
+		color(34, 24, 28),
 		color(30, 22, 24),
 		{
-			{ Kind = "Scarf", Color = color(232, 226, 214) },
+			{ Kind = "Scarf", Color = color(228, 222, 210) },
 			{ Kind = "Necklace", Color = color(215, 180, 90) },
 			{ Kind = "LapelPin", Color = accents.Suture },
 		},
 		middleHeight,
 		middleWidth
 	),
-	-- The Illusionist: a violet coat, gold bow tie, a fedora and curls, a moustache for the trick.
+	-- The Illusionist: a dark violet coat, a violet fedora, curls and a moustache for the trick.
 	Feint = look(
 		"Feint",
 		color(160, 100, 55),
 		"Curly",
 		color(20, 18, 16),
-		color(72, 42, 112),
-		color(30, 22, 44),
+		color(42, 30, 66),
+		color(26, 22, 38),
 		color(20, 18, 24),
 		{
-			{ Kind = "Fedora", Color = color(46, 28, 74) },
-			{ Kind = "BowTie", Color = color(215, 180, 90) },
+			{ Kind = "Fedora", Color = color(60, 40, 100) },
 			{ Kind = "Mustache", Color = color(20, 18, 16) },
-			{ Kind = "PocketSquare", Color = color(215, 180, 90) },
+			{ Kind = "PocketSquare", Color = accents.Feint },
+			{ Kind = "BowTie", Color = accents.Feint },
 		},
 		middleHeight,
 		middleWidth
@@ -167,6 +168,14 @@ local AgentLooks = {}
 
 function AgentLooks.outfit(agentId: string): OutfitDef
 	return outfits[agentId] or OutfitDefs.trueForm
+end
+
+function AgentLooks.all(): { OutfitDef }
+	local list: { OutfitDef } = {}
+	for _, outfit in outfits do
+		table.insert(list, outfit)
+	end
+	return list
 end
 
 function AgentLooks.accent(agentId: string): Color3
