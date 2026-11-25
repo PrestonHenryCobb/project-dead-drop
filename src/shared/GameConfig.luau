@@ -476,6 +476,18 @@ local GameConfig = {
 			Mono = Enum.Font.RobotoMono, -- timers, stats, key hints
 		},
 		TextSizes = { Display = 28, Title = 20, Button = 17, Body = 17, Small = 14, Chip = 12 },
+		-- Owner 2026-11-25: icons in place of text on the menu screens (see Components/MenuIcons).
+		Icons = {
+			RowIconPixels = 22,
+			StrokeFraction = 0.12, -- the HUD's thinner strokes vanish at menu sizes
+			BadgeIconPixels = 16,
+			ChipIconPixels = 18,
+			EdgePixels = 14,
+			GapPixels = 6,
+			ChipGapPixels = 14,
+			PipPixels = 18,
+			PipGapPixels = 6,
+		},
 		SurfaceTransparency = 0.28,
 		InfoPanelTransparency = 0.3,
 		CornerPixels = 2,

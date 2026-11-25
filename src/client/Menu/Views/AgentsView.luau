@@ -1,5 +1,4 @@
 --!strict
-local WeaponSummary = require(script.Parent.Parent.Parent.Combat.WeaponSummary)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Types = require(Shared.Types)
@@ -10,6 +9,7 @@ local Janitor = require(Shared.Util.Janitor)
 local Kit = require(script.Parent.Parent.Components.ViewKit)
 local Preview = require(script.Parent.Parent.Components.WeaponPreview)
 local Art = require(script.Parent.Parent.Components.DecoArt)
+local MenuIcons = require(script.Parent.Parent.Components.MenuIcons)
 local KitPicker = require(script.Parent.Parent.Components.KitPicker)
 local cleanup = Janitor.new()
 local content = Janitor.new()
@@ -81,20 +81,18 @@ function view.Mount(stage, navigator, context)
 		Kit.text(left, agent.Epithet .. "\n" .. agent.Class .. " / " .. agent.Role, 50, 76)
 		for index, id in Agents.order do
 			local entry = assert(Agents.get(id))
-			local button = Kit.button(
-				left,
-				string.upper(id)
-					.. " / "
-					.. entry.Class
-					.. (if data and data.Profile.OwnedAgents[id] then " · OWNED" else " · LOCKED"),
-				142 + (index - 1) * 58,
-				function()
-					agentId = id
-					weaponId = ""
-					talentId, instinctId = nil, nil
-					draw()
-				end
-			)
+			local button = Kit.button(left, string.upper(id), 142 + (index - 1) * 58, function()
+				agentId = id
+				weaponId = ""
+				talentId, instinctId = nil, nil
+				draw()
+			end)
+			MenuIcons.lead(button.Instance, MenuIcons.classIcon(entry.Class))
+			if data and data.Profile.OwnedAgents[id] then
+				MenuIcons.badge(button.Instance, "Check", "OWNED", Kit.Theme.Colors.EmeraldBright)
+			else
+				MenuIcons.badge(button.Instance, "Lock", "LOCKED")
+			end
 			button.SetSelected(id == agentId)
 		end
 		if data and data.Profile.StarterPicksLeft[agent.Class] and not owned then
@@ -112,11 +110,12 @@ function view.Mount(stage, navigator, context)
 		local center = Kit.frame(area, "OperativeStage", UDim2.fromScale(0.25, 0), UDim2.new(0.41, -12, 1, 0))
 		local caption = Kit.panel(center, "Mastery", UDim2.new(0, 0, 1, -180), UDim2.new(1, 0, 0, 180))
 		Kit.text(caption, `MASTERY {level} / {GameConfig.Mastery.MaxLevel}`, 0, 36, true)
-		Kit.text(
+		MenuIcons.pips(
 			caption,
-			`W2 / LEVEL {hardware[2].UnlockMasteryLevel}    W3 / LEVEL {hardware[3].UnlockMasteryLevel}`,
 			42,
-			44
+			level,
+			GameConfig.Mastery.MaxLevel,
+			{ [hardware[2].UnlockMasteryLevel] = "W2", [hardware[3].UnlockMasteryLevel] = "W3" }
 		)
 		Kit.button(caption, "OPEN ARMORY BAY  >", 92, function()
 			navigator.navigateTo("Hardware", { AgentId = agentId })
@@ -124,17 +123,17 @@ function view.Mount(stage, navigator, context)
 		local side = Kit.scroll(area, "Inspector", UDim2.fromScale(0.67, 0), UDim2.fromScale(0.33, 1))
 		Kit.text(side, "EXCLUSIVE HARDWARE", 0, 36, true)
 		for index, item in hardware do
-			local state = if not item.Def
-				then "IN DEVELOPMENT"
-				elseif level < item.UnlockMasteryLevel or not owned then `LOCKED · LVL {item.UnlockMasteryLevel}`
-				else "AVAILABLE"
-			if data and data.Loadout and data.Loadout.HardwareId == item.Id then
-				state = "EQUIPPED"
-			end
-			local button = Kit.button(side, `W{item.Slot} · {item.Name}\n{state}`, 40 + (index - 1) * 58, function()
+			local button = Kit.button(side, `W{item.Slot} · {item.Name}`, 40 + (index - 1) * 58, function()
 				weaponId = item.Id
 				draw()
 			end)
+			if data and data.Loadout and data.Loadout.HardwareId == item.Id then
+				MenuIcons.badge(button.Instance, "Check", "EQUIPPED", Kit.Theme.Colors.EmeraldBright)
+			elseif not item.Def then
+				MenuIcons.badge(button.Instance, "Soon", "SOON")
+			elseif level < item.UnlockMasteryLevel or not owned then
+				MenuIcons.badge(button.Instance, "Lock", `LVL {item.UnlockMasteryLevel}`)
+			end
 			button.SetSelected(item.Id == weaponId)
 		end
 		local art = Kit.frame(side, "SelectedHardware", UDim2.fromOffset(0, 222), UDim2.new(1, 0, 0, 120))
@@ -145,7 +144,7 @@ function view.Mount(stage, navigator, context)
 		end
 		if selected.Def then
 			local def = selected.Def
-			Kit.text(side, WeaponSummary.short(def), 356, 60)
+			MenuIcons.chips(side, MenuIcons.weaponStats(def), 356)
 		end
 		Kit.button(
 			side,

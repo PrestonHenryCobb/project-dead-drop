@@ -5,6 +5,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared.GameConfig)
 local Types = require(Shared.Types)
 local Theme = require(script.Parent.Parent.MenuTheme)
+local MenuIcons = require(script.Parent.MenuIcons)
 local config = GameConfig.Menu
 local KitPicker = {}
 
@@ -45,12 +46,9 @@ function KitPicker.mount(
 		for index, item in items do
 			local unlock = levels[index] or math.huge
 			local available = owned ~= false and mastery >= unlock
-			local detail = if available
-				then (if item.CooldownSeconds then `{item.CooldownSeconds}s COOLDOWN` else "PASSIVE")
-				else `LOCKED · MASTERY {unlock}`
 			local button = Theme.secondaryButton({
 				Name = item.Id,
-				Text = `{item.Name}\n{detail}`,
+				Text = item.Name,
 				Parent = frame,
 				LayoutOrder = index,
 				Size = UDim2.new(1, 0, 0, config.SecondaryHeightPixels + config.TextSizes.Small),
@@ -60,6 +58,13 @@ function KitPicker.mount(
 				end,
 			})
 			button.Instance.TextSize = config.TextSizes.Small
+			if not available then
+				MenuIcons.badge(button.Instance, "Lock", `LVL {unlock}`)
+			elseif item.CooldownSeconds then
+				MenuIcons.badge(button.Instance, "Clock", `{item.CooldownSeconds}s`)
+			else
+				MenuIcons.badge(button.Instance, "Passive", "PASSIVE")
+			end
 			button.SetSelected(selected == item.Id)
 			if selected == item.Id then
 				Theme.label({

@@ -30,12 +30,18 @@ local ICONS: { [string]: { { number } } } = {
 		{ 0.5, 0.35, 0.5, 0.57 },
 		{ 0.5, 0.69, 0.5, 0.72 },
 	},
-	Shield = { { 0.15, 0.18, 0.85, 0.18 }, { 0.85, 0.18, 0.8, 0.65 }, { 0.8, 0.65, 0.5, 0.92 }, { 0.5, 0.92, 0.2, 0.65 }, {
-		0.2,
-		0.65,
-		0.15,
-		0.18,
-	} },
+	Shield = {
+		{ 0.15, 0.18, 0.85, 0.18 },
+		{ 0.85, 0.18, 0.8, 0.65 },
+		{ 0.8, 0.65, 0.5, 0.92 },
+		{ 0.5, 0.92, 0.2, 0.65 },
+		{
+			0.2,
+			0.65,
+			0.15,
+			0.18,
+		},
+	},
 	Intel = {
 		{ 0.2, 0.2, 0.8, 0.2 },
 		{ 0.8, 0.2, 0.8, 0.8 },
@@ -132,7 +138,8 @@ function HudKit.icon(
 	position: UDim2,
 	pixels: number,
 	color: Color3,
-	drawing: { { number } }?
+	drawing: { { number } }?,
+	strokeFraction: number? -- line thickness against the icon size; the HUD's own by default
 ): Frame
 	local segments = drawing or ICONS[name]
 	assert(segments, `Unknown HUD icon {name}`)
@@ -147,7 +154,10 @@ function HudKit.icon(
 		local line = Instance.new("Frame")
 		line.AnchorPoint = Vector2.new(0.5, 0.5)
 		line.Position = UDim2.fromScale((points[1] + points[3]) / 2, (points[2] + points[4]) / 2)
-		line.Size = UDim2.fromOffset(math.sqrt(x * x + y * y) * pixels, pixels * graphics.IconStrokeFraction)
+		line.Size = UDim2.fromOffset(
+			math.sqrt(x * x + y * y) * pixels,
+			pixels * (strokeFraction or graphics.IconStrokeFraction)
+		)
 		line.Rotation = math.deg(math.atan2(y, x))
 		line.BackgroundColor3 = color
 		line.BorderSizePixel = 0
