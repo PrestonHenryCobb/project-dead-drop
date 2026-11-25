@@ -167,10 +167,19 @@ function GraphicsController.getMode(): Mode
 	return mode
 end
 
-function GraphicsController.setMode(nextMode: Mode)
+function GraphicsController.setMode(nextMode: Mode, quiet: boolean?)
 	assert(table.find(CYCLE, nextMode), `Unknown graphics mode {nextMode}`)
 	mode = nextMode
-	refresh(true)
+	refresh(quiet ~= true)
+end
+
+-- The hand-set shadows and bloom choice: nil follows the quality level.
+function GraphicsController.shadowsChoice(): boolean?
+	return shadowsOverride
+end
+
+function GraphicsController.bloomChoice(): boolean?
+	return bloomOverride
 end
 
 function GraphicsController.shadowsOn(): boolean

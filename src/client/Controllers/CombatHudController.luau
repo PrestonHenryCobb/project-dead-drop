@@ -20,6 +20,7 @@ local SoundPlayer = require(script.Parent.Parent:WaitForChild("Combat"):WaitForC
 local RemoteController = require(script.Parent.RemoteController)
 local WeaponController = require(script.Parent.WeaponController)
 local HeldItemController = require(script.Parent.HeldItemController)
+local SettingsController = require(script.Parent.SettingsController)
 
 type Marker = { label: TextLabel, position: Vector3, expires: number }
 
@@ -242,16 +243,17 @@ local function updateCrosshair(viewportHeight: number)
 	if obstruction then
 		obstruction.Visible = inputAvailable and status.attackBlocked
 	end
+	local crosshairColor, crosshairScale = SettingsController.crosshair()
 	local reach = degreesToPixels(status.spreadDegrees, status.viewportFov, viewportHeight)
-		+ feedback.CrosshairGapPixels
-	local length = feedback.CrosshairLengthPixels
+		+ feedback.CrosshairGapPixels * crosshairScale
+	local length = feedback.CrosshairLengthPixels * crosshairScale
+	local thickness = math.max(1, math.floor(CROSSHAIR_THICKNESS * crosshairScale + 0.5))
 	for side, line in crosshair do
 		line.Visible = inputAvailable and status.hasAmmo and status.weaponUp and not status.attackBlocked
 		local horizontal = side == "Left" or side == "Right"
 		local direction = if side == "Left" or side == "Up" then -1 else 1
-		line.Size = if horizontal
-			then UDim2.fromOffset(length, CROSSHAIR_THICKNESS)
-			else UDim2.fromOffset(CROSSHAIR_THICKNESS, length)
+		line.BackgroundColor3 = crosshairColor
+		line.Size = if horizontal then UDim2.fromOffset(length, thickness) else UDim2.fromOffset(thickness, length)
 		local along = direction * (reach + length / 2)
 		line.Position = if horizontal then UDim2.new(0.5, along, 0.5, 0) else UDim2.new(0.5, 0, 0.5, along)
 	end

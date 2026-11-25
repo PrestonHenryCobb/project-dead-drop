@@ -29,6 +29,7 @@ local AssetDefs = require(Shared:WaitForChild("Defs"):WaitForChild("AssetDefs"))
 local GadgetDefs = require(Shared:WaitForChild("Defs"):WaitForChild("GadgetDefs"))
 local CosmeticDefs = require(Shared:WaitForChild("Defs"):WaitForChild("CosmeticDefs"))
 local DossierDefs = require(Shared:WaitForChild("Defs"):WaitForChild("DossierDefs"))
+local SettingsSchema = require(Shared:WaitForChild("Defs"):WaitForChild("SettingsSchema"))
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Types = require(Shared:WaitForChild("Types"))
 local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"))
@@ -69,6 +70,7 @@ local function newProfile(): MetaProfile
 		OwnedCosmetics = {},
 		ActiveDossierId = DossierDefs.order[1], -- the first Dossier is active from the start, so match XP is never lost
 		Dossiers = { [DossierDefs.order[1]] = { XP = 0, Premium = false, Claimed = {} } }, -- the active Dossier exists from the start, so the menu can show it
+		Settings = {},
 		Career = {
 			Matches = 0,
 			Extractions = 0,
@@ -141,6 +143,7 @@ local function reconcile(saved: any): MetaProfile
 			profile.Mastery[agentId] = { Level = startingMastery(), XP = 0 }
 		end
 	end
+	profile.Settings = SettingsSchema.sanitize(saved.Settings)
 	if type(saved.OwnedCosmetics) == "table" then
 		for cosmeticId, owned in saved.OwnedCosmetics do
 			if owned == true and type(cosmeticId) == "string" and CosmeticDefs.byId[cosmeticId] then
@@ -485,6 +488,22 @@ local function onEquip(player: Player, request: unknown): (boolean, string?)
 end
 
 -- First launch: one free agent from each class. The first agent claimed also becomes the equipped loadout, with its W1.
+-- The player's settings (owner 2026-11-25): only keys and values SettingsSchema allows are kept, merged over what is saved.
+local function onSaveSettings(player: Player, settings: unknown): (boolean, string?)
+	local profile = profiles[player]
+	if not profile then
+		return false, "NoProfile"
+	end
+	local clean = SettingsSchema.sanitize(settings)
+	local merged = table.clone(profile.Settings)
+	for key, value in clean do
+		merged[key] = value
+	end
+	profile.Settings = merged
+	dirty[player] = true
+	return true, nil
+end
+
 local function onClaimStarter(player: Player, agentId: unknown): (boolean, string?)
 	local profile = profiles[player]
 	if not profile then
@@ -643,6 +662,7 @@ function MetaProgressionService.Start()
 	end)
 	RemoteService.onInvoke("RequestEquipLoadout", onEquip)
 	RemoteService.onInvoke("RequestClaimStarterAgent", onClaimStarter)
+	RemoteService.onInvoke("RequestSaveSettings", onSaveSettings)
 	RemoteService.onInvoke("RequestBuyAgent", onBuyAgent)
 
 	Players.PlayerAdded:Connect(function(player)

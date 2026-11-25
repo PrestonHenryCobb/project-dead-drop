@@ -135,6 +135,31 @@ function view.Mount(stage, navigator, context)
 		end)
 		local side = Kit.scroll(area, "Inspector", UDim2.fromScale(0.67, 0), UDim2.fromScale(0.33, 1))
 		Kit.text(side, "EXCLUSIVE HARDWARE", 0, 36, true)
+		-- The picture and the numbers show the weapon under the cursor (or with the focus), locked ones included, without selecting it; they go back to the
+		-- selected weapon when it leaves (owner 2026-11-25).
+		local art: Frame? = nil
+		local statRow: Frame? = nil
+		local hover = Janitor.new()
+		content:Add(hover)
+		local function showWeapon(item: typeof(hardware[1])?)
+			local shown = item or selected
+			hover:Cleanup()
+			if art then
+				art:ClearAllChildren()
+			end
+			if statRow then
+				statRow:Destroy()
+				statRow = nil
+			end
+			if shown.Def then
+				if art then
+					Preview.mount(art, shown.Def, hover)
+				end
+				statRow = MenuIcons.chips(side, MenuIcons.weaponStats(shown.Def), 356)
+			elseif art then
+				Kit.text(art, "HARDWARE IN DEVELOPMENT", 0, 80, true)
+			end
+		end
 		for index, item in hardware do
 			local button = Kit.button(side, `W{item.Slot} · {item.Name}`, 40 + (index - 1) * 58, function()
 				weaponId = item.Id
@@ -149,17 +174,21 @@ function view.Mount(stage, navigator, context)
 				MenuIcons.badge(button.Instance, "Lock", `LVL {item.UnlockMasteryLevel}`)
 			end
 			button.SetSelected(item.Id == weaponId)
+			button.Instance.MouseEnter:Connect(function()
+				showWeapon(item)
+			end)
+			button.Instance.SelectionGained:Connect(function()
+				showWeapon(item)
+			end)
+			button.Instance.MouseLeave:Connect(function()
+				showWeapon(nil)
+			end)
+			button.Instance.SelectionLost:Connect(function()
+				showWeapon(nil)
+			end)
 		end
-		local art = Kit.frame(side, "SelectedHardware", UDim2.fromOffset(0, 222), UDim2.new(1, 0, 0, 120))
-		if selected.Def then
-			Preview.mount(art, selected.Def, content)
-		else
-			Kit.text(art, "HARDWARE IN DEVELOPMENT", 0, 80, true)
-		end
-		if selected.Def then
-			local def = selected.Def
-			MenuIcons.chips(side, MenuIcons.weaponStats(def), 356)
-		end
+		art = Kit.frame(side, "SelectedHardware", UDim2.fromOffset(0, 222), UDim2.new(1, 0, 0, 120))
+		showWeapon(nil)
 		Kit.button(
 			side,
 			if equipped then "EQUIPPED" elseif allowed then "EQUIP OPERATIVE + HARDWARE" else "LOCKED / UNAVAILABLE",

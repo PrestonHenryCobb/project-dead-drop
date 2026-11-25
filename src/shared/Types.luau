@@ -495,6 +495,7 @@ export type MetaProfile = {
 	ActiveDossierId: string?,
 	Dossiers: { [string]: DossierProgress },
 	Career: CareerStats,
+	Settings: { [string]: any }, -- the player's saved settings, only the keys of Defs/SettingsSchema
 }
 
 -- Ticket 21-rewards (spec 20.1 to 20.3): what a finished match gave one player, sent to that player alone. Lines is the XP

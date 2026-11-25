@@ -180,7 +180,7 @@ function SettingsPanel.open(parent: Frame)
 		LayoutOrder = 7,
 		OnActivated = function()
 			local at = table.find(modes, GraphicsController.getMode()) or 1
-			GraphicsController.setMode(modes[at % #modes + 1])
+			SettingsController.setGraphicsMode(modes[at % #modes + 1])
 		end,
 	})
 	local recoverDescription = MenuTheme.label({
@@ -250,8 +250,8 @@ function SettingsPanel.open(parent: Frame)
 			end
 		end)
 	end
-	toggleRow("Shadows", "SHADOWS", GraphicsController.shadowsOn, GraphicsController.setShadows)
-	toggleRow("Bloom", "BLOOM", GraphicsController.bloomOn, GraphicsController.setBloom)
+	toggleRow("Shadows", "SHADOWS", GraphicsController.shadowsOn, SettingsController.setShadows)
+	toggleRow("Bloom", "BLOOM", GraphicsController.bloomOn, SettingsController.setBloom)
 	toggleRow("ShowFps", "FPS COUNTER", function()
 		return SettingsController.get().ShowFps
 	end, SettingsController.setShowFps)
@@ -269,6 +269,40 @@ function SettingsPanel.open(parent: Frame)
 		if value ~= lastWorld then
 			lastWorld = value
 			worldVolume(if value == 0 then "MUTED" else `{math.floor(value * 100 + 0.5)}%`, value > 0, value < 1)
+		end
+	end)
+	local adsSensitivity = stepper("AdsSensitivity", "AIM DOWN SIGHTS SENSITIVITY", 0, function(direction)
+		SettingsController.setAdsSensitivity(
+			SettingsController.get().AdsSensitivity + direction * GameConfig.ClientSettings.AdsSensitivityStep
+		)
+	end)
+	local lastAds: number? = nil
+	table.insert(updaters, function()
+		local value = SettingsController.get().AdsSensitivity
+		if value ~= lastAds then
+			lastAds = value
+			adsSensitivity(
+				string.format("%.2f×", value),
+				value > GameConfig.ClientSettings.AdsSensitivityMin,
+				value < GameConfig.ClientSettings.AdsSensitivityMax
+			)
+		end
+	end)
+	local crosshairScale = stepper("CrosshairScale", "CROSSHAIR SIZE", 0, function(direction)
+		SettingsController.setCrosshairScale(
+			SettingsController.get().CrosshairScale + direction * GameConfig.ClientSettings.CrosshairScaleStep
+		)
+	end)
+	local lastCrosshair: number? = nil
+	table.insert(updaters, function()
+		local value = SettingsController.get().CrosshairScale
+		if value ~= lastCrosshair then
+			lastCrosshair = value
+			crosshairScale(
+				string.format("%.2f×", value),
+				value > GameConfig.ClientSettings.CrosshairScaleMin,
+				value < GameConfig.ClientSettings.CrosshairScaleMax
+			)
 		end
 	end)
 	-- Pictures beside the numbers (owner 2026-11-25): a level bar under each volume and sensitivity, a view wedge for the field of view, and quality
@@ -311,6 +345,11 @@ function SettingsPanel.open(parent: Frame)
 	end)
 	meter("CombatVolume", function()
 		return SettingsController.get().CombatVolume
+	end)
+	meter("AdsSensitivity", function()
+		local range = GameConfig.ClientSettings
+		return (SettingsController.get().AdsSensitivity - range.AdsSensitivityMin)
+			/ (range.AdsSensitivityMax - range.AdsSensitivityMin)
 	end)
 	meter("WorldVolume", function()
 		return SettingsController.get().WorldVolume
@@ -389,138 +428,207 @@ function SettingsPanel.open(parent: Frame)
 			end
 		end)()
 	)
-	-- The outline colour: eight swatches and a hue slider.
+	-- A colour choice: eight swatches, a hue slider and a preview card at the right (`makePreview` fills the card and returns a function that repaints it).
 	local outline = GameConfig.ExposedOutline
-	local colorRow = Instance.new("Frame")
-	colorRow.Name = "OutlineColor"
-	colorRow.BackgroundTransparency = 1
-	colorRow.Size = UDim2.new(1, 0, 0, config.ChipHeightPixels + config.SecondaryHeightPixels * 2 + config.GapPixels)
-	colorRow.Parent = body
-	-- The swatches and the slider fill the row except for a preview card at the right: an agent's bust framed in the chosen colour.
-	local previewSize = visuals.PreviewPixels
-	local controls = Instance.new("Frame")
-	controls.Name = "Controls"
-	controls.BackgroundTransparency = 1
-	controls.Size = UDim2.new(1, -(previewSize + config.GapPixels), 1, 0)
-	controls.Parent = colorRow
-	local previewFrame = Instance.new("Frame")
-	previewFrame.Name = "Preview"
-	previewFrame.BackgroundTransparency = 1
-	previewFrame.Position = UDim2.new(1, -previewSize, 0, config.ChipHeightPixels)
-	previewFrame.Size = UDim2.fromOffset(previewSize, previewSize)
-	previewFrame.Parent = colorRow
-	MenuIcons.portrait(previewFrame, "Guise", previewSize, UDim2.new())
-	local previewOutline = Instance.new("UIStroke")
-	previewOutline.Thickness = visuals.PreviewOutlinePixels
-	previewOutline.Parent = previewFrame
-	table.insert(updaters, function()
-		previewOutline.Color = SettingsController.get().ExposedOutlineColor
-	end)
-	MenuTheme.label({
-		Name = "Label",
-		Text = "OUTLINE COLOUR",
-		Style = "Kicker",
-		Parent = colorRow,
-		Size = UDim2.new(1, 0, 0, config.ChipHeightPixels),
-	})
-	local swatches: { { button: TextButton, color: Color3, stroke: UIStroke } } = {}
-	for index, color in outline.Swatches do
-		local swatch = Instance.new("TextButton")
-		swatch.Name = `Swatch{index}`
-		swatch.Text = ""
-		swatch.AutoButtonColor = true
-		swatch.BackgroundColor3 = color
-		swatch.BorderSizePixel = 0
-		local count = #outline.Swatches
-		swatch.Position = UDim2.new((index - 1) / count, 0, 0, config.ChipHeightPixels)
-		swatch.Size = UDim2.new(1 / count, -config.GapPixels / 2, 0, config.SecondaryHeightPixels)
-		swatch.Parent = controls
-		local ring = Instance.new("UIStroke")
-		ring.Color = MenuTheme.Colors.Text
-		ring.Thickness = config.FocusPixels
-		ring.Enabled = false
-		ring.Parent = swatch
-		cleanup:Add(swatch.Activated:Connect(function()
-			SettingsController.setExposedOutlineColor(color)
-		end))
-		table.insert(swatches, { button = swatch, color = color, stroke = ring })
-	end
-	local hueBar = Instance.new("TextButton")
-	hueBar.Name = "HueSlider"
-	hueBar.Text = ""
-	hueBar.AutoButtonColor = false
-	hueBar.BackgroundColor3 = Color3.new(1, 1, 1)
-	hueBar.BorderSizePixel = 0
-	hueBar.Position = UDim2.fromOffset(0, config.ChipHeightPixels + config.SecondaryHeightPixels + config.GapPixels)
-	hueBar.Size = UDim2.new(1, 0, 0, config.SecondaryHeightPixels)
-	hueBar.Parent = controls
-	local hueGradient = Instance.new("UIGradient")
-	local hueKeys: { ColorSequenceKeypoint } = {}
-	local hueSteps = 6
-	for step = 0, hueSteps do
-		table.insert(
-			hueKeys,
-			ColorSequenceKeypoint.new(
-				step / hueSteps,
-				Color3.fromHSV(step / hueSteps, outline.HueSaturation, outline.HueValue)
-			)
-		)
-	end
-	hueGradient.Color = ColorSequence.new(hueKeys)
-	hueGradient.Parent = hueBar
-	local handle = Instance.new("Frame")
-	handle.Name = "Handle"
-	handle.AnchorPoint = Vector2.new(0.5, 0.5)
-	handle.BackgroundColor3 = MenuTheme.Colors.Text
-	handle.BorderSizePixel = 0
-	handle.Size = UDim2.new(0, config.TrimPixels * 3, 1, config.GapPixels)
-	handle.Position = UDim2.fromScale(0, 0.5)
-	handle.Parent = hueBar
-	local dragging = false
-	local function pickHue(x: number)
-		local fraction = math.clamp((x - hueBar.AbsolutePosition.X) / math.max(1, hueBar.AbsoluteSize.X), 0, 1)
-		SettingsController.setExposedOutlineColor(Color3.fromHSV(fraction, outline.HueSaturation, outline.HueValue))
-	end
-	cleanup:Add(hueBar.InputBegan:Connect(function(input: InputObject)
-		if
-			input.UserInputType == Enum.UserInputType.MouseButton1
-			or input.UserInputType == Enum.UserInputType.Touch
-		then
-			dragging = true
-			pickHue(input.Position.X)
+	local function colorPicker(
+		name: string,
+		title: string,
+		read: () -> Color3,
+		write: (Color3) -> (),
+		makePreview: (Frame) -> (Color3) -> (),
+		shape: (() -> number)? -- another number the preview depends on (the crosshair size); the preview repaints when it changes
+	)
+		local colorRow = Instance.new("Frame")
+		colorRow.Name = name
+		colorRow.BackgroundTransparency = 1
+		colorRow.Size =
+			UDim2.new(1, 0, 0, config.ChipHeightPixels + config.SecondaryHeightPixels * 2 + config.GapPixels)
+		colorRow.Parent = body
+		local previewSize = visuals.PreviewPixels
+		local controls = Instance.new("Frame")
+		controls.Name = "Controls"
+		controls.BackgroundTransparency = 1
+		controls.Size = UDim2.new(1, -(previewSize + config.GapPixels), 1, 0)
+		controls.Parent = colorRow
+		local previewFrame = Instance.new("Frame")
+		previewFrame.Name = "Preview"
+		previewFrame.BackgroundTransparency = 1
+		previewFrame.Position = UDim2.new(1, -previewSize, 0, config.ChipHeightPixels)
+		previewFrame.Size = UDim2.fromOffset(previewSize, previewSize)
+		previewFrame.Parent = colorRow
+		local repaint = makePreview(previewFrame)
+		MenuTheme.label({
+			Name = "Label",
+			Text = title,
+			Style = "Kicker",
+			Parent = colorRow,
+			Size = UDim2.new(1, 0, 0, config.ChipHeightPixels),
+		})
+		local swatches: { { button: TextButton, color: Color3, stroke: UIStroke } } = {}
+		for index, color in outline.Swatches do
+			local swatch = Instance.new("TextButton")
+			swatch.Name = `Swatch{index}`
+			swatch.Text = ""
+			swatch.AutoButtonColor = true
+			swatch.BackgroundColor3 = color
+			swatch.BorderSizePixel = 0
+			local count = #outline.Swatches
+			swatch.Position = UDim2.new((index - 1) / count, 0, 0, config.ChipHeightPixels)
+			swatch.Size = UDim2.new(1 / count, -config.GapPixels / 2, 0, config.SecondaryHeightPixels)
+			swatch.Parent = controls
+			local ring = Instance.new("UIStroke")
+			ring.Color = MenuTheme.Colors.Text
+			ring.Thickness = config.FocusPixels
+			ring.Enabled = false
+			ring.Parent = swatch
+			cleanup:Add(swatch.Activated:Connect(function()
+				write(color)
+			end))
+			table.insert(swatches, { button = swatch, color = color, stroke = ring })
 		end
-	end))
-	cleanup:Add(UserInputService.InputChanged:Connect(function(input: InputObject)
-		if
-			dragging
-			and (
-				input.UserInputType == Enum.UserInputType.MouseMovement
+		local hueBar = Instance.new("TextButton")
+		hueBar.Name = "HueSlider"
+		hueBar.Text = ""
+		hueBar.AutoButtonColor = false
+		hueBar.BackgroundColor3 = Color3.new(1, 1, 1)
+		hueBar.BorderSizePixel = 0
+		hueBar.Position = UDim2.fromOffset(0, config.ChipHeightPixels + config.SecondaryHeightPixels + config.GapPixels)
+		hueBar.Size = UDim2.new(1, 0, 0, config.SecondaryHeightPixels)
+		hueBar.Parent = controls
+		local hueGradient = Instance.new("UIGradient")
+		local hueKeys: { ColorSequenceKeypoint } = {}
+		local hueSteps = 6
+		for step = 0, hueSteps do
+			table.insert(
+				hueKeys,
+				ColorSequenceKeypoint.new(
+					step / hueSteps,
+					Color3.fromHSV(step / hueSteps, outline.HueSaturation, outline.HueValue)
+				)
+			)
+		end
+		hueGradient.Color = ColorSequence.new(hueKeys)
+		hueGradient.Parent = hueBar
+		local handle = Instance.new("Frame")
+		handle.Name = "Handle"
+		handle.AnchorPoint = Vector2.new(0.5, 0.5)
+		handle.BackgroundColor3 = MenuTheme.Colors.Text
+		handle.BorderSizePixel = 0
+		handle.Size = UDim2.new(0, config.TrimPixels * 3, 1, config.GapPixels)
+		handle.Position = UDim2.fromScale(0, 0.5)
+		handle.Parent = hueBar
+		local dragging = false
+		local function pickHue(x: number)
+			local fraction = math.clamp((x - hueBar.AbsolutePosition.X) / math.max(1, hueBar.AbsoluteSize.X), 0, 1)
+			write(Color3.fromHSV(fraction, outline.HueSaturation, outline.HueValue))
+		end
+		cleanup:Add(hueBar.InputBegan:Connect(function(input: InputObject)
+			if
+				input.UserInputType == Enum.UserInputType.MouseButton1
 				or input.UserInputType == Enum.UserInputType.Touch
-			)
-		then
-			pickHue(input.Position.X)
-		end
-	end))
-	cleanup:Add(UserInputService.InputEnded:Connect(function(input: InputObject)
-		if
-			input.UserInputType == Enum.UserInputType.MouseButton1
-			or input.UserInputType == Enum.UserInputType.Touch
-		then
-			dragging = false
-		end
-	end))
-	local lastColor: Color3? = nil
-	table.insert(updaters, function()
-		local color = SettingsController.get().ExposedOutlineColor
-		if color ~= lastColor then
-			lastColor = color
-			local hue = color:ToHSV()
-			handle.Position = UDim2.fromScale(hue, 0.5)
-			for _, entry in swatches do
-				entry.stroke.Enabled = entry.color == color
+			then
+				dragging = true
+				pickHue(input.Position.X)
+			end
+		end))
+		cleanup:Add(UserInputService.InputChanged:Connect(function(input: InputObject)
+			if
+				dragging
+				and (
+					input.UserInputType == Enum.UserInputType.MouseMovement
+					or input.UserInputType == Enum.UserInputType.Touch
+				)
+			then
+				pickHue(input.Position.X)
+			end
+		end))
+		cleanup:Add(UserInputService.InputEnded:Connect(function(input: InputObject)
+			if
+				input.UserInputType == Enum.UserInputType.MouseButton1
+				or input.UserInputType == Enum.UserInputType.Touch
+			then
+				dragging = false
+			end
+		end))
+		local lastColor: Color3? = nil
+		local lastShape = -1
+		table.insert(updaters, function()
+			local color = read()
+			local currentShape = if shape then shape() else 0
+			if color ~= lastColor or currentShape ~= lastShape then
+				lastColor, lastShape = color, currentShape
+				local hue = color:ToHSV()
+				handle.Position = UDim2.fromScale(hue, 0.5)
+				for _, entry in swatches do
+					entry.stroke.Enabled = entry.color == color
+				end
+				repaint(color)
+			end
+		end)
+	end
+	colorPicker(
+		"OutlineColor",
+		"OUTLINE COLOUR",
+		function()
+			return SettingsController.get().ExposedOutlineColor
+		end,
+		SettingsController.setExposedOutlineColor,
+		function(card)
+			-- An agent's bust framed in the chosen colour.
+			MenuIcons.portrait(card, "Guise", visuals.PreviewPixels, UDim2.new())
+			local frame = Instance.new("UIStroke")
+			frame.Thickness = visuals.PreviewOutlinePixels
+			frame.Parent = card
+			return function(color)
+				frame.Color = color
 			end
 		end
-	end)
+	)
+	colorPicker(
+		"CrosshairColor",
+		"CROSSHAIR COLOUR",
+		function()
+			return SettingsController.get().CrosshairColor
+		end,
+		SettingsController.setCrosshairColor,
+		function(card)
+			-- The four crosshair bars on a dark card, at the chosen colour and size.
+			local backing = Instance.new("Frame")
+			backing.BackgroundColor3 = MenuTheme.Colors.Canvas
+			backing.BorderSizePixel = 0
+			backing.Size = UDim2.fromScale(1, 1)
+			backing.Parent = card
+			local bars: { Frame } = {}
+			for index = 1, 4 do
+				local bar = Instance.new("Frame")
+				bar.Name = `Bar{index}`
+				bar.BorderSizePixel = 0
+				bar.AnchorPoint = Vector2.new(0.5, 0.5)
+				bar.Parent = backing
+				table.insert(bars, bar)
+			end
+			local combatConfig = GameConfig.Combat.Feedback
+			return function(color)
+				local scale = SettingsController.get().CrosshairScale
+				local length = combatConfig.CrosshairLengthPixels * scale * visuals.CrosshairPreviewZoom
+				local gap = combatConfig.CrosshairGapPixels * scale * visuals.CrosshairPreviewZoom
+				local thickness = math.max(1, math.floor(visuals.CrosshairPreviewThicknessPixels * scale + 0.5))
+				for index, bar in bars do
+					bar.BackgroundColor3 = color
+					local horizontal = index <= 2
+					local direction = if index % 2 == 1 then -1 else 1
+					local along = direction * (gap + length / 2)
+					bar.Size = if horizontal
+						then UDim2.fromOffset(length, thickness)
+						else UDim2.fromOffset(thickness, length)
+					bar.Position = if horizontal then UDim2.new(0.5, along, 0.5, 0) else UDim2.new(0.5, 0, 0.5, along)
+				end
+			end
+		end,
+		function()
+			return SettingsController.get().CrosshairScale
+		end
+	)
 	for _, update in updaters do
 		update()
 	end
@@ -595,8 +703,6 @@ function SettingsPanel.open(parent: Frame)
 		LayoutOrder = 12,
 		OnActivated = function()
 			SettingsController.reset()
-			GraphicsController.setShadows(nil)
-			GraphicsController.setBloom(nil)
 		end,
 	})
 	MenuTheme.label({
@@ -673,6 +779,9 @@ function SettingsPanel.open(parent: Frame)
 		Sensitivity = 12,
 		CameraShake = 13,
 		CameraShakeDescription = 14,
+		AdsSensitivity = 15,
+		CrosshairScale = 16,
+		CrosshairColor = 17,
 		PerformanceHeader = 20,
 		GraphicsMode = 21,
 		Shadows = 22,

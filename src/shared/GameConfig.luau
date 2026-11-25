@@ -383,6 +383,16 @@ local GameConfig = {
 		SensitivityStep = 0.25,
 		FovStep = 5,
 		PanelFraction = 0.85,
+		AdsSensitivityMin = 0.25, -- sensitivity while aiming down sights, as a multiple of the normal one
+		AdsSensitivityMax = 2,
+		AdsSensitivityStep = 0.05,
+		DefaultAdsSensitivity = 1,
+		CrosshairScaleMin = 0.5, -- the crosshair's size, as a multiple of the default
+		CrosshairScaleMax = 2,
+		CrosshairScaleStep = 0.25,
+		SaveDelaySeconds = 1.5, -- a change is saved this long after the last one
+		LoadAttempts = 20, -- tries at reading the saved settings while the profile loads
+		LoadRetrySeconds = 1,
 		-- Pictures beside the settings numbers (owner 2026-11-25).
 		Visuals = {
 			PreviewPixels = 56, -- the outline colour's preview card
@@ -391,6 +401,8 @@ local GameConfig = {
 			WedgePixels = 26, -- the field of view wedge
 			QualityBarPixels = 5, -- the graphics quality bars
 			DimTransparency = 0.7,
+			CrosshairPreviewZoom = 1, -- the crosshair preview is drawn at this multiple of its size in play (the card is small)
+			CrosshairPreviewThicknessPixels = 2,
 		},
 	},
 
@@ -2652,6 +2664,7 @@ local GameConfig = {
 			RequestClaimDossierTier = { PerSecond = 2, Burst = 5 },
 			RequestSelectActiveDossier = { PerSecond = 1, Burst = 3 },
 			RequestBlackMarketPurchase = { PerSecond = 1, Burst = 2 },
+			RequestSaveSettings = { PerSecond = 1, Burst = 3 }, -- settings are saved a moment after the last change
 			RequestMintStrikeStocks = { PerSecond = 1, Burst = 2 },
 			RequestBuyAgent = { PerSecond = 1, Burst = 2 }, -- ticket shop-skeleton: a button
 			RequestBuyDossierPremium = { PerSecond = 1, Burst = 2 }, -- ticket dossier: a button

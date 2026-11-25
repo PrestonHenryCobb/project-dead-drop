@@ -134,6 +134,7 @@ local Remotes = {
 		"RequestRoute", -- GPS (docs/GPS_DESIGN.md): (targetId?) returns Types.RouteResult
 		"RequestEquipLoadout", -- (Types.LoadoutRequest)
 		"RequestClaimStarterAgent", -- (agentId): the free first-launch pick for that agent's class
+		"RequestSaveSettings", -- (settings): the player's saved settings (Defs/SettingsSchema); the server keeps only valid values; returns (ok, reason?)
 		"RequestClaimDossierTier", -- (dossierId, tierIndex)
 		"RequestSelectActiveDossier", -- (dossierId)
 		"RequestBlackMarketPurchase", -- (offerId): a daily offer id, or the featured bundle id; returns (ok, reason?)
