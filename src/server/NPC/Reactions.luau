@@ -48,10 +48,10 @@ local function reacting(npc: Npc): boolean
 		or npc.state == "Ride" -- inside an elevator: nothing out here reaches it
 end
 
-local function beginCower(npc: Npc, threat: Vector3, now: number)
+local function beginCower(npc: Npc, threat: Vector3, now: number, seconds: number?)
 	Movement.cancelRide(npc)
 	npc.state = "Cower"
-	npc.stateUntil = now + config.Panic.CowerSeconds
+	npc.stateUntil = now + (seconds or config.Panic.CowerSeconds)
 	Movement.interrupt(npc)
 	npc.threat = threat
 	AnimationSync.set(npc, Enums.NpcAnimation.Cower)
@@ -110,16 +110,108 @@ local function beginBackAway(crowd: Crowd, npc: Npc)
 	npc.state = "BackAway"
 end
 
-local function panic(crowd: Crowd, position: Vector3, radius: number, now: number)
+-- The furniture an NPC can hide behind, found once from the map's props (Fab pieces tall enough to cover someone).
+local coverSpots: { { position: Vector3, radius: number } }? = nil
+local function cover(): { { position: Vector3, radius: number } }
+	if coverSpots then
+		return coverSpots
+	end
+	local list: { { position: Vector3, radius: number } } = {}
+	local fabs: { [string]: boolean } = {}
+	for _, id in config.Panic.CoverFabs do
+		fabs[id] = true
+	end
+	local gala = workspace:FindFirstChild("Gala")
+	local props = gala and gala:FindFirstChild("Props")
+	if props then
+		for _, item in props:GetChildren() do
+			local id = item:GetAttribute("Fab")
+			if
+				item:IsA("BasePart")
+				and type(id) == "string"
+				and fabs[id]
+				and item.Size.Y >= config.Panic.CoverMinHeight
+			then
+				table.insert(list, { position = item.Position, radius = math.max(item.Size.X, item.Size.Z) / 2 })
+			end
+		end
+	end
+	coverSpots = list
+	return list
+end
+
+-- Runs to the nearest furniture and crouches behind it, on the side away from the shot. False if there is none close enough.
+local function beginHide(crowd: Crowd, npc: Npc, threat: Vector3, now: number): boolean
+	local best: Vector3? = nil
+	local bestDistance = config.Panic.HideSearchStuds
+	for _, spot in cover() do
+		local offset = spot.position - npc.ground
+		if math.abs(offset.Y) <= config.Panic.CoverMinHeight * 2 then
+			local flat = Vector3.new(offset.X, 0, offset.Z).Magnitude
+			local away = Vector3.new(spot.position.X - threat.X, 0, spot.position.Z - threat.Z)
+			if flat < bestDistance and away.Magnitude > 0.1 then
+				bestDistance = flat
+				best = Vector3.new(spot.position.X, npc.ground.Y, spot.position.Z)
+					+ away.Unit * (spot.radius + config.Panic.HideBehindStuds)
+			end
+		end
+	end
+	if not best then
+		return false
+	end
+	local node, points = NavGraph.routeNear(crowd.graph, npc.node, npc.maxTier, best)
+	if not node or not points or (crowd.graph.feet[node] - best).Magnitude > config.Panic.HideBehindStuds * 3 then
+		return false
+	end
+	Movement.cancelRide(npc)
+	Movement.interrupt(npc)
+	npc.threat = threat
+	AnimationSync.set(npc, "")
+	crowd.release(npc.node)
+	crowd.claim(node)
+	npc.node = node
+	npc.path = Movement.withResume(npc, points)
+	npc.pathIndex = 1
+	npc.speed = config.Panic.FleeSpeed
+	npc.state = "Flee"
+	npc.stateUntil = now + config.Panic.FleeSeconds
+	npc.hiding = true
+	return true
+end
+
+-- Runs from the threat at once, with no ducking first.
+local function beginRun(crowd: Crowd, npc: Npc, threat: Vector3, now: number)
+	Movement.cancelRide(npc)
+	Movement.interrupt(npc)
+	npc.threat = threat
+	beginFlee(crowd, npc, now)
+end
+
+-- Within the radius most NPCs run at once and the rest duck first; out to OuterRadiusFactor times it some NPCs move away as well. An NPC already running
+-- or ducking is left alone, so a second shot does not freeze a crowd that is already fleeing.
+local function panic(crowd: Crowd, position: Vector3, radius: number, now: number, earshot: number?)
+	local outer = radius * config.Panic.OuterRadiusFactor
+	if earshot then
+		outer = math.min(outer, earshot) -- a quiet shot is not heard out there
+	end
 	for _, npc in crowd.npcs do
 		if
 			config.Panic.PanicRoles[npc.role]
 			and not Death.isDown(npc)
 			and npc.state ~= "Cower"
+			and npc.state ~= "Flee"
 			and npc.state ~= "Held"
-			and distance(npc, position) <= radius
 		then
-			beginCower(npc, position, now)
+			local away = distance(npc, position)
+			if away <= radius then
+				if math.random() < config.Panic.RunChance then
+					beginRun(crowd, npc, position, now)
+				elseif not (math.random() < config.Panic.HideChance and beginHide(crowd, npc, position, now)) then
+					beginCower(npc, position, now)
+				end
+			elseif away <= outer and math.random() < config.Panic.OuterRunChance and not reacting(npc) then
+				beginRun(crowd, npc, position, now)
+			end
 		end
 	end
 end
@@ -213,7 +305,7 @@ end
 -- A shot: panic and investigation reach no further than the weapon can be heard (spec 23), which is shorter for a
 -- suppressed weapon than the usual radii.
 function Reactions.gunfire(crowd: Crowd, position: Vector3, now: number, audibleStuds: number)
-	panic(crowd, position, math.min(config.Panic.GunfireRadius, audibleStuds), now)
+	panic(crowd, position, math.min(config.Panic.GunfireRadius, audibleStuds), now, audibleStuds)
 	investigate(crowd, position, now, audibleStuds)
 end
 
@@ -340,12 +432,26 @@ end
 -- Moves a reacting NPC on to its next stage once the current one has run its time.
 function Reactions.update(crowd: Crowd, npc: Npc, now: number)
 	if npc.state == "Cower" and now >= npc.stateUntil then
-		beginFlee(crowd, npc, now)
+		if npc.hidden then
+			-- It waited out the danger behind the furniture: back to normal from where it is.
+			npc.hidden = false
+			AnimationSync.set(npc, "")
+			npc.state = "Idle"
+			npc.idleUntil = now
+		else
+			beginFlee(crowd, npc, now)
+		end
+	elseif npc.state == "Flee" and npc.hiding and not npc.path then
+		-- It has reached its cover: down and still for a while.
+		npc.hiding = false
+		npc.hidden = true
+		beginCower(npc, npc.threat or npc.ground, now, config.Panic.HideSeconds)
 	elseif npc.state == "Gasp" and now >= npc.stateUntil then
 		beginBackAway(crowd, npc)
 	elseif npc.state == "Flee" and now >= npc.stateUntil then
 		-- Flee time is up: carry on to the node at normal pace, then stop there as usual.
 		npc.speed = npc.baseSpeed
+		npc.hiding = false
 		npc.state = "Walk"
 	elseif npc.state == "Investigate" and not npc.path and now >= npc.stateUntil then
 		beginReturn(crowd, npc, now)

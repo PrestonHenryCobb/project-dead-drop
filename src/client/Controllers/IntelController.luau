@@ -8,6 +8,7 @@
 --   * The team's balance is kept for the HUD: IntelController.balance().
 --
 --   IntelController.balance() -> number
+--   IntelController.stationLive(part) -> boolean
 
 local CollectionService = game:GetService("CollectionService")
 local ContextActionService = game:GetService("ContextActionService")
@@ -59,6 +60,12 @@ end
 local function idOf(part: BasePart): string?
 	local id = part:GetAttribute("IntelId") or part:GetAttribute("VaultId") -- a vault terminal is held like a station
 	return if type(id) == "string" then id else nil
+end
+
+-- True while this station (or vault terminal) can still be taken in the current match: the marker over it shows only then.
+function IntelController.stationLive(part: BasePart): boolean
+	local id = idOf(part)
+	return id ~= nil and not used[id] and phase ~= "Lobby" and phase ~= "Results" and phase ~= "Insertion"
 end
 
 -- Which interaction the server runs for this part: a station is "Intel", a vault terminal is "Vault".

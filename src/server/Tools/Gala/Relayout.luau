@@ -8,15 +8,7 @@
 local Layout = require(script.Parent.Layout)
 
 local rooms: { Layout.Room } = {}
-local function room(
-	id: string,
-	level: string,
-	name: string,
-	tier: number,
-	kind: string,
-	rect: Layout.Rect,
-	extra: { [string]: any }?
-)
+local function room(id: string, level: string, name: string, tier: number, kind: string, rect: Layout.Rect, extra: { [string]: any }?)
 	local r: any = { id = id, level = level, name = name, tier = tier, kind = kind, rect = rect }
 	for key, value in extra or {} do
 		r[key] = value
@@ -26,912 +18,148 @@ end
 local OUT, IN = "outdoor", "indoor"
 
 -- B (-24) ----------------------------------------------------------------------------------------------------
-room(
-	"b_ring_n",
-	"B",
-	"Service ring north",
-	1,
-	IN,
-	{ -140, -170, 140, -156 },
-	{ props = { "furnish:servicering", "sconces" } }
-)
-room(
-	"b_ring_s",
-	"B",
-	"Service ring south",
-	1,
-	IN,
-	{ -140, 136, 140, 150 },
-	{ props = { "furnish:servicering", "sconces" } }
-)
-room(
-	"b_ring_w",
-	"B",
-	"Service ring west",
-	1,
-	IN,
-	{ -140, -156, -126, 136 },
-	{ props = { "furnish:servicering", "sconces" } }
-)
-room(
-	"b_ring_e",
-	"B",
-	"Service ring east",
-	1,
-	IN,
-	{ 126, -156, 140, 136 },
-	{ props = { "furnish:servicering", "sconces" } }
-)
+room("b_ring_n", "B", "Service ring north", 1, IN, { -140, -170, 140, -156 }, { props = { "furnish:servicering", "sconces" } })
+room("b_ring_s", "B", "Service ring south", 1, IN, { -140, 136, 140, 150 }, { props = { "furnish:servicering", "sconces" } })
+room("b_ring_w", "B", "Service ring west", 1, IN, { -140, -156, -126, 136 }, { props = { "furnish:servicering", "sconces" } })
+room("b_ring_e", "B", "Service ring east", 1, IN, { 126, -156, 140, 136 }, { props = { "furnish:servicering", "sconces" } })
 room("b_stores_w1", "B", "West stores", 1, IN, { -126, -156, -70, 0 }, { props = { "furnish:stores", "sconces" } })
 room("b_stores_w2", "B", "Laundry and dry stores", 1, IN, { -126, 0, -70, 136 }, { props = { "furnish:laundry" } })
 room("b_stores_e1", "B", "East stores", 1, IN, { 70, -156, 126, 0 }, { props = { "furnish:stores", "sconces" } })
 room("b_cellar", "B", "Wine cellar", 1, IN, { 70, 0, 126, 136 }, { props = { "furnish:cellar", "sconces" } })
-room(
-	"b_gate",
-	"B",
-	"Security checkpoint (basement)",
-	2,
-	IN,
-	{ -14, -156, 14, -80 },
-	{ props = { "furnish:checkpoint", "sconces" } }
-)
+room("b_gate", "B", "Security checkpoint (basement)", 2, IN, { -14, -156, 14, -80 }, { props = { "furnish:checkpoint", "sconces" } })
 room("b_camera", "B", "Camera room", 2, IN, { -70, -156, -14, -80 }, { props = { "furnish:camera", "sconces" } })
 room("b_barracks", "B", "Guard barracks", 2, IN, { 14, -156, 70, -80 }, { props = { "furnish:barracks", "sconces" } })
-room(
-	"b_muster",
-	"B",
-	"Guard muster hall",
-	2,
-	IN,
-	{ -70, -80, 70, -20 },
-	{ density = 1, props = { "pillars", "furnish:muster", "sconces" }, hub = "guards" }
-)
+room("b_muster", "B", "Guard muster hall", 2, IN, { -70, -80, 70, -20 }, { density = 1, props = { "pillars", "furnish:muster", "sconces" }, hub = "guards" })
 room("b_vaulta_ante", "B", "Vault A laser hall", 2, IN, { -70, -20, -14, 60 }, { vault = "A" })
 room("b_spine", "B", "Security spine", 2, IN, { -14, -20, 14, 136 }, { props = { "furnish:spine", "sconces" } })
 room("b_armory", "B", "Armoury", 2, IN, { 14, -20, 70, 60 }, { props = { "furnish:armory" } })
-room(
-	"b_vaulta",
-	"B",
-	"Vault A (bank vault)",
-	3,
-	IN,
-	{ -70, 60, -14, 136 },
-	{ noNodes = true, theme = "bank", vault = "A" }
-)
+room("b_vaulta", "B", "Vault A (bank vault)", 3, IN, { -70, 60, -14, 136 }, { noNodes = true, theme = "bank", vault = "A" })
 room("b_mess", "B", "Guard mess", 2, IN, { 14, 60, 70, 136 }, { props = { "furnish:mess", "sconces" } })
-room(
-	"b_tunnel",
-	"B",
-	"Service tunnel to the wing",
-	1,
-	IN,
-	{ 140, 20, 160, 32 },
-	{ props = { "furnish:tunnel" }, height = 12, noNodes = true }
-)
+room("b_tunnel", "B", "Service tunnel to the wing", 1, IN, { 140, 20, 160, 32 }, { props = { "furnish:tunnel" }, height = 12, noNodes = true })
 room("wb_security", "B", "Wing security office", 2, IN, { 160, -85, 280, -55 }, { props = { "furnish:security" } })
 room("wb_linen", "B", "Linen store", 1, IN, { 160, -55, 215, 5 }, { props = { "furnish:linen" } })
 room("wb_laundry", "B", "Hotel laundry", 1, IN, { 160, 5, 215, 55 }, { props = { "furnish:laundry" } })
-room(
-	"wb_vaultd",
-	"B",
-	"Vault D (counting room)",
-	3,
-	IN,
-	{ 215, -55, 250, 5 },
-	{ noNodes = true, theme = "counting", vault = "D" }
-)
-room(
-	"wb_vaultd_ante",
-	"B",
-	"Vault D counting hall",
-	2,
-	IN,
-	{ 215, 5, 250, 55 },
-	{ props = { "furnish:countinghall" }, vault = "D" }
-)
-room(
-	"wb_boiler",
-	"B",
-	"Boiler corridor",
-	1,
-	IN,
-	{ 250, -55, 280, 55 },
-	{ props = { "pillars", "furnish:boiler", "sconces" } }
-)
-room(
-	"wb_service",
-	"B",
-	"Hotel service hall",
-	1,
-	IN,
-	{ 160, 55, 280, 125 },
-	{ props = { "pillars", "furnish:servicehall", "sconces" } }
-)
+room("wb_vaultd", "B", "Vault D (counting room)", 3, IN, { 215, -55, 250, 5 }, { noNodes = true, theme = "counting", vault = "D" })
+room("wb_vaultd_ante", "B", "Vault D counting hall", 2, IN, { 215, 5, 250, 55 }, { props = { "furnish:countinghall" }, vault = "D" })
+room("wb_boiler", "B", "Boiler corridor", 1, IN, { 250, -55, 280, 55 }, { props = { "pillars", "furnish:boiler", "sconces" } })
+room("wb_service", "B", "Hotel service hall", 1, IN, { 160, 55, 280, 125 }, { props = { "pillars", "furnish:servicehall", "sconces" } })
 
 -- G (0) ----------------------------------------------------------------------------------------------------
-room(
-	"g_atrium",
-	"G",
-	"Grand atrium (landmark, pond)",
-	0,
-	IN,
-	{ -60, -70, 60, 60 },
-	{ density = 2, props = { "planters", "furnish:atrium", "banners" }, glass = true, hub = "atrium" }
-)
-room(
-	"g_ring_n",
-	"G",
-	"Colonnade north",
-	0,
-	IN,
-	{ -74, -84, 74, -70 },
-	{ props = { "furnish:colonnade", "sconces", "paintings" } }
-)
-room(
-	"g_ring_s",
-	"G",
-	"Colonnade south",
-	0,
-	IN,
-	{ -74, 60, 74, 74 },
-	{ props = { "furnish:colonnade", "sconces", "paintings" } }
-)
-room(
-	"g_ring_w",
-	"G",
-	"Colonnade west",
-	0,
-	IN,
-	{ -74, -70, -60, 60 },
-	{ props = { "furnish:colonnade", "sconces", "paintings" } }
-)
-room(
-	"g_ring_e",
-	"G",
-	"Colonnade east",
-	0,
-	IN,
-	{ 60, -70, 74, 60 },
-	{ props = { "furnish:colonnade", "sconces", "paintings" } }
-)
-room("g_gallery", "G", "Gallery hall", 0, IN, { -140, -84, -74, 10 }, {
-	density = 1.4,
-	props = { "partitions", "furnish:gallery", "paintings", "banners", "sconces" },
-	glass = true,
-	hub = "gallery",
-})
-room(
-	"g_concierge",
-	"G",
-	"Concierge",
-	0,
-	IN,
-	{ -140, 10, -74, 40 },
-	{ props = { "furnish:concierge", "paintings", "sconces" }, glass = true }
-)
+room("g_atrium", "G", "Grand atrium (landmark, pond)", 0, IN, { -60, -70, 60, 60 }, { density = 2, props = { "planters", "furnish:atrium", "banners" }, glass = true, hub = "atrium" })
+room("g_ring_n", "G", "Colonnade north", 0, IN, { -74, -84, 74, -70 }, { props = { "furnish:colonnade", "sconces", "paintings" } })
+room("g_ring_s", "G", "Colonnade south", 0, IN, { -74, 60, 74, 74 }, { props = { "furnish:colonnade", "sconces", "paintings" } })
+room("g_ring_w", "G", "Colonnade west", 0, IN, { -74, -70, -60, 60 }, { props = { "furnish:colonnade", "sconces", "paintings" } })
+room("g_ring_e", "G", "Colonnade east", 0, IN, { 60, -70, 74, 60 }, { props = { "furnish:colonnade", "sconces", "paintings" } })
+room("g_gallery", "G", "Gallery hall", 0, IN, { -140, -84, -74, 10 }, { density = 1.4, props = { "partitions", "furnish:gallery", "paintings", "banners", "sconces" }, glass = true, hub = "gallery" })
+room("g_concierge", "G", "Concierge", 0, IN, { -140, 10, -74, 40 }, { props = { "furnish:concierge", "paintings", "sconces" }, glass = true })
 room("g_coat", "G", "Cloakroom", 1, IN, { -140, 40, -74, 74 }, { props = { "furnish:cloakroom", "sconces" } })
-room("g_ballroom", "G", "Ballroom", 0, IN, { 74, -84, 140, 20 }, {
-	density = 2,
-	props = { "pillars", "furnish:ballroom", "chandeliers", "paintings", "sconces", "banners" },
-	glass = true,
-	hub = "ballroom",
-})
-room("g_bar", "G", "Bar", 0, IN, { 74, 20, 140, 74 }, {
-	density = 1.6,
-	props = { "bar", "barStools", "furnish:bar", "chandeliers", "sconces", "paintings" },
-	glass = true,
-	hub = "bar",
-})
-room(
-	"g_dining",
-	"G",
-	"Dining room",
-	0,
-	IN,
-	{ -140, -170, -60, -84 },
-	{ density = 1.3, props = { "furnish:dining", "chandeliers", "paintings", "sconces" }, glass = true, hub = "dining" }
-)
+room("g_ballroom", "G", "Ballroom", 0, IN, { 74, -84, 140, 20 }, { density = 2, props = { "pillars", "furnish:ballroom", "chandeliers", "paintings", "sconces", "banners" }, glass = true, hub = "ballroom" })
+room("g_bar", "G", "Bar", 0, IN, { 74, 20, 140, 74 }, { density = 1.6, props = { "bar", "barStools", "furnish:bar", "chandeliers", "sconces", "paintings" }, glass = true, hub = "bar" })
+room("g_dining", "G", "Dining room", 0, IN, { -140, -170, -60, -84 }, { density = 1.3, props = { "furnish:dining", "chandeliers", "paintings", "sconces" }, glass = true, hub = "dining" })
 room("g_kitchen", "G", "Kitchen", 1, IN, { -60, -170, 20, -100 }, { props = { "furnish:kitchen" } })
 room("g_pantry", "G", "Pantry and catering prep", 1, IN, { 20, -170, 80, -100 }, { props = { "furnish:pantry" } })
-room(
-	"g_service_n",
-	"G",
-	"Service passage",
-	1,
-	IN,
-	{ -60, -100, 140, -84 },
-	{ props = { "furnish:servicering", "sconces" } }
-)
-room(
-	"g_vaultc",
-	"G",
-	"Vault C (cold-storage vault)",
-	3,
-	IN,
-	{ 80, -170, 140, -140 },
-	{ noNodes = true, theme = "cold", vault = "C" }
-)
-room(
-	"g_vaultc_ante",
-	"G",
-	"Vault C cold room",
-	2,
-	IN,
-	{ 80, -140, 140, -100 },
-	{ props = { "furnish:coldroom", "sconces" }, vault = "C" }
-)
-room(
-	"g_library",
-	"G",
-	"Library lounge",
-	0,
-	IN,
-	{ -140, 74, -60, 150 },
-	{ props = { "furnish:library", "paintings", "chandeliers", "sconces" }, glass = true }
-)
-room("g_lobby", "G", "Grand lobby (arrival)", 0, IN, { -60, 74, 60, 150 }, {
-	density = 1.5,
-	props = { "reception", "pillars", "furnish:lobby", "chandeliers", "paintings", "sconces", "banners" },
-	glass = true,
-	hub = "lobby",
-})
-room(
-	"g_lounge",
-	"G",
-	"Smoking lounge and humidor",
-	0,
-	IN,
-	{ 60, 74, 140, 150 },
-	{ props = { "furnish:lounge", "paintings", "sconces", "chandeliers" }, glass = true }
-)
-room(
-	"wg_casino",
-	"G",
-	"Casino floor",
-	0,
-	IN,
-	{ 160, -5, 280, 95 },
-	{ density = 2, props = { "pillars", "furnish:casino", "chandeliers", "sconces" }, glass = true, hub = "casino" }
-)
-room(
-	"wg_entry",
-	"G",
-	"Hotel entrance lobby",
-	0,
-	IN,
-	{ 160, 95, 280, 125 },
-	{ props = { "reception", "furnish:hotelLobby", "paintings", "sconces", "chandeliers" }, glass = true }
-)
+room("g_service_n", "G", "Service passage", 1, IN, { -60, -100, 140, -84 }, { props = { "furnish:servicering", "sconces" } })
+room("g_vaultc", "G", "Vault C (cold-storage vault)", 3, IN, { 80, -170, 140, -140 }, { noNodes = true, theme = "cold", vault = "C" })
+room("g_vaultc_ante", "G", "Vault C cold room", 2, IN, { 80, -140, 140, -100 }, { props = { "furnish:coldroom", "sconces" }, vault = "C" })
+room("g_library", "G", "Library lounge", 0, IN, { -140, 74, -60, 150 }, { props = { "furnish:library", "paintings", "chandeliers", "sconces" }, glass = true })
+room("g_lobby", "G", "Grand lobby (arrival)", 0, IN, { -60, 74, 60, 150 }, { density = 1.5, props = { "reception", "pillars", "furnish:lobby", "chandeliers", "paintings", "sconces", "banners" }, glass = true, hub = "lobby" })
+room("g_lounge", "G", "Smoking lounge and humidor", 0, IN, { 60, 74, 140, 150 }, { props = { "furnish:lounge", "paintings", "sconces", "chandeliers" }, glass = true })
+room("wg_casino", "G", "Casino floor", 0, IN, { 160, -5, 280, 95 }, { density = 2, props = { "pillars", "furnish:casino", "chandeliers", "sconces" }, glass = true, hub = "casino" })
+room("wg_entry", "G", "Hotel entrance lobby", 0, IN, { 160, 95, 280, 125 }, { props = { "reception", "furnish:hotelLobby", "paintings", "sconces", "chandeliers" }, glass = true })
 room("wg_cage", "G", "Cashier's cage", 1, IN, { 160, -85, 215, -5 }, { props = { "furnish:cage", "sconces" } })
-room(
-	"wg_highroller",
-	"G",
-	"High-roller lounge",
-	3,
-	IN,
-	{ 215, -85, 280, -5 },
-	{ props = { "furnish:highroller", "chandeliers", "paintings", "sconces" } }
-)
-room(
-	"g_restroom",
-	"G",
-	"Lobby restrooms",
-	0,
-	IN,
-	{ 36, 130, 60, 150 },
-	{ parent = "g_lobby", props = { "furnish:restroom" }, glass = true }
-)
-room(
-	"g_staffwc",
-	"G",
-	"Staff washroom",
-	1,
-	IN,
-	{ 20, -170, 40, -152 },
-	{ parent = "g_pantry", props = { "furnish:restroom" } }
-)
-room(
-	"g_coldstore",
-	"G",
-	"Kitchen cold store",
-	1,
-	IN,
-	{ -60, -170, -36, -146 },
-	{ parent = "g_kitchen", props = { "furnish:coldstore" } }
-)
-room(
-	"g_privdining",
-	"G",
-	"Private dining room",
-	0,
-	IN,
-	{ -140, -170, -112, -140 },
-	{ parent = "g_dining", density = 0.6, props = { "furnish:privdining" }, glass = true }
-)
-room(
-	"g_stockroom",
-	"G",
-	"Bar stockroom",
-	1,
-	IN,
-	{ 118, 52, 140, 74 },
-	{ parent = "g_bar", props = { "furnish:stockroom" } }
-)
-room(
-	"g_humidor",
-	"G",
-	"Humidor",
-	1,
-	IN,
-	{ 112, 114, 140, 150 },
-	{ parent = "g_lounge", props = { "furnish:cigarlounge" } }
-)
-room(
-	"wg_restroom",
-	"G",
-	"Casino restrooms",
-	0,
-	IN,
-	{ 260, 75, 280, 95 },
-	{ parent = "wg_casino", props = { "furnish:restroom" }, glass = true }
-)
-room(
-	"wg_cardroom",
-	"G",
-	"High-stakes card room",
-	0,
-	IN,
-	{ 160, 20, 190, 50 },
-	{ parent = "wg_casino", density = 1.2, props = { "furnish:cardroom" }, glass = true }
-)
-room(
-	"el_E1_G",
-	"G",
-	"Gallery glass elevator (G)",
-	1,
-	IN,
-	{ -87, -14, -75, -2 },
-	{ parent = "g_gallery", noNodes = true, shaft = "E1", stop = true }
-)
-room(
-	"el_E2_G",
-	"G",
-	"Atrium glass elevator (G)",
-	1,
-	IN,
-	{ 39, 0, 51, 12 },
-	{ parent = "g_atrium", noNodes = true, shaft = "E2", stop = true }
-)
-room(
-	"el_E3_G",
-	"G",
-	"Casino glass elevator (G)",
-	1,
-	IN,
-	{ 239, 74, 251, 86 },
-	{ parent = "wg_casino", noNodes = true, shaft = "E3", stop = true }
-)
-room(
-	"el_E4_G",
-	"G",
-	"Hotel glass elevator (G)",
-	1,
-	IN,
-	{ 224, 104, 236, 116 },
-	{ parent = "wg_entry", noNodes = true, shaft = "E4", stop = true }
-)
+room("wg_highroller", "G", "High-roller lounge", 3, IN, { 215, -85, 280, -5 }, { props = { "furnish:highroller", "chandeliers", "paintings", "sconces" } })
+room("g_restroom", "G", "Lobby restrooms", 0, IN, { 36, 130, 60, 150 }, { parent = "g_lobby", props = { "furnish:restroom" }, glass = true })
+room("g_staffwc", "G", "Staff washroom", 1, IN, { 20, -170, 40, -152 }, { parent = "g_pantry", props = { "furnish:restroom" } })
+room("g_coldstore", "G", "Kitchen cold store", 1, IN, { -60, -170, -36, -146 }, { parent = "g_kitchen", props = { "furnish:coldstore" } })
+room("g_privdining", "G", "Private dining room", 0, IN, { -140, -170, -112, -140 }, { parent = "g_dining", density = 0.6, props = { "furnish:privdining" }, glass = true })
+room("g_stockroom", "G", "Bar stockroom", 1, IN, { 118, 52, 140, 74 }, { parent = "g_bar", props = { "furnish:stockroom" } })
+room("g_humidor", "G", "Humidor", 1, IN, { 112, 114, 140, 150 }, { parent = "g_lounge", props = { "furnish:cigarlounge" } })
+room("wg_restroom", "G", "Casino restrooms", 0, IN, { 260, 75, 280, 95 }, { parent = "wg_casino", props = { "furnish:restroom" }, glass = true })
+room("wg_cardroom", "G", "High-stakes card room", 0, IN, { 160, 20, 190, 50 }, { parent = "wg_casino", density = 1.2, props = { "furnish:cardroom" }, glass = true })
+room("el_E1_G", "G", "Gallery glass elevator (G)", 1, IN, { -87, -14, -75, -2 }, { parent = "g_gallery", noNodes = true, shaft = "E1", stop = true })
+room("el_E2_G", "G", "Atrium glass elevator (G)", 1, IN, { 39, 0, 51, 12 }, { parent = "g_atrium", noNodes = true, shaft = "E2", stop = true })
+room("el_E3_G", "G", "Casino glass elevator (G)", 1, IN, { 239, 74, 251, 86 }, { parent = "wg_casino", noNodes = true, shaft = "E3", stop = true })
+room("el_E4_G", "G", "Hotel glass elevator (G)", 1, IN, { 224, 104, 236, 116 }, { parent = "wg_entry", noNodes = true, shaft = "E4", stop = true })
 
 -- M (24) ----------------------------------------------------------------------------------------------------
-room(
-	"m_balcony",
-	"M",
-	"Atrium balcony promenade",
-	0,
-	IN,
-	{ -74, -84, 74, 74 },
-	{ density = 1.2, props = { "furnish:balcony", "paintings", "sconces" }, glass = true, hub = "balcony" }
-)
-room(
-	"m_gallery",
-	"M",
-	"Gallery loft",
-	0,
-	IN,
-	{ -125, -84, -74, 74 },
-	{ density = 1.2, props = { "partitions", "furnish:gallerylift", "paintings", "banners", "sconces" }, glass = true }
-)
-room(
-	"m_ball_gal",
-	"M",
-	"Ballroom gallery",
-	0,
-	IN,
-	{ 74, -84, 125, -20 },
-	{ density = 1.2, props = { "furnish:loft", "paintings", "sconces" }, glass = true }
-)
-room(
-	"m_bridge_hall",
-	"M",
-	"Skybridge hall",
-	0,
-	IN,
-	{ 74, -20, 125, 40 },
-	{ props = { "furnish:bridgehall", "paintings", "sconces" }, glass = true }
-)
-room(
-	"m_bar_loft",
-	"M",
-	"Bar loft",
-	0,
-	IN,
-	{ 74, 40, 125, 74 },
-	{ props = { "furnish:loft", "sconces", "paintings" }, glass = true }
-)
+room("m_balcony", "M", "Atrium balcony promenade", 0, IN, { -74, -84, 74, 74 }, { density = 1.2, props = { "furnish:balcony", "paintings", "sconces" }, glass = true, hub = "balcony" })
+room("m_gallery", "M", "Gallery loft", 0, IN, { -125, -84, -74, 74 }, { density = 1.2, props = { "partitions", "furnish:gallerylift", "paintings", "banners", "sconces" }, glass = true })
+room("m_ball_gal", "M", "Ballroom gallery", 0, IN, { 74, -84, 125, -20 }, { density = 1.2, props = { "furnish:loft", "paintings", "sconces" }, glass = true })
+room("m_bridge_hall", "M", "Skybridge hall", 0, IN, { 74, -20, 125, 40 }, { props = { "furnish:bridgehall", "paintings", "sconces" }, glass = true })
+room("m_bar_loft", "M", "Bar loft", 0, IN, { 74, 40, 125, 74 }, { props = { "furnish:loft", "sconces", "paintings" }, glass = true })
 room("m_offices", "M", "Staff offices", 1, IN, { -125, -155, -40, -84 }, { props = { "furnish:offices", "sconces" } })
 room("m_hub", "M", "Security hub", 2, IN, { -40, -155, 40, -84 }, { props = { "furnish:security", "sconces" } })
-room(
-	"m_records",
-	"M",
-	"Executive records",
-	3,
-	IN,
-	{ 10, -155, 40, -120 },
-	{ parent = "m_hub", props = { "furnish:records" } }
-)
+room("m_records", "M", "Executive records", 3, IN, { 10, -155, 40, -120 }, { parent = "m_hub", props = { "furnish:records" } })
 room("m_catering", "M", "Catering offices", 1, IN, { 40, -155, 125, -84 }, { props = { "furnish:offices" } })
-room(
-	"m_wine",
-	"M",
-	"Wine terrace lounge",
-	0,
-	IN,
-	{ -125, 74, -45, 135 },
-	{ props = { "furnish:winelounge", "sconces", "paintings" }, glass = true }
-)
-room(
-	"m_stairhall",
-	"M",
-	"Grand stair hall",
-	0,
-	IN,
-	{ -45, 74, 45, 135 },
-	{ density = 1.2, props = { "furnish:stairhall", "banners", "paintings", "chandeliers", "sconces" }, glass = true }
-)
-room(
-	"m_cigar",
-	"M",
-	"Cigar terrace lounge",
-	0,
-	IN,
-	{ 45, 74, 125, 135 },
-	{ props = { "furnish:cigarlounge", "paintings", "sconces" }, glass = true }
-)
+room("m_wine", "M", "Wine terrace lounge", 0, IN, { -125, 74, -45, 135 }, { props = { "furnish:winelounge", "sconces", "paintings" }, glass = true })
+room("m_stairhall", "M", "Grand stair hall", 0, IN, { -45, 74, 45, 135 }, { density = 1.2, props = { "furnish:stairhall", "banners", "paintings", "chandeliers", "sconces" }, glass = true })
+room("m_cigar", "M", "Cigar terrace lounge", 0, IN, { 45, 74, 125, 135 }, { props = { "furnish:cigarlounge", "paintings", "sconces" }, glass = true })
 room("m_ter_n", "M", "Terrace north", 0, OUT, { -140, -170, 140, -155 }, { props = { "shrubs" } })
 room("m_ter_s", "M", "Terrace south", 0, OUT, { -140, 135, 140, 150 }, { props = { "shrubs" } })
 room("m_ter_w", "M", "Terrace west", 0, OUT, { -140, -155, -125, 135 }, { props = { "shrubs" } })
 room("m_ter_e", "M", "Terrace east", 0, OUT, { 125, -155, 140, 135 }, { props = { "shrubs" } })
-room(
-	"m_bridge",
-	"M",
-	"Skybridge (glass, enclosed)",
-	0,
-	IN,
-	{ 140, 26, 160, 38 },
-	{ glass = true, height = 12, noNodes = true }
-)
-room("wm_lobby", "M", "Hotel lobby", 0, IN, { 160, -15, 280, 60 }, {
-	density = 1.4,
-	props = { "reception", "furnish:hotelLobby", "chandeliers", "paintings", "sconces" },
-	glass = true,
-	hub = "hotel",
-})
-room("wm_bar", "M", "Sky bar", 0, IN, { 160, 60, 280, 125 }, {
-	density = 1.4,
-	props = { "bar", "barStools", "furnish:bar", "chandeliers", "sconces", "paintings" },
-	glass = true,
-	hub = "skybar",
-})
+room("m_bridge", "M", "Skybridge (glass, enclosed)", 0, IN, { 140, 26, 160, 38 }, { glass = true, height = 12, noNodes = true })
+room("wm_lobby", "M", "Hotel lobby", 0, IN, { 160, -15, 280, 60 }, { density = 1.4, props = { "reception", "furnish:hotelLobby", "chandeliers", "paintings", "sconces" }, glass = true, hub = "hotel" })
+room("wm_bar", "M", "Sky bar", 0, IN, { 160, 60, 280, 125 }, { density = 1.4, props = { "bar", "barStools", "furnish:bar", "chandeliers", "sconces", "paintings" }, glass = true, hub = "skybar" })
 room("wm_housekeeping", "M", "Housekeeping", 1, IN, { 160, -85, 280, -15 }, { props = { "furnish:housekeeping" } })
-room(
-	"m_restroom",
-	"M",
-	"Gallery restrooms",
-	0,
-	IN,
-	{ -125, -84, -105, -60 },
-	{ parent = "m_gallery", props = { "furnish:restroom" }, glass = true }
-)
-room(
-	"wm_restroom",
-	"M",
-	"Hotel restrooms",
-	0,
-	IN,
-	{ 260, 40, 280, 60 },
-	{ parent = "wm_lobby", props = { "furnish:restroom" }, glass = true }
-)
-room(
-	"el_E1_M",
-	"M",
-	"Gallery glass elevator (M)",
-	1,
-	IN,
-	{ -87, -14, -75, -2 },
-	{ parent = "m_gallery", noNodes = true, shaft = "E1", stop = true }
-)
-room(
-	"el_E2_M",
-	"M",
-	"Atrium glass elevator (M)",
-	1,
-	IN,
-	{ 39, 0, 51, 12 },
-	{ parent = "m_balcony", noNodes = true, shaft = "E2", stop = true }
-)
-room(
-	"el_E3_M",
-	"M",
-	"Casino glass elevator (M)",
-	1,
-	IN,
-	{ 239, 74, 251, 86 },
-	{ parent = "wm_bar", noNodes = true, shaft = "E3", stop = true }
-)
-room(
-	"el_E4_M",
-	"M",
-	"Hotel glass elevator (M)",
-	1,
-	IN,
-	{ 224, 104, 236, 116 },
-	{ parent = "wm_bar", noNodes = true, shaft = "E4", stop = true }
-)
+room("m_restroom", "M", "Gallery restrooms", 0, IN, { -125, -84, -105, -60 }, { parent = "m_gallery", props = { "furnish:restroom" }, glass = true })
+room("wm_restroom", "M", "Hotel restrooms", 0, IN, { 260, 40, 280, 60 }, { parent = "wm_lobby", props = { "furnish:restroom" }, glass = true })
+room("el_E1_M", "M", "Gallery glass elevator (M)", 1, IN, { -87, -14, -75, -2 }, { parent = "m_gallery", noNodes = true, shaft = "E1", stop = true })
+room("el_E2_M", "M", "Atrium glass elevator (M)", 1, IN, { 39, 0, 51, 12 }, { parent = "m_balcony", noNodes = true, shaft = "E2", stop = true })
+room("el_E3_M", "M", "Casino glass elevator (M)", 1, IN, { 239, 74, 251, 86 }, { parent = "wm_bar", noNodes = true, shaft = "E3", stop = true })
+room("el_E4_M", "M", "Hotel glass elevator (M)", 1, IN, { 224, 104, 236, 116 }, { parent = "wm_bar", noNodes = true, shaft = "E4", stop = true })
 
 -- T (48) ----------------------------------------------------------------------------------------------------
-room(
-	"t_ter_n",
-	"T",
-	"Upper terrace north",
-	0,
-	OUT,
-	{ -125, -155, 125, -120 },
-	{ props = { "planters", "trees", "furnish:terrace", "shrubs" } }
-)
-room(
-	"t_ter_s",
-	"T",
-	"Upper terrace south",
-	0,
-	OUT,
-	{ -125, 100, 125, 135 },
-	{ props = { "planters", "trees", "furnish:terrace", "shrubs" } }
-)
-room(
-	"t_ter_w",
-	"T",
-	"Upper terrace west (lawn)",
-	0,
-	OUT,
-	{ -125, -120, -90, 100 },
-	{ props = { "planters", "trees", "furnish:garden", "shrubs" } }
-)
-room(
-	"t_ter_e",
-	"T",
-	"Upper terrace east",
-	0,
-	OUT,
-	{ 90, -120, 125, 100 },
-	{ props = { "planters", "trees", "furnish:terrace", "shrubs" } }
-)
-room(
-	"t_west",
-	"T",
-	"West guard hall",
-	2,
-	IN,
-	{ -90, -120, -60, 100 },
-	{ props = { "pillars", "furnish:guardhall", "sconces" } }
-)
-room(
-	"t_east",
-	"T",
-	"East guard hall",
-	2,
-	IN,
-	{ 60, -120, 90, 100 },
-	{ props = { "pillars", "furnish:guardhall", "sconces" } }
-)
+room("t_ter_n", "T", "Upper terrace north", 0, OUT, { -125, -155, 125, -120 }, { props = { "planters", "trees", "furnish:terrace", "shrubs" } })
+room("t_ter_s", "T", "Upper terrace south", 0, OUT, { -125, 100, 125, 135 }, { props = { "planters", "trees", "furnish:terrace", "shrubs" } })
+room("t_ter_w", "T", "Upper terrace west (lawn)", 0, OUT, { -125, -120, -90, 100 }, { props = { "planters", "trees", "furnish:garden", "shrubs" } })
+room("t_ter_e", "T", "Upper terrace east", 0, OUT, { 90, -120, 125, 100 }, { props = { "planters", "trees", "furnish:terrace", "shrubs" } })
+room("t_west", "T", "West guard hall", 2, IN, { -90, -120, -60, 100 }, { props = { "pillars", "furnish:guardhall", "sconces" } })
+room("t_east", "T", "East guard hall", 2, IN, { 60, -120, 90, 100 }, { props = { "pillars", "furnish:guardhall", "sconces" } })
 room("t_guard_nw", "T", "North guard post west", 2, IN, { -60, -120, -30, -60 }, { props = { "furnish:guardpost" } })
 room("t_guard_ne", "T", "North guard post east", 2, IN, { 30, -120, 60, -60 }, { props = { "furnish:guardpost" } })
-room(
-	"t_vaultb_ante",
-	"T",
-	"Vault B display hall",
-	2,
-	IN,
-	{ -30, -100, 30, -60 },
-	{ props = { "furnish:displayhall", "paintings", "sconces" }, vault = "B" }
-)
-room(
-	"t_vaultb",
-	"T",
-	"Vault B (art vault)",
-	3,
-	IN,
-	{ -30, -120, 30, -100 },
-	{ noNodes = true, theme = "gallery", vault = "B" }
-)
-room(
-	"t_great",
-	"T",
-	"Penthouse great room (void railing)",
-	3,
-	IN,
-	{ -60, -60, 60, 70 },
-	{ density = 1, props = { "furnish:greatroom", "chandeliers", "paintings", "sconces", "banners" } }
-)
-room(
-	"t_gallery",
-	"T",
-	"Private gallery",
-	3,
-	IN,
-	{ -60, 70, 60, 100 },
-	{ props = { "furnish:gallery", "paintings", "sconces" } }
-)
-room(
-	"t_panic",
-	"T",
-	"Panic room",
-	3,
-	IN,
-	{ -90, 38, -70, 62 },
-	{ parent = "t_west", props = { "furnish:panic", "sconces" } }
-)
-room(
-	"t_office",
-	"T",
-	"Executive office",
-	3,
-	IN,
-	{ 70, 38, 90, 62 },
-	{ parent = "t_east", props = { "furnish:execoffice" } }
-)
-room(
-	"wt_terrace",
-	"T",
-	"Suite terrace",
-	0,
-	OUT,
-	{ 160, -85, 205, 125 },
-	{ density = 1, props = { "trees", "planters", "furnish:terrace", "shrubs" } }
-)
-room(
-	"wt_arcade",
-	"T",
-	"Suite arcade",
-	0,
-	IN,
-	{ 221, -85, 264, 125 },
-	{ props = { "furnish:arcade", "paintings", "sconces" }, glass = true }
-)
-room(
-	"wt_suite1",
-	"T",
-	"Skyline suite",
-	0,
-	IN,
-	{ 205, -85, 221, -15 },
-	{ props = { "furnish:suite", "paintings", "sconces" }, glass = true }
-)
-room(
-	"wt_suite2",
-	"T",
-	"Corner suite",
-	0,
-	IN,
-	{ 205, -15, 221, 55 },
-	{ props = { "furnish:suite", "paintings", "sconces" }, glass = true }
-)
-room(
-	"wt_suite3",
-	"T",
-	"Garden suite",
-	0,
-	IN,
-	{ 205, 55, 221, 125 },
-	{ props = { "furnish:suite", "paintings", "sconces" }, glass = true }
-)
+room("t_vaultb_ante", "T", "Vault B display hall", 2, IN, { -30, -100, 30, -60 }, { props = { "furnish:displayhall", "paintings", "sconces" }, vault = "B" })
+room("t_vaultb", "T", "Vault B (art vault)", 3, IN, { -30, -120, 30, -100 }, { noNodes = true, theme = "gallery", vault = "B" })
+room("t_great", "T", "Penthouse great room (void railing)", 3, IN, { -60, -60, 60, 70 }, { density = 1, props = { "furnish:greatroom", "chandeliers", "paintings", "sconces", "banners" } })
+room("t_gallery", "T", "Private gallery", 3, IN, { -60, 70, 60, 100 }, { props = { "furnish:gallery", "paintings", "sconces" } })
+room("t_panic", "T", "Panic room", 3, IN, { -90, 38, -70, 62 }, { parent = "t_west", props = { "furnish:panic", "sconces" } })
+room("t_office", "T", "Executive office", 3, IN, { 70, 38, 90, 62 }, { parent = "t_east", props = { "furnish:execoffice" } })
+room("wt_terrace", "T", "Suite terrace", 0, OUT, { 160, -85, 205, 125 }, { density = 1, props = { "trees", "planters", "furnish:terrace", "shrubs" } })
+room("wt_arcade", "T", "Suite arcade", 0, IN, { 221, -85, 264, 125 }, { props = { "furnish:arcade", "paintings", "sconces" }, glass = true })
+room("wt_suite1", "T", "Skyline suite", 0, IN, { 205, -85, 221, -15 }, { props = { "furnish:suite", "paintings", "sconces" }, glass = true })
+room("wt_suite2", "T", "Corner suite", 0, IN, { 205, -15, 221, 55 }, { props = { "furnish:suite", "paintings", "sconces" }, glass = true })
+room("wt_suite3", "T", "Garden suite", 0, IN, { 205, 55, 221, 125 }, { props = { "furnish:suite", "paintings", "sconces" }, glass = true })
 room("wt_exec", "T", "Executive suite", 3, IN, { 264, -85, 280, -15 }, { props = { "furnish:execsuite" } })
-room(
-	"wt_suite5",
-	"T",
-	"Moon suite",
-	0,
-	IN,
-	{ 264, -15, 280, 55 },
-	{ props = { "furnish:suite", "paintings", "sconces" }, glass = true }
-)
-room(
-	"wt_suite4",
-	"T",
-	"City suite",
-	0,
-	IN,
-	{ 264, 55, 280, 125 },
-	{ props = { "furnish:suite", "paintings", "sconces" }, glass = true }
-)
-room(
-	"t_washroom",
-	"T",
-	"Guard washroom",
-	2,
-	IN,
-	{ 70, 78, 90, 100 },
-	{ parent = "t_east", props = { "furnish:restroom" } }
-)
-room(
-	"el_E1_T",
-	"T",
-	"Gallery glass elevator (T)",
-	1,
-	IN,
-	{ -87, -14, -75, -2 },
-	{ parent = "t_west", noNodes = true, shaft = "E1", stop = true }
-)
-room(
-	"el_E2_T",
-	"T",
-	"Atrium glass elevator (T)",
-	1,
-	IN,
-	{ 39, 0, 51, 12 },
-	{ parent = "t_great", noNodes = true, shaft = "E2" }
-)
-room(
-	"el_E3_T",
-	"T",
-	"Casino glass elevator (T)",
-	1,
-	IN,
-	{ 239, 74, 251, 86 },
-	{ parent = "wt_arcade", noNodes = true, shaft = "E3", stop = true }
-)
-room(
-	"el_E4_T",
-	"T",
-	"Hotel glass elevator (T)",
-	1,
-	IN,
-	{ 224, 104, 236, 116 },
-	{ parent = "wt_arcade", noNodes = true, shaft = "E4", stop = true }
-)
-room(
-	"el_E5_T",
-	"T",
-	"Sanctum elevator (T)",
-	3,
-	IN,
-	{ 18, -60, 28, -50 },
-	{ parent = "t_great", noNodes = true, shaft = "E5", stop = true }
-)
+room("wt_suite5", "T", "Moon suite", 0, IN, { 264, -15, 280, 55 }, { props = { "furnish:suite", "paintings", "sconces" }, glass = true })
+room("wt_suite4", "T", "City suite", 0, IN, { 264, 55, 280, 125 }, { props = { "furnish:suite", "paintings", "sconces" }, glass = true })
+room("t_washroom", "T", "Guard washroom", 2, IN, { 70, 78, 90, 100 }, { parent = "t_east", props = { "furnish:restroom" } })
+room("el_E1_T", "T", "Gallery glass elevator (T)", 1, IN, { -87, -14, -75, -2 }, { parent = "t_west", noNodes = true, shaft = "E1", stop = true })
+room("el_E2_T", "T", "Atrium glass elevator (T)", 1, IN, { 39, 0, 51, 12 }, { parent = "t_great", noNodes = true, shaft = "E2" })
+room("el_E3_T", "T", "Casino glass elevator (T)", 1, IN, { 239, 74, 251, 86 }, { parent = "wt_arcade", noNodes = true, shaft = "E3", stop = true })
+room("el_E4_T", "T", "Hotel glass elevator (T)", 1, IN, { 224, 104, 236, 116 }, { parent = "wt_arcade", noNodes = true, shaft = "E4", stop = true })
+room("el_E5_T", "T", "Sanctum elevator (T)", 3, IN, { 18, -60, 28, -50 }, { parent = "t_great", noNodes = true, shaft = "E5", stop = true })
 
 -- R (72) ----------------------------------------------------------------------------------------------------
-room("r_deck", "R", "Rooftop party deck", 0, OUT, { -90, -120, 90, 100 }, {
-	holes = { { -38, -40, 38, 52 }, { -45, -115, 45, -50 }, { 50, 50, 90, 100 }, { 55, -115, 90, -85 } },
-	density = 2,
-	props = { "planters", "bar", "barStools", "furnish:roofdeck", "shrubs" },
-	hub = "rooftop",
-})
-room(
-	"r_summit",
-	"R",
-	"Summit lobby (elevator, Executive stair)",
-	3,
-	IN,
-	{ -45, -115, 45, -50 },
-	{ props = { "furnish:summit", "chandeliers", "paintings", "sconces", "banners" } }
-)
-room(
-	"r_vaulte_ante",
-	"R",
-	"Vault E observatory hall",
-	2,
-	IN,
-	{ 50, 50, 90, 75 },
-	{ props = { "furnish:observatory" }, vault = "E" }
-)
-room(
-	"r_vaulte",
-	"R",
-	"Vault E (observatory vault)",
-	3,
-	IN,
-	{ 50, 75, 90, 100 },
-	{ noNodes = true, theme = "observatory", vault = "E" }
-)
+room("r_deck", "R", "Rooftop party deck", 0, OUT, { -90, -120, 90, 100 }, { holes = { { -38, -40, 38, 52 }, { -45, -115, 45, -50 }, { 50, 50, 90, 100 }, { 55, -115, 90, -85 } }, density = 2, props = { "planters", "bar", "barStools", "furnish:roofdeck", "shrubs" }, hub = "rooftop" })
+room("r_summit", "R", "Summit lobby (elevator, Executive stair)", 3, IN, { -45, -115, 45, -50 }, { props = { "furnish:summit", "chandeliers", "paintings", "sconces", "banners" } })
+room("r_vaulte_ante", "R", "Vault E observatory hall", 2, IN, { 50, 50, 90, 75 }, { props = { "furnish:observatory" }, vault = "E" })
+room("r_vaulte", "R", "Vault E (observatory vault)", 3, IN, { 50, 75, 90, 100 }, { noNodes = true, theme = "observatory", vault = "E" })
 room("r_plant", "R", "Rooftop plant room", 1, IN, { 55, -115, 90, -85 }, { props = { "furnish:plant", "sconces" } })
-room(
-	"r_deck_w",
-	"R",
-	"Roof stair deck (over the west lawn)",
-	0,
-	OUT,
-	{ -125, 40, -90, 100 },
-	{ props = { "shrubs" }, posts = true }
-)
-room("wr_garden", "R", "Wing roof garden", 0, OUT, { 205, -85, 280, 125 }, {
-	holes = { { 205, -85, 231, -15 } },
-	density = 1.5,
-	props = { "trees", "planters", "bar", "barStools", "furnish:garden", "shrubs" },
-})
+room("r_deck_w", "R", "Roof stair deck (over the west lawn)", 0, OUT, { -125, 40, -90, 100 }, { props = { "shrubs" }, posts = true })
+room("wr_garden", "R", "Wing roof garden", 0, OUT, { 205, -85, 280, 125 }, { holes = { { 205, -85, 231, -15 } }, density = 1.5, props = { "trees", "planters", "bar", "barStools", "furnish:garden", "shrubs" } })
 room("wr_plant", "R", "Wing plant room", 1, IN, { 205, -85, 231, -15 }, { props = { "furnish:plant" } })
-room(
-	"el_E2_R",
-	"R",
-	"Atrium glass elevator (R)",
-	1,
-	IN,
-	{ 39, 0, 51, 12 },
-	{ parent = "r_deck", noNodes = true, shaft = "E2", stop = true }
-)
-room(
-	"el_E4_R",
-	"R",
-	"Hotel glass elevator (R)",
-	1,
-	IN,
-	{ 224, 104, 236, 116 },
-	{ parent = "wr_garden", noNodes = true, shaft = "E4", stop = true }
-)
-room(
-	"el_E5_R",
-	"R",
-	"Sanctum elevator (R)",
-	3,
-	IN,
-	{ 18, -60, 28, -50 },
-	{ parent = "r_summit", noNodes = true, shaft = "E5", stop = true }
-)
+room("el_E2_R", "R", "Atrium glass elevator (R)", 1, IN, { 39, 0, 51, 12 }, { parent = "r_deck", noNodes = true, shaft = "E2", stop = true })
+room("el_E4_R", "R", "Hotel glass elevator (R)", 1, IN, { 224, 104, 236, 116 }, { parent = "wr_garden", noNodes = true, shaft = "E4", stop = true })
+room("el_E5_R", "R", "Sanctum elevator (R)", 3, IN, { 18, -60, 28, -50 }, { parent = "r_summit", noNodes = true, shaft = "E5", stop = true })
 
 -- S (96) ----------------------------------------------------------------------------------------------------
-room("s_sanctum", "S", "THE SANCTUM", 4, IN, { -35, -115, 35, -70 }, {
-	props = { "furnish:sanctum", "chandeliers", "paintings", "sconces" },
-	noNodes = true,
-	style = "crown",
-	vault = "S",
-})
-room(
-	"s_foyer",
-	"S",
-	"Sanctum foyer",
-	4,
-	IN,
-	{ -45, -70, 45, -50 },
-	{ props = { "furnish:foyer", "paintings", "sconces" }, style = "crown" }
-)
+room("s_sanctum", "S", "THE SANCTUM", 4, IN, { -35, -115, 35, -70 }, { props = { "furnish:sanctum", "chandeliers", "paintings", "sconces" }, noNodes = true, style = "crown", vault = "S" })
+room("s_foyer", "S", "Sanctum foyer", 4, IN, { -45, -70, 45, -50 }, { props = { "furnish:foyer", "paintings", "sconces" }, style = "crown" })
 room("s_ter_w", "S", "Sanctum terrace west (back door)", 4, OUT, { -45, -115, -35, -70 })
 room("s_ter_e", "S", "Sanctum terrace east (zipline landing)", 4, OUT, { 35, -115, 45, -70 })
-room(
-	"wd_skydeck",
-	"S",
-	"Sky deck (extraction)",
-	0,
-	OUT,
-	{ 231, -85, 280, -15 },
-	{ props = { "planters", "furnish:skydeck", "shrubs" }, posts = true }
-)
+room("wd_skydeck", "S", "Sky deck (extraction)", 0, OUT, { 231, -85, 280, -15 }, { props = { "planters", "furnish:skydeck", "shrubs" }, posts = true })
 room("s_stairhead", "S", "Executive stair head", 4, IN, { -40, -60, 5, -50 }, { parent = "s_foyer", style = "crown" })
-room(
-	"el_E5_S",
-	"S",
-	"Sanctum elevator (S)",
-	4,
-	IN,
-	{ 18, -60, 28, -50 },
-	{ parent = "s_foyer", noNodes = true, shaft = "E5", stop = true }
-)
+room("el_E5_S", "S", "Sanctum elevator (S)", 4, IN, { 18, -60, 28, -50 }, { parent = "s_foyer", noNodes = true, shaft = "E5", stop = true })
 
 local voids: { Layout.Void } = {
 	{ level = "M", rect = { -38, -40, 38, 52 }, railed = true },
@@ -1131,304 +359,39 @@ door("el_E5_S", "s_foyer", 23, 8, { line = -60, gate = 4, elevator = "E5" })
 
 local ramps: { Layout.Ramp } = {
 	{ id = "grandstair", kind = "Grand stair", from = "G", to = "M", x = 0, z = 139, dir = "-z", width = 24, tier = 0 },
-	{
-		id = "escalator_w",
-		kind = "Escalator ramp",
-		from = "G",
-		to = "M",
-		x = -46,
-		z = -4,
-		dir = "+z",
-		width = 12,
-		tier = 0,
-	},
-	{
-		id = "escalator_e",
-		kind = "Escalator ramp",
-		from = "G",
-		to = "M",
-		x = 46,
-		z = -62,
-		dir = "+z",
-		width = 12,
-		tier = 0,
-	},
-	{
-		id = "corner_nw",
-		kind = "Switchback stair",
-		from = "G",
-		to = "M",
-		x = -91,
-		z = -59,
-		dir = "-x",
-		turn = true,
-		tier = 0,
-	},
-	{
-		id = "corner_ne",
-		kind = "Switchback stair",
-		from = "G",
-		to = "M",
-		x = 95,
-		z = -65,
-		dir = "+x",
-		turn = true,
-		tier = 0,
-	},
-	{
-		id = "corner_sw",
-		kind = "Switchback stair",
-		from = "G",
-		to = "M",
-		x = -110,
-		z = 105,
-		dir = "+z",
-		turn = true,
-		tier = 0,
-	},
-	{
-		id = "corner_se",
-		kind = "Switchback stair",
-		from = "G",
-		to = "M",
-		x = 103,
-		z = 95,
-		dir = "+z",
-		turn = true,
-		tier = 0,
-	},
-	{
-		id = "terrace_stair_w",
-		kind = "Switchback stair",
-		from = "M",
-		to = "T",
-		x = -108,
-		z = -15,
-		dir = "-z",
-		turn = true,
-		tier = 0,
-	},
-	{
-		id = "terrace_stair_e",
-		kind = "Switchback stair",
-		from = "M",
-		to = "T",
-		x = 108,
-		z = -34,
-		dir = "-z",
-		turn = true,
-		tier = 0,
-	},
-	{
-		id = "roof_stair",
-		kind = "Roof stair",
-		from = "T",
-		to = "R",
-		x = -108,
-		z = 55,
-		dir = "+z",
-		turn = true,
-		tier = 0,
-	},
-	{
-		id = "wing_grand_stair",
-		kind = "Grand stair",
-		from = "G",
-		to = "M",
-		x = 210,
-		z = 81,
-		dir = "-z",
-		width = 24,
-		tier = 0,
-	},
-	{
-		id = "wing_stair_m_t",
-		kind = "Switchback stair",
-		from = "M",
-		to = "T",
-		x = 175,
-		z = 85,
-		dir = "+z",
-		turn = true,
-		tier = 0,
-	},
-	{
-		id = "wing_stair_t_r",
-		kind = "Roof stair",
-		from = "T",
-		to = "R",
-		x = 243,
-		z = 15,
-		dir = "+z",
-		turn = true,
-		tier = 0,
-	},
-	{
-		id = "wing_deck_stair",
-		kind = "Stair",
-		from = "R",
-		to = "S",
-		x = 269,
-		z = -30,
-		dir = "-x",
-		turn = true,
-		tier = 0,
-	},
-	{
-		id = "wing_deck_stair_2",
-		kind = "Stair",
-		from = "R",
-		to = "S",
-		x = 268,
-		z = -69,
-		dir = "+z",
-		turn = true,
-		tier = 0,
-	},
-	{
-		id = "staff_b_g",
-		kind = "Staff stair",
-		from = "B",
-		to = "G",
-		x = 85,
-		z = -91,
-		dir = "+x",
-		turn = true,
-		tier = 1,
-	},
-	{
-		id = "staff_g_m",
-		kind = "Staff stair",
-		from = "G",
-		to = "M",
-		x = -45,
-		z = -108,
-		dir = "-z",
-		turn = true,
-		tier = 1,
-	},
-	{
-		id = "staff_b_g_s",
-		kind = "Staff stair",
-		from = "B",
-		to = "G",
-		x = -107,
-		z = 57,
-		dir = "+x",
-		turn = true,
-		tier = 1,
-	},
-	{
-		id = "staff_g_m_s",
-		kind = "Staff stair",
-		from = "G",
-		to = "M",
-		x = 60,
-		z = -145,
-		dir = "+z",
-		turn = true,
-		tier = 1,
-	},
-	{
-		id = "wing_staff_b_g",
-		kind = "Staff stair",
-		from = "B",
-		to = "G",
-		x = 172,
-		z = -45,
-		dir = "+z",
-		turn = true,
-		tier = 1,
-	},
-	{
-		id = "wing_staff_g_m",
-		kind = "Staff stair",
-		from = "G",
-		to = "M",
-		x = 192,
-		z = -60,
-		dir = "-x",
-		turn = true,
-		tier = 1,
-	},
-	{
-		id = "plant_stair",
-		kind = "Staff stair",
-		from = "T",
-		to = "R",
-		x = 75,
-		z = -107,
-		dir = "+z",
-		turn = true,
-		tier = 1,
-	},
-	{
-		id = "wing_plant_stair",
-		kind = "Staff stair",
-		from = "T",
-		to = "R",
-		x = 230,
-		z = -41,
-		dir = "-z",
-		turn = true,
-		tier = 1,
-	},
-	{
-		id = "guard_b_g",
-		kind = "Guard stair",
-		from = "B",
-		to = "G",
-		x = 0,
-		z = -125,
-		dir = "+z",
-		turn = true,
-		tier = 2,
-	},
-	{
-		id = "guard_m_t",
-		kind = "Guard stair",
-		from = "M",
-		to = "T",
-		x = -31,
-		z = -94,
-		dir = "-z",
-		turn = true,
-		tier = 2,
-	},
-	{
-		id = "wing_guard_stair",
-		kind = "Guard stair",
-		from = "B",
-		to = "G",
-		x = 170,
-		z = -70,
-		dir = "+x",
-		turn = true,
-		tier = 2,
-	},
+	{ id = "escalator_w", kind = "Escalator ramp", from = "G", to = "M", x = -46, z = -4, dir = "+z", width = 12, tier = 0 },
+	{ id = "escalator_e", kind = "Escalator ramp", from = "G", to = "M", x = 46, z = -62, dir = "+z", width = 12, tier = 0 },
+	{ id = "corner_nw", kind = "Switchback stair", from = "G", to = "M", x = -91, z = -59, dir = "-x", turn = true, tier = 0 },
+	{ id = "corner_ne", kind = "Switchback stair", from = "G", to = "M", x = 95, z = -65, dir = "+x", turn = true, tier = 0 },
+	{ id = "corner_sw", kind = "Switchback stair", from = "G", to = "M", x = -110, z = 105, dir = "+z", turn = true, tier = 0 },
+	{ id = "corner_se", kind = "Switchback stair", from = "G", to = "M", x = 103, z = 95, dir = "+z", turn = true, tier = 0 },
+	{ id = "terrace_stair_w", kind = "Switchback stair", from = "M", to = "T", x = -108, z = -15, dir = "-z", turn = true, tier = 0 },
+	{ id = "terrace_stair_e", kind = "Switchback stair", from = "M", to = "T", x = 108, z = -34, dir = "-z", turn = true, tier = 0 },
+	{ id = "roof_stair", kind = "Roof stair", from = "T", to = "R", x = -108, z = 55, dir = "+z", turn = true, tier = 0 },
+	{ id = "wing_grand_stair", kind = "Grand stair", from = "G", to = "M", x = 210, z = 81, dir = "-z", width = 24, tier = 0 },
+	{ id = "wing_stair_m_t", kind = "Switchback stair", from = "M", to = "T", x = 175, z = 85, dir = "+z", turn = true, tier = 0 },
+	{ id = "wing_stair_t_r", kind = "Roof stair", from = "T", to = "R", x = 243, z = 15, dir = "+z", turn = true, tier = 0 },
+	{ id = "wing_deck_stair", kind = "Stair", from = "R", to = "S", x = 269, z = -30, dir = "-x", turn = true, tier = 0 },
+	{ id = "wing_deck_stair_2", kind = "Stair", from = "R", to = "S", x = 268, z = -69, dir = "+z", turn = true, tier = 0 },
+	{ id = "staff_b_g", kind = "Staff stair", from = "B", to = "G", x = 85, z = -91, dir = "+x", turn = true, tier = 1 },
+	{ id = "staff_g_m", kind = "Staff stair", from = "G", to = "M", x = -45, z = -108, dir = "-z", turn = true, tier = 1 },
+	{ id = "staff_b_g_s", kind = "Staff stair", from = "B", to = "G", x = -107, z = 57, dir = "+x", turn = true, tier = 1 },
+	{ id = "staff_g_m_s", kind = "Staff stair", from = "G", to = "M", x = 60, z = -145, dir = "+z", turn = true, tier = 1 },
+	{ id = "wing_staff_b_g", kind = "Staff stair", from = "B", to = "G", x = 172, z = -45, dir = "+z", turn = true, tier = 1 },
+	{ id = "wing_staff_g_m", kind = "Staff stair", from = "G", to = "M", x = 192, z = -60, dir = "-x", turn = true, tier = 1 },
+	{ id = "plant_stair", kind = "Staff stair", from = "T", to = "R", x = 75, z = -107, dir = "+z", turn = true, tier = 1 },
+	{ id = "wing_plant_stair", kind = "Staff stair", from = "T", to = "R", x = 230, z = -41, dir = "-z", turn = true, tier = 1 },
+	{ id = "guard_b_g", kind = "Guard stair", from = "B", to = "G", x = 0, z = -125, dir = "+z", turn = true, tier = 2 },
+	{ id = "guard_m_t", kind = "Guard stair", from = "M", to = "T", x = -31, z = -94, dir = "-z", turn = true, tier = 2 },
+	{ id = "wing_guard_stair", kind = "Guard stair", from = "B", to = "G", x = 170, z = -70, dir = "+x", turn = true, tier = 2 },
 	{ id = "guard_t_r", kind = "Guard stair", from = "T", to = "R", x = 75, z = -5, dir = "+z", turn = true, tier = 2 },
-	{
-		id = "sanctum_stair",
-		kind = "Executive stair",
-		from = "R",
-		to = "S",
-		x = -9,
-		z = -60,
-		dir = "-x",
-		turn = true,
-		tier = 4,
-	},
+	{ id = "sanctum_stair", kind = "Executive stair", from = "R", to = "S", x = -9, z = -60, dir = "-x", turn = true, tier = 4 },
 }
 
 local vents: { Layout.Vent } = {
 	{ id = "vent_a", level = "B", name = "Vent to Vault A (bank vault)", points = { { -79, 70 }, { -61, 70 } } },
 	{ id = "vent_b", level = "T", name = "Vent to Vault B (art vault)", points = { { -22, -129 }, { -22, -111 } } },
-	{
-		id = "vent_c",
-		level = "G",
-		name = "Vent to Vault C (cold-storage vault)",
-		points = { { 71, -162 }, { 89, -162 } },
-	},
+	{ id = "vent_c", level = "G", name = "Vent to Vault C (cold-storage vault)", points = { { 71, -162 }, { 89, -162 } } },
 	{ id = "vent_d", level = "B", name = "Vent to Vault D (counting room)", points = { { 206, -47 }, { 224, -47 } } },
 	{ id = "vent_e", level = "R", name = "Vent to Vault E (observatory vault)", points = { { 41, 83 }, { 59, 83 } } },
 	{ id = "vent_hub", level = "M", name = "Vent to Security hub", points = { { 52, -112 }, { 28, -112 } } },
@@ -1488,341 +451,45 @@ local function placeIntel(station: number, list: { string })
 		table.insert(placements, { kind = "intel", room = roomId, station = station })
 	end
 end
-placeIntel(0, {
-	"g_lobby",
-	"g_atrium",
-	"g_ballroom",
-	"g_bar",
-	"g_lounge",
-	"g_gallery",
-	"m_gallery",
-	"wg_casino",
-	"wm_lobby",
-	"r_deck",
-	"wr_garden",
-	"t_ter_s",
-	"g_dining",
-	"g_library",
-	"g_ring_n",
-	"g_ring_s",
-	"g_ballroom",
-	"g_bar",
-	"wg_entry",
-	"wm_bar",
-	"m_balcony",
-	"m_ball_gal",
-	"m_wine",
-	"m_cigar",
-	"m_stairhall",
-	"t_ter_n",
-	"t_ter_w",
-	"t_ter_e",
-	"wt_terrace",
-	"wt_arcade",
-	"r_deck",
-	"wr_garden",
-	"m_ter_n",
-	"m_ter_s",
-})
-placeIntel(1, {
-	"g_kitchen",
-	"g_pantry",
-	"g_coat",
-	"m_offices",
-	"m_catering",
-	"wb_laundry",
-	"wm_housekeeping",
-	"wg_cage",
-	"b_stores_e1",
-	"g_concierge",
-	"g_service_n",
-	"b_stores_w1",
-	"b_stores_w2",
-	"b_cellar",
-	"wb_linen",
-	"wb_service",
-	"m_offices",
-	"m_catering",
-	"wm_housekeeping",
-})
-placeIntel(2, {
-	"b_camera",
-	"b_muster",
-	"m_hub",
-	"t_west",
-	"t_east",
-	"wb_security",
-	"wr_plant",
-	"r_plant",
-	"b_barracks",
-	"b_mess",
-	"b_gate",
-	"b_spine",
-	"wb_boiler",
-	"t_guard_nw",
-	"t_guard_ne",
-})
-placeIntel(
-	3,
-	{ "t_gallery", "b_armory", "wg_highroller", "wt_exec", "t_great", "m_records", "b_mess", "t_vaultb_ante" }
-)
+placeIntel(0, { "g_lobby", "g_atrium", "g_ballroom", "g_bar", "g_lounge", "g_gallery", "m_gallery", "wg_casino", "wm_lobby", "r_deck", "wr_garden", "t_ter_s", "g_dining", "g_library", "g_ring_n", "g_ring_s", "g_ballroom", "g_bar", "wg_entry", "wm_bar", "m_balcony", "m_ball_gal", "m_wine", "m_cigar", "m_stairhall", "t_ter_n", "t_ter_w", "t_ter_e", "wt_terrace", "wt_arcade", "r_deck", "wr_garden", "m_ter_n", "m_ter_s" })
+placeIntel(1, { "g_kitchen", "g_pantry", "g_coat", "m_offices", "m_catering", "wb_laundry", "wm_housekeeping", "wg_cage", "b_stores_e1", "g_concierge", "g_service_n", "b_stores_w1", "b_stores_w2", "b_cellar", "wb_linen", "wb_service", "m_offices", "m_catering", "wm_housekeeping" })
+placeIntel(2, { "b_camera", "b_muster", "m_hub", "t_west", "t_east", "wb_security", "wr_plant", "m_records", "b_barracks", "b_mess", "b_spine", "b_armory", "wb_boiler", "t_guard_nw", "t_guard_ne" })
+placeIntel(3, { "t_gallery", "b_armory", "wg_highroller", "wt_exec", "t_great", "m_records", "b_mess", "t_vaultb_ante" })
 place("health", { "g_restroom", "g_staffwc", "m_restroom", "t_washroom", "wm_restroom", "wg_restroom" })
 place("ammo", { "g_service_n", "b_barracks", "m_hub", "b_gate", "t_west", "wg_cage", "wm_housekeeping", "wt_arcade" })
-place("food", {
-	"g_ballroom",
-	"g_ballroom",
-	"g_ballroom",
-	"g_bar",
-	"g_bar",
-	"g_lounge",
-	"g_dining",
-	"g_dining",
-	"wg_casino",
-	"wg_casino",
-	"wm_lobby",
-	"wm_bar",
-	"wr_garden",
-	"wr_garden",
-	"r_deck",
-	"r_deck",
-	"m_ball_gal",
-	"m_cigar",
-	"g_kitchen",
-	"g_kitchen",
-})
+place("food", { "g_ballroom", "g_ballroom", "g_ballroom", "g_bar", "g_bar", "g_lounge", "g_dining", "g_dining", "wg_casino", "wg_casino", "wm_lobby", "wm_bar", "wr_garden", "wr_garden", "r_deck", "r_deck", "m_ball_gal", "m_cigar", "g_kitchen", "g_kitchen" })
 place("safe", { "g_lounge", "m_gallery", "wm_lobby", "t_ter_s" })
 place("safe", { "g_coat", "m_catering", "wb_laundry", "wr_plant" })
 place("safe", { "b_barracks", "m_hub", "t_east", "wb_security" })
 place("safe", { "t_office", "t_panic", "wg_highroller", "wt_exec" })
 place("cache", { "g_gallery", "m_balcony", "t_ter_n", "wg_cage", "b_stores_w1", "wr_garden" })
-place("camera", {
-	"g_service_n",
-	"g_kitchen",
-	"m_hub",
-	"m_offices",
-	"b_gate",
-	"b_muster",
-	"t_west",
-	"t_east",
-	"wb_service",
-	"wg_cage",
-	"wm_housekeeping",
-	"b_spine",
-})
+place("camera", { "g_service_n", "g_kitchen", "m_hub", "m_offices", "b_gate", "b_muster", "t_west", "t_east", "wb_service", "wg_cage", "wm_housekeeping", "b_spine" })
 
 -- Crowd clusters: authored groups at the hubs (id, room, centre, how many NPCs, what they do, what they face).
 local clusters: { Layout.Cluster } = {
-	{
-		id = "bar_front",
-		room = "g_bar",
-		level = "G",
-		x = 107,
-		z = 46,
-		size = 12,
-		activity = "Drink",
-		faceX = 107,
-		faceZ = 32,
-	},
-	{
-		id = "ballroom_floor",
-		room = "g_ballroom",
-		level = "G",
-		x = 107,
-		z = -30,
-		size = 12,
-		activity = "Talk",
-		faceX = 107,
-		faceZ = -30,
-	},
-	{
-		id = "ballroom_corner",
-		room = "g_ballroom",
-		level = "G",
-		x = 129,
-		z = -46,
-		size = 8,
-		activity = "Talk",
-		faceX = 129,
-		faceZ = -46,
-	},
-	{
-		id = "atrium_pond_w",
-		room = "g_atrium",
-		level = "G",
-		x = -36,
-		z = -22,
-		size = 10,
-		activity = "Talk",
-		faceX = 0,
-		faceZ = 6,
-	},
-	{
-		id = "atrium_pond_e",
-		room = "g_atrium",
-		level = "G",
-		x = 28,
-		z = -40,
-		size = 8,
-		activity = "Talk",
-		faceX = 0,
-		faceZ = 6,
-	},
-	{
-		id = "gallery_w",
-		room = "g_gallery",
-		level = "G",
-		x = -110,
-		z = -40,
-		size = 8,
-		activity = "Idle",
-		faceX = -110,
-		faceZ = -40,
-	},
-	{
-		id = "gallery_e",
-		room = "g_gallery",
-		level = "G",
-		x = -110,
-		z = -8,
-		size = 8,
-		activity = "Idle",
-		faceX = -110,
-		faceZ = -8,
-	},
-	{
-		id = "lobby",
-		room = "g_lobby",
-		level = "G",
-		x = -35,
-		z = 118,
-		size = 8,
-		activity = "Talk",
-		faceX = -35,
-		faceZ = 118,
-	},
-	{
-		id = "dining",
-		room = "g_dining",
-		level = "G",
-		x = -100,
-		z = -125,
-		size = 10,
-		activity = "Talk",
-		faceX = -100,
-		faceZ = -125,
-	},
-	{
-		id = "casino_a",
-		room = "wg_casino",
-		level = "G",
-		x = 200,
-		z = 17,
-		size = 12,
-		activity = "Talk",
-		faceX = 200,
-		faceZ = 17,
-	},
-	{
-		id = "casino_b",
-		room = "wg_casino",
-		level = "G",
-		x = 240,
-		z = 55,
-		size = 12,
-		activity = "Talk",
-		faceX = 240,
-		faceZ = 55,
-	},
-	{
-		id = "casino_c",
-		room = "wg_casino",
-		level = "G",
-		x = 186,
-		z = 77,
-		size = 10,
-		activity = "Talk",
-		faceX = 186,
-		faceZ = 77,
-	},
-	{
-		id = "hotel_lobby",
-		room = "wm_lobby",
-		level = "M",
-		x = 200,
-		z = 15,
-		size = 8,
-		activity = "Talk",
-		faceX = 200,
-		faceZ = 15,
-	},
-	{
-		id = "sky_bar",
-		room = "wm_bar",
-		level = "M",
-		x = 212,
-		z = 95,
-		size = 10,
-		activity = "Drink",
-		faceX = 212,
-		faceZ = 95,
-	},
-	{
-		id = "roof_party_w",
-		room = "r_deck",
-		level = "R",
-		x = -66,
-		z = -30,
-		size = 12,
-		activity = "Talk",
-		faceX = -66,
-		faceZ = -30,
-	},
-	{
-		id = "roof_party_s",
-		room = "r_deck",
-		level = "R",
-		x = -25,
-		z = 70,
-		size = 12,
-		activity = "Drink",
-		faceX = -25,
-		faceZ = 70,
-	},
-	{
-		id = "roof_garden",
-		room = "wr_garden",
-		level = "R",
-		x = 240,
-		z = 60,
-		size = 10,
-		activity = "Talk",
-		faceX = 240,
-		faceZ = 60,
-	},
-	{
-		id = "balcony_w",
-		room = "m_balcony",
-		level = "M",
-		x = -55,
-		z = -20,
-		size = 8,
-		activity = "Talk",
-		faceX = -55,
-		faceZ = -20,
-	},
+	{ id = "bar_front", room = "g_bar", level = "G", x = 107, z = 46, size = 12, activity = "Drink", faceX = 107, faceZ = 32 },
+	{ id = "ballroom_floor", room = "g_ballroom", level = "G", x = 107, z = -30, size = 12, activity = "Talk", faceX = 107, faceZ = -30 },
+	{ id = "ballroom_corner", room = "g_ballroom", level = "G", x = 129, z = -46, size = 8, activity = "Talk", faceX = 129, faceZ = -46 },
+	{ id = "atrium_pond_w", room = "g_atrium", level = "G", x = -36, z = -22, size = 10, activity = "Talk", faceX = 0, faceZ = 6 },
+	{ id = "atrium_pond_e", room = "g_atrium", level = "G", x = 28, z = -40, size = 8, activity = "Talk", faceX = 0, faceZ = 6 },
+	{ id = "gallery_w", room = "g_gallery", level = "G", x = -110, z = -40, size = 8, activity = "Idle", faceX = -110, faceZ = -40 },
+	{ id = "gallery_e", room = "g_gallery", level = "G", x = -110, z = -8, size = 8, activity = "Idle", faceX = -110, faceZ = -8 },
+	{ id = "lobby", room = "g_lobby", level = "G", x = -35, z = 118, size = 8, activity = "Talk", faceX = -35, faceZ = 118 },
+	{ id = "dining", room = "g_dining", level = "G", x = -100, z = -125, size = 10, activity = "Talk", faceX = -100, faceZ = -125 },
+	{ id = "casino_a", room = "wg_casino", level = "G", x = 200, z = 17, size = 12, activity = "Talk", faceX = 200, faceZ = 17 },
+	{ id = "casino_b", room = "wg_casino", level = "G", x = 240, z = 55, size = 12, activity = "Talk", faceX = 240, faceZ = 55 },
+	{ id = "casino_c", room = "wg_casino", level = "G", x = 186, z = 77, size = 10, activity = "Talk", faceX = 186, faceZ = 77 },
+	{ id = "hotel_lobby", room = "wm_lobby", level = "M", x = 200, z = 15, size = 8, activity = "Talk", faceX = 200, faceZ = 15 },
+	{ id = "sky_bar", room = "wm_bar", level = "M", x = 212, z = 95, size = 10, activity = "Drink", faceX = 212, faceZ = 95 },
+	{ id = "roof_party_w", room = "r_deck", level = "R", x = -66, z = -30, size = 12, activity = "Talk", faceX = -66, faceZ = -30 },
+	{ id = "roof_party_s", room = "r_deck", level = "R", x = -25, z = 70, size = 12, activity = "Drink", faceX = -25, faceZ = 70 },
+	{ id = "roof_garden", room = "wr_garden", level = "R", x = 240, z = 60, size = 10, activity = "Talk", faceX = 240, faceZ = 60 },
+	{ id = "balcony_w", room = "m_balcony", level = "M", x = -55, z = -20, size = 8, activity = "Talk", faceX = -55, faceZ = -20 },
 }
 
 local ziplines: { Layout.Zipline } = {
-	{
-		id = "zip_sky",
-		top = { level = "S", x = 235, z = -45, mast = 22 },
-		bottom = { level = "S", x = 40, z = -95, mast = 7 },
-	},
-	{
-		id = "zip_roof",
-		top = { level = "R", x = -85, z = -100, mast = 22 },
-		bottom = { level = "T", x = -118, z = -100, mast = 7 },
-	},
+	{ id = "zip_sky", top = { level = "S", x = 235, z = -45, mast = 22 }, bottom = { level = "S", x = 40, z = -95, mast = 7 } },
+	{ id = "zip_roof", top = { level = "R", x = -85, z = -100, mast = 22 }, bottom = { level = "T", x = -118, z = -100, mast = 7 } },
 }
 
 -- The window-washer gondola crosses the drop from the Gala's upper east terrace to the wing's suite terrace.
@@ -1881,59 +548,11 @@ local printers: { Layout.Marker } = {
 }
 
 local signposts: { string } = {
-	"g_atrium",
-	"g_lobby",
-	"g_ring_n",
-	"g_ring_s",
-	"g_ring_w",
-	"g_ring_e",
-	"g_service_n",
-	"m_balcony",
-	"m_ter_n",
-	"m_ter_s",
-	"m_ter_w",
-	"m_ter_e",
-	"t_ter_n",
-	"t_ter_s",
-	"t_ter_w",
-	"t_ter_e",
-	"t_west",
-	"t_east",
-	"b_ring_n",
-	"b_ring_s",
-	"b_spine",
-	"b_muster",
-	"wb_service",
-	"wg_casino",
-	"wm_lobby",
-	"wt_arcade",
-	"r_deck",
-	"wr_garden",
-	"s_foyer",
+	"g_atrium", "g_lobby", "g_ring_n", "g_ring_s", "g_ring_w", "g_ring_e", "g_service_n", "m_balcony", "m_ter_n", "m_ter_s", "m_ter_w", "m_ter_e", "t_ter_n", "t_ter_s", "t_ter_w", "t_ter_e", "t_west", "t_east", "b_ring_n", "b_ring_s", "b_spine", "b_muster", "wb_service", "wg_casino", "wm_lobby", "wt_arcade", "r_deck", "wr_garden", "s_foyer",
 }
 
 -- What the self-check expects to find (Build.luau compares the built map with these).
-local counts: { [string]: number } = {
-	InsertionPoint = 12,
-	IntelSpawn = 76,
-	VaultSpawn = 5,
-	ExtractionSite = 3,
-	SupplyCache = 6,
-	SecurityCamera = 12,
-	LaserGrid = 2,
-	KeycardDoor = 0,
-	VentPairs = 6,
-	ZiplineAnchorPairs = 2,
-	HealthStation = 6,
-	AmmoCache = 8,
-	FoodSpot = 20,
-	AssetSafe = 16,
-	SecretExit = 8,
-	KeycardPrinter = 5,
-	VaultTerminal = 5,
-	Elevator = 5,
-	Ladder = 2,
-}
+local counts: { [string]: number } = { InsertionPoint = 12, IntelSpawn = 76, VaultSpawn = 5, ExtractionSite = 3, SupplyCache = 6, SecurityCamera = 12, LaserGrid = 2, KeycardDoor = 0, VentPairs = 6, ZiplineAnchorPairs = 2, HealthStation = 6, AmmoCache = 8, FoodSpot = 20, AssetSafe = 16, SecretExit = 8, KeycardPrinter = 5, VaultTerminal = 5, Elevator = 5, Ladder = 2 }
 
 return {
 	levels = { B = -24, G = 0, M = 24, T = 48, R = 72, S = 96 },

@@ -1152,6 +1152,53 @@ defs.lanternPost = {
 	parts = { U("LanternPost", 0.4, 8, 0, 0, 0, "black", METALM), O("Lantern", 1.6, 0, 8.6, 0, "warm", NEON, false) },
 }
 
+-- Compact pieces for rooms the big sets would not fit (owner 2026-11-25: the casino, arcade, great room, gate and the small offices were still bare).
+defs.slotPair = {
+	w = 7,
+	d = 4.6,
+	parts = {
+		B("SlotSpine", 6, 7, 1.6, 0, 3.5, 0, "velvet", PLASTIC),
+		B("SlotScreen", 2.4, 2, 0.15, -1.6, 5, 0.9, "neon", NEON, false),
+		B("SlotScreen", 2.4, 2, 0.15, 1.6, 5, 0.9, "neon", NEON, false),
+		B("SlotScreen", 2.4, 2, 0.15, -1.6, 5, -0.9, "neon", NEON, false),
+		B("SlotScreen", 2.4, 2, 0.15, 1.6, 5, -0.9, "neon", NEON, false),
+	},
+	subs = { { "stool", -1.6, 2.2 }, { "stool", 1.6, 2.2 }, { "stool", -1.6, -2.2 }, { "stool", 1.6, -2.2 } },
+}
+defs.pokerTable = {
+	w = 9,
+	d = 9,
+	stop = "Talk",
+	parts = {
+		U("TableBase", 2.4, 2.8, 0, 0, 0, "dark", WOODM),
+		U("Felt", 6.6, 0.4, 0, 0, 2.8, "felt", FAB),
+		U("TableRim", 7.2, 0.2, 0, 0, 2.7, "dark", WOODM),
+		O("Chips", 1, -1, 3.7, 0.5, "neon", NEON, false),
+	},
+	subs = { { "stool", 0, 3.9 }, { "stool", 0, -3.9 }, { "stool", 3.9, 0 }, { "stool", -3.9, 0 } },
+}
+defs.smallDesk = {
+	w = 5,
+	d = 4.4,
+	stop = "Work",
+	parts = {
+		B("Desk", 4.4, 3, 2, 0, 1.5, -1.1, "wood", WOODM),
+		B("Monitor", 1.8, 1.4, 0.2, 0, 4, -1.6, "neon", NEON, false),
+		B("Keyboard", 1.6, 0.15, 0.7, 0, 3.1, -0.6, "black", PLASTIC, false),
+	},
+	subs = { { "chair", 0, 1.1, math.pi } },
+}
+defs.shortShelf = {
+	w = 5,
+	d = 1.8,
+	parts = {
+		B("Shelf", 5, 9, 1.8, 0, 4.5, 0, "dark", WOODM),
+		B("Books", 4.4, 1.6, 1.2, 0, 2, 0.6, "book", PLASTIC, false),
+		B("Books", 4.4, 1.6, 1.2, 0, 4.6, 0.6, "book", PLASTIC, false),
+		B("Books", 4.4, 1.6, 1.2, 0, 7.2, 0.6, "book", PLASTIC, false),
+	},
+}
+
 -- Recipes ---------------------------------------------------------------------------------------------------------------------------------------
 type Step = { m: string, f: string, n: number, gap: number?, aisle: number? }
 type Recipe = { style: string, steps: { Step } }
@@ -1296,6 +1343,8 @@ local recipes: { [string]: Recipe } = {
 	casino = {
 		style = "casino",
 		steps = {
+			F("slotPair", 16, 1),
+			F("pokerTable", 12, 1),
 			F("casinoTable", 8, 1),
 			F("slotIsland", 8, 1),
 			F("cardTable", 8, 1),
@@ -1477,7 +1526,12 @@ local recipes: { [string]: Recipe } = {
 	},
 	checkpoint = {
 		style = "security",
-		steps = { F("securityDesk", 1, 1.2), W("monitorWall", 1, 2), W("lockerRow", 2), W("bench", 2) },
+		steps = {
+			F("securityDesk", 1, 1.2),
+			W("monitorWall", 1, 2),
+			W("lockerRow", 2),
+			W("bench", 2),
+		},
 	},
 	spine = { style = "security", steps = { W("bench", 4, 12), W("noticeboard", 3, 14), W("bigPlant", 3, 18) } },
 	servicering = { style = "service", steps = { W("crateStack", 4, 22), W("pipeRun", 3, 16), W("cart", 2, 30) } },
@@ -1523,7 +1577,9 @@ local recipes: { [string]: Recipe } = {
 		style = "casino",
 		steps = {
 			W("slotWall", 10, 0),
+			F("slotPair", 20, 1),
 			F("slotIsland", 8, 1),
+			F("pokerTable", 6, 1),
 			F("bench", 8, 3),
 			F("cocktail", 4, 1.2),
 			W("bigPlant", 4),
@@ -1534,6 +1590,9 @@ local recipes: { [string]: Recipe } = {
 		steps = {
 			W("floorLamp", 2, 30),
 			F("loungeSet", 6, 1.2),
+			F("armchair", 8, 1.5),
+			F("readingTable", 4, 1.5),
+			F("sofa", 4, 1.5),
 			F("pianoSet", 1, 3),
 			F("exhibit", 3, 1.2),
 			F("cocktail", 2, 1.2),
@@ -1544,8 +1603,14 @@ local recipes: { [string]: Recipe } = {
 			W("bigPlant", 4),
 		},
 	},
-	execoffice = { style = "exec", steps = { W("officeDesk", 1, 2), W("bookcase", 2, 0) } },
-	panic = { style = "security", steps = { F("cot", 2, 0.5), F("crateStack", 1, 0.5) } },
+	execoffice = {
+		style = "exec",
+		steps = { W("officeDesk", 1, 2), W("bookcase", 2, 0) },
+	},
+	panic = {
+		style = "security",
+		steps = { F("cot", 2, 0.5), F("crateStack", 1, 0.5) },
+	},
 	summit = {
 		style = "exec",
 		steps = {

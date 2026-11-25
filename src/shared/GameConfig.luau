@@ -376,7 +376,8 @@ local GameConfig = {
 
 	-- Ticket 19-session-settings: client preferences only. FOV limits stay in UI; saving preferences is a separate contract.
 	ClientSettings = {
-		Key = Enum.KeyCode.F10,
+		Key = Enum.KeyCode.P, -- owner 2026-11-25: settings open on P
+		PadKey = Enum.KeyCode.ButtonSelect, -- and on the controller's Select (Back) button; B closes
 		DefaultSensitivity = 1,
 		SensitivityMin = 0.25,
 		SensitivityMax = 2,
@@ -934,8 +935,40 @@ local GameConfig = {
 		CorpseSeconds = 30, -- a player's eliminated body lies this long before it fades (DownedService)
 		MobileRenderDistance = 120, -- 27 #27: NPC visuals beyond this are not shown on low-end mobile
 		Panic = {
-			GunfireRadius = 40,
-			CowerSeconds = 3,
+			-- Owner 2026-11-25: rooms went still when shots went off, because everyone froze to cower. Now most NPCs run at once and the rest duck only
+			-- briefly, and NPCs well beyond the shot start moving away too. SPEC-QUESTION: spec 5.4 has every NPC cower for 3 s first.
+			GunfireRadius = 55,
+			CowerSeconds = 1.5,
+			RunChance = 0.45, -- of the NPCs within the radius, the share that run at once
+			HideChance = 0.55, -- of the rest, the share that run to a spot behind furniture and duck there (the others duck where they stand)
+			HideSearchStuds = 32, -- how far an NPC will run to find cover
+			HideBehindStuds = 2.2, -- how far past the furniture's edge it crouches, on the side away from the shot
+			HideSeconds = 6, -- how long it stays down behind the furniture
+			CoverMinHeight = 2.4, -- only furniture at least this tall hides anyone
+			-- The furniture NPCs hide behind (Tools/Gala/Fabs ids).
+			CoverFabs = {
+				"sofa",
+				"loungeSet",
+				"booth",
+				"buffet",
+				"sideboard",
+				"longTable",
+				"bookcase",
+				"crateStack",
+				"palletStack",
+				"shelfRow",
+				"counterRun",
+				"prepIsland",
+				"cashierCounter",
+				"bandStage",
+				"statue",
+				"boiler",
+				"generator",
+				"wardrobe",
+				"suiteBed",
+			},
+			OuterRadiusFactor = 1.8, -- NPCs out to this multiple of the radius (and within earshot) also start to move away
+			OuterRunChance = 0.5,
 			FleeSeconds = 8,
 			FleeSpeed = 16,
 			BodyRadius = 15,
@@ -1248,10 +1281,11 @@ local GameConfig = {
 		-- Four station types (SPEC_CHANGES, intel amounts), chosen per station on the map. Points is the intel a station
 		-- gives; HackSeconds how long it takes; MinRoomTier the lowest room tier it may stand in.
 		Stations = {
-			[0] = { Name = "Tablet", Points = 2, HackSeconds = 4, MinRoomTier = 0 },
-			[1] = { Name = "Staff laptop", Points = 4, HackSeconds = 7, MinRoomTier = 0 },
-			[2] = { Name = "Server rack", Points = 6, HackSeconds = 11, MinRoomTier = 0 },
-			[3] = { Name = "Wall safe", Points = 10, HackSeconds = 16, MinRoomTier = 2 },
+			-- Owner 2026-11-25: hack times raised about a quarter, since there are many more stations than the spec planned.
+			[0] = { Name = "Tablet", Points = 2, HackSeconds = 5, MinRoomTier = 0 },
+			[1] = { Name = "Staff laptop", Points = 4, HackSeconds = 9, MinRoomTier = 0 },
+			[2] = { Name = "Server rack", Points = 6, HackSeconds = 14, MinRoomTier = 0 },
+			[3] = { Name = "Wall safe", Points = 10, HackSeconds = 20, MinRoomTier = 2 },
 		},
 		-- Ticket 11a: SPEC_CHANGES scaled the map to 36 stations and never limited how many are live, so every station is
 		-- usable. SPEC-QUESTION: ActiveSpawns (spec 9.2: 10 per match) is therefore not used.
@@ -1274,6 +1308,17 @@ local GameConfig = {
 		-- 9.3: team thresholds.
 		Thresholds = {
 			FundsAt1 = 100,
+		-- Owner 2026-11-25: a station must be unmistakable. A floating marker shows from across a room (not through walls) and the pad and screen pulse.
+		MarkerRange = 90, -- studs
+		MarkerWidthPixels = 56,
+		MarkerHeightPixels = 64,
+		MarkerLiftStuds = 3.2, -- the marker's height above the station
+		MarkerBobStuds = 0.25,
+		MarkerBobSeconds = 2.2,
+		MarkerColor = Color3.fromRGB(255, 205, 80),
+		MarkerFadeFromStuds = 60, -- the marker fades out between this and MarkerRange
+		PulseSeconds = 1.8,
+		PulseDepth = 0.55, -- how far the glow dims at the bottom of the pulse (transparency)
 			VaultArrowAt = 2,
 			HackBonusAt = 3,
 			CarrierRevealAt = 4,

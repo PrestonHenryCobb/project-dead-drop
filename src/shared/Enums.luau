@@ -66,6 +66,7 @@ local Enums = {
 		InsertionPoint = "InsertionPoint",
 		NPCNode = "NPCNode",
 		IntelSpawn = "IntelSpawn",
+		IntelGlow = "IntelGlow", -- the pad and screen of an Intel station: they pulse so the station is easy to find (client only)
 		PackageItem = "PackageItem", -- ticket 13a: the Package (made at match start); client targeting
 		ExtractionTerminal = "ExtractionTerminal", -- ticket 13a: a site's Call Extraction terminal; SiteId attribute
 		VaultSpawn = "VaultSpawn",

@@ -744,8 +744,8 @@ function SettingsPanel.open(parent: Frame)
 	local function showControls()
 		local pad = InputHints.isGamepad()
 		sessionDescription.Text = InputHints.text(
-			`Session preferences. {InputHints.name(GameConfig.ClientSettings.Key)} opens settings during a match. Changes take effect immediately.`,
-			"Applies immediately. B closes."
+			`Session preferences. {InputHints.name(GameConfig.ClientSettings.Key)} opens settings during a match. Changes apply at once and are saved with your profile.`,
+			`Saved with your profile. {InputHints.name(GameConfig.ClientSettings.PadKey)} opens settings during a match; B closes.`
 		)
 		recoverDescription.Text = `Re-cover automatically when possible. {InputHints.bracket(
 			GameConfig.Controls.Disguise,

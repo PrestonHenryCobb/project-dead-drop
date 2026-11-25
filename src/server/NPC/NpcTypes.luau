@@ -72,6 +72,8 @@ export type Npc = {
 	placedYaw: number,
 	animation: string, -- what clients should play ("" means just walk or idle)
 	threat: Vector3?, -- where the last gunshot or blast came from
+	hiding: boolean?, -- running to a spot behind furniture (Reactions)
+	hidden: boolean?, -- ducked behind it; goes back to normal when it has waited there
 	reactedTo: { [Model]: boolean }, -- bodies this NPC has already reacted to
 	bot: boolean?, -- ticket 13B-a: a bot's brain (BotService) chooses its trips; it never picks one itself
 	botArrive: (() -> ())?, -- called when a bot finishes the walk the brain sent it on

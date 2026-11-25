@@ -371,7 +371,7 @@ function SettingsController.Start()
 		end
 		toggle()
 		return Enum.ContextActionResult.Sink
-	end, false, GameConfig.Combat.InputPriority + 2, config.Key)
+	end, false, GameConfig.Combat.InputPriority + 2, config.Key, config.PadKey)
 	ContextActionService:BindActionAtPriority(CLOSE_ACTION, function(_, state)
 		if state == Enum.UserInputState.Begin and Panel.isOpen() and not UserInputService:GetFocusedTextBox() then
 			Panel.close()
