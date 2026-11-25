@@ -6,6 +6,8 @@ local GameConfig = require(Shared.GameConfig)
 local Types = require(Shared.Types)
 local Theme = require(script.Parent.Parent.MenuTheme)
 local MenuIcons = require(script.Parent.MenuIcons)
+local AgentLooks = require(Shared.Defs.AgentLooks)
+local MenuArtDefs = require(Shared.Defs.MenuArtDefs)
 local config = GameConfig.Menu
 local KitPicker = {}
 
@@ -58,6 +60,12 @@ function KitPicker.mount(
 				end,
 			})
 			button.Instance.TextSize = config.TextSizes.Small
+			MenuIcons.leadArt(
+				button.Instance,
+				MenuArtDefs.kit(item.Id),
+				MenuIcons.classIcon(agent.Class),
+				AgentLooks.accent(agent.Id)
+			)
 			if not available then
 				MenuIcons.badge(button.Instance, "Lock", `LVL {unlock}`)
 			elseif item.CooldownSeconds then

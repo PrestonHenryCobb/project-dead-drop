@@ -479,6 +479,9 @@ local GameConfig = {
 		-- Owner 2026-11-25: icons in place of text on the menu screens (see Components/MenuIcons).
 		Icons = {
 			RowIconPixels = 22,
+			ThumbPixels = 40, -- agent portrait on a roster row
+			CardPixels = 84, -- agent portrait on the agent card
+			PortraitPlateMix = 0.65, -- how far a portrait's backing colour is pulled from the agent colour toward the canvas
 			StrokeFraction = 0.12, -- the HUD's thinner strokes vanish at menu sizes
 			BadgeIconPixels = 16,
 			ChipIconPixels = 18,

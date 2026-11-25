@@ -14,6 +14,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local HudKit = require(Shared:WaitForChild("Util"):WaitForChild("HudKit"))
+local AgentLooks = require(Shared:WaitForChild("Defs"):WaitForChild("AgentLooks"))
+local MenuArtDefs = require(Shared:WaitForChild("Defs"):WaitForChild("MenuArtDefs"))
 local Types = require(Shared:WaitForChild("Types"))
 
 local config = GameConfig.Menu
@@ -24,6 +26,60 @@ export type Stat = { Icon: string, Text: string }
 
 -- Normalised strokes (x1, y1, x2, y2) on a 0..1 square. HudKit already draws Shield and Bullet; the rest are here.
 local DRAWINGS: { [string]: { { number } } } = {
+	Squad = {
+		{ 0.35, 0.1, 0.65, 0.1 },
+		{ 0.65, 0.1, 0.65, 0.4 },
+		{ 0.65, 0.4, 0.35, 0.4 },
+		{ 0.35, 0.4, 0.35, 0.1 },
+		{ 0.2, 0.9, 0.2, 0.6 },
+		{ 0.2, 0.6, 0.8, 0.6 },
+		{ 0.8, 0.6, 0.8, 0.9 },
+	},
+	Tier = { { 0.1, 0.65, 0.5, 0.25 }, { 0.5, 0.25, 0.9, 0.65 }, { 0.1, 0.9, 0.5, 0.5 }, { 0.5, 0.5, 0.9, 0.9 } },
+	Currency = {
+		{ 0.5, 0.1, 0.9, 0.5 },
+		{ 0.9, 0.5, 0.5, 0.9 },
+		{ 0.5, 0.9, 0.1, 0.5 },
+		{ 0.1, 0.5, 0.5, 0.1 },
+		{ 0.4, 0.4, 0.6, 0.4 },
+		{ 0.6, 0.4, 0.4, 0.6 },
+		{ 0.4, 0.6, 0.6, 0.6 },
+	},
+	Reward = {
+		{ 0.15, 0.35, 0.85, 0.35 },
+		{ 0.85, 0.35, 0.85, 0.9 },
+		{ 0.85, 0.9, 0.15, 0.9 },
+		{ 0.15, 0.9, 0.15, 0.35 },
+		{ 0.5, 0.9, 0.5, 0.2 },
+		{ 0.5, 0.35, 0.2, 0.1 },
+		{ 0.2, 0.1, 0.2, 0.35 },
+		{ 0.5, 0.35, 0.8, 0.1 },
+		{ 0.8, 0.1, 0.8, 0.35 },
+	},
+	Package = {
+		{ 0.1, 0.35, 0.9, 0.35 },
+		{ 0.9, 0.35, 0.9, 0.85 },
+		{ 0.9, 0.85, 0.1, 0.85 },
+		{ 0.1, 0.85, 0.1, 0.35 },
+		{ 0.3, 0.35, 0.3, 0.15 },
+		{ 0.3, 0.15, 0.7, 0.15 },
+		{ 0.7, 0.15, 0.7, 0.35 },
+	},
+	Extract = {
+		{ 0.2, 0.15, 0.2, 0.85 },
+		{ 0.2, 0.85, 0.5, 0.85 },
+		{ 0.35, 0.5, 0.9, 0.5 },
+		{ 0.9, 0.5, 0.65, 0.25 },
+		{ 0.9, 0.5, 0.65, 0.75 },
+	},
+	Gadget = {
+		{ 0.3, 0.35, 0.7, 0.35 },
+		{ 0.7, 0.35, 0.8, 0.9 },
+		{ 0.8, 0.9, 0.2, 0.9 },
+		{ 0.2, 0.9, 0.3, 0.35 },
+		{ 0.5, 0.35, 0.5, 0.1 },
+		{ 0.5, 0.1, 0.8, 0.1 },
+	},
 	Deceiver = { -- a half mask
 		{ 0.1, 0.3, 0.9, 0.3 },
 		{ 0.9, 0.3, 0.8, 0.7 },
@@ -87,6 +143,29 @@ local DRAWINGS: { [string]: { { number } } } = {
 	Passive = { { 0.5, 0.15, 0.85, 0.5 }, { 0.85, 0.5, 0.5, 0.85 }, { 0.5, 0.85, 0.15, 0.5 }, { 0.15, 0.5, 0.5, 0.15 } },
 	Swing = { { 0.2, 0.85, 0.8, 0.15 }, { 0.35, 0.55, 0.6, 0.75 } },
 	Soon = { { 0.2, 0.5, 0.8, 0.5 }, { 0.5, 0.2, 0.5, 0.8 } },
+	WeaponPistol = {
+		{ 0.1, 0.35, 0.8, 0.35 },
+		{ 0.8, 0.35, 0.8, 0.5 },
+		{ 0.8, 0.5, 0.45, 0.5 },
+		{ 0.45, 0.5, 0.4, 0.85 },
+		{ 0.4, 0.85, 0.25, 0.85 },
+		{ 0.25, 0.85, 0.3, 0.5 },
+		{ 0.3, 0.5, 0.1, 0.5 },
+		{ 0.1, 0.5, 0.1, 0.35 },
+	},
+	WeaponLong = {
+		{ 0.05, 0.45, 0.95, 0.45 },
+		{ 0.05, 0.55, 0.95, 0.55 },
+		{ 0.05, 0.45, 0.05, 0.55 },
+		{ 0.3, 0.55, 0.35, 0.9 },
+		{ 0.35, 0.9, 0.45, 0.9 },
+		{ 0.45, 0.9, 0.45, 0.55 },
+		{ 0.6, 0.45, 0.6, 0.3 },
+		{ 0.6, 0.3, 0.8, 0.3 },
+		{ 0.8, 0.3, 0.8, 0.45 },
+	},
+	WeaponMelee = { { 0.2, 0.85, 0.8, 0.15 }, { 0.15, 0.7, 0.4, 0.95 }, { 0.2, 0.85, 0.1, 0.95 } },
+	WeaponThrown = { { 0.3, 0.8, 0.7, 0.2 }, { 0.7, 0.2, 0.75, 0.45 }, { 0.75, 0.45, 0.3, 0.8 } },
 }
 -- HudKit's own drawings, used by name when this module has none.
 local HUDKIT_ICONS: { [string]: boolean } = { Shield = true, Bullet = true }
@@ -98,20 +177,49 @@ function MenuIcons.classIcon(class: string): string
 	return if class == "Enforcer" then "Shield" elseif class == "Deceiver" then "Deceiver" else "Specialist"
 end
 
+-- The icon for a Hardware item's category.
+function MenuIcons.weaponIcon(category: string): string
+	local name = string.lower(category)
+	if string.find(name, "melee", 1, true) then
+		return "WeaponMelee"
+	elseif string.find(name, "thrown", 1, true) then
+		return "WeaponThrown"
+	elseif (string.find(name, "pistol", 1, true) and not string.find(name, "machine", 1, true)) or name == "taser" then
+		return "WeaponPistol"
+	end
+	return "WeaponLong"
+end
+
 function MenuIcons.icon(parent: Instance, name: string, position: UDim2, pixels: number, color: Color3): Frame
 	local drawing = DRAWINGS[name]
 	assert(drawing or HUDKIT_ICONS[name], `Unknown menu icon {name}`)
 	return HudKit.icon(parent, name, position, pixels, color, drawing, icons.StrokeFraction)
 end
 
-function MenuIcons.lead(button: TextButton, icon: string)
+function MenuIcons.lead(button: TextButton, icon: string, color: Color3?)
 	MenuIcons.icon(
 		button,
 		icon,
 		UDim2.new(0, icons.EdgePixels, 0.5, -icons.RowIconPixels / 2),
 		icons.RowIconPixels,
-		colors.BrassBright
+		color or colors.BrassBright
 	)
+end
+
+-- A picture at the left edge of a button: the image from a MenuArtDefs slot when there is one, otherwise the icon.
+function MenuIcons.leadArt(button: TextButton, image: string?, icon: string, color: Color3?)
+	if not image then
+		MenuIcons.lead(button, icon, color)
+		return
+	end
+	local picture = Instance.new("ImageLabel")
+	picture.Name = "LeadArt"
+	picture.BackgroundTransparency = 1
+	picture.Image = image
+	picture.ScaleType = Enum.ScaleType.Fit
+	picture.Position = UDim2.new(0, icons.EdgePixels, 0.5, -icons.RowIconPixels / 2)
+	picture.Size = UDim2.fromOffset(icons.RowIconPixels, icons.RowIconPixels)
+	picture.Parent = button
 end
 
 local function label(parent: Instance, text: string, size: number, color: Color3, order: number): TextLabel
@@ -185,37 +293,44 @@ function MenuIcons.chips(parent: Instance, stats: { Stat }, y: number): Frame
 	return row
 end
 
+-- The same chips inside the menus' content-measured vertical stacks.
+function MenuIcons.flow(parent: Instance, stats: { Stat }, order: number): Frame
+	local row = MenuIcons.chips(parent, stats, 0)
+	row.LayoutOrder = order
+	return row
+end
+
 -- What a weapon shows, whatever its kind: damage, then the numbers that matter for that kind.
 function MenuIcons.weaponStats(def: Types.WeaponDef): { Stat }
 	local melee = def.Melee
 	if melee then
 		return {
-			{ Icon = "Swing", Text = tostring(melee.SwingDamage) },
-			{ Icon = "Range", Text = tostring(melee.SwingReach) },
-			{ Icon = "Clock", Text = `{melee.SwingSeconds}s` },
+			{ Icon = "Swing", Text = `{melee.SwingDamage} DMG` },
+			{ Icon = "Range", Text = `{melee.SwingReach} RANGE` },
+			{ Icon = "Clock", Text = `{melee.SwingSeconds}s SWING` },
 		}
 	end
 	if def.Projectile and def.Projectile.Kind == "Knife" then
 		return {
-			{ Icon = "Bullet", Text = tostring(def.Damage) },
-			{ Icon = "Ammo", Text = tostring(def.MagSize) },
+			{ Icon = "Bullet", Text = `{def.Damage} DMG` },
+			{ Icon = "Ammo", Text = `{def.MagSize} AMMO` },
 		}
 	end
 	local stats: { Stat } = {}
 	if def.Burst then
-		table.insert(stats, { Icon = "Bullet", Text = `{def.Damage}×{def.Burst.Count}` })
+		table.insert(stats, { Icon = "Bullet", Text = `{def.Damage}×{def.Burst.Count} DMG` })
 	elseif def.Pellets then
-		table.insert(stats, { Icon = "Bullet", Text = `{def.Pellets}×{def.Damage}` })
+		table.insert(stats, { Icon = "Bullet", Text = `{def.Pellets}×{def.Damage} DMG` })
 	else
-		table.insert(stats, { Icon = "Bullet", Text = tostring(def.Damage) })
+		table.insert(stats, { Icon = "Bullet", Text = `{def.Damage} DMG` })
 	end
 	if def.Taser then
-		table.insert(stats, { Icon = "Range", Text = tostring(def.MaxRange) })
+		table.insert(stats, { Icon = "Range", Text = `{def.MaxRange} RANGE` })
 	elseif not def.Burst then
-		table.insert(stats, { Icon = "Rate", Text = tostring(def.RPM) })
+		table.insert(stats, { Icon = "Rate", Text = `{def.RPM} RPM` })
 	end
-	table.insert(stats, { Icon = "Ammo", Text = `{def.MagSize}/{def.ReserveAmmo}` })
-	table.insert(stats, { Icon = "Reload", Text = `{def.ReloadSeconds}s` })
+	table.insert(stats, { Icon = "Ammo", Text = `{def.MagSize}/{def.ReserveAmmo} AMMO` })
+	table.insert(stats, { Icon = "Reload", Text = `{def.ReloadSeconds}s RELOAD` })
 	return stats
 end
 
@@ -251,6 +366,111 @@ function MenuIcons.pips(parent: Instance, y: number, filled: number, total: numb
 		end
 	end
 	return row
+end
+
+-- A shape in a portrait: a box (optionally rounded) at fractions of the portrait's size.
+local function shape(
+	parent: Instance,
+	x: number,
+	y: number,
+	w: number,
+	h: number,
+	fill: Color3,
+	round: number,
+	layer: number
+): Frame
+	local box = Instance.new("Frame")
+	box.BackgroundColor3 = fill
+	box.BorderSizePixel = 0
+	box.Position = UDim2.fromScale(x, y)
+	box.Size = UDim2.fromScale(w, h)
+	box.ZIndex = layer
+	box.Parent = parent
+	if round > 0 then
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(round, 0)
+		corner.Parent = box
+	end
+	return box
+end
+
+-- A bust of an agent, built from the same outfit the 3D model wears so the two always match, or the agent's picture from MenuArtDefs once there is one.
+function MenuIcons.portrait(parent: Instance, agentId: string, pixels: number, position: UDim2): Frame
+	local frame = Instance.new("Frame")
+	frame.Name = "Portrait"
+	frame.Position = position
+	frame.Size = UDim2.fromOffset(pixels, pixels)
+	frame.BorderSizePixel = 0
+	frame.BackgroundColor3 = AgentLooks.accent(agentId):Lerp(colors.Canvas, icons.PortraitPlateMix)
+	frame.ClipsDescendants = true
+	frame.Parent = parent
+	local image = MenuArtDefs.portrait(agentId)
+	if image then
+		local picture = Instance.new("ImageLabel")
+		picture.BackgroundTransparency = 1
+		picture.Image = image
+		picture.ScaleType = Enum.ScaleType.Crop
+		picture.Size = UDim2.fromScale(1, 1)
+		picture.Parent = frame
+		return frame
+	end
+	local outfit = AgentLooks.outfit(agentId)
+	local skin, jacket = outfit.BodyColors.Skin, outfit.Shirt.Color
+	local ink = colors.Canvas
+	local style = outfit.Hair.Style
+	local hair = outfit.Hair.Color
+	if style == "Afro" or style == "Curly" then
+		shape(frame, 0.22, 0.1, 0.56, 0.42, hair, 0.5, 1)
+	end
+	shape(frame, 0.1, 0.74, 0.8, 0.5, jacket, 0.3, 1) -- shoulders
+	shape(frame, 0.42, 0.56, 0.16, 0.22, skin, 0, 1) -- neck
+	shape(frame, 0.3, 0.2, 0.4, 0.46, skin, 0.22, 2) -- head
+	if style ~= "Bald" and style ~= "Afro" and style ~= "Curly" then
+		shape(frame, 0.29, 0.17, 0.42, 0.16, hair, 0.4, 3)
+		if style == "Long" then
+			shape(frame, 0.26, 0.25, 0.07, 0.42, hair, 0.3, 3)
+			shape(frame, 0.67, 0.25, 0.07, 0.42, hair, 0.3, 3)
+		elseif style == "Bun" then
+			shape(frame, 0.42, 0.06, 0.16, 0.16, hair, 0.5, 3)
+		elseif style == "Ponytail" then
+			shape(frame, 0.7, 0.24, 0.08, 0.34, hair, 0.4, 3)
+		end
+	end
+	local hasSunglasses = false
+	for _, item in outfit.Accessories do
+		if item.Kind == "Sunglasses" then
+			hasSunglasses = true
+		end
+	end
+	if not hasSunglasses then
+		shape(frame, 0.37, 0.4, 0.05, 0.05, ink, 0.5, 4)
+		shape(frame, 0.58, 0.4, 0.05, 0.05, ink, 0.5, 4)
+	end
+	for _, item in outfit.Accessories do
+		local kind, tint = item.Kind, item.Color
+		if kind == "Glasses" then
+			shape(frame, 0.33, 0.37, 0.14, 0.1, tint, 0.2, 5).BackgroundTransparency = 0.55
+			shape(frame, 0.53, 0.37, 0.14, 0.1, tint, 0.2, 5).BackgroundTransparency = 0.55
+		elseif kind == "Sunglasses" then
+			shape(frame, 0.32, 0.37, 0.36, 0.09, tint, 0.2, 5)
+		elseif kind == "Mustache" then
+			shape(frame, 0.4, 0.54, 0.2, 0.04, tint, 0.5, 5)
+		elseif kind == "Beard" then
+			shape(frame, 0.3, 0.52, 0.4, 0.15, tint, 0.45, 4)
+		elseif kind == "Fedora" then
+			shape(frame, 0.2, 0.17, 0.6, 0.05, tint, 0.5, 6)
+			shape(frame, 0.3, 0.05, 0.4, 0.14, tint, 0.25, 6)
+		elseif kind == "Scarf" then
+			shape(frame, 0.3, 0.66, 0.4, 0.11, tint, 0.3, 5)
+		elseif kind == "Tie" then
+			shape(frame, 0.47, 0.72, 0.06, 0.26, tint, 0, 5)
+		elseif kind == "BowTie" then
+			shape(frame, 0.4, 0.7, 0.2, 0.06, tint, 0.3, 5)
+		elseif kind == "Necklace" then
+			shape(frame, 0.38, 0.69, 0.24, 0.03, tint, 0.5, 5)
+		end
+	end
+	return frame
 end
 
 return MenuIcons

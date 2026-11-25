@@ -10,6 +10,7 @@ local Kit = require(script.Parent.Parent.Components.ViewKit)
 local Preview = require(script.Parent.Parent.Components.WeaponPreview)
 local Art = require(script.Parent.Parent.Components.DecoArt)
 local MenuIcons = require(script.Parent.Parent.Components.MenuIcons)
+local MenuArtDefs = require(Shared.Defs.MenuArtDefs)
 local KitPicker = require(script.Parent.Parent.Components.KitPicker)
 local cleanup = Janitor.new()
 local content = Janitor.new()
@@ -78,7 +79,11 @@ function view.Mount(stage, navigator, context)
 		Kit.text(left, string.upper(agentId), 0, 42, true)
 		local insignia = Kit.frame(left, "OperativeCredential", UDim2.new(1, -64, 0, 0), UDim2.fromOffset(56, 56))
 		Art.insignia(insignia, "Asset")
-		Kit.text(left, agent.Epithet .. "\n" .. agent.Class .. " / " .. agent.Role, 50, 76)
+		local card = GameConfig.Menu.Icons.CardPixels
+		MenuIcons.portrait(left, agent.Id, card, UDim2.fromOffset(0, 50))
+		local epithet = Kit.text(left, agent.Epithet .. "\n" .. agent.Class .. " / " .. agent.Role, 50, 76)
+		epithet.Position = UDim2.fromOffset(card + 12, 50)
+		epithet.Size = UDim2.new(1, -(card + 12), 0, 76)
 		for index, id in Agents.order do
 			local entry = assert(Agents.get(id))
 			local button = Kit.button(left, string.upper(id), 142 + (index - 1) * 58, function()
@@ -87,7 +92,15 @@ function view.Mount(stage, navigator, context)
 				talentId, instinctId = nil, nil
 				draw()
 			end)
-			MenuIcons.lead(button.Instance, MenuIcons.classIcon(entry.Class))
+			local thumb = GameConfig.Menu.Icons.ThumbPixels
+			MenuIcons.portrait(button.Instance, id, thumb, UDim2.new(0, 4, 0.5, -thumb / 2))
+			MenuIcons.icon(
+				button.Instance,
+				MenuIcons.classIcon(entry.Class),
+				UDim2.new(0, thumb + 12, 0.5, -8),
+				16,
+				Kit.Theme.Colors.TextDim
+			)
 			if data and data.Profile.OwnedAgents[id] then
 				MenuIcons.badge(button.Instance, "Check", "OWNED", Kit.Theme.Colors.EmeraldBright)
 			else
@@ -127,6 +140,7 @@ function view.Mount(stage, navigator, context)
 				weaponId = item.Id
 				draw()
 			end)
+			MenuIcons.leadArt(button.Instance, MenuArtDefs.hardware(item.Id), MenuIcons.weaponIcon(item.Category))
 			if data and data.Loadout and data.Loadout.HardwareId == item.Id then
 				MenuIcons.badge(button.Instance, "Check", "EQUIPPED", Kit.Theme.Colors.EmeraldBright)
 			elseif not item.Def then

@@ -3,7 +3,7 @@
 -- their Hardware and the camera framings each screen uses.
 --
 -- The operative uses an available StarterCharacter or a local blank R15, dressed by the shared OutfitApplier.
--- Agents have no look of their own until Step 16, so every agent stands in the shared True Form outfit; only the weapon
+-- Each agent stands in their own outfit (Defs/AgentLooks); only the weapon
 -- changes. Weapons not built yet (no WeaponDef) are shown without a gun rather than with a stand-in.
 --
 --   local stage = MenuStage.new()
@@ -22,7 +22,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local Janitor = require(Shared:WaitForChild("Util"):WaitForChild("Janitor"))
 local OutfitApplier = require(Shared:WaitForChild("Util"):WaitForChild("OutfitApplier"))
-local OutfitDefs = require(Shared:WaitForChild("Defs"):WaitForChild("OutfitDefs"))
+local AgentLooks = require(Shared:WaitForChild("Defs"):WaitForChild("AgentLooks"))
 local UiAccessibility = require(Shared:WaitForChild("Util"):WaitForChild("UiAccessibility"))
 local WeaponDefs = require(Shared:WaitForChild("Defs"):WaitForChild("WeaponDefs"))
 local ViewModel = require(script.Parent.Parent:WaitForChild("Combat"):WaitForChild("ViewModel"))
@@ -45,6 +45,7 @@ export type MenuStage = typeof(setmetatable(
 		rig: Model?,
 		weapon: ViewModel.ViewModel?,
 		shown: string?, -- "agent/hardware" on stage now
+		dressedAgent: string?, -- whose outfit the rig on stage wears
 		requestedAgent: string?,
 		requestedHardware: string?,
 		previewTemplate: Model?,
@@ -215,6 +216,7 @@ function MenuStage.new(): MenuStage
 		rig = nil,
 		weapon = nil,
 		shown = nil,
+		dressedAgent = nil,
 		requestedAgent = nil,
 		requestedHardware = nil,
 		previewTemplate = nil,
@@ -262,6 +264,7 @@ end
 local function clearOperative(self: MenuStage)
 	self.poseJanitor:Cleanup()
 	self.poseState = nil
+	self.dressedAgent = nil
 	table.clear(self.opacity)
 	if self.weapon then
 		self.weapon:destroy()
@@ -417,6 +420,9 @@ function MenuStage.show(self: MenuStage, agentId: string, hardwareId: string?)
 		fadeOperative(self, 1)
 		return
 	end
+	if self.rig and self.dressedAgent ~= agentId then
+		clearOperative(self) -- a different agent has a different outfit: build the rig again
+	end
 	if self.rig then
 		replaceWeapon(self, hardwareId)
 		self.shown = key
@@ -499,12 +505,14 @@ function MenuStage.show(self: MenuStage, agentId: string, hardwareId: string?)
 	end
 	root.Anchored = true
 	rig.Parent = self.folder
-	OutfitApplier.apply(rig, OutfitDefs.trueForm)
+	local outfit = AgentLooks.outfit(agentId)
+	OutfitApplier.apply(rig, outfit)
+	self.dressedAgent = agentId
 	-- The shared fallback Crop is a flat rectangular Part. Give this close-up display a rounded crown,
 	-- with its center at the head's HairAttachment instead of a visor-shaped box lowered across the face.
 	local hair = rig:FindFirstChild("Hair")
 	local hairHandle = hair and hair:FindFirstChild("Handle")
-	if hairHandle and hairHandle:IsA("Part") then
+	if outfit.Hair.Style == "Crop" and hairHandle and hairHandle:IsA("Part") then
 		hairHandle.Shape = Enum.PartType.Ball
 		hairHandle.Size *= Vector3.new(1, 1.5, 0.9)
 		local attachment = hairHandle:FindFirstChild("HairAttachment")
