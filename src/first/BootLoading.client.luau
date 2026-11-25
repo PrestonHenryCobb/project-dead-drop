@@ -14,6 +14,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local LoadingDefs = require(Shared:WaitForChild("Defs"):WaitForChild("LoadingDefs"))
 local LoadingScreen = require(Shared:WaitForChild("Util"):WaitForChild("LoadingScreen"))
+local StudioIntro = require(Shared:WaitForChild("Util"):WaitForChild("StudioIntro"))
 
 local config = GameConfig.Loading
 
@@ -23,6 +24,17 @@ if sceneId == "" then
 end
 local screen = LoadingScreen.show(sceneId)
 ReplicatedFirst:RemoveDefaultLoadingScreen()
+
+-- The studio intro plays over the loading screen while the assets load underneath; the loading screen is only read once the intro is over.
+local introPlaying = config.PreviewScene == "" and GameConfig.StudioIntro.Enabled
+local introEndedAt = os.clock()
+if introPlaying then
+	task.spawn(function()
+		StudioIntro.play()
+		introEndedAt = os.clock()
+		introPlaying = false
+	end)
+end
 
 if config.PreviewScene ~= "" then
 	return -- layout review: the screen stays up
@@ -89,7 +101,10 @@ if not game:IsLoaded() then
 		task.wait(0.1)
 	end
 end
-local remaining = config.MinShowSeconds - (os.clock() - startedAt)
+while introPlaying do
+	task.wait(0.1)
+end
+local remaining = config.MinShowSeconds - (os.clock() - math.max(startedAt, introEndedAt))
 if remaining > 0 then
 	task.wait(remaining)
 end

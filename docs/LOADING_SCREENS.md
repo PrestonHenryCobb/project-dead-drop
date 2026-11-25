@@ -20,3 +20,5 @@ Owner ask: custom, dynamic, themed loading screens for changing places and pre-l
 - Tips only restate rules that exist (cover, intel stations, hold-to-hack vault, watch, ping wheel, loadout lock-in).
 
 Not verified in Studio when written (Studio was not connected): layout, the teleport screens (need two published places and matchmaking config).
+
+- Studio intro (Never Seen Swag): `StudioIntro` + `StudioLogo` (code-drawn logo, no background), plays over the boot screen, any key/click skips; set `GameConfig.StudioIntro.Enabled = false` to turn it off.

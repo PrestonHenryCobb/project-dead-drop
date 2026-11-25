@@ -202,6 +202,27 @@ local GameConfig = {
 		BarTrackColor = Color3.fromHex("1D242E"),
 	},
 
+	-- Owner 2026-11-25: the studio intro (Never Seen Swag) that plays once at game start, over the boot loading screen. Skippable by any key or click.
+	StudioIntro = {
+		Enabled = true,
+		StudioName = "NEVER SEEN SWAG",
+		Tagline = "PRESENTS",
+		LogoSizePixels = 130, -- letter height; the logo's other parts scale from it
+		FadeInSeconds = 0.3,
+		LetterStaggerSeconds = 0.16,
+		LetterFadeSeconds = 0.3,
+		BarStampSeconds = 0.18, -- the red bars through the two S's drop in
+		WifiRingSeconds = 0.12, -- each wifi ring lights this long after the one before
+		StrikeSeconds = 0.22, -- the slash across the wifi sign
+		TaglineFadeSeconds = 0.4,
+		HoldSeconds = 1.0,
+		FadeOutSeconds = 0.5,
+		InkColor = Color3.fromHex("F4EFE6"),
+		RedColor = Color3.fromHex("C2383F"),
+		BackgroundColor = Color3.fromHex("0B0F15"),
+		TaglineSize = 15,
+	},
+
 	-- Spec 3.2 / 3.3: agent select and team colors (in the order teams are assigned).
 	Lobby = {
 		AgentSelectSeconds = 30,
