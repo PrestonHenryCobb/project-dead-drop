@@ -36,6 +36,9 @@ local CITY_WAIT_SECONDS = 30
 local GraphicsController = {}
 
 local mode: Mode = "Auto"
+-- Shadows and bloom can be switched on or off by hand over whatever the quality level says (Settings > Performance); nil follows the level.
+local shadowsOverride: boolean? = nil
+local bloomOverride: boolean? = nil
 local current: LevelConfig? = nil
 -- Everything the setting can take out of the city, with where it goes back.
 local windowTextures: { { texture: Texture, part: BasePart, band: string } } = {}
@@ -115,7 +118,7 @@ local function apply(settings: LevelConfig)
 			end
 		end
 	end
-	Lighting.GlobalShadows = settings.Shadows
+	Lighting.GlobalShadows = if shadowsOverride ~= nil then shadowsOverride else settings.Shadows
 	-- Ticket gala-art-direction: preserve warm/cool readability when dynamic lights/shadows are reduced.
 	local low = settings == levels.Low
 	Lighting.Ambient = if low then GameConfig.Art.Lighting.LowAmbient else GameConfig.Art.Lighting.Ambient
@@ -124,7 +127,7 @@ local function apply(settings: LevelConfig)
 		else GameConfig.Art.Lighting.OutdoorAmbient
 	local bloom = Lighting:FindFirstChild("GalaBloom")
 	if bloom and bloom:IsA("BloomEffect") then
-		bloom.Enabled = settings.Bloom
+		bloom.Enabled = if bloomOverride ~= nil then bloomOverride else settings.Bloom
 	end
 	local atmosphere = Lighting:FindFirstChild("GalaAtmosphere")
 	if atmosphere and atmosphere:IsA("Atmosphere") then
@@ -168,6 +171,25 @@ function GraphicsController.setMode(nextMode: Mode)
 	assert(table.find(CYCLE, nextMode), `Unknown graphics mode {nextMode}`)
 	mode = nextMode
 	refresh(true)
+end
+
+function GraphicsController.shadowsOn(): boolean
+	return Lighting.GlobalShadows
+end
+
+function GraphicsController.setShadows(on: boolean?)
+	shadowsOverride = on
+	refresh(false)
+end
+
+function GraphicsController.bloomOn(): boolean
+	local bloom = Lighting:FindFirstChild("GalaBloom")
+	return bloom ~= nil and bloom:IsA("BloomEffect") and bloom.Enabled
+end
+
+function GraphicsController.setBloom(on: boolean?)
+	bloomOverride = on
+	refresh(false)
 end
 
 function GraphicsController.Init()

@@ -11,6 +11,7 @@
 -- under it, and a tip that changes now and then.
 
 local Players = game:GetService("Players")
+local ReplicatedFirst = game:GetService("ReplicatedFirst")
 local RunService = game:GetService("RunService")
 local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
@@ -26,11 +27,58 @@ export type LoadingScreen = {
 	gui: ScreenGui,
 	sceneId: string,
 	setProgress: (fraction: number?) -> (),
-	close: () -> (),
+	close: (onGone: (() -> ())?) -> (), -- onGone runs once the screen has fully faded and been removed
 	destroy: () -> (),
 }
 
 local LoadingScreen = {}
+
+LoadingScreen.BOOT_ATTRIBUTE = "BootLoading"
+local BOOT_ATTRIBUTE = LoadingScreen.BOOT_ATTRIBUTE
+
+-- Screens that are still on show, fully faded out ones excluded. The menu waits for this to reach zero before it appears, so a loading screen is never
+-- still fading over it.
+local active = 0
+local clearWaiters: { () -> () } = {}
+local watching = false
+
+-- The boot script (ReplicatedFirst) raises this attribute the moment it starts, before it has built its screen, so nothing can slip in between.
+local function booting(): boolean
+	return ReplicatedFirst:GetAttribute(BOOT_ATTRIBUTE) == true
+end
+
+function LoadingScreen.isActive(): boolean
+	return active > 0 or booting()
+end
+
+local function flush()
+	if LoadingScreen.isActive() then
+		return
+	end
+	local waiting = clearWaiters
+	clearWaiters = {}
+	for _, callback in waiting do
+		task.defer(callback)
+	end
+end
+
+-- Runs the callback once no loading screen is on show (at once, if none is).
+function LoadingScreen.whenClear(callback: () -> ())
+	if not LoadingScreen.isActive() then
+		callback()
+		return
+	end
+	table.insert(clearWaiters, callback)
+	if not watching then
+		watching = true
+		ReplicatedFirst:GetAttributeChangedSignal(BOOT_ATTRIBUTE):Connect(flush)
+	end
+end
+
+local function released()
+	active -= 1
+	flush()
+end
 
 local FRAME_INSET = 20 -- gap between the screen edge and the hairline frame
 local COLUMN_PADDING = 14
@@ -170,6 +218,8 @@ function LoadingScreen.show(sceneId: string): LoadingScreen
 	gui.ScreenInsets = Enum.ScreenInsets.None
 	gui:SetAttribute("AlwaysVisible", true) -- the menu switches every other ScreenGui off; a loading screen must stay
 	janitor:Add(gui)
+	active += 1
+	janitor:Add(released)
 
 	-- A CanvasGroup so the whole screen fades as one.
 	local root = Instance.new("CanvasGroup")
@@ -405,7 +455,7 @@ function LoadingScreen.show(sceneId: string): LoadingScreen
 			janitor:Destroy()
 		end
 	end
-	function self.close()
+	function self.close(onGone: (() -> ())?)
 		if not alive then
 			return
 		end
@@ -414,6 +464,9 @@ function LoadingScreen.show(sceneId: string): LoadingScreen
 		local fade = TweenService:Create(root, TweenInfo.new(config.FadeOutSeconds), { GroupTransparency = 1 })
 		fade.Completed:Once(function()
 			janitor:Destroy()
+			if onGone then
+				onGone()
+			end
 		end)
 		fade:Play()
 	end

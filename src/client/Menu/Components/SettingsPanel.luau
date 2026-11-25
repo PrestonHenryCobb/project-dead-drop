@@ -3,6 +3,7 @@
 local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared.GameConfig)
 local InputHints = require(Shared.Util.InputHints)
@@ -217,6 +218,178 @@ function SettingsPanel.open(parent: Frame)
 		Parent = body,
 		LayoutOrder = 11,
 	})
+	-- Owner 2026-11-25: settings in four plain groups (Aim, Performance, Audio, Espionage). The rows below are the new ones; the older rows above are given
+	-- their place in a group by name further down.
+	local function header(name: string, title: string)
+		MenuTheme.label({ Name = name, Text = title, Style = "Title", Parent = body, LayoutOrder = 0 })
+	end
+	header("AimHeader", "AIM")
+	header("PerformanceHeader", "PERFORMANCE")
+	header("AudioHeader", "AUDIO")
+	header("EspionageHeader", "ESPIONAGE")
+	local updaters: { () -> () } = {}
+	-- A button that flips one setting and shows it as "TITLE · ON / OFF".
+	local function toggleRow(name: string, title: string, read: () -> boolean, write: (boolean) -> ())
+		local button = MenuTheme.secondaryButton({
+			Name = name,
+			Text = "",
+			Parent = body,
+			LayoutOrder = 0,
+			OnActivated = function()
+				write(not read())
+			end,
+		})
+		local last: boolean? = nil
+		table.insert(updaters, function()
+			local on = read()
+			if on ~= last then
+				last = on
+				button.SetText(`{title} · {if on then "ON" else "OFF"}`)
+				button.SetSelected(on)
+			end
+		end)
+	end
+	toggleRow("Shadows", "SHADOWS", GraphicsController.shadowsOn, GraphicsController.setShadows)
+	toggleRow("Bloom", "BLOOM", GraphicsController.bloomOn, GraphicsController.setBloom)
+	toggleRow("ShowFps", "FPS COUNTER", function()
+		return SettingsController.get().ShowFps
+	end, SettingsController.setShowFps)
+	toggleRow("ExposedOutline", "EXPOSED AGENT OUTLINE", function()
+		return SettingsController.get().ExposedOutline
+	end, SettingsController.setExposedOutline)
+	local worldVolume = stepper("WorldVolume", "AMBIENCE, FOOTSTEPS AND CUES VOLUME", 0, function(direction)
+		SettingsController.setWorldVolume(
+			SettingsController.get().WorldVolume + direction * GameConfig.ClientAudio.CombatVolumeStep
+		)
+	end)
+	local lastWorld: number? = nil
+	table.insert(updaters, function()
+		local value = SettingsController.get().WorldVolume
+		if value ~= lastWorld then
+			lastWorld = value
+			worldVolume(if value == 0 then "MUTED" else `{math.floor(value * 100 + 0.5)}%`, value > 0, value < 1)
+		end
+	end)
+	-- The outline colour: eight swatches and a hue slider.
+	local outline = GameConfig.ExposedOutline
+	local colorRow = Instance.new("Frame")
+	colorRow.Name = "OutlineColor"
+	colorRow.BackgroundTransparency = 1
+	colorRow.Size = UDim2.new(1, 0, 0, config.ChipHeightPixels + config.SecondaryHeightPixels * 2 + config.GapPixels)
+	colorRow.Parent = body
+	MenuTheme.label({
+		Name = "Label",
+		Text = "OUTLINE COLOUR",
+		Style = "Kicker",
+		Parent = colorRow,
+		Size = UDim2.new(1, 0, 0, config.ChipHeightPixels),
+	})
+	local swatches: { { button: TextButton, color: Color3, stroke: UIStroke } } = {}
+	for index, color in outline.Swatches do
+		local swatch = Instance.new("TextButton")
+		swatch.Name = `Swatch{index}`
+		swatch.Text = ""
+		swatch.AutoButtonColor = true
+		swatch.BackgroundColor3 = color
+		swatch.BorderSizePixel = 0
+		local count = #outline.Swatches
+		swatch.Position = UDim2.new((index - 1) / count, 0, 0, config.ChipHeightPixels)
+		swatch.Size = UDim2.new(1 / count, -config.GapPixels / 2, 0, config.SecondaryHeightPixels)
+		swatch.Parent = colorRow
+		local ring = Instance.new("UIStroke")
+		ring.Color = MenuTheme.Colors.Text
+		ring.Thickness = config.FocusPixels
+		ring.Enabled = false
+		ring.Parent = swatch
+		cleanup:Add(swatch.Activated:Connect(function()
+			SettingsController.setExposedOutlineColor(color)
+		end))
+		table.insert(swatches, { button = swatch, color = color, stroke = ring })
+	end
+	local hueBar = Instance.new("TextButton")
+	hueBar.Name = "HueSlider"
+	hueBar.Text = ""
+	hueBar.AutoButtonColor = false
+	hueBar.BackgroundColor3 = Color3.new(1, 1, 1)
+	hueBar.BorderSizePixel = 0
+	hueBar.Position = UDim2.fromOffset(0, config.ChipHeightPixels + config.SecondaryHeightPixels + config.GapPixels)
+	hueBar.Size = UDim2.new(1, 0, 0, config.SecondaryHeightPixels)
+	hueBar.Parent = colorRow
+	local hueGradient = Instance.new("UIGradient")
+	local hueKeys: { ColorSequenceKeypoint } = {}
+	local hueSteps = 6
+	for step = 0, hueSteps do
+		table.insert(
+			hueKeys,
+			ColorSequenceKeypoint.new(
+				step / hueSteps,
+				Color3.fromHSV(step / hueSteps, outline.HueSaturation, outline.HueValue)
+			)
+		)
+	end
+	hueGradient.Color = ColorSequence.new(hueKeys)
+	hueGradient.Parent = hueBar
+	local handle = Instance.new("Frame")
+	handle.Name = "Handle"
+	handle.AnchorPoint = Vector2.new(0.5, 0.5)
+	handle.BackgroundColor3 = MenuTheme.Colors.Text
+	handle.BorderSizePixel = 0
+	handle.Size = UDim2.new(0, config.TrimPixels * 3, 1, config.GapPixels)
+	handle.Position = UDim2.fromScale(0, 0.5)
+	handle.Parent = hueBar
+	local dragging = false
+	local function pickHue(x: number)
+		local fraction = math.clamp((x - hueBar.AbsolutePosition.X) / math.max(1, hueBar.AbsoluteSize.X), 0, 1)
+		SettingsController.setExposedOutlineColor(Color3.fromHSV(fraction, outline.HueSaturation, outline.HueValue))
+	end
+	cleanup:Add(hueBar.InputBegan:Connect(function(input: InputObject)
+		if
+			input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch
+		then
+			dragging = true
+			pickHue(input.Position.X)
+		end
+	end))
+	cleanup:Add(UserInputService.InputChanged:Connect(function(input: InputObject)
+		if
+			dragging
+			and (
+				input.UserInputType == Enum.UserInputType.MouseMovement
+				or input.UserInputType == Enum.UserInputType.Touch
+			)
+		then
+			pickHue(input.Position.X)
+		end
+	end))
+	cleanup:Add(UserInputService.InputEnded:Connect(function(input: InputObject)
+		if
+			input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch
+		then
+			dragging = false
+		end
+	end))
+	local lastColor: Color3? = nil
+	table.insert(updaters, function()
+		local color = SettingsController.get().ExposedOutlineColor
+		if color ~= lastColor then
+			lastColor = color
+			local hue = color:ToHSV()
+			handle.Position = UDim2.fromScale(hue, 0.5)
+			for _, entry in swatches do
+				entry.stroke.Enabled = entry.color == color
+			end
+		end
+	end)
+	for _, update in updaters do
+		update()
+	end
+	cleanup:Add(RunService.Heartbeat:Connect(function()
+		for _, update in updaters do
+			update()
+		end
+	end))
 	local lastFov, lastSensitivity = nil :: number?, nil :: number?
 	local lastVolume: number? = nil
 	local lastMotion, lastGraphics = "", ""
@@ -278,10 +451,14 @@ function SettingsPanel.open(parent: Frame)
 	cleanup:Add(RunService.Heartbeat:Connect(refresh))
 	MenuTheme.secondaryButton({
 		Name = "ResetPreferences",
-		Text = "RESET CAMERA + COMBAT AUDIO",
+		Text = "RESET ALL SETTINGS",
 		Parent = body,
 		LayoutOrder = 12,
-		OnActivated = SettingsController.reset,
+		OnActivated = function()
+			SettingsController.reset()
+			GraphicsController.setShadows(nil)
+			GraphicsController.setBloom(nil)
+		end,
 	})
 	MenuTheme.label({
 		Name = "ControlsTitle",
@@ -349,6 +526,42 @@ function SettingsPanel.open(parent: Frame)
 	end
 	showControls()
 	cleanup:Add(InputHints.onChange(showControls))
+	-- Where each row sits, group by group.
+	local order = {
+		SessionDescription = 1,
+		AimHeader = 10,
+		FieldOfView = 11,
+		Sensitivity = 12,
+		CameraShake = 13,
+		CameraShakeDescription = 14,
+		PerformanceHeader = 20,
+		GraphicsMode = 21,
+		Shadows = 22,
+		Bloom = 23,
+		ShowFps = 24,
+		ReducedMotion = 25,
+		MotionDescription = 26,
+		AudioHeader = 30,
+		CombatVolume = 31,
+		WorldVolume = 32,
+		EspionageHeader = 40,
+		ExposedOutline = 41,
+		OutlineColor = 42,
+		AutoRecoverToggle = 44,
+		AutoRecoverDescription = 45,
+		ResetPreferences = 50,
+		ControlsTitle = 60,
+		StealthControls = 61,
+		CombatControls = 62,
+		ObjectiveControls = 63,
+		GamepadControls = 64,
+	}
+	for name, place in order do
+		local item = body:FindFirstChild(name)
+		if item and item:IsA("GuiObject") then
+			item.LayoutOrder = place
+		end
+	end
 	MenuTheme.secondaryButton({
 		Name = "CloseSettings",
 		Text = "CLOSE SETTINGS",

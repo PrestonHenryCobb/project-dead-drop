@@ -45,6 +45,23 @@ function KitPicker.mount(
 		frame.Parent = parent
 		Theme.stack(frame)
 		Theme.label({ Name = "Title", Text = string.upper(kind), Style = "Kicker", Parent = frame, LayoutOrder = 0 })
+		-- One description under the list: the chosen item's, or whichever item is hovered or focused, locked ones included (owner 2026-11-25: a player
+		-- can always read what a locked ability does, and what unlocks it).
+		local description = Theme.label({
+			Name = "Description",
+			Text = "",
+			Style = "Small",
+			Parent = frame,
+			LayoutOrder = #items + 1,
+		})
+		local function describe(item: Types.AgentKitItem, unlock: number, available: boolean): string
+			local text = item.Description
+			if not available then
+				text ..= if owned == false then "\nOwn this agent to use it." else `\nUnlocks at Mastery {unlock}.`
+			end
+			return text
+		end
+		local chosenText = ""
 		for index, item in items do
 			local unlock = levels[index] or math.huge
 			local available = owned ~= false and mastery >= unlock
@@ -54,9 +71,10 @@ function KitPicker.mount(
 				Parent = frame,
 				LayoutOrder = index,
 				Size = UDim2.new(1, 0, 0, config.SecondaryHeightPixels + config.TextSizes.Small),
-				Enabled = available,
 				OnActivated = function()
-					choose(kind, item.Id)
+					if available then
+						choose(kind, item.Id)
+					end
 				end,
 			})
 			button.Instance.TextSize = config.TextSizes.Small
@@ -67,6 +85,7 @@ function KitPicker.mount(
 				AgentLooks.accent(agent.Id)
 			)
 			if not available then
+				button.Instance.TextTransparency = config.Icons.LockedTextTransparency
 				MenuIcons.badge(button.Instance, "Lock", `LVL {unlock}`)
 			elseif item.CooldownSeconds then
 				MenuIcons.badge(button.Instance, "Clock", `{item.CooldownSeconds}s`)
@@ -74,16 +93,22 @@ function KitPicker.mount(
 				MenuIcons.badge(button.Instance, "Passive", "PASSIVE")
 			end
 			button.SetSelected(selected == item.Id)
+			local text = describe(item, unlock, available)
 			if selected == item.Id then
-				Theme.label({
-					Name = "SelectedDescription",
-					Text = item.Description,
-					Style = "Small",
-					Parent = frame,
-					LayoutOrder = #items + 1,
-				})
+				chosenText = text
 			end
+			local function show()
+				description.Text = text
+			end
+			local function revert()
+				description.Text = chosenText
+			end
+			button.Instance.MouseEnter:Connect(show)
+			button.Instance.SelectionGained:Connect(show)
+			button.Instance.MouseLeave:Connect(revert)
+			button.Instance.SelectionLost:Connect(revert)
 		end
+		description.Text = chosenText
 	end
 	section("Talent", agent.Talents, GameConfig.Mastery.TalentUnlockLevels, talent, 1)
 	section("Instinct", agent.Instincts, GameConfig.Mastery.InstinctUnlockLevels, instinct, 2)

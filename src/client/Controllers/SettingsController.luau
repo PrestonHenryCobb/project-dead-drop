@@ -23,6 +23,10 @@ export type Preferences = {
 	ReducedMotion: boolean,
 	CameraShake: boolean,
 	CombatVolume: number,
+	WorldVolume: number, -- ambience, footsteps and every non-weapon cue
+	ExposedOutline: boolean, -- outline other players who are Exposed
+	ExposedOutlineColor: Color3,
+	ShowFps: boolean,
 }
 local preferences: Preferences = {
 	Fov = GameConfig.UI.FovMin,
@@ -30,6 +34,10 @@ local preferences: Preferences = {
 	ReducedMotion = false,
 	CameraShake = false,
 	CombatVolume = GameConfig.ClientAudio.DefaultCombatVolume,
+	WorldVolume = GameConfig.ClientAudio.DefaultCombatVolume,
+	ExposedOutline = true,
+	ExposedOutlineColor = GameConfig.ExposedOutline.DefaultColor,
+	ShowFps = false,
 }
 
 local function applyFov()
@@ -78,6 +86,26 @@ function SettingsController.setCombatVolume(value: number)
 	SoundPlayer.setVolume(preferences.CombatVolume)
 end
 
+function SettingsController.setWorldVolume(value: number)
+	if value ~= value or math.abs(value) == math.huge then
+		return
+	end
+	local step = GameConfig.ClientAudio.CombatVolumeStep
+	preferences.WorldVolume = math.clamp(math.floor(value / step + 0.5) * step, 0, 1)
+end
+
+function SettingsController.setExposedOutline(on: boolean)
+	preferences.ExposedOutline = on
+end
+
+function SettingsController.setExposedOutlineColor(color: Color3)
+	preferences.ExposedOutlineColor = color
+end
+
+function SettingsController.setShowFps(on: boolean)
+	preferences.ShowFps = on
+end
+
 function SettingsController.cameraShakeEnabled(): boolean
 	return preferences.CameraShake and not Accessibility.reducedMotion()
 end
@@ -88,6 +116,10 @@ function SettingsController.reset()
 	SettingsController.setReducedMotion(false)
 	SettingsController.setCameraShake(false)
 	SettingsController.setCombatVolume(GameConfig.ClientAudio.DefaultCombatVolume)
+	SettingsController.setWorldVolume(GameConfig.ClientAudio.DefaultCombatVolume)
+	SettingsController.setExposedOutline(true)
+	SettingsController.setExposedOutlineColor(GameConfig.ExposedOutline.DefaultColor)
+	SettingsController.setShowFps(false)
 end
 
 function SettingsController.Init() end

@@ -385,6 +385,36 @@ local GameConfig = {
 		PanelFraction = 0.85,
 	},
 
+	-- Owner 2026-11-25: an Exposed agent is outlined for every other player, in a colour each player chooses (Settings > Espionage). The outline hugs the body and
+	-- is hidden behind walls (Highlight DepthMode Occluded), so it never reveals a position that line of sight would not.
+	ExposedOutline = {
+		DefaultColor = Color3.fromRGB(235, 50, 60),
+		Swatches = {
+			Color3.fromRGB(235, 50, 60), -- red
+			Color3.fromRGB(255, 140, 30), -- orange
+			Color3.fromRGB(255, 220, 40), -- yellow
+			Color3.fromRGB(80, 220, 100), -- green
+			Color3.fromRGB(40, 210, 235), -- cyan
+			Color3.fromRGB(90, 130, 255), -- blue
+			Color3.fromRGB(235, 70, 220), -- magenta
+			Color3.fromRGB(255, 255, 255), -- white
+		},
+		SweepSeconds = 0.25, -- how often characters are checked for a True Form look
+		MaxOutlines = 20, -- Roblox draws about 31 highlights at once; stay well under it
+		FillTransparency = 1, -- an outline only, no fill
+		OutlineTransparency = 0,
+		HueSaturation = 0.85, -- the hue slider's colours
+		HueValue = 1,
+		HueStepDegrees = 10, -- a step of the hue buttons
+	},
+
+	-- Owner 2026-11-25: a small frames-per-second readout, off by default (Settings > Performance).
+	FpsCounter = {
+		UpdateSeconds = 0.5,
+		TextSize = 14,
+		MarginPixels = 12,
+	},
+
 	-- Ticket playable-flight-pad: client-only controls for existing flight. Server movement bounds stay unchanged.
 	ClientFlight = {
 		LookDegreesPerSecond = 150, -- SPEC-QUESTION: initial stick-look feel; tune with the owner in Studio.
@@ -479,6 +509,7 @@ local GameConfig = {
 		-- Owner 2026-11-25: icons in place of text on the menu screens (see Components/MenuIcons).
 		Icons = {
 			RowIconPixels = 22,
+			LockedTextTransparency = 0.35, -- a locked item's name is dimmed, but it can still be hovered and read
 			ThumbPixels = 40, -- agent portrait on a roster row
 			CardPixels = 84, -- agent portrait on the agent card
 			PortraitPlateMix = 0.65, -- how far a portrait's backing colour is pulled from the agent colour toward the canvas

@@ -8,6 +8,8 @@ local ContentProvider = game:GetService("ContentProvider")
 local ReplicatedFirst = game:GetService("ReplicatedFirst")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+-- Raised before anything can yield: the menu will not open while this is set (see LoadingScreen.isActive), so it can never appear under the loading screen.
+ReplicatedFirst:SetAttribute("BootLoading", true)
 local player = Players.LocalPlayer
 player:WaitForChild("PlayerGui")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -17,6 +19,11 @@ local LoadingScreen = require(Shared:WaitForChild("Util"):WaitForChild("LoadingS
 local StudioIntro = require(Shared:WaitForChild("Util"):WaitForChild("StudioIntro"))
 
 local config = GameConfig.Loading
+
+-- If the boot screen fails for any reason the menu must still open.
+task.delay(config.MaxPreloadSeconds * 2 + config.MinShowSeconds + config.FadeOutSeconds, function()
+	ReplicatedFirst:SetAttribute("BootLoading", false)
+end)
 
 local sceneId = config.PreviewScene
 if sceneId == "" then
@@ -108,4 +115,6 @@ local remaining = config.MinShowSeconds - (os.clock() - math.max(startedAt, intr
 if remaining > 0 then
 	task.wait(remaining)
 end
-screen.close()
+screen.close(function()
+	ReplicatedFirst:SetAttribute("BootLoading", false)
+end)

@@ -20,6 +20,7 @@ local AudioDefs = require(Shared.Defs.AudioDefs)
 local Janitor = require(Shared.Util.Janitor)
 local SoundPlayer = require(script.Parent.Parent.Combat.SoundPlayer)
 local RemoteController = require(script.Parent.RemoteController)
+local SettingsController = require(script.Parent.SettingsController)
 
 local AudioCueController = {}
 
@@ -42,17 +43,22 @@ local lastWorn: string? = nil
 local currentTier = 0
 local crowdTarget = 0
 
+-- The player's world volume (Settings > Audio): every non-weapon cue, the footsteps and the ambience are scaled by it.
+local function worldVolume(): number
+	return SettingsController.get().WorldVolume
+end
+
 local function flat(name: string)
 	local def = AudioDefs.Cues[name]
 	if def and def.Id ~= "" then
-		SoundPlayer.play(def.Id, def.Volume)
+		SoundPlayer.play(def.Id, def.Volume * worldVolume())
 	end
 end
 
 local function at(name: string, position: Vector3, range: number)
 	local def = AudioDefs.Cues[name]
 	if def and def.Id ~= "" then
-		SoundPlayer.playAt(def.Id, position, def.Volume, range)
+		SoundPlayer.playAt(def.Id, position, def.Volume * worldVolume(), range)
 	end
 end
 
@@ -79,7 +85,7 @@ end
 
 local function fade(sound: Sound?, volume: number)
 	if sound then
-		TweenService:Create(sound, TweenInfo.new(config.AmbientFadeSeconds), { Volume = volume }):Play()
+		TweenService:Create(sound, TweenInfo.new(config.AmbientFadeSeconds), { Volume = volume * worldVolume() }):Play()
 	end
 end
 

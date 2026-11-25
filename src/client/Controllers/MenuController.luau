@@ -36,6 +36,7 @@ local LobbyState = require(Menu:WaitForChild("LobbyState"))
 local MenuStage = require(Menu:WaitForChild("MenuStage"))
 local MenuTheme = require(Menu:WaitForChild("MenuTheme"))
 local SettingsPanel = require(Menu.Components.SettingsPanel)
+local LoadingScreen = require(Shared:WaitForChild("Util"):WaitForChild("LoadingScreen"))
 local UiAccessibility = require(Shared.Util.UiAccessibility)
 
 type MenuTab = Types.MenuTab
@@ -767,6 +768,11 @@ end
 
 local function openMenu()
 	if open or spectating then
+		return
+	end
+	if LoadingScreen.isActive() then
+		-- A loading screen must be completely gone before the menu shows (owner 2026-11-25: it lingered over the menu for half a second).
+		LoadingScreen.whenClear(openMenu)
 		return
 	end
 	SettingsPanel.close() -- release an in-match modal before the lobby hides its host GUI
