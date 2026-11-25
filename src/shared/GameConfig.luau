@@ -1282,7 +1282,7 @@ local GameConfig = {
 		-- gives; HackSeconds how long it takes; MinRoomTier the lowest room tier it may stand in.
 		Stations = {
 			-- Owner 2026-11-25: hack times raised about a quarter, since there are many more stations than the spec planned.
-			[0] = { Name = "Tablet", Points = 2, HackSeconds = 5, MinRoomTier = 0 },
+			[0] = { Name = "Phone", Points = 2, HackSeconds = 5, MinRoomTier = 0 },
 			[1] = { Name = "Staff laptop", Points = 4, HackSeconds = 9, MinRoomTier = 0 },
 			[2] = { Name = "Server rack", Points = 6, HackSeconds = 14, MinRoomTier = 0 },
 			[3] = { Name = "Wall safe", Points = 10, HackSeconds = 20, MinRoomTier = 2 },
@@ -1318,6 +1318,11 @@ local GameConfig = {
 		MarkerColor = Color3.fromRGB(255, 205, 80),
 		MarkerFadeFromStuds = 60, -- the marker fades out between this and MarkerRange
 		PulseSeconds = 1.8,
+		CollectedGlowTransparency = 0.3, -- a station your team has taken stops pulsing and glows steadily at this transparency (added to the part's own)
+		GlintOutlineTransparency = 0.35,
+		-- 9.3: team thresholds.
+		Thresholds = {
+			FundsAt1 = 100,
 		PulseDepth = 0.55, -- how far the glow dims at the bottom of the pulse (transparency)
 			VaultArrowAt = 2,
 			HackBonusAt = 3,

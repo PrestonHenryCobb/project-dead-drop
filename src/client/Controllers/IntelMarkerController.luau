@@ -1,6 +1,6 @@
 --!strict
 -- Makes Intel stations unmistakable (owner 2026-11-25): a gold diamond marker floats over every station that can still be taken, with the points it is
--- worth, and the station's pad and screen pulse. The marker is an ordinary billboard, so walls hide it: it shows what line of sight already shows. It
+-- worth, and the station's pad and screens pulse. Once your team has taken it the pulse stops and the glow stays on, steady. The marker is an ordinary billboard, so walls hide it: it shows what line of sight already shows. It
 -- marks map props only, never a character.
 
 local CollectionService = game:GetService("CollectionService")
@@ -18,7 +18,8 @@ local IntelMarkerController = {}
 local config = GameConfig.Intel
 local janitor = Janitor.new()
 local markers: { [BasePart]: { gui: BillboardGui, diamond: Frame, label: TextLabel } } = {}
-local glows: { [BasePart]: number } = {} -- each pulsing part and the transparency it was built with
+local glows: { [BasePart]: { base: number, group: number? } } = {} -- each glowing part, the transparency it was built with and its station's GlowGroup
+local stationByGroup: { [number]: BasePart } = {}
 
 local function makeMarker(station: BasePart)
 	local gui = Instance.new("BillboardGui")
@@ -67,6 +68,10 @@ function IntelMarkerController.Start()
 	local function trackStation(instance: Instance)
 		if instance:IsA("BasePart") and instance:GetAttribute("Points") ~= nil then
 			makeMarker(instance)
+			local group = instance:GetAttribute("GlowGroup")
+			if type(group) == "number" then
+				stationByGroup[group] = instance
+			end
 		end
 	end
 	local function untrackStation(instance: Instance)
@@ -74,6 +79,10 @@ function IntelMarkerController.Start()
 		if marker then
 			marker.gui:Destroy()
 			markers[instance :: BasePart] = nil
+		end
+		local group = instance:GetAttribute("GlowGroup")
+		if type(group) == "number" and stationByGroup[group] == instance then
+			stationByGroup[group] = nil
 		end
 	end
 	janitor:Add(CollectionService:GetInstanceAddedSignal(Enums.Tag.IntelSpawn):Connect(trackStation))
@@ -83,7 +92,8 @@ function IntelMarkerController.Start()
 	end
 	local function trackGlow(instance: Instance)
 		if instance:IsA("BasePart") then
-			glows[instance] = instance.Transparency
+			local group = instance:GetAttribute("GlowGroup")
+			glows[instance] = { base = instance.Transparency, group = if type(group) == "number" then group else nil }
 		end
 	end
 	janitor:Add(CollectionService:GetInstanceAddedSignal(Enums.Tag.IntelGlow):Connect(trackGlow))
@@ -117,10 +127,13 @@ function IntelMarkerController.Start()
 				marker.gui.StudsOffset = Vector3.new(0, config.MarkerLiftStuds + bob, 0)
 			end
 		end
-		-- The pad and screen pulse together.
+		-- The pad and screens of a station that can still be taken pulse together; once it has been taken they stop and glow steadily.
 		local wave = (math.sin(now * math.pi * 2 / config.PulseSeconds) + 1) / 2
-		for part, base in glows do
-			part.Transparency = math.clamp(base + wave * config.PulseDepth, 0, 1)
+		for part, info in glows do
+			local station = if info.group then stationByGroup[info.group] else nil
+			local live = station ~= nil and IntelController.stationLive(station)
+			local offset = if live then wave * config.PulseDepth else config.CollectedGlowTransparency
+			part.Transparency = math.clamp(info.base + offset, 0, 1)
 		end
 	end))
 	janitor:Add(function()
@@ -128,10 +141,11 @@ function IntelMarkerController.Start()
 			marker.gui:Destroy()
 		end
 		table.clear(markers)
-		for part, base in glows do
-			part.Transparency = base
+		for part, info in glows do
+			part.Transparency = info.base
 		end
 		table.clear(glows)
+		table.clear(stationByGroup)
 	end)
 	janitor:Add(script.Destroying:Connect(function()
 		janitor:Destroy()

@@ -4523,6 +4523,7 @@ function Build.run(options: {
 	local intelByType: { [number]: number } = { [0] = 0, [1] = 0, [2] = 0, [3] = 0 }
 	local intelMisplaced: { string } = {} -- stations in a room below their type's lowest tier
 	local intelInVaults = 0
+	local glowGroups = 0 -- each station's pad and screens share a number (GlowGroup), so the client can tell which glow belongs to which station
 	local deferredIntel: { { room: Room, station: number } } = {} -- tablets, laptops and racks: made after the furnishing (see Intel on furniture)
 	local unplaced: { string } = {}
 	local PLACE_SIZES: { [string]: Vector2 } = { -- width along the wall, depth into the room
@@ -4580,6 +4581,9 @@ function Build.run(options: {
 				part(propsFolder, "IntelStation", Vector3.new(3, 3, 0.8), at(0.5, 4), Color3.fromRGB(50, 50, 56))
 			local keypad = part(propsFolder, "Keypad", Vector3.new(0.8, 1, 0.2), at(1, 4), trimColor)
 			keypad.Material = Enum.Material.Neon
+			glowGroups += 1
+			keypad:SetAttribute("GlowGroup", glowGroups)
+			stationPart:SetAttribute("GlowGroup", glowGroups)
 			tag(keypad, Tag.IntelGlow)
 			tag(stationPart, Tag.IntelSpawn, {
 				Type = stationType,
@@ -4708,8 +4712,8 @@ function Build.run(options: {
 		end
 	end
 
-	-- Intel on furniture (owner 2026-11-25: intel collection spots use the furniture and must be much clearer). Tablets and laptops sit on a desk, counter or table
-	-- the room already has; a server rack station is one of the room's own racks; a room with none gets a small intel desk or a rack of its own. The stations are
+	-- Intel on furniture (owner 2026-11-25: intel collection spots use the furniture and must be much clearer). Phones, laptops and desktop computers sit on a desk, counter or table
+	-- the room already has; the three device sizes (phone, laptop, desktop computer) follow how much intel a station gives; a room with no table to use gets a small intel desk of its own. The stations are
 	-- made after the furnishing so the furniture exists to stand on. A station always has a glowing pad or screen in its tier's colour; the client adds a marker.
 	do
 		local SURFACES = {
@@ -4730,14 +4734,13 @@ function Build.run(options: {
 			tvConsole = true,
 			infoKiosk = true,
 		}
-		local RACKS = { serverRack = true, serverRow = true }
 		local MIN_TOP, MAX_TOP = 2, 4.6 -- a surface this high above the floor can be worked standing
 		local INTEL_SPREAD = 60 -- studs: how far apart stations in one room are preferred
 		type Group = { id: string, parts: { BasePart }, used: boolean }
 		local groups: { [number]: Group } = {}
 		for _, item in propsFolder:GetChildren() do
 			local id = item:GetAttribute("Fab")
-			if type(id) == "string" and (SURFACES[id] or RACKS[id]) and item:IsA("BasePart") then
+			if type(id) == "string" and SURFACES[id] and item:IsA("BasePart") then
 				local index = item:GetAttribute("FabIdx") :: number
 				local group = groups[index]
 				if not group then
@@ -4777,65 +4780,75 @@ function Build.run(options: {
 				Station = station.Name,
 			})
 		end
-		-- The device itself on a surface: `frame` sits on the surface and looks toward the player. A glowing pad under it in the tier's colour.
+		-- The device itself on a surface: `frame` sits on the surface and looks toward the player. The more intel a station gives the bigger the device and its
+		-- glowing pad: a phone, a laptop, a desktop computer. The pad and screens carry the station's GlowGroup so the client can pulse them while the station
+		-- can still be taken and leave them glowing steadily once it has been.
+		local PAD = { [0] = 2.2, [1] = 3.4, [2] = 4.6 }
+		local function neon(name: string, size: Vector3, cframe: CFrame, glow: Color3, group: number): Part
+			local item = part(propsFolder, name, size, cframe, glow)
+			item.Material = Enum.Material.Neon
+			item.CanCollide = false
+			item:SetAttribute("GlowGroup", group)
+			tag(item, Tag.IntelGlow)
+			return item
+		end
 		local function device(stationType: number, glow: Color3, frame: CFrame): BasePart
-			local pad = part(
-				propsFolder,
+			glowGroups += 1
+			local group = glowGroups
+			local pad = neon(
 				"IntelPad",
-				Vector3.new(0.12, 3.4, 3.4),
+				Vector3.new(0.12, PAD[stationType], PAD[stationType]),
 				frame * CFrame.new(0, 0.06, 0) * CFrame.Angles(0, 0, math.rad(90)),
-				glow
+				glow,
+				group
 			)
 			pad.Shape = Enum.PartType.Cylinder
-			pad.Material = Enum.Material.Neon
-			pad.CanCollide = false
-			tag(pad, Tag.IntelGlow)
 			local dark = Color3.fromRGB(40, 40, 46)
 			local main: Part
 			if stationType == 0 then
-				-- a tablet propped up, its lit screen tilted toward the player
-				local prop =
-					part(propsFolder, "TabletProp", Vector3.new(0.4, 0.5, 0.4), frame * CFrame.new(0, 0.3, 0.5), STEEL)
-				prop.CanCollide = false
-				local tilt = frame * CFrame.new(0, 0.62, 0) * CFrame.Angles(math.rad(-22), 0, 0)
-				main = part(propsFolder, "IntelStation", Vector3.new(2, 0.15, 1.4), tilt, dark)
-				local screen =
-					part(propsFolder, "Screen", Vector3.new(1.7, 0.05, 1.1), tilt * CFrame.new(0, 0.1, 0), glow)
-				screen.Material = Enum.Material.Neon
-				screen.CanCollide = false
-				tag(screen, Tag.IntelGlow)
-			else
+				-- a phone leaning on a little stand, its lit screen toward the player
+				local stand =
+					part(propsFolder, "PhoneStand", Vector3.new(0.7, 0.3, 0.5), frame * CFrame.new(0, 0.2, 0.2), STEEL)
+				stand.CanCollide = false
+				local lean = frame * CFrame.new(0, 0.95, 0) * CFrame.Angles(math.rad(-18), 0, 0)
+				main = part(propsFolder, "IntelStation", Vector3.new(0.9, 1.6, 0.12), lean, dark)
+				neon("Screen", Vector3.new(0.74, 1.4, 0.04), lean * CFrame.new(0, 0, -0.07), glow, group)
+			elseif stationType == 1 then
 				-- an open laptop
 				main = part(propsFolder, "IntelStation", Vector3.new(2, 0.15, 1.4), frame * CFrame.new(0, 0.2, 0), dark)
-				local screen = part(
-					propsFolder,
+				neon(
 					"Screen",
 					Vector3.new(2, 1.3, 0.1),
 					frame * CFrame.new(0, 0.95, 0.6) * CFrame.Angles(math.rad(-15), 0, 0),
-					glow
+					glow,
+					group
 				)
-				screen.Material = Enum.Material.Neon
-				screen.CanCollide = false
-				tag(screen, Tag.IntelGlow)
+			else
+				-- a desktop computer: a big monitor on a stand, a keyboard and a tower beside it
+				local stand = part(
+					propsFolder,
+					"MonitorStand",
+					Vector3.new(0.5, 0.9, 0.5),
+					frame * CFrame.new(0, 0.55, 0.4),
+					STEEL
+				)
+				stand.CanCollide = false
+				main = part(propsFolder, "IntelStation", Vector3.new(3, 2, 0.22), frame * CFrame.new(0, 2, 0.4), dark)
+				neon("Screen", Vector3.new(2.7, 1.7, 0.05), frame * CFrame.new(0, 2, 0.26), glow, group)
+				local keys =
+					part(propsFolder, "Keyboard", Vector3.new(2, 0.12, 0.7), frame * CFrame.new(0, 0.17, -0.7), dark)
+				keys.CanCollide = false
+				local tower =
+					part(propsFolder, "Tower", Vector3.new(1, 2.4, 1.6), frame * CFrame.new(2.4, 1.2, 0.5), dark)
+				tower.CanCollide = false
+				neon("TowerLight", Vector3.new(0.12, 0.12, 0.05), frame * CFrame.new(2.4, 1.9, -0.32), glow, group)
 			end
 			main.CanCollide = false
+			main:SetAttribute("GlowGroup", group)
 			return main
 		end
-		local function rackScreen(rack: BasePart, toward: Vector3, glow: Color3)
-			local direction = Vector3.new(toward.X - rack.Position.X, 0, toward.Z - rack.Position.Z)
-			if direction.Magnitude < 0.1 then
-				direction = Vector3.new(0, 0, 1)
-			end
-			local axis = if math.abs(direction.X) > math.abs(direction.Z)
-				then Vector3.new(math.sign(direction.X), 0, 0)
-				else Vector3.new(0, 0, math.sign(direction.Z))
-			local reach = if axis.X ~= 0 then rack.Size.X / 2 else rack.Size.Z / 2
-			local at = rack.Position + axis * (reach + 0.06) + Vector3.new(0, 1, 0)
-			local screen = part(propsFolder, "Screen", Vector3.new(2, 1.2, 0.1), CFrame.lookAt(at, at + axis), glow)
-			screen.Material = Enum.Material.Neon
-			screen.CanCollide = false
-			tag(screen, Tag.IntelGlow)
-		end
+		-- How much flat top a device needs, by station type: {along the desk, across it}.
+		local NEED = { [0] = { 1.2, 1 }, [1] = { 2.2, 1.6 }, [2] = { 3.6, 2 } }
 		local onFurniture, ownDesk = 0, 0
 		for _, work in deferredIntel do
 			local room, stationType = work.room, work.station
@@ -4852,32 +4865,27 @@ function Build.run(options: {
 			local middle = Vector3.new((b.x1 + b.x2) / 2, 0, (b.z1 + b.z2) / 2)
 			local floorY = levels[room.level]
 			local mounted = false
-			-- The best furniture of the right kind: far from the room's other stations, and a roomy top.
+			local need = NEED[stationType]
+			-- The best furniture: far from the room's other stations, and a roomy top.
 			local bestGroup: Group? = nil
 			local bestTop: BasePart? = nil
 			local bestScore = -math.huge
 			for _, group in groups do
-				if group.used or (stationType == 2) ~= (RACKS[group.id] == true) then
+				if group.used then
 					continue
 				end
 				local top: BasePart? = nil
 				local topY = -math.huge
 				for _, item in group.parts do
-					if stationType == 2 then
-						if item.Size.Y > (if top then top.Size.Y else 0) and item.Size.Y >= 5 then
-							top = item
-						end
-					else
-						local height = item.Position.Y + item.Size.Y / 2
-						if
-							item.Size.X >= 1.6
-							and item.Size.Z >= 1.2
-							and height - floorY >= MIN_TOP
-							and height - floorY <= MAX_TOP
-							and height > topY
-						then
-							top, topY = item, height
-						end
+					local height = item.Position.Y + item.Size.Y / 2
+					if
+						math.max(item.Size.X, item.Size.Z) >= need[1]
+						and math.min(item.Size.X, item.Size.Z) >= need[2]
+						and height - floorY >= MIN_TOP
+						and height - floorY <= MAX_TOP
+						and height > topY
+					then
+						top, topY = item, height
 					end
 				end
 				if top and inRoom(room, top.Position) then
@@ -4887,94 +4895,50 @@ function Build.run(options: {
 					end
 				end
 			end
+			local function stand(surface: Vector3)
+				local toward = Vector3.new(middle.X - surface.X, 0, middle.Z - surface.Z)
+				if toward.Magnitude < 0.1 then
+					toward = Vector3.new(0, 0, -1)
+				end
+				tagStation(device(stationType, glow, CFrame.lookAt(surface, surface + toward)), stationType)
+			end
 			if bestGroup and bestTop then
 				bestGroup.used = true
 				local top = bestTop :: BasePart
-				if stationType == 2 then
-					rackScreen(top, middle, glow)
-					tagStation(top, stationType)
-				else
-					local surface = Vector3.new(top.Position.X, top.Position.Y + top.Size.Y / 2, top.Position.Z)
-					local toward = Vector3.new(middle.X - surface.X, 0, middle.Z - surface.Z)
-					if toward.Magnitude < 0.1 then
-						toward = Vector3.new(0, 0, -1)
-					end
-					local main = device(stationType, glow, CFrame.lookAt(surface, surface + toward))
-					tagStation(main, stationType)
-				end
+				stand(Vector3.new(top.Position.X, top.Position.Y + top.Size.Y / 2, top.Position.Z))
 				doneIn[room.id] = doneIn[room.id] or {}
 				table.insert(doneIn[room.id], top.Position)
 				onFurniture += 1
 				mounted = true
 			end
 			if not mounted then
-				-- No furniture to use: the station brings its own desk (tablet, laptop) or rack.
-				local function make(frame: CFrame, asRack: boolean)
-					if asRack then
-						local rack = part(
-							propsFolder,
-							"ServerRack",
-							Vector3.new(3, 7, 2.2),
-							frame * CFrame.new(0, 3.5, 0),
-							Color3.fromRGB(35, 36, 42)
-						)
-						rackScreen(rack, middle, glow)
-						tagStation(rack, stationType)
-					else
-						part(
-							propsFolder,
-							"IntelDesk",
-							Vector3.new(4.4, 0.3, 2.6),
-							frame * CFrame.new(0, 2.85, 0),
-							Color3.fromRGB(90, 62, 42)
-						)
-						for _, leg in
-							{
-								Vector3.new(-1.9, 1.35, -1),
-								Vector3.new(1.9, 1.35, -1),
-								Vector3.new(-1.9, 1.35, 1),
-								Vector3.new(1.9, 1.35, 1),
-							}
-						do
-							part(
-								propsFolder,
-								"IntelDeskLeg",
-								Vector3.new(0.3, 2.7, 0.3),
-								frame * CFrame.new(leg),
-								STEEL
-							)
-						end
-						local surface = frame.Position + Vector3.new(0, 3, 0)
-						local toward = Vector3.new(middle.X - surface.X, 0, middle.Z - surface.Z)
-						if toward.Magnitude < 0.1 then
-							toward = Vector3.new(0, 0, -1)
-						end
-						tagStation(device(stationType, glow, CFrame.lookAt(surface, surface + toward)), stationType)
+				-- No furniture to use: the station brings its own desk. Roomy first, so the aisles round it stay open; a cramped room takes a tighter fit.
+				local function make(frame: CFrame)
+					part(
+						propsFolder,
+						"IntelDesk",
+						Vector3.new(5.4, 0.3, 3),
+						frame * CFrame.new(0, 2.85, 0),
+						Color3.fromRGB(90, 62, 42)
+					)
+					for _, leg in
+						{
+							Vector3.new(-2.4, 1.35, -1.2),
+							Vector3.new(2.4, 1.35, -1.2),
+							Vector3.new(-2.4, 1.35, 1.2),
+							Vector3.new(2.4, 1.35, 1.2),
+						}
+					do
+						part(propsFolder, "IntelDeskLeg", Vector3.new(0.3, 2.7, 0.3), frame * CFrame.new(leg), STEEL)
 					end
+					stand(frame.Position + Vector3.new(0, 3, 0))
 					doneIn[room.id] = doneIn[room.id] or {}
 					table.insert(doneIn[room.id], frame.Position)
 				end
-				-- Roomy first, so the aisles round the piece stay open; a cramped room takes a tighter fit. A rack that cannot stand anywhere is shown as a laptop
-				-- on a desk (it keeps its station type).
-				local footprints = { Vector2.new(8, 7), Vector2.new(6, 5.2), Vector2.new(5, 4.2) }
-				if stationType == 2 then
-					for _, footprint in footprints do
-						mounted = Dress.group(room, footprint.X, footprint.Y, 1, false, function(frame: CFrame)
-							make(frame, true)
-						end) > 0
-						if mounted then
-							break
-						end
-					end
-				end
-				if not mounted then
-					for _, footprint in footprints do
-						mounted = Dress.group(room, footprint.X, footprint.Y, 1, false, function(frame: CFrame)
-							make(frame, false)
-						end) > 0
-						if mounted then
-							break
-						end
+				for _, footprint in { Vector2.new(8, 7), Vector2.new(6.4, 5.4), Vector2.new(5.8, 4.6) } do
+					mounted = Dress.group(room, footprint.X, footprint.Y, 1, false, make) > 0
+					if mounted then
+						break
 					end
 				end
 				if mounted then

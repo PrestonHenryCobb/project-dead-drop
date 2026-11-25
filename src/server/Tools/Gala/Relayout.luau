@@ -453,7 +453,7 @@ local function placeIntel(station: number, list: { string })
 end
 placeIntel(0, { "g_lobby", "g_atrium", "g_ballroom", "g_bar", "g_lounge", "g_gallery", "m_gallery", "wg_casino", "wm_lobby", "r_deck", "wr_garden", "t_ter_s", "g_dining", "g_library", "g_ring_n", "g_ring_s", "g_ballroom", "g_bar", "wg_entry", "wm_bar", "m_balcony", "m_ball_gal", "m_wine", "m_cigar", "m_stairhall", "t_ter_n", "t_ter_w", "t_ter_e", "wt_terrace", "wt_arcade", "r_deck", "wr_garden", "m_ter_n", "m_ter_s" })
 placeIntel(1, { "g_kitchen", "g_pantry", "g_coat", "m_offices", "m_catering", "wb_laundry", "wm_housekeeping", "wg_cage", "b_stores_e1", "g_concierge", "g_service_n", "b_stores_w1", "b_stores_w2", "b_cellar", "wb_linen", "wb_service", "m_offices", "m_catering", "wm_housekeeping" })
-placeIntel(2, { "b_camera", "b_muster", "m_hub", "t_west", "t_east", "wb_security", "wr_plant", "m_records", "b_barracks", "b_mess", "b_spine", "b_armory", "wb_boiler", "t_guard_nw", "t_guard_ne" })
+placeIntel(2, { "b_camera", "b_muster", "m_hub", "t_west", "t_east", "wb_security", "g_coat", "m_records", "b_barracks", "b_mess", "b_spine", "b_armory", "wb_boiler", "t_guard_nw", "t_guard_ne" })
 placeIntel(3, { "t_gallery", "b_armory", "wg_highroller", "wt_exec", "t_great", "m_records", "b_mess", "t_vaultb_ante" })
 place("health", { "g_restroom", "g_staffwc", "m_restroom", "t_washroom", "wm_restroom", "wg_restroom" })
 place("ammo", { "g_service_n", "b_barracks", "m_hub", "b_gate", "t_west", "wg_cage", "wm_housekeeping", "wt_arcade" })

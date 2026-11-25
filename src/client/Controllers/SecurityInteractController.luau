@@ -347,7 +347,11 @@ local function refresh()
 			end
 		end
 	end
-	if not best or (holding and best ~= target) then
+	-- Once a hack has started the player can look any way they like (owner 2026-11-25): the hold goes on while its target is still within reach, wherever
+	-- the crosshair points. The server keeps checking reach and line of sight, so nothing is lost by not checking the aim again here.
+	if holding and target and targetKind and root and target.Parent and targetKind.usable(target, root.Position) then
+		best, bestKind = target, targetKind
+	elseif holding or not best then
 		cancelHold()
 	end
 	target, targetKind = best, bestKind
