@@ -1,7 +1,9 @@
 --!strict
 -- Authored local menu poses, evaluated during finite transitions only. No animation assets or gameplay rig edits.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local config = require(ReplicatedStorage.Shared.GameConfig).Menu.Stage.Portrait
+local stageConfig = require(ReplicatedStorage.Shared.GameConfig).Menu.Stage
+local config = stageConfig.Portrait
+local idle = stageConfig.Idle
 local StagePose = {}
 export type Preset = {
 	BodyYawDegrees: number,
@@ -167,6 +169,44 @@ function StagePose.blend(from: State, to: State, alpha: number): State
 		Joints = joints,
 		SupportWeapon = from.SupportWeapon + (to.SupportWeapon - from.SupportWeapon) * alpha,
 		SupportCuff = from.SupportCuff + (to.SupportCuff - from.SupportCuff) * alpha,
+	}
+end
+
+-- The pose plus a little life at time t (seconds): breathing, weight shifting, the head looking round the room, the arms drifting, and every so often
+-- the free hand going to the cuff. intensity 0..1 fades it in; allowCuff is false when the free hand is busy (a pair of weapons).
+function StagePose.idle(base: State, t: number, intensity: number, allowCuff: boolean): State
+	local tau = math.pi * 2
+	local joints: { [string]: Vector3 } = table.clone(base.Joints)
+	local function add(name: string, x: number, y: number, z: number)
+		joints[name] = (joints[name] or Vector3.zero) + Vector3.new(x, y, z) * intensity
+	end
+	local breath = math.sin(t * tau / idle.BreathSeconds)
+	add("UpperTorso", idle.BreathDegrees * breath, 0, 0)
+	add("Head", -idle.BreathDegrees * 0.5 * breath, 0, 0)
+	add("RightUpperArm", idle.ArmDegrees * 0.5 * breath, 0, 0)
+	add("LeftUpperArm", idle.ArmDegrees * 0.4 * breath, 0, idle.ArmDegrees * 0.5 * breath)
+	add("LeftLowerArm", idle.ArmDegrees * math.sin(t * tau / (idle.BreathSeconds * 1.7)), 0, 0)
+	local sway = math.sin(t * tau / idle.SwaySeconds)
+	add("LowerTorso", 0, 0, idle.SwayDegrees * sway)
+	add("UpperTorso", 0, 0, -idle.SwayDegrees * 0.6 * sway)
+	add("LeftUpperLeg", 0, 0, idle.LegShiftDegrees * sway)
+	add("RightUpperLeg", 0, 0, idle.LegShiftDegrees * sway)
+	local scan = (math.sin(t * tau / idle.ScanSeconds) + 0.5 * math.sin(t * tau / (idle.ScanSeconds * 0.37) + 1.3))
+		/ 1.5
+	add("Head", idle.ScanPitchDegrees * math.sin(t * tau / (idle.ScanSeconds * 0.7)), idle.ScanDegrees * scan, 0)
+	local cuff = base.SupportCuff
+	if allowCuff and base.SupportWeapon == 0 then
+		local phase = t % idle.GesturePeriodSeconds
+		if phase < idle.GestureSeconds then
+			local bump = math.sin(math.pi * phase / idle.GestureSeconds)
+			cuff += (1 - cuff) * bump * intensity
+		end
+	end
+	return {
+		BodyYawDegrees = base.BodyYawDegrees + idle.YawDegrees * intensity * math.sin(t * tau / idle.YawSeconds),
+		Joints = joints,
+		SupportWeapon = base.SupportWeapon,
+		SupportCuff = cuff,
 	}
 end
 

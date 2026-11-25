@@ -13,6 +13,7 @@
 --   stage:destroy()                -- removes everything and hands the camera back
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local StarterPlayer = game:GetService("StarterPlayer")
 local TweenService = game:GetService("TweenService")
@@ -53,6 +54,9 @@ export type MenuStage = typeof(setmetatable(
 		feet: CFrame,
 		framing: Framing,
 		poseState: StagePose.State?,
+		idleBusyUntil: number, -- a pose transition runs until then; idle motion waits for it
+		idleSince: number,
+		idleAccumulator: number,
 		poseJanitor: Janitor.Janitor,
 		fadeJanitor: Janitor.Janitor,
 		visibility: NumberValue,
@@ -188,6 +192,8 @@ local function requestPreviewTemplate(self: MenuStage)
 	end)
 end
 
+local idleStep: (self: MenuStage, dt: number) -> () -- defined after poseOperative, which it drives
+
 function MenuStage.new(): MenuStage
 	local janitor = Janitor.new()
 	local folder = Instance.new("Folder")
@@ -217,6 +223,9 @@ function MenuStage.new(): MenuStage
 		destroyed = false,
 		framing = "Play" :: Framing,
 		poseState = nil,
+		idleBusyUntil = 0,
+		idleSince = 0,
+		idleAccumulator = 0,
 		poseJanitor = poseJanitor,
 		fadeJanitor = fadeJanitor,
 		visibility = visibility,
@@ -231,6 +240,10 @@ function MenuStage.new(): MenuStage
 				item.Transparency = base + (1 - base) * (1 - value)
 			end
 		end
+	end))
+	-- Idle life (owner 2026-11-25): the finished pose gets breathing, weight shifts, a roving head and the odd glance at the cuff added on top.
+	janitor:Add(RunService.Heartbeat:Connect(function(dt: number)
+		idleStep(self, dt)
 	end))
 	-- The server builds StarterCharacter asynchronously. A menu request must survive late/partial replication.
 	janitor:Add(StarterPlayer.DescendantAdded:Connect(function()
@@ -326,8 +339,33 @@ local function poseOperative(self: MenuStage, state: StagePose.State)
 	weapon:placeAtRightHand(rightFrame, left.CFrame * grip)
 end
 
+idleStep = function(self: MenuStage, dt: number)
+	local rig, base = self.rig, self.poseState
+	local idle = config.Idle
+	self.idleAccumulator += dt
+	if
+		not rig
+		or not base
+		or self.destroyed
+		or self.visibility.Value <= 0
+		or self.idleAccumulator < 1 / idle.Hz
+		or UiAccessibility.reducedMotion()
+	then
+		return
+	end
+	local now = os.clock()
+	if now < self.idleBusyUntil then
+		return
+	end
+	self.idleAccumulator = 0
+	local intensity = math.clamp((now - self.idleBusyUntil) / idle.BlendInSeconds, 0, 1)
+	poseOperative(self, StagePose.idle(base, now, intensity, familyOf(self) ~= "Dual"))
+	self.poseState = base -- the base pose stays the thing a screen change blends from
+end
+
 local function transitionPose(self: MenuStage)
 	self.poseJanitor:Cleanup()
+	self.idleBusyUntil = os.clock() + panInfo.Time
 	local goal = StagePose.describe(self.framing, familyOf(self))
 	local from = self.poseState
 	if not self.rig or not from or UiAccessibility.reducedMotion() then
