@@ -383,6 +383,15 @@ local GameConfig = {
 		SensitivityStep = 0.25,
 		FovStep = 5,
 		PanelFraction = 0.85,
+		-- Pictures beside the settings numbers (owner 2026-11-25).
+		Visuals = {
+			PreviewPixels = 56, -- the outline colour's preview card
+			PreviewOutlinePixels = 3,
+			MeterPixels = 4, -- the level bar under a stepper
+			WedgePixels = 26, -- the field of view wedge
+			QualityBarPixels = 5, -- the graphics quality bars
+			DimTransparency = 0.7,
+		},
 	},
 
 	-- Owner 2026-11-25: an Exposed agent is outlined for every other player, in a colour each player chooses (Settings > Espionage). The outline hugs the body and

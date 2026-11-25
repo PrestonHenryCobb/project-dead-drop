@@ -9,6 +9,7 @@ local GameConfig = require(Shared.GameConfig)
 local InputHints = require(Shared.Util.InputHints)
 local Janitor = require(Shared.Util.Janitor)
 local MenuTheme = require(script.Parent.Parent.MenuTheme)
+local MenuIcons = require(script.Parent.MenuIcons)
 local AutoRecoverController = require(script.Parent.Parent.Parent.Controllers.AutoRecoverController)
 local RemoteController = require(script.Parent.Parent.Parent.Controllers.RemoteController)
 local SettingsController = require(script.Parent.Parent.Parent.Controllers.SettingsController)
@@ -270,6 +271,124 @@ function SettingsPanel.open(parent: Frame)
 			worldVolume(if value == 0 then "MUTED" else `{math.floor(value * 100 + 0.5)}%`, value > 0, value < 1)
 		end
 	end)
+	-- Pictures beside the numbers (owner 2026-11-25): a level bar under each volume and sensitivity, a view wedge for the field of view, and quality
+	-- bars on the graphics button.
+	local visuals = GameConfig.ClientSettings.Visuals
+	local function meter(rowName: string, fraction: () -> number)
+		local row = body:FindFirstChild(rowName)
+		if not (row and row:IsA("Frame")) then
+			return
+		end
+		local track = Instance.new("Frame")
+		track.Name = "Meter"
+		track.BackgroundColor3 = MenuTheme.Colors.Border
+		track.BorderSizePixel = 0
+		track.Position = UDim2.new(
+			0.2,
+			config.GapPixels,
+			0,
+			config.ChipHeightPixels + config.SecondaryHeightPixels - visuals.MeterPixels
+		)
+		track.Size = UDim2.new(0.6, -config.GapPixels * 2, 0, visuals.MeterPixels)
+		track.Parent = row
+		local fill = Instance.new("Frame")
+		fill.BackgroundColor3 = MenuTheme.Colors.BrassBright
+		fill.BorderSizePixel = 0
+		fill.Parent = track
+		local last = -1
+		table.insert(updaters, function()
+			local value = math.clamp(fraction(), 0, 1)
+			if value ~= last then
+				last = value
+				fill.Size = UDim2.fromScale(value, 1)
+			end
+		end)
+	end
+	meter("Sensitivity", function()
+		local range = GameConfig.ClientSettings
+		return (SettingsController.get().Sensitivity - range.SensitivityMin)
+			/ (range.SensitivityMax - range.SensitivityMin)
+	end)
+	meter("CombatVolume", function()
+		return SettingsController.get().CombatVolume
+	end)
+	meter("WorldVolume", function()
+		return SettingsController.get().WorldVolume
+	end)
+	local fovRow = body:FindFirstChild("FieldOfView")
+	if fovRow and fovRow:IsA("Frame") then
+		-- Two lines from one point, opening as wide as the field of view.
+		local wedge: { Frame } = {}
+		for _ = 1, 2 do
+			local line = Instance.new("Frame")
+			line.Name = "WedgeLine"
+			line.AnchorPoint = Vector2.new(0.5, 0.5)
+			line.BackgroundColor3 = MenuTheme.Colors.BrassBright
+			line.BorderSizePixel = 0
+			line.Size = UDim2.fromOffset(visuals.WedgePixels, visuals.MeterPixels / 2)
+			line.Parent = fovRow
+			table.insert(wedge, line)
+		end
+		local lastFovShown = -1
+		table.insert(updaters, function()
+			local fovValue = SettingsController.get().Fov
+			if fovValue == lastFovShown then
+				return
+			end
+			lastFovShown = fovValue
+			local half = math.rad(fovValue / 2)
+			local baseY = config.ChipHeightPixels + config.SecondaryHeightPixels - config.GapPixels
+			for index, line in wedge do
+				local side = if index == 1 then -1 else 1
+				local direction = Vector2.new(side * math.sin(half), -math.cos(half))
+				local middle = direction * (visuals.WedgePixels / 2)
+				line.Position = UDim2.new(0.2, config.GapPixels * 3 + middle.X, 0, baseY + middle.Y)
+				line.Rotation = math.deg(math.atan2(direction.Y, direction.X))
+			end
+		end)
+	end
+	table.insert(
+		updaters,
+		(function()
+			local bars: { Frame } = {}
+			for index = 1, 3 do
+				local bar = Instance.new("Frame")
+				bar.Name = `Quality{index}`
+				bar.BackgroundColor3 = MenuTheme.Colors.BrassBright
+				bar.BorderSizePixel = 0
+				bar.AnchorPoint = Vector2.new(0, 1)
+				bar.Position = UDim2.new(
+					0,
+					config.GapPixels * 2 + (index - 1) * visuals.QualityBarPixels * 2,
+					1,
+					-config.GapPixels
+				)
+				bar.Size = UDim2.fromOffset(visuals.QualityBarPixels, visuals.QualityBarPixels * index)
+				bar.Parent = graphics.Instance
+				table.insert(bars, bar)
+			end
+			local lastMode = ""
+			return function()
+				local graphicsMode = GraphicsController.getMode()
+				if graphicsMode == lastMode then
+					return
+				end
+				lastMode = graphicsMode
+				local level = if graphicsMode == "Low"
+					then 1
+					elseif graphicsMode == "Medium" then 2
+					elseif graphicsMode == "High" then 3
+					else 0
+				for index, bar in bars do
+					-- Auto shows every bar dim: it follows the Roblox quality slider.
+					bar.BackgroundTransparency = if level == 0
+						then visuals.DimTransparency
+						elseif index <= level then 0
+						else visuals.DimTransparency
+				end
+			end
+		end)()
+	)
 	-- The outline colour: eight swatches and a hue slider.
 	local outline = GameConfig.ExposedOutline
 	local colorRow = Instance.new("Frame")
@@ -277,6 +396,26 @@ function SettingsPanel.open(parent: Frame)
 	colorRow.BackgroundTransparency = 1
 	colorRow.Size = UDim2.new(1, 0, 0, config.ChipHeightPixels + config.SecondaryHeightPixels * 2 + config.GapPixels)
 	colorRow.Parent = body
+	-- The swatches and the slider fill the row except for a preview card at the right: an agent's bust framed in the chosen colour.
+	local previewSize = visuals.PreviewPixels
+	local controls = Instance.new("Frame")
+	controls.Name = "Controls"
+	controls.BackgroundTransparency = 1
+	controls.Size = UDim2.new(1, -(previewSize + config.GapPixels), 1, 0)
+	controls.Parent = colorRow
+	local previewFrame = Instance.new("Frame")
+	previewFrame.Name = "Preview"
+	previewFrame.BackgroundTransparency = 1
+	previewFrame.Position = UDim2.new(1, -previewSize, 0, config.ChipHeightPixels)
+	previewFrame.Size = UDim2.fromOffset(previewSize, previewSize)
+	previewFrame.Parent = colorRow
+	MenuIcons.portrait(previewFrame, "Guise", previewSize, UDim2.new())
+	local previewOutline = Instance.new("UIStroke")
+	previewOutline.Thickness = visuals.PreviewOutlinePixels
+	previewOutline.Parent = previewFrame
+	table.insert(updaters, function()
+		previewOutline.Color = SettingsController.get().ExposedOutlineColor
+	end)
 	MenuTheme.label({
 		Name = "Label",
 		Text = "OUTLINE COLOUR",
@@ -295,7 +434,7 @@ function SettingsPanel.open(parent: Frame)
 		local count = #outline.Swatches
 		swatch.Position = UDim2.new((index - 1) / count, 0, 0, config.ChipHeightPixels)
 		swatch.Size = UDim2.new(1 / count, -config.GapPixels / 2, 0, config.SecondaryHeightPixels)
-		swatch.Parent = colorRow
+		swatch.Parent = controls
 		local ring = Instance.new("UIStroke")
 		ring.Color = MenuTheme.Colors.Text
 		ring.Thickness = config.FocusPixels
@@ -314,7 +453,7 @@ function SettingsPanel.open(parent: Frame)
 	hueBar.BorderSizePixel = 0
 	hueBar.Position = UDim2.fromOffset(0, config.ChipHeightPixels + config.SecondaryHeightPixels + config.GapPixels)
 	hueBar.Size = UDim2.new(1, 0, 0, config.SecondaryHeightPixels)
-	hueBar.Parent = colorRow
+	hueBar.Parent = controls
 	local hueGradient = Instance.new("UIGradient")
 	local hueKeys: { ColorSequenceKeypoint } = {}
 	local hueSteps = 6
