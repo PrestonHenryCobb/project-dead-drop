@@ -550,6 +550,22 @@ function SettingsPanel.open(parent: Frame)
 				dragging = false
 			end
 		end))
+		-- With the slider selected, a controller's left and right (or the arrow keys) step the hue.
+		cleanup:Add(UserInputService.InputBegan:Connect(function(input: InputObject)
+			if GuiService.SelectedObject ~= hueBar then
+				return
+			end
+			local code = input.KeyCode
+			local direction = if code == Enum.KeyCode.DPadRight or code == Enum.KeyCode.Right
+				then 1
+				elseif code == Enum.KeyCode.DPadLeft or code == Enum.KeyCode.Left then -1
+				else 0
+			if direction ~= 0 then
+				local hue = read():ToHSV()
+				local next = (hue + direction * outline.HueStepDegrees / 360) % 1
+				write(Color3.fromHSV(next, outline.HueSaturation, outline.HueValue))
+			end
+		end))
 		local lastColor: Color3? = nil
 		local lastShape = -1
 		table.insert(updaters, function()
